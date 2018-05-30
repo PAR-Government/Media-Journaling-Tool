@@ -1538,7 +1538,8 @@ def applyGridTransformCompositeImage(compositeMask, startIm, destIm, edgeMask=No
 
 
 def applyInterpolateToCompositeImage(compositeMask, startIm, destIm, edgeMask, inverse=False, arguments={},
-                                     defaultTransform=None):
+                                     defaultTransform=None,
+                                     withMask = False):
     """
        Loop through each level add apply SIFT to transform the mask
        :param compositeMask:
@@ -1563,20 +1564,25 @@ def applyInterpolateToCompositeImage(compositeMask, startIm, destIm, edgeMask, i
     for level in levels:
         if level == 0:
             continue
-        levelMask = np.zeros(compositeMask.shape).astype('uint16')
-        levelMask[compositeMask == level] = 255
         if defaultTransform is None or (
                         'composite homography' in arguments and arguments['composite homography'] == 'Multiple'):
-            TM, matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=None, arguments=arguments)
+            levelMask = np.zeros(compositeMask.shape).astype('uint8')
+            levelMask[compositeMask == level] = 200
+            TM, matchCountResult = __sift(startIm, destIm, mask1=levelMask, mask2=invertMask(ImageWrapper(edgeMask)), arguments=arguments)
         else:
-            TM = None
-        if TM is not None:
-            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]), flags=flags,
-                                               borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
-        elif defaultTransform is None:
+            TM = defaultTransform
+        levelMask = np.zeros(compositeMask.shape).astype('uint16')
+        levelMask[compositeMask == level] = 8000
+        if TM is None:
             newLevelMask = cv2.resize(levelMask, (destIm.size[0], destIm.size[1]))
+        elif withMask:
+            newLevelMask = applyTransform(levelMask,
+                                          mask=edgeMask,
+                                          transform_matrix=TM,
+                                          invert=inverse,
+                                          shape=(destIm.size[1], destIm.size[0]))
         else:
-            newLevelMask = cv2.warpPerspective(levelMask, defaultTransform, (destIm.size[0], destIm.size[1]),
+            newLevelMask = cv2.warpPerspective(levelMask, TM, (destIm.size[0], destIm.size[1]),
                                                flags=flags,
                                                borderMode=cv2.BORDER_CONSTANT, borderValue=borderValue)
         if newLevelMask is not None:

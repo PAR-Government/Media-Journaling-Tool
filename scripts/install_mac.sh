@@ -16,7 +16,7 @@ then
 else
    echo "Unexpected python version $VERSION. Installing upgrade."
    brew install readline sqlite gdbm
-   brew install python
+   brew install python --with-tcl-tk
 fi
 
 VERSION=$((python --version) 2>&1)

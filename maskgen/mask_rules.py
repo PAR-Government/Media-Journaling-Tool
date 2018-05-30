@@ -1309,29 +1309,36 @@ def warp_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
-    return cas_transform(buildState)
+    return composite_transform(buildState, withMask = True)
 
-def cas_transform(buildState):
+def composite_transform(buildState, withMask = False):
     """
-    :param buildState:
-    :return: updated composite mask
-    @type buildState: BuildState
-    @rtype: np.ndarray
-    """
+        :param buildState:
+        :return: updated composite mask
+        @type buildState: BuildState
+        @rtype: np.ndarray
+        """
     res = None
     tm = buildState.transformMatrix()
     masktowarp = buildState.compositeMask if buildState.isComposite else buildState.donorMask
     res = tool_set.applyInterpolateToCompositeImage(masktowarp,
-                                                    ImageWrapper(buildState.source) if type(buildState.source) not in [str, unicode] else buildState.graph.get_image(buildState.source)[0],
-                                                    ImageWrapper(buildState.target) if type(buildState.target) not in [str, unicode] else buildState.graph.get_image(buildState.target)[0],
+                                                    ImageWrapper(buildState.source) if type(buildState.source) not in [
+                                                        str, unicode] else
+                                                    buildState.graph.get_image(buildState.source)[0],
+                                                    ImageWrapper(buildState.target) if type(buildState.target) not in [
+                                                        str, unicode] else
+                                                    buildState.graph.get_image(buildState.target)[0],
                                                     buildState.edgeMask,
                                                     inverse=not buildState.isComposite,
                                                     arguments=buildState.arguments(),
-                                                    defaultTransform=tm)
+                                                    defaultTransform=tm,
+                                                    withMask=withMask)
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
     return res
 
+def cas_transform(buildState):
+    return composite_transform(buildState)
 
 def video_flip_transform(buildState):
     """
@@ -2393,7 +2400,7 @@ class ColorCompositeBuilder(CompositeBuilder):
         :param probe:
         :param edge:
         :return:
-        @type probe:
+        @type probe: Probe
         """
         # now reconstruct the probe target to be color coded and obscured by overlaying operations
         color = [int(x) for x in edge['linkcolor'].split(' ')]

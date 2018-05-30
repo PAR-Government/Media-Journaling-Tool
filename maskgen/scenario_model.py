@@ -1202,7 +1202,7 @@ class ImageProjectModel:
         Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
         global.inputmaskname.
         :return: The set of probes
-        @rtype: list of Probe
+        @rtype: list [Probe]
         """
         self._executeSkippedComparisons()
         thread_pool = MaskgenThreadPool(int(prefLoader.get_key('skipped_threads', 2)))
@@ -1238,6 +1238,22 @@ class ImageProjectModel:
         @type inclusionFunction: (tuple, dict) -> bool
         @rtype: list of Probe
         """
+        def probeCompare(x,y):
+            """
+
+            :param x:
+            :param y:
+            :return:
+            @type x: Probe
+            @type y: Probe
+            """
+            diff = cmp(x.finalImageFileName,y.finalImageFileName)
+            if diff == 0:
+                diff = x.level - y.level
+                if diff == 0:
+                    return cmp (str(x.edgeId), str(y.edgeId))
+            return diff
+
         self.assignColors()
         probes = replacement_probes if replacement_probes is not None else \
             self.getProbeSetWithoutComposites(inclusionFunction=inclusionFunction,
@@ -1245,7 +1261,8 @@ class ImageProjectModel:
                                               graph=graph,
                                               exclusions=exclusions
         )
-        probes = sorted(probes, key=lambda probe: probe.level)
+
+        probes = sorted(probes, cmp=probeCompare)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
             compositeBuilder.initialize(self.G, probes)
@@ -1262,6 +1279,7 @@ class ImageProjectModel:
         if replacement_probes is None:
             for compositeBuilder in localCompositeBuilders:
                 compositeBuilder.finalize(probes)
+
         return probes
 
     def getPredecessorNode(self):

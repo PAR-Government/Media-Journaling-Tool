@@ -37,7 +37,7 @@ def append_segment(row, segment):
                   segment.starttime, segment.endtime, segment.rate]
 
 
-def archive_probes(project, directory='.', archive=True):
+def archive_probes(project, directory='.', archive=True, reproduceMask= True):
     """
     Create an archive containing probe files and CSV file describing the probes.
 
@@ -47,9 +47,13 @@ def archive_probes(project, directory='.', archive=True):
     @param project: str
     @param directory: str
     """
-    scModel = maskgen.scenario_model.ImageProjectModel(project)
-    for edge_id in scModel.getGraph().get_edges():
-        scModel.reproduceMask(edge_id=edge_id)
+    if type(project) in ['unicode','str']:
+        scModel = maskgen.scenario_model.ImageProjectModel(project)
+    else:
+        scModel = project
+    if reproduceMask:
+        for edge_id in scModel.getGraph().get_edges():
+            scModel.reproduceMask(edge_id=edge_id)
     probes = scModel.getProbeSet(compositeBuilders=[EmptyCompositeBuilder])
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')

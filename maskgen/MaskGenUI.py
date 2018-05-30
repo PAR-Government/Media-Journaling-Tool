@@ -982,7 +982,7 @@ class MakeGenUI(Frame):
                     edge_id[0], edge_id[1],edge['op']
                 ))
         if tkMessageBox.askyesno('Archive','Archive Probes'):
-            archive_probes('.')
+            archive_probes(self.scModel,reproduceMask=False)
         else:
             ps = self.scModel.getProbeSet(compositeBuilders=[ColorCompositeBuilder, Jpeg2000CompositeBuilder])
             for probe in ps:
@@ -1140,22 +1140,23 @@ class MakeGenUI(Frame):
 
         self.nodemenu = Menu(self.master, tearoff=0)
         self.nodemenu.add_command(label="Select", command=self.select)
-        self.nodemenu.add_command(label="Remove", command=self.remove)
+        self.nodemenu.add_command(label="Edit", command=self.nodeedit)
         self.nodemenu.add_command(label="Connect To", command=self.connectto)
         self.nodemenu.add_command(label="Export", command=self.exportpath)
         self.nodemenu.add_command(label="Compare To", command=self.compareto)
         self.nodemenu.add_command(label="View Composite", command=self.viewcomposite)
         self.nodemenu.add_command(label="View Donor", command=self.viewdonor)
+        self.nodemenu.add_command(label="Remove", command=self.remove)
         self.nodemenu.add_command(label="Compress", command=self.compress)
         self.nodemenu.add_command(label="Analyze", command=self.imageanalysis)
-        self.nodemenu.add_command(label="Edit", command=self.nodeedit)
+
         self.nodemenu.add_command(label="Proxy", command=self.nodeproxy)
 
         self.edgemenu = Menu(self.master, tearoff=0)
         self.edgemenu.add_command(label="Select", command=self.select)
-        self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
+        self.edgemenu.add_command(label="Remove", command=self.remove)
         self.edgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
@@ -1165,8 +1166,8 @@ class MakeGenUI(Frame):
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
-        self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
+        self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
