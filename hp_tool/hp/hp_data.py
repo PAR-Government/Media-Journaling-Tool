@@ -608,7 +608,6 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
             name = os.path.split(image)[1]
 
             if name.lower().endswith('.3d.zip'):
-
                 tkMessageBox.showerror("Improper 3D Model Processing", "In order to process 3D models, you must have "
                                                                        "no device local ID and the 'Include "
                                                                        "Subdirectories' box must NOT be checked")

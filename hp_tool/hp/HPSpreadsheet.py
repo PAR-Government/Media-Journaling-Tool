@@ -791,8 +791,11 @@ class HPSpreadsheet(Toplevel):
                 elif currentColName == "HP-PrimarySecondary" and val not in ['primary', 'secondary']:
                     errors.append('Invalid entry at column HP-PrimarySecondary, row {0}.  Value must be "primary" or'
                                   ' "secondary".'.format(row + 1))
-            width = int(self.pt.model.getValueAt(row, w_col))
-            height = int(self.pt.model.getValueAt(row, h_col))
+            try:
+                width = int(self.pt.model.getValueAt(row, w_col))
+                height = int(self.pt.model.getValueAt(row, h_col))
+            except ValueError:
+                width = height = ""
             ps = self.pt.model.getValueAt(row, ps_col)
             res = (width, height)
             if (res, ps) not in resolutions and res[0] != "" and res[1] != "":
@@ -817,7 +820,7 @@ class HPSpreadsheet(Toplevel):
             if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
                 tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
 
-        if tkerrs:
+        if tkerrs[0] or tkerrs[1]:
             tkMessageBox.showwarning("New Resolutions", "\nThe following resolutions do not exist under the camera "
                                      "indicated\n" * (len(tkerrs[0]) > 0) + "\n".join(tkerrs[0]) + "\nThe following "
                                      "resolutions were found online tagged as the opposite.\n" *(len(tkerrs[1]) > 0) +
