@@ -1,0 +1,110 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "unicorn",
+    "name": "Object_cropping",
+    "organization": "Wonderland",
+    "projectdescription" : "Crops out a preselected region of an image",
+    "technicalsummary" : "Automated: Cropping",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes":[
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "Base"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "BasePng",
+      "arguments": {
+        "Image Rotated": {
+          "type": "value",
+          "value": "no"
+        }
+      }
+    },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "JsonSelector",
+      "id": "Selector",
+      "arguments": {
+        "Json File": "{json_path}",
+        "index": {
+          "type": "imagefile",
+          "source":"Base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CropTo",
+      "id": "cropMagic",
+      "arguments": {
+        "crop_x": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "x"
+        },
+        "crop_y": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "y"
+        },
+        "pixel_width": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "w"
+        },
+        "pixel_height": {
+          "type": "variable",
+          "source": "Selector",
+          "name": "w"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "final",
+      "arguments": {
+         "donor" : {
+           "type": "donor",
+           "source": "Base"
+         },
+        "rotate" : {
+          "type" : "value",
+          "value" :"no"
+        }
+      }
+    }
+  ],
+  "links":[
+    {
+      "source":"Base",
+      "target":"Selector"
+    },
+    {
+      "source":"Selector",
+      "target":"cropMagic",
+      "connect": false
+    },
+    {
+      "source":"Base",
+      "target":"BasePng"
+    },
+    {
+      "source":"BasePng",
+      "target":"cropMagic"
+    },
+    {
+      "source":"cropMagic",
+      "target":"final"
+    }
+  ]
+}
