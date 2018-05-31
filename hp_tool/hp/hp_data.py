@@ -22,7 +22,7 @@ from hp.GAN_tools import SeedProcessor
 
 
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
-        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes] + [".zip"],  # .zip = DNG Stacks
+        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
         'MODEL': ['.3d.zip'],
         'nonstandard': ['.lfr']}
@@ -58,7 +58,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         sub = 'model'
     elif any(os.path.splitext(filename)[1].lower() in exts["nonstandard"] for filename in files_in_dir):
         sub = 'nonstandard'
-    elif currentExt.lower() in exts['VIDEO']:
+    elif currentExt.lower() in exts['VIDEO'] or image.lower().endswith(".dng.zip"):
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
