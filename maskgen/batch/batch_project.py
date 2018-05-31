@@ -196,6 +196,13 @@ def remap_links(json_data):
     json_data['links'] = new_linked_list
     return json_data
 
+def loadJSONInitializer(global_state):
+    d = {}
+    jsonKeys = [key for key in global_state if str(key).endswith('.json.load')]
+    for k in jsonKeys:
+        d[k[0:-5]] = json.load(open(global_state[k]))
+    return d
+
 def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:

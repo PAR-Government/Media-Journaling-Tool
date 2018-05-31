@@ -1,0 +1,72 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "flamingo",
+    "name": "FaceCrop",
+    "organization": "Wonderland",
+    "projectDescription": "Automated Crop of most frontal, largest face that complies with 50% rule",
+    "technicalSummary": "Automated: Crop the best face",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+	{
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "Base",
+      "arguments": {"isgan":"yes"}
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "ToPNG"
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "FaceCrop",
+      "id": "Cropped",
+      "arguments": {
+        "crop dimensions": {
+          "type": "value",
+          "value": "1024,1024"
+        },
+        "filemap": {
+          "type":"global",
+          "name":"faces.json"
+        },
+        "donor": {
+          "type":"donor",
+          "source":"Base"
+        }
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "CompressAs",
+      "id": "Output",
+      "arguments": {
+        "donor": {
+          "type":"donor",
+          "source": "Base"
+        }
+      }
+    }
+    ],
+  "links": [
+    {
+      "source": "Base",
+      "target": "ToPNG"
+    },
+    {
+      "source": "ToPNG",
+      "target": "Cropped"
+    },
+    {
+      "source": "Cropped",
+      "target": "Output"
+    }
+    ]
+}
