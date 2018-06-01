@@ -412,7 +412,7 @@ def getDurationStringFromMilliseconds(millis):
     hr = sec / 3600
     mi = sec / 60 - (hr * 60)
     ss = sec - (hr * 3600) - mi * 60
-    return '{:=02d}:{:=02d}:{:=02d}.{:=03d}'.format(hr, mi, ss, ms)
+    return '{:=02d}:{:=02d}:{:=02d}.{:=06d}'.format(hr, mi, ss, ms)
 
 
 def addTwo(num_string):

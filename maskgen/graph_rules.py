@@ -97,9 +97,9 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     et = None
     for k, v in args.iteritems():
         if k.endswith('End Time'):
-            et = v #getMilliSecondsAndFrameCount(v)
+            et = v
         elif k.endswith('Start Time'):
-            st = v #getMilliSecondsAndFrameCount(v)
+            st = v
     masks = edge['videomasks'] if 'videomasks' in edge else []
     mask_start_constraints = {}
     mask_end_constraints = {}
@@ -112,40 +112,50 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     if real_masks is None:
         return
     for mask in masks:
+        startid = 'starttime' if mask['type'] == 'audio' else 'startframe'
+        endid = 'endtime' if mask['type'] == 'audio' else 'endframe'
         mask_start_constraints[ mask['type']] = min(
             (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
-                                                   mask['starttime'])
-        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
-                                                                                     default=29.97,
-                                                                                     audio= mask['type']=='audio')
+                                                   mask[startid])
+        #mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+        #                                                                             default=29.97,
+        #                                                                             audio= mask['type']=='audio')
         mask_end_constraints[mask['type']] = max(
             (mask_end_constraints[mask['type']] if mask['type'] in mask_end_constraints else 0),
-            mask['endtime'])
+            mask[endid])
     real_mask_start_constraints = {}
     real_mask_end_constraints = {}
     for mask in real_masks:
+        startid = 'starttime' if mask['type'] == 'audio' else 'startframe'
+        endid = 'endtime' if mask['type'] == 'audio' else 'endframe'
         real_mask_start_constraints[mask['type']] = min(
             (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
-            mask['starttime'])
-        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
-            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+            mask[startid])
+       # mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+        #    getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
         real_mask_end_constraints[mask['type']] = max(
             (real_mask_end_constraints[mask['type']] if mask['type'] in real_mask_end_constraints else 0),
-            mask['endtime'])
+            mask[endid])
     if st is not None and len(masks) == 0:
         return (Severity.ERROR,'Change masks not generated.  Trying recomputing edge mask')
-    if 'video' in mask_rates:
-        mask_rates['video'] = 1000.0/mask_rates['video']
-    if 'audio' in mask_rates:
-        mask_rates['audio'] = 1.0
+    mask_rates['video'] = 1.0
+    mask_rates['audio'] = 100.0
     for key, value in mask_start_constraints.iteritems():
         if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
-            return (Severity.WARNING,'Start time entered does not match detected start time: {}'.format(
-                getDurationStringFromMilliseconds(mask_start_constraints[key])))
+            if key == 'audio':
+                return (Severity.WARNING,'Start time entered does not match detected start time: {}'.format(
+                    getDurationStringFromMilliseconds(mask_start_constraints[key])))
+            else:
+                return (Severity.WARNING, 'Start frame entered does not match detected start frame: {}'.format(
+                    mask_start_constraints[key]))
     for key, value in real_mask_end_constraints.iteritems():
         if key in mask_end_constraints and abs(value - mask_end_constraints[key]) > mask_rates[key]:
-            return (Severity.WARNING,'End time entered does not match detected end time: {}'.format(
-                getDurationStringFromMilliseconds(mask_end_constraints[key])))
+            if key == 'audio':
+                return (Severity.WARNING,'End time entered does not match detected end time: {}'.format(
+                    getDurationStringFromMilliseconds(mask_end_constraints[key])))
+            else:
+                return (Severity.WARNING, 'End frame entered does not match detected end frame: {}'.format(
+                    mask_end_constraints[key]))
 
 
 def checkVideoMasks(op,graph, frm, to):
@@ -191,34 +201,38 @@ def checkAddFrameTime(op, graph, frm, to):
     mask_start_constraints = {}
     mask_rates = {}
     dir = graph.dir
-    file = os.path.join(dir, graph.get_node(frm)['file'])
-    if fileType(file) not in ['audio','video']:
+    filename = os.path.join(dir, graph.get_node(frm)['file'])
+    if fileType(filename) not in ['audio','video']:
         return
-    real_masks = getMaskSetForEntireVideo(file,start_time=st,media_types=['video','audio'])
+    real_masks = getMaskSetForEntireVideo(filename,start_time=st,media_types=['video','audio'])
     for mask in masks:
+        startid = 'starttime' if mask['type']  == 'audio' else 'startframe'
         mask_start_constraints[ mask['type']] = min(
             (mask_start_constraints[mask['type']] if mask['type'] in mask_start_constraints else 2147483647),
-                                                   mask['starttime'])
-        mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
-                                                                                     default=29.97,
-                                                                                     audio= mask['type']=='audio')
+                                                   mask[startid])
+        #mask_rates[ mask['type']] = mask['rate'] if 'rate' in mask else getFrameRate(file,
+        #                                                                             default=29.97,
+        #                                                                             audio= mask['type']=='audio')
     real_mask_start_constraints = {}
     for mask in real_masks:
+        startid = 'starttime' if mask['type'] == 'audio' else 'startframe'
         real_mask_start_constraints[mask['type']] = min(
             (real_mask_start_constraints[mask['type']] if mask['type'] in real_mask_start_constraints else 2147483647),
-            mask['starttime'])
-        mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
-            getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
+            mask[startid])
+        #mask_rates[mask['type']] = mask['rate'] if 'rate' in mask  and mask['type'] not in mask_rates else \
+        #    getFrameRate(file, default=29.97 ,audio= mask['type']=='audio')
     if st is not None and len(masks) == 0:
         return (Severity.ERROR,'Change masks not generated.  Trying recomputing edge mask')
-    if 'video' in mask_rates:
-        mask_rates['video'] = 1000.0/mask_rates['video']
-    if 'audio' in mask_rates:
-        mask_rates['audio'] = 1.0
+    mask_rates['video'] = 1.0
+    mask_rates['audio'] = 100.0
     for key, value in mask_start_constraints.iteritems():
         if key in mask_start_constraints and abs(value - mask_start_constraints[key]) >  mask_rates[key]:
-            return (Severity.WARNING,'Insertion time entered does not match detected start time: {}'.format(
-                getDurationStringFromMilliseconds(mask_start_constraints[key])))
+            if key == 'audio':
+                return (Severity.WARNING,'Insertion time entered does not match detected start time: {}'.format(
+                    getDurationStringFromMilliseconds(mask_start_constraints[key])))
+            else:
+                return (Severity.WARNING, 'Insertion time entered does not match detected start frame: {}'.format(
+                    mask_start_constraints[key]))
 
 
 def checkFrameTimes(op, graph, frm, to):
@@ -740,6 +754,13 @@ def checkForDonorAudio(op, graph, frm, to):
     return None
 
 
+def checkAudioOnly(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    diffs = getValue(edge, 'metadatadiff[0]')
+    changes = [comp for comp in diffs if 'nb_frames' in comp]
+    if len(changes) > 1:
+        return  (Severity.ERROR,"Length of video has changed")
+
 def checkLengthSame(op, graph, frm, to):
     """
      the length of video should not change
@@ -758,6 +779,38 @@ def checkLengthSame(op, graph, frm, to):
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
         return (Severity.WARNING,"Length of video has changed")
 
+def checkAudioTimeFormat(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    st = getValue(edge, 'arguments.Start Time','00:00:00')
+    et = getValue(edge, 'arguments.End Time', '00:00:00')
+    if getMilliSecondsAndFrameCount(et)[1] > 1:
+        return (Severity.ERROR,"End Time should not include frame number")
+    if getMilliSecondsAndFrameCount(st)[1] > 1:
+        return (Severity.ERROR,"Start Time should not include frame number")
+
+def checkOverlay(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    if getValue(edge,'arguments.add type') in ['overlay','replace']:
+        return checkDurationAudio(op, graph, frm, to)
+
+def checkDurationAudio(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
+    from_img, from_file = graph.get_image(frm)
+    to_img, to_file = graph.get_image(to)
+    fm = getDuration(from_file,audio=True)
+    tm = getDuration(to_file,audio=True)
+    if abs(fm-tm)>100:
+        return (Severity.ERROR,"Duration of media changed")
 
 def checkLengthSmaller(op, graph, frm, to):
     """

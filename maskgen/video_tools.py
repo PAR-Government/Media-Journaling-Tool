@@ -1129,7 +1129,7 @@ def getFrameAttribute(fileOne, attribute, default=None, audio=False):
     return default
 
 def getFrameRate(fileOne, default=None, audio=False):
-    rate = getFrameAttribute(fileOne, 'r_frame_rate', default=None, audio=audio)
+    rate = getFrameAttribute(fileOne, 'sample_rate' if audio else 'r_frame_rate', default=None, audio=audio)
     if rate is None:
         return default
     if len(rate) == 1 and float(rate[0]) > 0:

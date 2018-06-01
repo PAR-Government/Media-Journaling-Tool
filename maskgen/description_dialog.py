@@ -875,7 +875,12 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
                                                                                                     sticky=W)
         Label(master, text='User: ' + self.description.username, anchor=W, justify=LEFT).grid(row=3, column=2,
                                                                                                     sticky=E)
-        row = 4
+        Message(master,
+                text='Semantics: ' + ', '.join(self.description.semanticGroups), anchor=W, justify=LEFT).grid(row=4,
+                                                                                             column=0,
+                                                                                              columnspan=4,
+                                                                                              sticky=W)
+        row = 5
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
             row += 1
@@ -1709,172 +1714,6 @@ class FileCaptureDialog(tkSimpleDialog.Dialog):
 
     def apply(self):
         self.cancelled = False
-
-
-class QAViewDialog(Toplevel):
-    lookup = {}
-
-    def __init__(self, parent):
-        """
-
-        :param parent: MakeGenUI
-        @type parent: MakeGenUI
-        """
-        self.parent = parent
-        self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False, keepFailures=True)
-        Toplevel.__init__(self, parent)
-        #self.complete = True if self.parent.scModel.getProjectData('validation') == 'yes' else False
-        self.createWidgets()
-        self.resizable(width=False, height=False)
-
-    def getFileNameForNode(self, nodeid):
-        fn =  self.parent.scModel.getFileName(nodeid)
-        self.lookup [ fn] = nodeid
-        return fn
-
-    def createWidgets(self):
-        row=0
-        col=0
-        self.validateButton = Button(self, text='Check Validation', command=self.parent.validate, width=50)
-        self.validateButton.grid(row=row, column=col, padx=10, columnspan=5, sticky='EW')
-        row = 1
-        col = 1
-        self.optionsLabel = Label(self, text='Select terminal node to view composite, or PasteSplice node to view donor mask: ')
-        self.optionsLabel.grid(row=row,columnspan=5)
-        row+=1
-        self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]),self.getFileNameForNode(p.finalNodeId)]) for p in self.probes] if self.probes else []
-        donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in self.probes if p.donorMaskImage is not None] if self.probes else []
-        donors  = set(sorted(donors))
-        self.crit_links.extend ([x for x in donors])
-        self.optionsBox = ttk.Combobox(self, values=self.crit_links)
-        if self.crit_links:
-            self.optionsBox.set(self.crit_links[0])
-        self.optionsBox.grid(row=row, columnspan=6, sticky='EW',padx=10)
-        self.optionsBox.bind("<<ComboboxSelected>>", self.load_overlay)
-        row+=1
-        self.operationVar = StringVar()
-        self.operationLabel = Label(self, textvariable=self.operationVar, justify=LEFT)
-        self.operationLabel.grid(row=row,column=0,columnspan=1,sticky='EW',padx=10)
-        row += 1
-        self.optionsLabel.grid(row=row, columnspan=5)
-        self.cImgFrame = Frame(self)
-        self.cImgFrame.grid(row=row, rowspan=8)
-        self.descriptionLabel = Label(self)
-
-        # only load the overlay if there are blue links
-        if self.crit_links:
-            self.load_overlay(initialize=True)
-
-        col=1
-
-        self.infolabel = Label(self, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
-        row+=1
-
-        qa_list = ['Input masks are provided where possible, especially for any operation where pixels were directly taken from one region to another (e.g. PasteSampled)',
-                   'PasteSplice operations should include resizing, rotating, positioning, and cropping of the pasted object in their arguments as one operation. \n -For example, there should not be a PasteSplice followed by a TransformRotate of the pasted object.',
-                   'Base and terminal node images should be the same format.\n -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
-                   'Verify that all relevant local changes are accurately represented in the composite and donor mask image(s), which can be easily viewed to the left.',
-                   'All relevant semantic groups are identified.',
-                   'End nodes are renamed to their MD5 value (Process->Rename Final Images).']
-        checkboxes = []
-        self.checkboxvars = []
-        for q in qa_list:
-            var = BooleanVar()
-            ck = Checkbutton(self, variable=var, command=self.check_ok)
-            ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
-            ck.grid(row=row, column=col)
-            checkboxes.append(ck)
-            self.checkboxvars.append(var)
-            Label(self, text=q, wraplength=300, justify=LEFT).grid(row=row, column=col+1, sticky='EW')#, columnspan=4)
-            row+=1
-
-        Label(self, text='QA Signoff: ').grid(row=row, column=col, sticky='W')
-        col+=1
-
-        self.reporterStr = StringVar()
-        self.reporterStr.set(self.parent.get_username())
-        self.reporterEntry = Entry(self, textvar=self.reporterStr)
-        self.reporterEntry.grid(row=row, column=col, columnspan=3, sticky='W')
-
-        row+=1
-        col-=1
-
-        self.acceptButton = Button(self, text='Accept', command=lambda:self.qa_done('yes'), width=15, state=DISABLED)
-        self.acceptButton.grid(row=row, column=col, columnspan=2, sticky='W')
-
-        self.rejectButton = Button(self, text='Reject', command=lambda:self.qa_done('no'), width=15)
-        self.rejectButton.grid(row=row, column=col+2, columnspan=2, sticky='W')
-
-        row += 1
-        self.descriptionLabel.grid(row=row, column=col-1)
-
-        row +=1
-        self.commentsLabel = Label(self, text='Comments: ')
-        self.commentsLabel.grid(row=row, column=col-1, columnspan=5)
-        row+=1
-        textscroll = Scrollbar(self)
-        textscroll.grid(row=row, column=col+5, sticky=NS)
-        self.commentsBox = Text(self, height=5, width=100, yscrollcommand=textscroll.set)
-        self.commentsBox.grid(row=row, column=col-1, padx=5, pady=5, columnspan=6, sticky=NSEW)
-        textscroll.config(command=self.commentsBox.yview)
-        currentComment = self.parent.scModel.getProjectData('qacomment')
-        self.commentsBox.insert(END, currentComment) if currentComment is not None else ''
-
-        self.check_ok()
-
-    def _compose_label(self,edge):
-        op  = edge['op']
-        if 'semanticGroups' in edge and edge['semanticGroups'] is not None:
-            groups = edge['semanticGroups']
-            op += ' [' + ', '.join(groups) + ']'
-        return op
-
-    def load_overlay(self, initialize=False):
-        edgeTuple = tuple(self.optionsBox.get().split('->'))
-        if len(edgeTuple) > 1:
-            probe = [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.finalNodeId==self.lookup[edgeTuple[1]]][0]
-            n = self.parent.scModel.G.get_node(probe.finalNodeId)
-            finalFile = os.path.join(self.parent.scModel.G.dir,
-                                     self.parent.scModel.G.get_node(probe.finalNodeId)['file'])
-            final = openImage(finalFile)
-            finalResized = imageResizeRelative(final, (500, 500), final.size)
-            imResized = imageResizeRelative(probe.targetMaskImage, (500, 500),
-                                            probe.targetMaskImage.size if probe.targetMaskImage is not None else finalResized.size)
-        else:
-            edgeTuple = tuple(self.optionsBox.get().split('<-'))
-            probe = \
-            [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.donorBaseNodeId == self.lookup[edgeTuple[1]]][0]
-            n = self.parent.scModel.G.get_node(probe.donorBaseNodeId)
-            finalFile = os.path.join(self.parent.scModel.G.dir,
-                                     self.parent.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            final = openImage(finalFile)
-            finalResized = imageResizeRelative(final, (500, 500), final.size)
-            imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
-                                            probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
-        edge = self.parent.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
-        self.operationVar.set(self._compose_label(edge))
-        finalResized = finalResized.overlay(imResized)
-        self.photo = ImageTk.PhotoImage(finalResized.toPIL())
-        if initialize is True:
-            self.c = Canvas(self.cImgFrame, width=510, height=510)
-            self.c.pack()
-        self.image_on_canvas = self.c.create_image(0, 0, image=self.photo, anchor=NW, tag='imgc')
-
-    def qa_done(self, qaState):
-        self.parent.scModel.set_validation_properties(qaState,self.reporterStr.get(),self.commentsBox.get(1.0, END))
-        self.parent.scModel.save()
-        self.destroy()
-
-    def check_ok(self, event=None):
-        turn_on_ok = True
-        for b in self.checkboxvars:
-            if b.get() is False or turn_on_ok is False:
-                turn_on_ok = False
-
-        if turn_on_ok is True:
-            self.acceptButton.config(state=NORMAL)
-        else:
-            self.acceptButton.config(state=DISABLED)
 
 class PointsViewDialog(tkSimpleDialog.Dialog):
     """

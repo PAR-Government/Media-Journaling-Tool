@@ -56,10 +56,13 @@
       "rules": [
         "checkFrameTimes",
         "checkSize",
+        "checkOverlay",
+        "checkAudioTimeFormat",
         "checkFileTypeChange",
         "checkAddFrameTime",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkAudioOnly"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.add_audio"
@@ -107,7 +110,8 @@
         }
       },
       "rules": [
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkAudioTimeFormat"
       ],
       "optionalparameters": {
         "End Time": {
@@ -169,7 +173,9 @@
         "checkSize",
         "checkHasVideoChannel",
         "checkFileTypeChange",
-        "checkFrameTimes"
+        "checkFrameTimes",
+        "checkAudioTimeFormat",
+        "checkAudioOnly"
       ],
       "optionalparameters": {
         "End Time": {
@@ -240,13 +246,17 @@
       },
       "rules": [
         "checkForDonorAudio",
+        "checkOverlay",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
         "checkForAudio",
         "checkUncompressed",
-        "checkChannelLoss"
+        "checkChannelLoss",
+        "checkAudioTimeFormat",
+        "checkOverlay",
+        "checkAudioOnly"
       ],
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.add_audio",
@@ -302,7 +312,9 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkAudioTimeFormat",
+        "checkDurationAudio"
       ],
       "parameter_dependencies": {
         "Effects Type": {
@@ -420,7 +432,10 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkAudioTimeFormat",
+        "checkDurationAudio",
+        "checkAudioOnly"
       ],
       "parameter_dependencies": {
         "Filter Type": {
@@ -524,7 +539,10 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkDurationAudio",
+        "checkAudioTimeFormat",
+        "checkAudioOnly"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -609,7 +627,9 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkDurationAudio",
+        "checkAudioTimeFormat"
       ],
       "optionalparameters": {
         "Pre-Delay": {
@@ -677,7 +697,9 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkDurationAudio",
+        "checkAudioTimeFormat"
       ],
       "optionalparameters": {
         "Stream": {
@@ -748,7 +770,10 @@
         "checkFrameTimes",
         "checkAddFrameTime",
         "checkSameChannels",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkDurationAudio",
+        "checkAudioTimeFormat",
+        "checkAudioOnly"
       ],
       "optionalparameters": {
         "End Time": {
