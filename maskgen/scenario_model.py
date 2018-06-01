@@ -1955,6 +1955,31 @@ class ImageProjectModel:
             return self.getModificationForEdge(self.start, self.end, edge)
         return None
 
+    def findPaths(self,node, condition):
+        """
+        Return a list of a tuple.  The first item is the full path in reverse order
+        from final node to current node.  The second item is a boolean indicating if the path
+        meets the condition.
+        :param node:
+        :param condition:
+        :return:
+        @rtype: list of (list,bool)
+        """
+        successors = self.G.successors(node)
+        if len(successors) == 0:
+            return [([node],False)]
+        else:
+            paths=[]
+            for successsor in successors:
+                for path in self.findPaths(successsor, condition):
+                    paths.append(path)
+            paths = [(path[0]+[node], condition(node, path[0][-1]) | path[1]) for path in paths]
+            return paths
+
+    def findDonorPaths(self,start):
+        condition = lambda x,y:  self.G.get_edge(x, y)['op'] == 'Donor'
+        return [path[0] for path in self.findPaths(start,condition) if path[1]]
+
     def getImage(self, name):
         if name is None or name == '':
             return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
@@ -2691,14 +2716,7 @@ class ImageProjectModel:
     def set_validation_properties(self,  qaState, qaPerson, qaComment, qaData):
         import qa_logic
         qa_logic.ValidationData(self,qaState,qaPerson,None,qaComment,qaData)
-        """
-        self.setProjectData('validation', qaState, excludeUpdate=True)
-        self.setProjectData('validatedby', qaPerson, excludeUpdate=True)
-        self.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
-        self.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
-        self.setProjectData('qacomment', qaComment.strip())
-        self.setProjectData('qaData',qaData, excludeUpdate=False)
-        """
+
     def clear_validation_properties(self):
         import qa_logic
         logic = qa_logic.ValidationData(self)

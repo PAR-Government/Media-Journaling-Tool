@@ -44,6 +44,9 @@ from ui.ui_tools import ProgressBar
 from maskgen.services.probes import archive_probes
 
 from QAExtreme import QAProjectDialog
+from qa_logic import ValidationData
+
+
 """
   Main UI Driver for MaskGen
 """
@@ -351,7 +354,11 @@ class MakeGenUI(Frame):
             if not tkMessageBox.askokcancel('Skipped Link Masks','Some link are missing edge masks and analysis. \n' +
                                                           'The link analysis will begin now and may take a while.'):
                 return False
-        errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
+        vd = ValidationData(self.scModel)
+        if vd.get_state() != 'yes':
+            errorList = self.scModel.validate(external=True,status_cb=self.progress_bar.postChange)
+        else:
+            errorList = None
         message = None
         if errorList is not None and len(errorList) > 0:
             errorlistDialog = DecisionValidationListDialog(self, errorList, "Validation Errors")

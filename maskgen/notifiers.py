@@ -90,7 +90,7 @@ class QaNotifier:
         else:
             scmodel = self.scmodel
             qadata = qa_logic.ValidationData(scmodel)
-            edge = scmodel.select(args[0])
+            scmodel.select(args[0])
             cnode = scmodel.getDescription()
             backs = self._backtrack(cnode)
 
@@ -123,16 +123,11 @@ class QaNotifier:
 
     def _forwards(self, n):
         fo = []
-        fo.append(self.scmodel.getFileName(n.end))
-        curs = self.scmodel.G.successors(n.end)
-        while curs != []:
-            cur = curs.pop()
-            for suc in self.scmodel.G.successors(cur):
-                if suc not in fo:
-                    curs.append(suc)
-            #curs += self.scmodel.G.successors(cur)
-            fo.append(self.scmodel.getFileName(cur))
+        for path in self.scmodel.findDonorPaths(n.end):
+            for item in path:
+                fo.append(self.scmodel.getFileName(item))
         return fo
+
 
     def _backtrack(self, n):
         back = []

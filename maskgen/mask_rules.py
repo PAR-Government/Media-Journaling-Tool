@@ -1338,7 +1338,7 @@ def composite_transform(buildState, withMask = False):
     return res
 
 def cas_transform(buildState):
-    return composite_transform(buildState)
+    return composite_transform(buildState,withMask=True)
 
 def video_flip_transform(buildState):
     """
