@@ -8,7 +8,7 @@
 
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
-    getMilliSecondsAndFrameCount, toIntTuple, differenceBetweeMillisecondsAndFrame, \
+    getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame,
     getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,composeCloneMask
 from support import getValue
 import numpy
@@ -16,7 +16,7 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration
+from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration,getFrameCount
 import numpy as np
 from maskgen.validation.core import Severity
 from image_wrap import ImageWrapper
@@ -291,13 +291,67 @@ def checkCropLength(op, graph, frm, to):
     et = et if et is not None else (0, 0)
     if 'metadatadiff' not in edge:
         return (Severity.ERROR,'Edge missing change data.  Recompute Mask.')
-    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
-    rate = getFrameRate(file, default=29.97)
-    givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
-    duration = getDuration(file,default=None)
-    if abs(duration - givenDifference) > 1:
-        return (Severity.ERROR,'Actual amount of time of cropped video is {} in milliseconds'.format(duration))
+    file = os.path.join(graph.dir, graph.get_node(to)['file'])
+    if fileType(file) == 'audio':
+        rate = getFrameRate(file, default=44000, audio=True)
+        givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
+        duration_to = getDuration(file, audio=True)
+        if abs(duration_to - givenDifference) > 100:
+            return (Severity.ERROR, 'Actual amount of cropped frames in milliseconds is '.format(duration_to))
+        return None
+    else:
+        rate = getFrameRate(file, default=29.97)
+        givenDifference = differenceBetweenFrame(et, st, rate)
+        duration = getFrameCount(file)['frames']
+        if abs(duration - givenDifference) > 1:
+            return (Severity.ERROR,'Actual amount of frames of cropped video is '.format(duration))
     return None
+
+
+def checkCutFrames(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
+    edge = graph.get_edge(frm, to)
+    args = edge['arguments'] if 'arguments' in edge  else {}
+    st = None
+    et = None
+    for k, v in args.iteritems():
+        if k.endswith('Start Time'):
+            st = getMilliSecondsAndFrameCount(v)
+        elif k.endswith('End Time'):
+            et = getMilliSecondsAndFrameCount(v)
+    if st is None and et is None:
+        return None
+    st = st if st is not None else (0, 0)
+    et = et if et is not None else (0, 0)
+    if 'metadatadiff' not in edge:
+        return (Severity.ERROR,'Edge missing change data.  Recompute Mask.')
+    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
+    if fileType(file) == 'audio':
+        rate = getFrameRate(file, default=44000,audio=True)
+        givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
+        duration_frm = getDuration(file,audio=True)
+        duration_to = getDuration(os.path.join(graph.dir, graph.get_node(to)['file']),audio=True)
+        if abs((duration_frm - duration_to) - givenDifference) > 100:
+            return (Severity.ERROR, 'Actual amount of cut time in milliseconds is '.format(duration_frm - duration_to))
+        return None
+    else:
+        rate = getFrameRate(file, default=29.97)
+        givenDifference = differenceBetweenFrame(et, st, rate)
+        duration_frm = getFrameCount(file)['frames']
+        duration_to = getFrameCount(os.path.join(graph.dir, graph.get_node(to)['file']))['frames']
+        if abs((duration_frm-duration_to) - givenDifference) > 1:
+            return (Severity.ERROR,'Actual amount of frames of cut video is '.format(duration_frm-duration_to))
+        return None
 
 def checkCropSize(op, graph, frm, to):
     """
