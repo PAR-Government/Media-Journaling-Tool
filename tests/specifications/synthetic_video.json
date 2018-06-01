@@ -45,7 +45,7 @@
         }
       },
 	  "description":"Generating a synthetic video",
-      "argument file": "PAR_Video_Sample.txt",
+      "argument file": "par_video_documentation_pp.csv",
 	  "directory": "{AllDir}",
 	  "op": "SynthesizeVideo",
       "plugin": "None",
