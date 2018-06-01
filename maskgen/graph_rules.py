@@ -8,7 +8,7 @@
 
 from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
 from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
-    getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame,
+    getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,composeCloneMask
 from support import getValue
 import numpy
