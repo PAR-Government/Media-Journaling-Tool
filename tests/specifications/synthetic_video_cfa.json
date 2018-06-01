@@ -99,14 +99,10 @@
           "type" : "donor",
           "source" : "SelectDJI"
         },
-        "Capture Camera ID" : {
-          "type" : "value",
-          "value" : "PAR-FC350"
-        },
-        "Single":{
-          "type": "value",
-          "value": "yes"
-        }
+        "Capture Camera ID" : "PAR-FC350",
+        "Single": "yes",
+        "donor is prnu":"yes",
+        "coerce shape":"yes"
       }
     },
     {

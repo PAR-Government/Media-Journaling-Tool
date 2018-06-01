@@ -771,14 +771,16 @@ class PreProcessedMediaOperation(BatchOperation):
                 self.logger.debug('Execute image {} on {} with {}'.format(node['description'],
                                                                           filename,
                                                                           str(args)))
-            opDetails = scenario_model.Modification(node['op'],
-                                                    node['description'],
-                                                    software=softwareDetails,
-                                                    arguments=self._fetchArguments(directory,
+            args = self._fetchArguments(directory,
                                                                                    node,
                                                                                    node_name,
                                                                                    os.path.basename(results[0]),
-                                                                                   args),
+                                                                                   args)
+            args = processValue(MyFormatter(local_state,global_state),args, lambda x:  x)
+            opDetails = scenario_model.Modification(node['op'],
+                                                    node['description'],
+                                                    software=softwareDetails,
+                                                    arguments=args,
                                                     semanticGroups=node['semanticGroups'] if 'semanticGroups' in node else [],
                                                     automated='yes')
             position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else

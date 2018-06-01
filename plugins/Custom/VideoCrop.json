@@ -1,0 +1,43 @@
+{
+    "name": "VideoCrop",
+    "operation": {
+      "name": "TransformCrop",
+      "category": "Transform",
+      "description": "Crop frames",
+      "software": "ffmeg",
+      "version": "3.3",
+      "arguments":{
+        "width":{
+          "type": "int[30:1000000]",
+          "defaultvalue": null,
+          "description": "Width of the frame."
+        },
+        "height":{
+          "type": "int[30:1000000]",
+          "defaultvalue": null,
+          "description": "Height of Frame."
+        },
+        "x":{
+          "type": "int[0:1000000]",
+          "defaultvalue": null,
+          "description": "Upper left corner"
+        },
+        "y":{
+          "type": "int[0:1000000]",
+          "defaultvalue": null,
+          "description": "Upper left corner"
+        }
+      },
+      "transitions": ["video.video"]
+    },
+    "command": {
+      "default":[
+        "ffmeg",
+        "-i",
+        "{inputimage}",
+        "-filter:v",
+        "crop={width}:{height}:{x}:{y}",
+        "{outputimage}"
+      ]
+    }
+}

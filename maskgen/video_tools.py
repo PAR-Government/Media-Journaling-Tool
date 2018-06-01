@@ -28,6 +28,7 @@ from support import getValue
 
 meta_lock = RLock()
 meta_cache = LRUCache(maxsize=24)
+count_cache = LRUCache(maxsize=124)
 
 
 def otsu(hist):
@@ -566,6 +567,7 @@ def getFrameCountOnly(video_file):
   cap.release()
   return frmcnt
 
+@cached(count_cache,lock=meta_lock)
 def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     frmcnt = 0
     startcomplete = False

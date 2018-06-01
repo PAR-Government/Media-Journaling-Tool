@@ -437,6 +437,11 @@ def addFrame(millisAndFrame, frames):
     return millisAndFrame[0], millisAndFrame[1] + frames
 
 
+def differenceBetweenFrame(mandf1, mandf2, rate):
+    timediff = mandf1[0] - mandf2[0]
+    frames = int(timediff*rate/1000.0)
+    return  frames + (mandf1[1] - mandf2[1])
+
 def differenceBetweeMillisecondsAndFrame(mandf1, mandf2, rate):
     return mandf1[0] - mandf2[0] + (rate * (mandf1[1] - mandf2[1]))
 

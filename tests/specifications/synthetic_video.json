@@ -45,7 +45,7 @@
         }
       },
 	  "description":"Generating a synthetic video",
-      "argument file": "PAR_Video_Sample.txt",
+      "argument file": "par_video_documentation_pp.csv",
 	  "directory": "{AllDir}",
 	  "op": "SynthesizeVideo",
       "plugin": "None",
@@ -76,7 +76,7 @@
     {
       "op_type": "ImageSelection",
       "id":"SelectDJI",
-      "files":["{PRNU}/Drone_InspireFC350_PAR-FC350_20180507-190057_15.mov"],
+      "files":["{PRNU}/nyc_1_avg_Noise.png"],
       "prnu": true
     },
     {
@@ -99,14 +99,10 @@
           "type" : "donor",
           "source" : "SelectDJI"
         },
-        "Capture Camera ID" : {
-          "type" : "value",
-          "value" : "PAR-FC350"
-        },
-        "Single":{
-          "type": "value",
-          "value": "yes"
-        }
+        "Capture Camera ID" : "PAR-FC350",
+        "Single": "yes",
+        "donor is prnu":"yes",
+        "coerce shape":"yes"
       }
     },
 	{

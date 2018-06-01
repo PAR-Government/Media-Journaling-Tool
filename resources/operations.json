@@ -4277,7 +4277,8 @@
         "checkLengthSmaller",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkEmpty"
+        "checkEmpty",
+        "checkCutFrames"
       ],
       "optionalparameters": {
         "End Time": {
