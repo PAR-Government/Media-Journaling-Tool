@@ -643,17 +643,19 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # parse seeds
     local_id = cameraData.keys()[0]
     if local_id.lower().startswith("gan"):
-        seed = None
-        while not seed:
-            tkMessageBox.showinfo("Select Seed File", "Select the GAN seed file (ex. log.txt for the Progressive GAN).")
-            seed = tkFileDialog.askopenfilename()
+        if tkMessageBox.askyesno("Add Seed?", "Would you like to connect a seed file to these GAN images? "):
+            seed = None
+            while not seed:
+                tkMessageBox.showinfo("Select Seed File", "Select the GAN seed file (ex. log.txt for the"
+                                                          " Progressive GAN).")
+                seed = tkFileDialog.askopenfilename()
 
-        print("Loading seeds... "),
-        seed_loader = SeedProcessor(self, seed)
-        print("done.")
-        seeds = seed_loader.get_seeds()
-        for im in xrange(0, len(imageInfo)):
-            imageInfo[im]['HP-seed'] = seeds[im]
+            print("Loading seeds... "),
+            seed_loader = SeedProcessor(self, seed)
+            print("done.")
+            seeds = seed_loader.get_seeds()
+            for im in xrange(0, len(imageInfo)):
+                imageInfo[im]['HP-seed'] = seeds[im]
 
     print(' done')
 
