@@ -550,7 +550,7 @@ def resize_transform(buildState):
                     mask = inputmask.to_mask().to_array()
                     res = move_pixels(255 - buildState.edgeMask, mask, res)
         if buildState.sourceShape != res.shape:
-            res = cv2.resize(res, (buildState.sourceShape[1], buildState.sourceShape[0]))
+            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
         return res
     return buildState.edgeMask
 
@@ -1178,7 +1178,7 @@ def select_remove(buildState):
         # The transfrom will convert to the target mask size of the donor path.
         # res = tool_set.applyMask(donorMask, edgeMask)
         if res is not None and  buildState.sourceShape != res.shape:
-            res = cv2.resize(res, ( buildState.sourceShape[1],  buildState.sourceShape[0]))
+            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
         return res
 
 
@@ -1203,7 +1203,7 @@ def crop_transform(buildState):
                                                                        0:(upperBound[1] - location[1])]
         res = newRes
         if expectedShape != res.shape:
-            res = cv2.resize(res, (expectedShape[1], expectedShape[0]))
+            res = tool_set.applyResizeComposite(res, expectedShape)
         return res
     return buildState.edgeMask
 
@@ -1286,7 +1286,7 @@ def seam_transform(buildState):
                                           borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
             # need to use target size since the expected does ot align with the donor paths.
             if buildState.sourceShape != res.shape:
-                res = cv2.resize(res, (buildState.sourceShape[1], buildState.sourceShape[0]))
+                res =tool_set.applyResizeComposite(res, buildState.sourceShape)
 
     elif buildState.donorMask is not None or buildState.compositeMask is not None:
         res = buildState.compositeMask if buildState.compositeMask is not None else buildState.donorMask
@@ -1467,7 +1467,7 @@ def move_transform(buildState):
             differencemask[differencemask < 0] = 0
             res = move_pixels(differencemask, inputmask, res)
         if buildState.sourceShape != res.shape:
-            res = cv2.resize(res, (buildState.sourceShape[1], buildState.sourceShape[0]))
+            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
         return res
     return buildState.edgeMask
 
@@ -1650,7 +1650,7 @@ def flip_transform(buildState):
     else:
         res = applyFlipComposite(buildState.donorMask, buildState.edgeMask, flip)
         if buildState.sourceShape != res.shape:
-            res = cv2.resize(res, (buildState.sourceShape[1], buildState.sourceShape[0]))
+            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
         return res
 
 

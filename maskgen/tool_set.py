@@ -1431,7 +1431,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     return None, None
 
 
-def applyResizeComposite(compositeMask, shape):
+def applyResizeComposite(compositeMask, shape, interpolation=2):
     """
     Resize the composite mask
     :param compositeMask:
@@ -1444,8 +1444,8 @@ def applyResizeComposite(compositeMask, shape):
             continue
         levelMask = np.zeros(compositeMask.shape).astype('uint16')
         levelMask[compositeMask == level] = 1024
-        newLevelMask = cv2.resize(levelMask, (shape[1], shape[0]))
-        newMask[newLevelMask > 150] = level
+        newLevelMask = cv2.resize(levelMask, (shape[1], shape[0]),interpolation=interpolation)
+        newMask[newLevelMask > 300] = level
     return newMask
 
 
