@@ -66,10 +66,10 @@ class ValidationData:
         self._qamodel_update()
 
     def get_state(self):
-        return self.scmodel.getProjectData('validation', excludeUpdate=True)
+        return self.scmodel.getProjectData('validation',default_value='no')
 
     def get_qaPerson(self):
-        return self.scmodel.getProjectData('validatedby', excludeUpdate=True)
+        return self.scmodel.getProjectData('validatedby')
 
     def get_qaComment(self):
         return self.scmodel.getProjectData('qacomment')
