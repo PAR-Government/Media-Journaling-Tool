@@ -77,8 +77,8 @@ def parse_tables(imageFile):
     :return: list of lists of unsorted quantization tables
     """
 
-    if not (imageFile.lower().endswith('jpg') or imageFile.lower().endswith('jpeg')):
-        return []
+   # if not (os.path.splitext(imageFile.lower())[1][1:] not in ['jpeg','jpg','tiff','tif'] ):
+     #   return []
 
     # open the image and scan for q table marker "FF DB"
     s = open(imageFile, 'rb')

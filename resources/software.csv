@@ -135,4 +135,5 @@ video,Marshal,2.4,
 image,GV,3.0,
 image,JPEG_DCT_Modify,0.1,
 image,Lytro Desktop,5.0
-
+image,GAN_face_splice,0.1
+image,DLIB,19.9

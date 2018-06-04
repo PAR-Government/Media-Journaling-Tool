@@ -44,6 +44,7 @@
       "op_type":"PluginOperation",
       "plugin": "CropToFitDonor",
       "id":"CropCFA",
+      "source":"Multi",
       "arguments":{
         "donor": {
           "type": "donor",
@@ -76,7 +77,7 @@
     {
       "op_type": "PluginOperation",
       "plugin": "CameraModelGan",
-      "source":"Resize",
+      "source":"PRNUAdded",
       "id": "CFAGAN",
       "arguments": {
         "Camera Model": "{model@Selector}",
@@ -137,33 +138,33 @@
     },
     {
       "source":"Selector",
-      "target":"CFAGAN",
+      "target":"PRNUAdded",
       "connect":false
     },
     {
-      "source":"Resize",
-      "target":"CFAGAN",
+       "source":"Resize",
+       "target":"CropCFA",
        "split":true
     },
      {
       "source":"Multi",
-      "target":"CFAGAN",
-       "split":true
+      "target":"CropCFA",
+      "split":true
     },
     {
       "source": "CFAGAN",
       "target": "CompressAsCFA"
     },
      {
-      "source": "CFAGAN",
-      "target": "CropCFA"
+      "source": "PRNUAdded",
+      "target": "CFAGAN"
     },
     {
       "source": "CropCFA",
       "target": "PRNUAdded"
     },
     {
-      "source": "PRNUAdded",
+      "source": "CFAGAN",
       "target": "CameraAdded"
     },
     {

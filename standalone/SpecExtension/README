@@ -1,0 +1,16 @@
+To run simply open a command prompt and navigate to this folder and type
+"python SpecExtender.py -h"
+This will bring up the help menu and will explain the arguments.
+The arguments that must be included are
+--Nodes the list of nodes that you want to duplicate
+--json the spec you wish to extend
+--Directory this is the directory that images will be added to the list from if any of the given nodes to duplicate
+    have a 'list' element then if the string inside starts with a '*' that will be replaced with the next file from
+    this directory. The nodes will be duplicated based on how many files are in this directory
+example run command:
+python SpecExtender --json C:\Users\hurlbuttm\Documents\GitHub\maskgen\tests\specifications\face_swap_GAN.json --Nodes GanFace#,GanSwap#,GanBaseJpg1#,GanBaseJpg2#,GanBaseJpg3#,PRNUGans#,cfaGan#,FaceSelectRegionGan# --Directory C:\Users\hurlbuttm\Pictures\test
+
+After this is done a file called dup.json will be in the same directory as the json file supplied by the user.
+Then run the spec using batch project.
+example run:
+--json C:\Users\hurlbuttm\Documents\GitHub\maskgen\tests\specifications\dup.json --count 1 --workdir "C:\Users\hurlbuttm\Documents\facswap\work" --results "C:\Users\hurlbuttm\Documents\facswap\results" --loglevel 10 --global_variables image_dir="C:\Users\hurlbuttm\Documents\facswap\imdir",HP_2="C:\Users\hurlbuttm\Documents\facswap\hpdir",gan_model="C:\Users\hurlbuttm\Desktop\Models\Samsung Galaxy S4.npz",model="Samsung",make="Samsung Galaxy S4" --keep_failed

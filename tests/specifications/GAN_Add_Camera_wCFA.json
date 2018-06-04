@@ -18,7 +18,6 @@
       "picklist": "imageset",
       "id": "Base",
       "arguments": {
-        "cgi": "yes",
         "isgan": "yes",
         "subject": "face"
       }

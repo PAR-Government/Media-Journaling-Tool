@@ -27,25 +27,28 @@ image_lock = config.getAndSet('image_lock', RLock())
 image_cache = config.getAndSet('image_cache', LRUCache(maxsize=24))
 
 try:
-    from tifffile import TiffFile, imsave
+    from skimage.external.tifffile import TiffFile,imsave
 except ImportError:
-    def imsave(filename, img, **newargs):
-        import scipy.misc
-        scipy.misc.imsave(filename, img)
+    try:
+        from tifffile import TiffFile, imsave
+    except ImportError:
+        def imsave(filename, img, **newargs):
+            import scipy.misc
+            scipy.misc.imsave(filename, img)
 
 
-    class TiffFile:
-        def __init__(self, filename):
-            pass
+        class TiffFile:
+            def __init__(self, filename):
+                pass
 
-        def __array__(self):
-            return []
+            def __array__(self):
+                return []
 
-        def __exit__(self, x, y, z):
-            return []
+            def __exit__(self, x, y, z):
+                return []
 
-        def __enter__(self):
-            return []
+            def __enter__(self):
+                return []
 
 
 def _processRaw(raw, isMask=False, args=None):
@@ -150,8 +153,7 @@ def openTiff(filename, isMask=False, args=None):
                 for page in tiffdata:
                     for tag in page.tags.values():
                         t, v = tag.name, tag.value
-                        if t.startswith('compress'):
-                            info['compress'] = v
+                        info[t] = v
         except:
             pass
         try:
@@ -388,6 +390,33 @@ def get_mode(image_array):
     else:
         return 'RGB'
 
+def tiff_masssage_args(**args):
+    # some are not support yet
+    TIFF_PHOTOMETRICS = {
+        0: 'miniswhite',
+        1: 'minisblack',
+        2: 'rgb',
+        3: 'palette',
+        4: 'miniswhite', #'mask',
+        5: 'rgb', #'separated',  # CMYK
+        6: 'rgb', #'ycbcr',
+        8: 'rgb', #cielab',
+        9: 'rgb', #'icclab',
+        10: 'rgb', #'itulab',
+        32803: 'cfa',  # Color Filter Array
+        32844: 'logl',
+        32845: 'logluv',
+        34892: 'linear_raw'
+    }
+    result = {}
+    for k,v in args.iteritems():
+        if k == 'compression':
+            result['compress'] = v
+        elif k == 'photometric':
+            result['photometric'] = TIFF_PHOTOMETRICS[v]
+        elif k in ['planarconfig','colormap','tile','description','metadata','resolution']:
+            result[k]= v
+    return result
 
 class ImageWrapper:
     """
@@ -510,7 +539,7 @@ class ImageWrapper:
         elif image_format == 'PNG':
             Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
         else:
-            imsave(filename, img_array, **newargs)
+            imsave(filename, img_array, **tiff_masssage_args(**newargs))
         if os.path.exists(filename):
             with image_lock:
                 image_cache[filename] = (self, os.stat(filename).st_mtime)

@@ -988,7 +988,7 @@ class ImageProjectModel:
                 self.notify(added, 'add')
 
 
-    def addImage(self, pathname, cgi=False, prnu=False):
+    def addImage(self, pathname, cgi=False, prnu=False, **kwargs):
         maxx = 50
         max_node = None
         for node_id in self.G.get_nodes():
@@ -998,6 +998,7 @@ class ImageProjectModel:
                 max_node = node
         maxy = max_node['ypos'] + 50 if max_node is not None else 50
         additional = self.getAddTool(pathname).getAdditionalMetaData(pathname)
+        additional.update(kwargs)
         nname = self.G.add_node(pathname, nodetype='base',
                                 cgi='yes' if cgi else 'no',
                                 xpos=maxx,
@@ -2399,7 +2400,7 @@ class ImageProjectModel:
         if type(preferred) == dict:
             preferred = preferred[filetype]
         fullOp = buildFilterOperation(op)
-        resolved, donors, graph_args, suffix_override = self._resolvePluginValues(kwargs, fullOp)
+        resolved, donors, graph_args, suffix_override, donorargs = self._resolvePluginValues(kwargs, fullOp)
         if suffix_override is not None:
             suffix = suffix_override
         elif preferred is not None:
@@ -2487,11 +2488,12 @@ class ImageProjectModel:
             pairs.append((self.start, self.end))
             if (self.notify is not None and sendNotifications):
                 self.notify((self.start,  self.end), 'connect')
+
             for donor in donors:
                 _end = self.end
                 _start = self.start
                 self.selectImage(kwargs[donor])
-                mod = Modification('Donor', '',category='Donor',automated='yes')
+                mod = Modification('Donor', '',category='Donor',automated='yes',arguments=donorargs)
                 self.connect(_end,mod=mod)
                 pairs.append((kwargs[donor], _end))
                 self.select((_start, _end))
@@ -2513,7 +2515,8 @@ class ImageProjectModel:
                                        'skipRules',
                                        'semanticGroups',
                                        'experiment_id',
-                                       'recordInCompositeMask'}:
+                                       'recordInCompositeMask',
+                                       'donorargs'}:
                 parameters[k] = v
                 # if arguments[k]['type'] != 'donor':
                 stripped_args[k] = v
@@ -2531,7 +2534,9 @@ class ImageProjectModel:
             if arg not in parameters and 'defaultvalue' in info and \
                             info['defaultvalue'] is not None:
                 parameters[arg] = info['defaultvalue']
-        return parameters, donors, stripped_args, args['override_suffix'] if 'override_suffix' in args else None
+        return parameters, donors, stripped_args, \
+               args['override_suffix'] if 'override_suffix' in args else None, \
+               getValue(args,'donorargs',{})
 
     def _pluginError(self, filter, msg):
         if msg is not None and len(msg) > 0:
@@ -2616,7 +2621,15 @@ class ImageProjectModel:
             path, errors = self.G.create_archive(location, include=include)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def exporttos3(self, location, tempdir=None, additional_message=None):
+    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[]):
+        """
+
+        :param location:
+        :param tempdir:
+        :param additional_message:
+        :param redacted: list of file paths to exclude
+        :return:
+        """
         import boto3
         from boto3.s3.transfer import S3Transfer, TransferConfig
         with self.lock:
@@ -2624,7 +2637,7 @@ class ImageProjectModel:
             self.compress(all=True)
             #errors = []
             #path = ''
-            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir)
+            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir, redacted=redacted)
             if len(errors) == 0:
                 config = TransferConfig()
                 s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
@@ -2641,11 +2654,16 @@ class ImageProjectModel:
                                'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def export_path(self, location):
+    def export_path(self, location, redacted=[]):
+        """
+        :param location:
+        :param redacted: a list of registered file paths to exclude @see ImageGraph.addEdgeFilePath
+        :return:
+        """
         if self.end is None and self.start is not None:
-            self.G.create_path_archive(location, self.start)
+            self.G.create_path_archive(location, self.start, redacted=redacted)
         elif self.end is not None:
-            self.G.create_path_archive(location, self.end)
+            self.G.create_path_archive(location, self.end, redacted=redacted)
 
     def _getCurrentPosition(self, augment):
         if self.start is None:

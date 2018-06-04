@@ -943,14 +943,21 @@ class ImageGraph:
                             edgename[1]) + ' is missing ' + path + ' file in project'))
         return missing
 
-    def create_archive(self, location, include=[]):
+    def create_archive(self, location, include=[], redacted=[]):
+        """
+
+        :param location:
+        :param include:
+        :param redacted: a list of registered file paths to exclude @see addEdgeFilePath
+        :return:
+        """
         self.G.graph['exporttime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        fname, errors, names_added = self._create_archive(location, include=include)
+        fname, errors, names_added = self._create_archive(location, include=include,redacted=redacted)
         names_added = [os.path.split(i)[1] for i in names_added]
         tries = 0
         if len(errors) == 0:
             while not self._check_archive_integrity(fname, names_added) and tries < 3:
-                fname, errors, names_added = self._create_archive(location)
+                fname, errors, names_added = self._create_archive(location, redacted=redacted)
                 tries += 1
         return fname, ([('', '', "Failed to create archive")] if (tries == 3 and len(errors) == 0) else errors)
 
@@ -1014,7 +1021,7 @@ class ImageGraph:
         except Exception as e:
             logging.getLogger('maskgen').error("Unable to create image graph: " + str(e))
 
-    def _create_archive(self, location, include=[]):
+    def _create_archive(self, location, include=[], redacted=[]):
         self.save()
         fname = os.path.join(location, self.G.name + '.tgz')
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
@@ -1027,7 +1034,7 @@ class ImageGraph:
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
             errors.extend(
-                self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added))
+                self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
         for item in include:
             archive.add(os.path.join(self.dir, item),
                         arcname=item)
@@ -1035,9 +1042,11 @@ class ImageGraph:
         archive.close()
         return fname, errors, names_added
 
-    def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list()):
+    def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list(), redacted=list()):
         errors = []
         for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
+            if path in redacted:
+                continue
             for pathvalue in getPathValues(edge, path):
                 if not pathvalue or len(pathvalue) == 0:
                     continue
@@ -1050,15 +1059,15 @@ class ImageGraph:
                         (str(start), str(end), str(start) + ' => ' + str(end) + ': ' + ' missing ' + pathvalue))
         return errors
 
-    def _archive_path(self, child, archive_name, archive, pathGraph, names_added=list()):
+    def _archive_path(self, child, archive_name, archive, pathGraph, names_added=list(), redacted=[]):
         node = self.G.node[child]
         pathGraph.add_node(child, **node)
         self._archive_node(child, archive, names_added=names_added)
         errors = []
         for parent in self.G.predecessors(child):
-            errors.extend(self._archive_edge(self.G[parent][child], archive_name, archive, names_added=names_added))
+            errors.extend(self._archive_edge(self.G[parent][child], archive_name, archive, names_added=names_added, redacted=redacted))
             pathGraph.add_edge(parent, child, **self.G[parent][child])
-            errors.extend(self._archive_path(parent, archive_name, archive, pathGraph, names_added=names_added))
+            errors.extend(self._archive_path(parent, archive_name, archive, pathGraph, names_added=names_added,redacted=redacted))
         return errors
 
     def getLastUpdateTime(self):
@@ -1120,7 +1129,12 @@ class ImageGraph:
                         if len(ownershippath) > 0:
                             setPathValue(edge, ownershippath, ownershipvalue)
 
-    def create_path_archive(self, location, end):
+    def create_path_archive(self, location, end, redacted=[]):
+        """
+        :param location:
+        :param redacted: a list of registered file paths to exclude @see addEdgeFilePath
+        :return:
+        """
         self.save()
         names_added = list()
         if end in self.G.nodes():
@@ -1128,7 +1142,7 @@ class ImageGraph:
             archive_name = node['file'].replace('.', '_')
             archive = tarfile.open(os.path.join(location, archive_name + '.tgz'), "w:gz")
             pathGraph = nx.DiGraph(name="Empty")
-            errors = self._archive_path(end, archive_name, archive, pathGraph, names_added=list())
+            errors = self._archive_path(end, archive_name, archive, pathGraph, names_added=list(),redacted=redacted)
             filename = os.path.abspath(os.path.join(self.dir, archive_name + '.json'))
             names_added.append(filename)
 

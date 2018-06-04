@@ -874,6 +874,10 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(self.menuindices['undo'], state='normal')
 
     def exportpath(self):
+        """
+        :param redacted: list of paths to not include in the export
+        :return:
+        """
         val = tkFileDialog.askdirectory(initialdir='.',
                                         title="Export " + self.scModel.startImageName() + " To Directory")
         if (val is not None and len(val) > 0):

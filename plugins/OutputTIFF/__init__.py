@@ -12,6 +12,7 @@ import PIL
 from maskgen.jpeg.utils import check_rotate
 from maskgen.support import getValue
 import copy
+from maskgen.jpeg.utils import parse_tables, sort_tables
 
 
 def tiff_save_as(source_img, source, target, donor_file, rotate):
@@ -25,9 +26,16 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
     analysis = {}
     if donor_file is not None:
         donor_img = openImageFile(donor_file)
+        # if donor_file is a tiff, donor_img.info will have tiff information
         if rotate:
             source_img,analysis = check_rotate(source_img, donor_file)
-        source_img.save(target, format='TIFF')
+        #try:
+        #    tables_zigzag = parse_tables(donor_file)
+        #    tables_sorted = sort_tables(tables_zigzag)
+        #    source_img.save(target, qtables=tables_sorted[0:2], quality=0)
+        #except:
+        source_img.save(target,format='TIFF',compress=donor_img.info['compression'] if 'compression' in donor_img.info else 0)
+        #im.save(target, format='TIFF')
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         maskgen.exif.runexif(['-overwrite_original','-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])

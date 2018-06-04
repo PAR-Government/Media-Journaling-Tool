@@ -3761,10 +3761,15 @@
           "values": [
             "people",
             "face",
+            "gan-face",
             "natural object",
+            "gan-natural object",
             "man-made object",
+            "gan-made object",
             "large man-made object",
+            "large gan-made object",
             "landscape",
+            "gan-landscape",
             "other"
           ],
           "description": "Subject catgeory pasted to image"
@@ -3950,10 +3955,15 @@
           "values": [
             "people",
             "face",
+            "gan-face",
             "natural object",
+            "gan-natural object",
             "man-made object",
+            "gan-made object",
             "large man-made object",
+            "large gan-made object",
             "landscape",
+            "gan-landscape",
             "other"
           ],
           "description": "Subject catgeory pasted to image"
@@ -4176,12 +4186,17 @@
         "subject": {
           "type": "list",
           "values": [
-            "people",
+          "people",
             "face",
+            "gan-face",
             "natural object",
+            "gan-natural object",
             "man-made object",
+            "gan-made object",
             "large man-made object",
+            "large gan-made object",
             "landscape",
+            "gan-landscape",
             "other"
           ],
           "description": "Subject catgeory selected to image"
@@ -4739,7 +4754,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkHomography"
       ],
       "optionalparameters": {
         "homography": {
@@ -4796,7 +4812,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkHomography"
       ],
       "optionalparameters": {
         "homography": {
@@ -4901,7 +4918,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkHomography"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5016,7 +5034,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkEmpty",
-        "checkMoveMask"
+        "checkMoveMask",
+        "checkHomography"
       ],
       "optionalparameters": {
         "homography": {
@@ -5163,7 +5182,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkHomography"
       ],
       "optionalparameters": {
         "homography": {
@@ -5225,7 +5245,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkHomography"
       ],
       "optionalparameters": {
         "homography": {
@@ -5363,7 +5384,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkHomography"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5423,7 +5445,8 @@
         "checkFileTypeChange",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkHomography"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5484,7 +5507,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkEmpty"
+        "checkEmpty",
+        "checkHomography"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5606,13 +5630,15 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkHomography"
       ],
       "optionalparameters": {
         "Homography": {
           "type": "list",
           "source": "image",
           "values": [
+            "None",
             "All",
             "LMEDS",
             "RANSAC-3",

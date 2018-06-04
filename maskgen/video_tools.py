@@ -444,9 +444,15 @@ def get_valid_codecs(codec_type='video'):
     """
     global loaded_codecs
     if loaded_codecs is None:
-        loaded_codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
+        codecs = (runffmpeg(['-codecs'], False).split("\n")[10:-1]
               + runffmpeg(['-encoders'], False).split("\n")[10:-1])
-    return [codec for codec in [parse_codec_list(line, codec_type) for line in loaded_codecs] if codec != '']
+        loaded_codecs = {'audio':[],'video':[]}
+        for line in codecs:
+            for codec_type_sel in ['audio','video']:
+                codec = parse_codec_list(line, codec_type_sel)
+                if codec is not None and len(codec) > 0:
+                    loaded_codecs[codec_type_sel].append(codec)
+    return loaded_codecs[codec_type]
 
 def parse_codec_list(line, codec_type='video'):
     """

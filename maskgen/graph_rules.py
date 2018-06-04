@@ -6,11 +6,14 @@
 # All rights reserved.
 #==============================================================================
 
-from software_loader import getOperations, SoftwareLoader, getProjectProperties, getRule
-from tool_set import validateAndConvertTypedValue, openImageFile, fileTypeChanged, fileType, \
+
+from software_loader import  getProjectProperties, getRule,getOperations
+from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
-    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,composeCloneMask
-from support import getValue
+    getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,\
+    deserializeMatrix,isHomographyOk,composeCloneMask
+from support import getValue,setPathValue
+
 import numpy
 from image_graph import ImageGraph
 import os
@@ -19,7 +22,7 @@ import logging
 from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration,getFrameCount
 import numpy as np
 from maskgen.validation.core import Severity
-from image_wrap import ImageWrapper
+
 
 project_property_rules = {}
 
@@ -1077,6 +1080,23 @@ def checkMoveMask(op, graph, frm,to):
         logging.getLogger('maskgen').error('Graph Validation Error checkMoveMask: ' + str(ex))
         return (Severity.ERROR,'Cannot validate Move Masks: ' + str(ex))
 
+def checkHomography(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    tm = getValue(edge, 'arguments.transform matrix', getValue(edge, 'transform matrix'))
+    if tm is not None:
+        matrix = deserializeMatrix(tm)
+        frm_shape = graph.get_image(frm)[0].size
+        if not isHomographyOk(matrix, frm_shape[0], frm_shape[1]):
+            return (Severity.ERROR, 'Homography appears to be erroneous.  Adjust Homography parameters.')
+    return None
+
+def fixPath(graph, start, end):
+    preds = graph.predecessors(end)
+    current_node, current_edge = [(pred,graph.get_edge(pred,end)) for pred in preds if pred != start][0]
+    setPathValue(current_edge, 'transform matrix', None)
+    im, path = graph.get_image(current_node)
+    im.to_mask().invert().save(os.path.join(graph.dir,current_edge['maskname']))
+
 def checkSIFT(op, graph, frm, to):
     """
     Currently a marker for SIFT.
@@ -1086,7 +1106,17 @@ def checkSIFT(op, graph, frm, to):
     :param to:
     :return:
     """
-    return None
+    preds = graph.predecessors(to)
+    for pred in preds:
+        current_edge = graph.get_edge(pred,to)
+        current_op = current_edge['op']
+        result = checkHomography(op, graph, pred, to)
+        if result is not None:
+            if current_op == 'Donor':
+                im, path = graph.get_image(pred)
+                if im.has_alpha():
+                    return (result[0],result[1],fixPath)
+            return result
 
 
 def sizeChanged(op, graph, frm, to):

@@ -587,7 +587,10 @@ class ImageSelectionOperation(BatchOperation):
                                node_name)
         logging.getLogger('maskgen').info('Picking file {}'.format(pick))
         getNodeState(node_name, local_state)['node'] = \
-            local_state['model'].addImage(pick, prnu='prnu' in node and node['prnu'])
+            local_state['model'].addImage(pick,
+                                          prnu='prnu' in node and node['prnu'],
+                                          cgi='cgi' in node and node['cgi'],
+                                          **(node['arguments'] if 'arguments' in node else {}))
         return getNodeState(node_name, local_state)['node']
 
 
@@ -1484,12 +1487,12 @@ def loadGlobalStateInitialers(global_state, initializers):
 def do_nothing_notify(spec_name, id, project_directory, project_name):
     pass
 
-def export_notify(url, spec_name, id, project_directory, project_name):
+def export_notify(url, redactions, spec_name, id, project_directory, project_name):
     import shutil
     if project_directory is None:
         return
     model = scenario_model.ImageProjectModel(os.path.join(project_directory,project_name + '.json'))
-    errors = model.exporttos3(url)
+    errors = model.exporttos3(url,[redaction.strip() for redaction in  redactions])
     if len(errors) == 0:
         shutil.rmtree(project_directory)
 
@@ -1670,6 +1673,7 @@ def main():
     parser.add_argument('--stop_on_error', required=False, action='store_true')
     parser.add_argument('--test', required=False, action='store_true')
     parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
+    parser.add_argument('--redactions', required=False, default='', help='comma separated list of file argument to exclude from export')
     args = parser.parse_args()
 
     batchProject = loadJSONGraph(args.specification)
@@ -1685,7 +1689,7 @@ def main():
                        testMode=args.test,
                        passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
-    notify = partial(export_notify,args.export) if args.export is not None else do_nothing_notify
+    notify = partial(export_notify,args.export, args.redactions.split(',')) if args.export is not None else do_nothing_notify
 
     if args.graph:
         batchProject.saveGraphImage(be.workdir)

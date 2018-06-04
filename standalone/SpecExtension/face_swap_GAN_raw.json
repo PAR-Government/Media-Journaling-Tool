@@ -1,0 +1,396 @@
+{
+  "directed": true,
+  "graph": {
+        "username": "unicorn",
+        "projectdescription": "FaceSwap with GAN generated faces and HP images",
+        "technicalsummary": "Automated: GAN FaceSwap",
+        "name": "Face_Swap_GAN",
+        "semanticrefabrication": "no",
+        "semanticrepurposing": "no",
+        "semanticrestaging": "no",
+        "recompress": false,
+        "organization": "wonderland"
+  },
+  "nodes":[
+   {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "BASEFace",
+      "id": "Base"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "BasePNG",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"no"
+        }
+      }
+    },
+    {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "JSONSelector",
+      "id":"Selector",
+      "prnu":true,
+      "arguments": {"Json File": "{json_path}", "File Key":"prnu"}
+    },
+    {
+      "op_type": "ImageSelection",
+      "image_directory": "{HP_2}",
+      "picklist": "HPFace",
+      "id": "HP_1"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "HP_1PNG",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"no"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "DLIBFaceSelection",
+      "id": "FaceSelectRegion",
+      "semanticGroups":["facemanipulations"],
+       "arguments":{
+        "model":"{modelPath}",
+        "alpha":"yes",
+        "location change": "no",
+        "subject": "face"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "GAN_face_splice",
+      "id": "HPSwap",
+      "semanticGroups":["facemanipulations"],
+      "arguments": {
+        "donor":
+        {
+          "type":"donor",
+          "source": "FaceSelectRegion"
+        },
+	"donorargs": {
+             "type":"value",
+             "value": { "homography": "None"}
+        },
+        "homography":"None",
+        "donor rotated":"yes",
+        "donor cropped":"no",
+        "donor resized":"yes",
+        "purpose": "add",
+        "subject": "face"
+      }
+    },
+     {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "HPBaseJpg1"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id": "PRNUHPs",
+      "arguments": {
+        "donor" : {
+           "type": "donor",
+           "source": "Base"
+         },
+        "convert to png": "yes",
+        "coerce shape":"yes"
+      }
+    },
+     {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "HPBaseJpg2"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin" : "CameraModelGan",
+      "id": "cfaHP",
+      "arguments": {
+        "Camera Model": "{model@Selector}",
+        "Camera Make": "{make@Selector}",
+        "model": "{model_path@Selector}"
+      }
+    },
+    {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "HPBaseJpg3"
+    },
+    {
+      "op_type": "ImageSelection",
+      "image_directory": "{gan_image_dir}",
+      "picklist":"gan_picklist",
+      "id": "GanFace#",
+      "arguments": {
+        "isgan": "yes"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "DLIBFaceSelection",
+      "id": "FaceSelectRegionGan#",
+      "semanticGroups":["facemanipulations"],
+      "arguments":{
+        "model":"{modelPath}",
+        "alpha":"yes",
+        "location change": "no",
+        "subject": "gan-face"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "GAN_face_splice",
+      "id": "GanSwap#",
+      "semanticGroups":["facemanipulations"],
+      "arguments": {
+        "donor":
+        {
+          "type":"donor",
+          "source": "FaceSelectRegionGan#"
+        },
+	"donorargs": {
+             "type":"value",
+             "value": { "homography": "None"}
+        },
+        "homography":"None",
+        "donor rotated":"yes",
+        "donor cropped":"no",
+        "donor resized":"yes",
+        "purpose": "add",
+        "subject": "gan-face"
+      }
+    },
+     {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "GanBaseJpg1#"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id": "PRNUGans#",
+      "arguments": {
+        "donor" : {
+           "type": "donor",
+           "source": "Base"
+         },
+        "convert to png": "yes",
+        "coerce shape":"yes"
+      }
+    },
+     {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "GanBaseJpg2#"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin" : "CameraModelGan",
+      "id": "cfaGan#",
+      "arguments": {
+        "Camera Model": "{model@Selector}",
+        "Camera Make": "{make@Selector}",
+        "model": "{model_path@Selector}"
+      }
+    },
+     {
+      "plugin": "JpgFromCamera",
+      "autojtoutput": false,
+      "arguments": {
+        "qtfile": {
+          "value": "{qtable@Selector}",
+          "type": "value"
+        },
+        "rotate": {
+          "type": "value",
+          "value": "no"
+        }
+      },
+      "autojtselector": false,
+      "op_type": "PluginOperation",
+      "id": "GanBaseJpg3#"
+    }
+  ],
+  "links" : [
+    {
+      "source":"Base",
+      "target":"BasePNG"
+    },
+    {
+      "source":"Base",
+      "target":"Selector",
+      "connect":false
+    },
+    {
+      "source":"HP_1",
+      "target":"HP_1PNG"
+    },
+    {
+      "source":"HP_1PNG",
+      "target":"FaceSelectRegion"
+    },
+    {
+      "source":"FaceSelectRegion",
+      "target":"HPSwap",
+      "donor": true
+    },
+    {
+      "source":"BasePNG",
+      "target": "HPSwap"
+    },
+    {
+      "source":"HPSwap",
+      "target":"HPBaseJpg1"
+    },
+    {
+      "source":"HPSwap",
+      "target":"PRNUHPs"
+    },
+    {
+      "source":"PRNUHPs",
+      "target":"HPBaseJpg2"
+    },
+    {
+      "source":"PRNUHPs",
+      "target":"cfaHP"
+    },
+    {
+      "source":"Selector",
+      "target":"cfaHP",
+      "connect":false
+    },
+    {
+      "source":"cfaHP",
+      "target":"HPBaseJpg3"
+    },
+     {
+      "source":"Selector",
+      "target":"HPBaseJpg1",
+       "connect":false
+    },
+     {
+      "source":"Selector",
+      "target":"HPBaseJpg2",
+       "connect":false
+
+    },
+    {
+      "target":"FaceSelectRegionGan#",
+      "source":"GanFace#"
+    },
+    {
+      "source":"FaceSelectRegionGan#",
+      "target":"GanSwap#",
+      "donor": true
+    },
+    {
+      "source":"BasePNG",
+      "target":"GanSwap#"
+    },
+    {
+      "source":"GanSwap#",
+      "target":"GanBaseJpg1#"
+    },
+    {
+      "source":"Selector",
+      "target":"GanBaseJpg1#",
+      "connect":false
+    },
+    {
+      "source":"GanSwap#",
+      "target":"PRNUGans#"
+    },
+    {
+      "source":"PRNUGans#",
+      "target":"GanBaseJpg2#"
+    },
+    {
+      "source":"Selector",
+      "target":"cfaGan#",
+      "connect":false
+    },
+    {
+      "source":"PRNUGans#",
+      "target":"cfaGan#"
+    },
+    {
+      "source":"cfaGan#",
+      "target":"GanBaseJpg3#"
+    }
+  ],
+  "multigraph": false
+}
+
+
+
+
