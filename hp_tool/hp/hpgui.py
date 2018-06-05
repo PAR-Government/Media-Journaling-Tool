@@ -616,7 +616,7 @@ class PRNU_Uploader(Frame):
         try:
             s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
         except Exception as e:
-            tkMessageBox.showerror(title='Error', message='Could not complete upload.  (' + e + ')')
+            tkMessageBox.showerror(title='Error', message='Could not complete upload.  (' + str(e) + ')')
             return
 
         if tkMessageBox.askyesno(title='Complete',

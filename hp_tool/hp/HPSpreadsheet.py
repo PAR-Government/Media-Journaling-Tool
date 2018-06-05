@@ -815,10 +815,14 @@ class HPSpreadsheet(Toplevel):
         tkerrs = [[], []]
         for r in resolutions:
             opp = "secondary" if r[1] == 'primary' else 'primary'
-            if r[0] not in browser_res_list[r[1]]:
-                tkerrs[0].append("{0}x{1} - {2}.".format(r[0][0], r[0][1], r[1]))
-            if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
-                tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
+            if r[1] != "":
+                if r[0] not in browser_res_list[r[1]]:
+                    tkerrs[0].append("{0}x{1} - {2}.".format(r[0][0], r[0][1], r[1]))
+                if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
+                    tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
+            else:
+                tkMessageBox.showerror("Error", "The HP-PrimarySecondary field MUST be filled in prior to uploading.")
+                return
 
         if tkerrs[0] or tkerrs[1]:
             tkMessageBox.showwarning("New Resolutions", "\nThe following resolutions do not exist under the camera "
@@ -850,7 +854,8 @@ class HPSpreadsheet(Toplevel):
             name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
             files_in_csv.append(name)
 
-        dif_list = [x for x in files_in_dir if x not in files_in_csv and "_" not in x]
+        dif_list = [x for x in files_in_dir if (x not in files_in_csv and "_" not in x and os.path.splitext(x)[1]
+                                                not in ["tar", "gpg"])]
 
         if dif_list:
             ans = tkMessageBox.askyesno("Missing Data", "There have been files found in the output directory that are not in the csv.  Would you like to delete them?")
