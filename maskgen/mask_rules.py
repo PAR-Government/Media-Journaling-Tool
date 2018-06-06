@@ -2431,6 +2431,7 @@ class ColorCompositeBuilder(CompositeBuilder):
                     'color': self.colors[probe.edgeId]
                 }
                 finalResult[0].save(targetColorMaskImageName)
+                assert os.path.exists(targetColorMaskImageName)
             else:
                 probe.composites[self.composite_type] = {
                     'image': finalResult[0],
