@@ -238,6 +238,26 @@ def checkAddFrameTime(op, graph, frm, to):
                     mask_start_constraints[key]))
 
 
+def checkMetaDate(op, graph, frm, to):
+    """
+      :param op:
+      :param graph:
+      :param frm:
+      :param to:
+      :return:
+      @type op: Operation
+       @type graph: ImageGraph
+      @type frm: str
+      @type to: str
+      """
+    import re
+    edge = graph.get_edge(frm, to)
+    diff = getValue(edge,'exifdiff',{})
+    for k,v in diff.iteritems():
+        if 'Date' in k and v[0] == 'change':
+            if re.sub('[0-9a-zA-Z]','x',v[1]) != re.sub('[0-9a-zA-Z]','x',v[2]):
+                return (Severity.WARNING, 'Meta Data {} Date Format Changed: {}'.format(k, v[2]))
+
 def checkFrameTimes(op, graph, frm, to):
     """
     :param op:
