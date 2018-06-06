@@ -1386,8 +1386,8 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
        :param ranges: collection of meta-data describing then range of changed frames
        :return:
        """
-    diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
-    if __changeCount(vidAnalysisComponents.mask) > 0 and diff_in_time < vidAnalysisComponents.fps:
+    #diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
+    if __changeCount(vidAnalysisComponents.mask) > 0:# and diff_in_time < vidAnalysisComponents.fps:
         vidAnalysisComponents.writer.write(255-vidAnalysisComponents.mask,
                                            vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                                            vidAnalysisComponents.time_manager.frameSinceBeginning)
@@ -1407,7 +1407,9 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
         change['videosegment'] = os.path.split(vidAnalysisComponents.writer.filename)[1]
         change['endtime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
         change['rate'] = vidAnalysisComponents.fps
-        change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        # advanced one frame...so back one frame.
+        adjust = -1 if vidAnalysisComponents.time_manager.isPastTime() else 0
+        change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning + adjust
         change['frames']  = change['endframe'] - change['startframe'] + 1
         change['type'] = 'video'
         vidAnalysisComponents.writer.release()
@@ -2021,10 +2023,10 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             ret_two, frame_two = analysis_components.retrieveTwo()
             if frame_one.shape != frame_two.shape:
                 return getMaskSetForEntireVideo(fileOne),[]
-            diff = np.abs(frame_one - frame_two)
-            analysis_components.mask = np.zeros((frame_one.shape[0],frame_one.shape[1])).astype('uint8')
-            diff  = cv2.cvtColor(diff,cv2.COLOR_RGBA2GRAY)
-            analysis_components.mask[diff > 0.0001] = 255
+            analysis_components.mask = tool_set.__diffMask(ImageWrapper(frame_one).to_16BitGray().to_array(),
+                                       ImageWrapper(frame_two).to_16BitGray().to_array(),
+                                       True,
+                                       {'tolerance':0.1})[0]
             #opening = cv2.erode(analysis_components.mask, kernel,1)
             #analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             if not opFunc(analysis_components,ranges,arguments):
