@@ -304,6 +304,9 @@ class Modification:
         self.category = category
         self.generateMask = generateMask
 
+    def getSemanticGroups(self):
+        return [] if self.semanticGroups is None else self.semanticGroups
+
     def setSemanticGroups(self, groups):
         self.semanticGroups = groups
 
@@ -1222,7 +1225,7 @@ class ImageProjectModel:
                 }))
         probes = list()
         for future in futures:
-            probes.extend(future.get(timeout=1000))
+            probes.extend(future.get(timeout=int(prefLoader.get_key('probe_timeout', 100000))))
         return probes
 
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,

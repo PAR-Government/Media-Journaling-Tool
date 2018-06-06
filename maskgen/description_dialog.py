@@ -594,7 +594,7 @@ class DescriptionCaptureDialog(Toplevel):
         if self.description is not None:
             if self.description.semanticGroups is not None:
                 pos = 1
-                for grp in self.description.semanticGroups:
+                for grp in self.description.getSemanticGroups():
                     self.semanticFrame.insertListbox(pos,grp)
                     pos += 1
             if (self.description.inputMaskName is not None):
@@ -876,7 +876,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         Label(master, text='User: ' + self.description.username, anchor=W, justify=LEFT).grid(row=3, column=2,
                                                                                                     sticky=E)
         Message(master,
-                text='Semantics: ' + ', '.join(self.description.semanticGroups), anchor=W, justify=LEFT).grid(row=4,
+                text='Semantics: ' + ', '.join(self.description.getSemanticGroups()), anchor=W, justify=LEFT).grid(row=4,
                                                                                              column=0,
                                                                                               columnspan=4,
                                                                                               sticky=W)

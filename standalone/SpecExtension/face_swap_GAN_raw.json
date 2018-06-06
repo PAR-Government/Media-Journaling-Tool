@@ -112,7 +112,7 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "Base"
+           "source": "BasePNG"
          },
         "convert to png": "yes",
         "coerce shape":"yes"
@@ -230,7 +230,7 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "Base"
+           "source": "BasePNG"
          },
         "convert to png": "yes",
         "coerce shape":"yes"
