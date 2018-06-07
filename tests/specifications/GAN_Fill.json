@@ -13,9 +13,7 @@
   },
   "nodes":[
     {
-      "op_type": "PreProcessedMediaOperation",
-      "image_directory": "{image_dir}",
-      "picklist": "imageset",
+      "op_type": "NodeAttachment",
       "id": "Base"
     },
     {
@@ -26,7 +24,8 @@
       "arguments":{},
       "software": "Stuff",
       "software version": "1.0",
-      "directory": "{maskDir}"
+      "directory": "{maskDir}",
+	  "description": "Does things"
     },
     {
       "op_type":"PreProcessedMediaOperation",
@@ -39,7 +38,8 @@
         "source" : "mask"
       },
       "software": "GANImageCompletion",
-	  "software version": "d25cd7b8a3988a3a88bfb33a564de0c88a6f3127"
+	  "software version": "d25cd7b8a3988a3a88bfb33a564de0c88a6f3127",
+	  "description": "Runs GAN Completion"
     },
     {
       "op_type":"PluginOperation",
@@ -99,24 +99,23 @@
   "links": [
     {
       "source": "Base",
-      "target": "GANFill"
+      "target": "Filled"
     },
     {
       "source": "Base",
-      "target": "mask",
-      "connect": false
+      "target": "mask"
     },
     {
       "source":  "mask",
-      "target": "GANFill",
+      "target": "Filled",
       "connect": false
     },
     {
-      "source": "GANFill",
+      "source": "Filled",
       "target": "Output1"
     },
     {
-      "source": "GANFill",
+      "source": "Filled",
       "target": "PRNUAdded"
     },
     {
