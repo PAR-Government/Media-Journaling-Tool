@@ -2561,6 +2561,67 @@
       ]
     },
     {
+      "category": "Paste",
+      "name": "GANFill",
+      "mandatoryparameters": {
+
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "checkFrameTimes",
+        "check_local",
+        "checkSameChannels",
+        "checkFrameTimeAlignment",
+        "checkUncompressed",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+        "purpose": {
+          "type": "list",
+          "values": [
+            "remove",
+            "enlarge",
+            "heal",
+            "other"
+          ],
+          "description": "Purpose: remove an object, enlarge (extend), or healing using sampled pixels."
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "samplemaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
+      "description": "Use a GAN to fill in a selected region of an image.",
+      "compareparameters": {
+        "tolerance": 0.0001
+      },
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate."
+      ]
+    },
+    {
       "category": "CGI",
       "name": "Gradient",
       "mandatoryparameters": {
