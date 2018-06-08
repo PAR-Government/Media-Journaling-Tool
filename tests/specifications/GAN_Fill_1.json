@@ -9,7 +9,8 @@
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
-    "recompress": false
+    "recompress": false,
+    "rename": false
   },
   "nodes": [
     {

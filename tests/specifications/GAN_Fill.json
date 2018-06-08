@@ -14,18 +14,13 @@
   "nodes":[
     {
       "op_type": "NodeAttachment",
-      "id": "Base"
+      "id": "extend"
     },
     {
-      "op_type":"PreProcessedMediaOperation",
-      "plugin": "maskSelect",
-      "op": "Selection",
+      "op_type":"InputMaskPluginOperation",
+      "plugin": "DirMaskSelect",
       "id":"mask",
-      "arguments":{},
-      "software": "Stuff",
-      "software version": "1.0",
-      "directory": "{maskDir}",
-	  "description": "Does things"
+      "arguments":{"directory":"{maskDir}"}
     },
     {
       "op_type":"PreProcessedMediaOperation",
@@ -48,7 +43,7 @@
       "arguments": {
         "donor": {
           "type":"donor",
-          "source": "Base"
+          "source": "base"
         }
       }
     },
@@ -59,7 +54,7 @@
       "arguments": {
         "donor": {
           "type": "donor",
-          "source": "Base"
+          "source": "base"
         }
       }
     },
@@ -70,7 +65,7 @@
       "arguments": {
         "donor": {
           "type":"donor",
-          "source": "Base"
+          "source": "base"
         }
       }
     },
@@ -91,19 +86,20 @@
       "arguments": {
         "donor": {
           "type":"donor",
-          "source": "Base"
+          "source": "base"
         }
       }
     }
     ],
   "links": [
     {
-      "source": "Base",
+      "source": "extend",
       "target": "Filled"
     },
     {
-      "source": "Base",
-      "target": "mask"
+      "source": "extend",
+      "target": "mask",
+      "connect": false
     },
     {
       "source":  "mask",
