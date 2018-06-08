@@ -404,9 +404,9 @@ class GroupOperationsLoader(GroupFilterLoader):
         return None
 
     def getCategoryForOperation(self, name):
-        ops = getOperations()
-        if name in ops:
-            return ops[name].category
+        op = getOperation(name,fake=False,warning=False)
+        if op is not None:
+            return op.category
         return self.getCategoryForGroup(name)
 
     def getOperations(self,fileType):

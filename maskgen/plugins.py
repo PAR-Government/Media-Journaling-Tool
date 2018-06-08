@@ -123,6 +123,7 @@ class PluginManager:
         return broker
 
     def getPreferredSuffix(self,name,filetype=None):
+        name=name.split('::')[0]
         loaded = self.plugins
         if 'suffix' in loaded[name]:
             suffix = loaded[name]['suffix']
@@ -232,10 +233,15 @@ def getPreferredSuffix(name,filetype= None):
     return config.global_config['plugins'].getPreferredSuffix(name,filetype=filetype)
 
 def getOperation(name):
-    return config.global_config['plugins'].getOperation(name)
+    parts = name.split('::')
+    plugin_name = parts[0]
+    op = config.global_config['plugins'].getOperation(plugin_name)
+    if  len(parts) > 1:
+        op['name'] = op['name'] + '::' + parts[1]
+    return op
 
 def callPlugin(name,im,source,target,**kwargs):
-    return config.global_config['plugins'].callPlugin(name,im,source,target,**kwargs)
+    return config.global_config['plugins'].callPlugin(name.split('::')[0],im,source,target,**kwargs)
 
 def _runCustomPlugin(command, im, source, target, **kwargs):
     import copy
