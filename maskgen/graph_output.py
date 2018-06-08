@@ -100,6 +100,6 @@ class ImageGraphPainter:
             edge = self.graph.get_edge(edge_id[0],edge_id[1])
             label = edge['plugin_name'] if 'plugin_name' in edge and pluginName else edge['op']
             blue = "blue" if 'recordMaskInComposite' in edge and edge['recordMaskInComposite'] == 'yes' else 'black'
-            pygraph.add_edge(pydot.Edge(pydot_nodes[edge_id[0]],pydot_nodes[edge_id[1]],label=label, color = blue))
+            pygraph.add_edge(pydot.Edge(pydot_nodes[edge_id[0]],pydot_nodes[edge_id[1]],label='"' + label + '"', color = blue))
         return pygraph
 

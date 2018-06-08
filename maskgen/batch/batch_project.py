@@ -207,6 +207,7 @@ def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
+
             json_data = json.load(f, encoding='utf-8')
         except  ValueError:
             json_data = json.load(f)
@@ -1294,7 +1295,7 @@ class BatchProject:
                     if 'description'  in node:
                         name = node['description']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
-            pydot_nodes[node_id] = pydot.Node(node_id, label=name,
+            pydot_nodes[node_id] = pydot.Node(node_id, label='"' + name + '"',
                                               shape='plain',
                                               color=color)
             pygraph.add_node(pydot_nodes[node_id])
