@@ -66,7 +66,10 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     else:
         return image
     if sub not in ['model', 'nonstandard']:
-        newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
+        if image.lower().endswith(".dng.zip"):
+            newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".dng.zip")
+        else:
+            newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
         sub = 'image' if sub == 'nonstandard' else 'model'
         thumbnail_folder = os.path.join(path, sub, '.hptemp', newNameStr) if sub == 'model' else os.path.join(path,
@@ -168,7 +171,7 @@ def grab_dir(inpath, outdir=None, r=False):
     """
     imageList = []
     names = os.listdir(inpath)
-    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'])
+    valid_exts = tuple(exts['IMAGE'] + exts['VIDEO'] + exts['AUDIO'] + ['.dng.zip'])
     if r:
         for dirname, dirnames, filenames in os.walk(inpath, topdown=True):
             for filename in filenames:
@@ -364,7 +367,7 @@ def set_other_data(self, data, imfile, set_primary):
     data['FileType'] = imext[1:]
     if imext.lower() in exts['AUDIO']:
         data['Type'] = 'audio'
-    elif imext.lower() in exts['VIDEO']:
+    elif imext.lower() in exts['VIDEO'] or imfile.endswith(".dng.zip"):
         data['Type'] = 'video'
     elif imfile.lower().endswith('.3d.zip'):
         data['Type'] = 'model'
