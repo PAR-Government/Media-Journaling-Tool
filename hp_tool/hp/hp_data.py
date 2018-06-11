@@ -429,8 +429,7 @@ def add_exif_column(df, title, exif_tag, path):
     :return: None
     """
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
-    exifDataResult = \
-        subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
+    exifDataResult = subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
     exifDataResult = json.loads(exifDataResult)
     exifDict = {}
     for item in exifDataResult:
@@ -477,8 +476,7 @@ def parse_image_info(self, imageList, **kwargs):
         if kkey in fields:
             master[kkey] = kwargs[kkey]
 
-    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs[
-        'rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
     exifDataResult = \
         subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
@@ -499,8 +497,7 @@ def parse_image_info(self, imageList, **kwargs):
     reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
 
-        if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts[
-            "nonstandard"]):
+        if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
 
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
@@ -579,8 +576,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         if os.path.exists(os.path.join(outputdir, 'csv')):
             check_outdated(find_rit_file(os.path.join(outputdir, 'csv')), outputdir)
         else:
-            tkMessageBox.showerror("Directory Error",
-                                   "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models or Lytro images to be processed, verify that you are following the correct directory structure.")
+            tkMessageBox.showerror("Directory Error", "There has been an error processing the input directory.  Please verify there is media within the directory.  If there is only 3D Models or Lytro images to be processed, verify that you are following the correct directory structure.")
             return None, None
         return imageList, []
 
@@ -607,9 +603,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     searchmodels = not (recursive or cameraData) or (
                 not recursive and "lytro" in cameraData[cameraData.keys()[0]]["hp_camera_model"].lower())
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get_key('username'),
-                             self.settings.get_key('hp-organization'),
-                             pad_to_5_str(count), additionalInfo, searchmodels)
+        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]
 
@@ -620,8 +614,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
             else:
                 tkMessageBox.showerror("Unrecognized data type", "An unrecognized data type {0} was found in the input "
                                                                  "directory.  Please add this extension to the list of "
-                                                                 "addition extensions.".format(
-                    os.path.splitext(image)[1]))
+                                                                 "addition extensions.".format(os.path.splitext(image)[1]))
 
             return
         # image_dir = os.path.dirname(image)
@@ -693,9 +686,11 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('Updating metadata...')
 
-    metadata = {"usageterms": self.settings.get_key("usageterms"), "copyrightnotice":
-        self.settings.get_key("copyrightnotice"), "credit": self.settings.get_key("credit"),
-                "artist": self.settings.get_key("artist"), "copyright": self.settings.get_key("copyright"),
+    metadata = {"usageterms": self.settings.get_key("usageterms"),
+                "copyrightnotice": self.settings.get_key("copyrightnotice"),
+                "credit": self.settings.get_key("credit"),
+                "artist": self.settings.get_key("artist"),
+                "copyright": self.settings.get_key("copyright"),
                 "by-line": self.settings.get_key("by-line")}
 
     for folder in ['image', 'video', 'audio', 'model']:
