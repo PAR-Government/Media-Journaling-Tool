@@ -217,8 +217,9 @@ def getOperation(name, fake = False, warning=True):
          })
     if name not in getMetDataLoader().operations:
         root_name = name.split('::')[0]
-        if root_name == name and warning:
-            logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
+        if root_name == name:
+            if warning:
+                logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
         else:
             return getOperation(root_name,fake=fake,warning=warning)
 
