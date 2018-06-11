@@ -30,7 +30,7 @@
       }
     },
     {
-      "op_type": "ImageSelectionPluginOperation",
+      "op_type": "InputMaskPluginOperation",
       "plugin": "JSONSelector",
       "id":"Selector",
       "prnu":true,
@@ -112,7 +112,7 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "BasePNG"
+           "source": "Base"
          },
         "convert to png": "yes",
         "coerce shape":"yes"
@@ -230,7 +230,7 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "BasePNG"
+           "source": "Base"
          },
         "convert to png": "yes",
         "coerce shape":"yes"

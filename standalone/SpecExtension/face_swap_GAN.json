@@ -110,7 +110,7 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "Base"
+           "source": "Selector"
          }
       }
     },

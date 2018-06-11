@@ -423,7 +423,7 @@ class PermuteGroupManager:
         @param filename: optional overriding filename,  otherwise failures-y-m-d.txt
         :return:
         """
-        import datetime
+        from datetime import datetime
         import json
         failed_state = {name:{} for name in self.groups}
         for name, grp in self.groups.iteritems():
@@ -433,7 +433,7 @@ class PermuteGroupManager:
                 if value is not None:
                     failed_state[name][spec_name] = grp.current(spec_name)
         with self.lock:
-            file_to_use = filename if filename is not None else 'failures-%s.txt'%datetime.date.today().strftime('%Y_%m_%d_%H_%M')
+            file_to_use = filename if filename is not None else 'failures-%s.txt'%datetime.strftime(datetime.now(), '%Y_%m_%d_%H_%M_%S')
             with open(os.path.join(self.dir,file_to_use),'w+') as fp:
                 json.dump(failed_state,fp)
                 fp.write(os.linesep)

@@ -215,8 +215,13 @@ def getOperation(name, fake = False, warning=True):
          'video':'maskgen.mask_rules.video_donor',
          'audio': 'maskgen.mask_rules.audio_donor',
          })
-    if name not in getMetDataLoader().operations and warning:
-        logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
+    if name not in getMetDataLoader().operations:
+        root_name = name.split('::')[0]
+        if root_name == name and warning:
+            logging.getLogger('maskgen').warning( 'Requested missing operation ' + str(name))
+        else:
+            return getOperation(root_name,fake=fake,warning=warning)
+
     return getMetDataLoader().operations[name] if name in getMetDataLoader().operations else (Operation(name='name', category='Bad') if fake else None)
 
 
