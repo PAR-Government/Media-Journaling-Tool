@@ -493,7 +493,8 @@ class HPSpreadsheet(Toplevel):
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
                 colName = list(tab.model.df)[col]
-                currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
+                fname = self.pt.model.getValueAt(row, 0)
+                currentExt = os.path.splitext(fname)[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
                 if notnans.iloc[row, col] and colName != 'HP-Collection':
                     rect = tab.create_rectangle(x1, y1, x2, y2,
@@ -502,9 +503,10 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     tab.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
-                        (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
-                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']) or \
-                        (colName in self.mandatoryModelNames and self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
+                        (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
+                         fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and currentExt \
+                         in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and \
+                         self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',
