@@ -20,14 +20,13 @@ import data_files
 from PIL import Image
 from hp.GAN_tools import SeedProcessor
 
-
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
         'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
         'MODEL': ['.3d.zip'],
         'nonstandard': ['.lfr']}
 
-orgs = {'RIT':'R', 'Drexel':'D', 'U of M':'M', 'PAR':'P', 'CU Denver':'C'}
+orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
 
 RVERSION = '#@version=01.12'
 thumbnail_conversion = {}
@@ -70,7 +69,9 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
         sub = 'image' if sub == 'nonstandard' else 'model'
-        thumbnail_folder = os.path.join(path, sub, '.hptemp', newNameStr) if sub == 'model' else os.path.join(path, 'thumbnails', '.hptemp')
+        thumbnail_folder = os.path.join(path, sub, '.hptemp', newNameStr) if sub == 'model' else os.path.join(path,
+                                                                                                              'thumbnails',
+                                                                                                              '.hptemp')
         if not os.path.isdir(thumbnail_folder):
             os.mkdir(thumbnail_folder)
 
@@ -351,6 +352,7 @@ def combine_exif(exif_data, lut, d):
             d[lut[k]] = exif_data[k]
     return d
 
+
 def set_other_data(self, data, imfile, set_primary):
     """
     Set implicit metadata to data.
@@ -427,8 +429,7 @@ def add_exif_column(df, title, exif_tag, path):
     :return: None
     """
     print('Updating: Adding new column: ' + title + '. This may take a moment for large sets of data... '),
-    exifDataResult = \
-    subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
+    exifDataResult = subprocess.Popen(['exiftool', '-f', '-j', '-r', exif_tag, path], stdout=subprocess.PIPE).communicate()[0]
     exifDataResult = json.loads(exifDataResult)
     exifDict = {}
     for item in exifDataResult:
@@ -475,10 +476,8 @@ def parse_image_info(self, imageList, **kwargs):
         if kkey in fields:
             master[kkey] = kwargs[kkey]
 
-    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs[
-        'rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
-    exifDataResult = \
-    subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
+    exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
+    exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
     try:
@@ -498,7 +497,7 @@ def parse_image_info(self, imageList, **kwargs):
     for i in xrange(0, len(imageList)):
 
         if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
-          
+
             data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
         else:
             image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
@@ -602,8 +601,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     newNameList = []
     searchmodels = not (recursive or cameraData) or (not recursive and "lytro" in cameraData[cameraData.keys()[0]]["hp_camera_model"].lower())
     for image in imageList:
-        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'),
-                             pad_to_5_str(count), additionalInfo, searchmodels)
+        newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]
 
@@ -641,21 +639,42 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         imageInfo[model]['HP-Thumbnails'] = "; ".join(new_thumbnails)
 
     # parse seeds
-    local_id = cameraData.keys()[0]
+    def get_seed_file():
+        seed = None
+        while not seed:
+            tkMessageBox.showinfo("Select Seed File", "Select the GAN seed file (ex. log.txt for the"
+                                                      " Progressive GAN).")
+            seed = tkFileDialog.askopenfilename()
+
+        print("Loading seeds... "),
+        seed_loader = SeedProcessor(self, seed)
+        print("done.")
+        seeds = seed_loader.get_seeds()
+        return seeds
+
+    try:
+        local_id = cameraData.keys()[0]
+    except IndexError:  # 3D Models
+        local_id = ""
     if local_id.lower().startswith("gan"):
         if tkMessageBox.askyesno("Add Seed?", "Would you like to connect a seed file to these GAN images? "):
-            seed = None
-            while not seed:
-                tkMessageBox.showinfo("Select Seed File", "Select the GAN seed file (ex. log.txt for the"
-                                                          " Progressive GAN).")
-                seed = tkFileDialog.askopenfilename()
-
-            print("Loading seeds... "),
-            seed_loader = SeedProcessor(self, seed)
-            print("done.")
-            seeds = seed_loader.get_seeds()
+            seed_list = get_seed_file()
+            while len(seed_list) != len(imageInfo):
+                if len(seed_list) > len(imageInfo):
+                    diff_type = "There are more seeds found than GANs.  If you continue with this seed file, the last" \
+                                " {0} seeds will be unused.".format(len(seed_list) - len(imageInfo))
+                if len(seed_list) < len(imageInfo):
+                    diff_type = "There are more GANs found than seeds provided.  If you continue with this seed file," \
+                                " the last {0} GANs will not have seeds.".format(len(imageInfo) - len(seed_list))
+                retry_seed = tkMessageBox.askyesno("Mismatched Seed File", diff_type + "  Would you like to select a "
+                                                                                       "different seed file?")
+                if retry_seed:
+                    seed_list = get_seed_file()
             for im in xrange(0, len(imageInfo)):
-                imageInfo[im]['HP-seed'] = seeds[im]
+                try:
+                    imageInfo[im]['HP-seed'] = seed_list[im]
+                except IndexError:
+                    break
 
     print(' done')
 
@@ -665,9 +684,11 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
 
     print('Updating metadata...')
 
-    metadata = {"usageterms": self.settings.get_key("usageterms"), "copyrightnotice":
-                self.settings.get_key("copyrightnotice"), "credit": self.settings.get_key("credit"),
-                "artist": self.settings.get_key("artist"), "copyright": self.settings.get_key("copyright"),
+    metadata = {"usageterms": self.settings.get_key("usageterms"),
+                "copyrightnotice": self.settings.get_key("copyrightnotice"),
+                "credit": self.settings.get_key("credit"),
+                "artist": self.settings.get_key("artist"),
+                "copyright": self.settings.get_key("copyright"),
                 "by-line": self.settings.get_key("by-line")}
 
     for folder in ['image', 'video', 'audio', 'model']:
