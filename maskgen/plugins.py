@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tarfile
 import traceback
+import copy
 
 import config
 from maskgen.ioc.registry import IoCComponent, Method, broker
@@ -236,7 +237,8 @@ def getOperation(name):
     parts = name.split('::')
     plugin_name = parts[0]
     op = config.global_config['plugins'].getOperation(plugin_name)
-    if  len(parts) > 1:
+    if  op is not None and len(parts) > 1:
+        op = copy.copy(op)
         op['name'] = op['name'] + '::' + parts[1]
     return op
 

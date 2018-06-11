@@ -175,6 +175,28 @@ class TestBatchProcess(TestSupport):
         be.finish()
         self.assertTrue(os.path.exists('test_projects/test_project1/test_project1.hdf5'))
 
+    def test_runinheritance(self):
+        self.addFileToRemove('imageset.txt', preemptive=True)
+        with open('imageset.txt', 'w') as fp:
+            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
+                           not filename.startswith('test_project')])
+        if os.path.exists('test_projects'):
+            shutil.rmtree('test_projects')
+        os.mkdir('test_projects')
+        batch_project.loadCustomFunctions()
+        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/inheritance_test.json'))
+        global_state = {
+            'projects': 'test_projects',
+            'project': batchProject,
+            'picklists_files': {},
+            'image_dir': self.locateFile('tests/images'),
+            'count': batch_project.IntObject(1),
+            'permutegroupsmanager': PermuteGroupManager()
+        }
+        batchProject.loadPermuteGroups(global_state)
+        for i in range(1):
+            batchProject.executeOnce(global_state)
+
 
     def test_runwithpermutation(self):
         self.addFileToRemove('imageset.txt', preemptive=True)

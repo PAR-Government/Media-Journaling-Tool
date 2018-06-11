@@ -26,7 +26,7 @@
     },
     {
       "op_type":"PluginOperation",
-      "plugin": "AntiforensicDrexelErasureGAN",
+      "plugin": "AntiforensicDrexelErasureGAN::Resize",
       "id": "Resize",
       "arguments":{
         "model":"{models}/resize_GAN_model.npz"
@@ -34,7 +34,7 @@
     },
     {
       "op_type":"PluginOperation",
-      "plugin": "AntiforensicDrexelErasureGAN",
+      "plugin": "AntiforensicDrexelErasureGAN::Multi",
       "id": "Multi",
       "arguments":{
         "model":"{models}/multi-manip_GAN_model.npz"

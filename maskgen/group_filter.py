@@ -239,7 +239,7 @@ class GroupFilterLoader:
                              maskTransformFunction=customFunctions,
                              parameter_dependencies=dependencies)
             return grp.operation
-        return getOperation(name,fake=True,warning=warning)
+        return getOperation(name, fake=True, warning=warning)
 
     def getOperation(self, name):
         grp = self.getGroup(name)

@@ -41,6 +41,8 @@ def transform(img, source, target, **kwargs):
             im_donor_trace = np.rot90(im_donor_trace, -1)
         location,im_source = centeredCrop(im_source, im_donor_trace)
         ImageWrapper(im_source).save(target, format='PNG')
+    else:
+        location = (0,0)
     return {'location':location}, None
 
 
