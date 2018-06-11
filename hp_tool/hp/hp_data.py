@@ -477,8 +477,7 @@ def parse_image_info(self, imageList, **kwargs):
             master[kkey] = kwargs[kkey]
 
     exiftoolparams = ['exiftool', '-f', '-j', '-r', '-software', '-make', '-model', '-serialnumber'] if kwargs['rec'] else ['exiftool', '-f', '-j', '-software', '-make', '-model', '-serialnumber']
-    exifDataResult = \
-        subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
+    exifDataResult = subprocess.Popen(exiftoolparams + exiftoolargs + [kwargs['path']], stdout=subprocess.PIPE).communicate()[0]
 
     # exifDataResult is in the form of a String json ("[{SourceFile:im1.jpg, imageBitsPerSample:blah}, {SourceFile:im2.jpg,...}]")
     try:
@@ -600,8 +599,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
     # copy with renaming
     print('Copying files...')
     newNameList = []
-    searchmodels = not (recursive or cameraData) or (
-                not recursive and "lytro" in cameraData[cameraData.keys()[0]]["hp_camera_model"].lower())
+    searchmodels = not (recursive or cameraData) or (not recursive and "lytro" in cameraData[cameraData.keys()[0]]["hp_camera_model"].lower())
     for image in imageList:
         newName = copyrename(image, outputdir, self.settings.get_key('username'), self.settings.get_key('hp-organization'), pad_to_5_str(count), additionalInfo, searchmodels)
         if os.path.split(newName)[1] == os.path.split(image)[1]:
