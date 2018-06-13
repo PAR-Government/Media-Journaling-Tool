@@ -177,8 +177,20 @@ def findNodesToExtend(sm, rules):
             continue
         skip=False
         for rule in rules:
-                if rule.startswith('~'):
+                if rule.startswith('+'):
+                    rule[1:].replace('::','__')
                     catandop = rule[1:].split(':')
+                    catandop[1].replace('__','::')
+                    if op is not None:
+                        if (op.category == catandop[0] or catandop[0] == '') and \
+                                catandop[1] == op.name:
+                            break
+
+        for rule in rules:
+                if rule.startswith('~'):
+                    rule[1:].replace('::', '__')
+                    catandop = rule[1:].split(':')
+                    catandop[1].replace('__', '::')
                     if op is not None:
                         if (op.category == catandop[0] or catandop[0] == '') and \
                                 (len(catandop) == 0 or len(catandop[1]) == 0 or catandop[1] == op.name):
