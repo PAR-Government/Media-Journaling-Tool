@@ -5,7 +5,7 @@ import numpy
 import tempfile
 
 
-class CropSelectorTestCase(unittest.TestCase):
+class OutputPNGTestCase(unittest.TestCase):
     filesToKill = []
 
     def setUp(self):

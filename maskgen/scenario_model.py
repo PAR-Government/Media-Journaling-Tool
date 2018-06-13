@@ -459,6 +459,7 @@ class ImageImageLinkTool(LinkTool):
             predecessors = scModel.G.predecessors(destination)
             mask = None
             expect_donor_mask = False
+            analysis = {}
             if not skipDonorAnalysis:
                 errors = list()
                 for pred in predecessors:
@@ -496,7 +497,6 @@ class ImageImageLinkTool(LinkTool):
                 analysis = {}
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
-                analysis = {}
         else:
             logging.getLogger('maskgen').debug('Create Mask')
             mask, analysis, error = createMask(startIm,
