@@ -1,0 +1,142 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "gan_resize",
+    "organization": "wonderland",
+    "projectdescription": "Antiforensics resize and multi applied.",
+    "technicalsummary": "Automated: Apply Antiforensics to GAN images",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+    {
+      "op_type": "NodeAttachment",
+      "experiment_id": 0,
+      "id": "base_PNG"
+    },
+    {
+      "op_type": "ImageSelectionPluginOperation",
+      "plugin": "JSONSelector",
+      "id":"Selector",
+      "prnu":true,
+      "arguments": {"Json File": "{json_path}", "File Key":"prnu"}
+    },
+     {
+      "op_type":"PluginOperation",
+      "plugin": "CropToFitDonor",
+      "id":"CropCFA",
+      "source":"Multi",
+      "arguments":{
+        "donor": {
+          "type": "donor",
+          "source": "Selector"
+        }
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id":"PRNUAdded",
+      "arguments":{
+        "donor": {
+          "type": "donor",
+          "source": "Selector"
+        },
+        "donor is prnu":"yes"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "JpgFromCamera",
+      "id": "CameraAdded",
+      "arguments": {
+        "qtfile": "{qtable@Selector}",
+        "rotate": "no",
+        "quality": 100
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CameraModelGan",
+      "source":"PRNUAdded",
+      "id": "CFAGAN",
+      "arguments": {
+        "Camera Model": "{model@Selector}",
+        "Camera Make": "{make@Selector}",
+        "model": "{model_path@Selector}"
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsResize",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsMulti",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAs",
+      "id": "CompressAsCFA",
+      "arguments": {
+        "rotate":"yes",
+        "donor": {
+          "type":"donor",
+          "source":"base"
+        }
+      }
+    }
+    ],
+  "links":[
+    {
+      "source":"base_PNG",
+	  "target":"Selector",
+      "connect":false
+    },
+    {
+      "source":"Selector",
+      "target":"PRNUAdded",
+      "connect":false
+    },
+    {
+       "source":"base_PNG",
+       "target":"CropCFA",
+       "split":true
+    },
+    {
+      "source": "CFAGAN",
+      "target": "CompressAsCFA"
+    },
+     {
+      "source": "PRNUAdded",
+      "target": "CFAGAN"
+    },
+    {
+      "source": "CropCFA",
+      "target": "PRNUAdded"
+    },
+    {
+      "source": "CFAGAN",
+      "target": "CameraAdded"
+    }
+    ]
+}
