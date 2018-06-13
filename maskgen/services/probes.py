@@ -32,7 +32,7 @@ def append_segment(row, segment):
     """
     if segment is None:
         return row + ['', '', '', '', '', '', '', '']
-    return row + [segment.media_type, os.path.basename(segment.filename),
+    return row + [segment.media_type, '' if segment.filename is None else os.path.basename(segment.filename),
                   segment.startframe, segment.endframe, segment.frames,
                   segment.starttime, segment.endtime, segment.rate]
 
