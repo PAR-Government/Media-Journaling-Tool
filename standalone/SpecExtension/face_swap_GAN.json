@@ -110,8 +110,9 @@
       "arguments": {
         "donor" : {
            "type": "donor",
-           "source": "Base"
-         }
+           "source": "BasePNG"
+        },
+	"convert to png":"no"
       }
     },
     {
