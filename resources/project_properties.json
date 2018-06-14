@@ -674,6 +674,13 @@
       "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
 	},
     {
+      "description": "splice/copy",
+      "name": "splice/copy",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information" : "copying an object into a scene to create a copy of an object in the scene already"
+    },
+    {
 	  "description": "ENF",
       "name": "ENF",
       "type": "yesno",
