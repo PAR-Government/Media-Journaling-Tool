@@ -158,10 +158,20 @@ def findNodesToExtend(sm, rules):
                 edge = sm.getGraph().get_edge(nodename, successor)
                 if edge['op'] == 'Donor':
                     continue
-                op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
+                succ_op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
                 ops.append(edge['op'])
-                isSourceOutput |= op.category == 'Output'
-                isSourceAntiForensic |= op.category == 'AntiForensic'
+                isSourceOutput |= succ_op.category == 'Output'
+                isSourceAntiForensic |= succ_op.category == 'AntiForensic'
+        skip=False
+        for rule in rules:
+                if rule.startswith('+'):
+                    catandop = rule[1:].split(':')
+                    if op is not None:
+                        if (op.category == catandop[0] or catandop[0] == '') and \
+                                catandop[1] == op.name:
+                            nodes.append(nodename)
+                            skip = True
+                            break
         if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0):
             if 'finalnode'  in rules:
                 nodes.append(nodename)
@@ -175,22 +185,9 @@ def findNodesToExtend(sm, rules):
             continue
         if isBaseNode and 'basenode' not in rules:
             continue
-        skip=False
-        for rule in rules:
-                if rule.startswith('+'):
-                    rule[1:].replace('::','__')
-                    catandop = rule[1:].split(':')
-                    catandop[1].replace('__','::')
-                    if op is not None:
-                        if (op.category == catandop[0] or catandop[0] == '') and \
-                                catandop[1] == op.name:
-                            break
-
         for rule in rules:
                 if rule.startswith('~'):
-                    rule[1:].replace('::', '__')
                     catandop = rule[1:].split(':')
-                    catandop[1].replace('__', '::')
                     if op is not None:
                         if (op.category == catandop[0] or catandop[0] == '') and \
                                 (len(catandop) == 0 or len(catandop[1]) == 0 or catandop[1] == op.name):
