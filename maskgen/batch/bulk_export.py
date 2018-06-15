@@ -21,7 +21,7 @@ from maskgen.preferences_initializer import initialize
 from maskgen import maskGenPreferences
 import logging
 
-def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename,redactions):
+def upload_projects(s3dir, dir, qa, username, organization, error_writer, updatename, ignore_errors, redactions):
     """
     Uploads project directories to S3 bucket
     :param s3dir: bucket/dir S3 location
@@ -55,7 +55,7 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
         errors = scModel.validate(external=True)
         for err in errors:
             error_writer.writerow((scModel.getName(), err.Severity.name,err.Start,err.End,err.Message))
-        if hasErrorMessages(errors,  contentCheck=lambda x: len([m for m in redactions if m not in x]) == 0 ):
+        if not ignore_errors and hasErrorMessages(errors,  contentCheck=lambda x: len([m for m in redactions if m not in x]) == 0 ):
 	    logging.getLogger('maskgen').error('Validaiton Errors for {}'.format(scModel.getName()))
             continue
         if s3dir is None:
@@ -76,6 +76,7 @@ def main():
     parser.add_argument('-o', '--organization', help="update organization in project", required=False)
     parser.add_argument('-n', '--updatename', help="should update username in project", required=False, action="store_true")
     parser.add_argument('-r','--redacted',help='comma separated list of file argument to exclude from export',default='', required=False)
+    parser.add_argument('-i','--ignore',help='ignore errors',default='', required=False)
     args = parser.parse_args()
 
     initialize(maskGenPreferences, username=args.username)
@@ -83,6 +84,7 @@ def main():
         error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         upload_projects(args.s3, args.projects, args.qa, args.username, args.organization, error_writer,
                         args.updatename,
+ 			args.ignore,
                         [redaction.strip() for redaction in args.redacted.split(',')])
 
 if __name__ == '__main__':
