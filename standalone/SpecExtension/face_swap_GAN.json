@@ -109,9 +109,10 @@
       "id": "PRNUHPs",
       "arguments": {
         "donor" : {
-           "type": "donor",
-           "source": "Selector"
-         }
+          "type": "donor",
+          "source": "BasePNG"
+        },
+        "convert to png":"no"
       }
     },
     {
