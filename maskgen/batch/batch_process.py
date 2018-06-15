@@ -172,7 +172,6 @@ def findNodesToExtend(sm, rules):
                             nodes.append(nodename)
                             skip = True
                             break
-
         if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0):
             if 'finalnode'  in rules:
                 nodes.append(nodename)

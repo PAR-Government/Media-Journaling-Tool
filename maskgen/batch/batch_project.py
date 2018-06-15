@@ -1199,6 +1199,11 @@ class BatchProject:
         local_state['model'] = project
         base_node = self._findBase()
         try:
+            retain = []
+	    for op_node_name in self.G.nodes():
+   		op_node_data = self.G.node[op_node_name]
+		if getValue(op_node_data,'global',False):
+                    retain.append(op_node_name)
             completed = []
             for node in nodes:
                 # establish the starting point
@@ -1206,6 +1211,7 @@ class BatchProject:
                 queue = [base_node]
                 queue.extend([top for top in _findTops(self.G) if top != base_node])
                 self._processQueueOfNodes(local_state, global_state, queue, completed)
+                completed = copy.copy(retain)
             self._postProcessProject(local_state, global_state)
         except Exception as e:
             project_name = project.getName()
