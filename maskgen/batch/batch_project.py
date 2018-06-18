@@ -207,6 +207,7 @@ def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
+
             json_data = json.load(f, encoding='utf-8')
         except  ValueError:
             json_data = json.load(f)
@@ -1201,6 +1202,11 @@ class BatchProject:
         local_state['model'] = project
         base_node = self._findBase()
         try:
+            retain = []
+	    for op_node_name in self.G.nodes():
+   		op_node_data = self.G.node[op_node_name]
+		if getValue(op_node_data,'global',False):
+                    retain.append(op_node_name)
             completed = []
             for node in nodes:
                 # establish the starting point
@@ -1208,6 +1214,7 @@ class BatchProject:
                 queue = [base_node]
                 queue.extend([top for top in _findTops(self.G) if top != base_node])
                 self._processQueueOfNodes(local_state, global_state, queue, completed)
+                completed = copy.copy(retain)
             self._postProcessProject(local_state, global_state)
         except Exception as e:
             project_name = project.getName()
@@ -1297,7 +1304,7 @@ class BatchProject:
                     if 'description'  in node:
                         name = node['description']
             color = self.colors_bytype[op_type] if op_type in self.colors_bytype else 'black'
-            pydot_nodes[node_id] = pydot.Node(node_id, label=name,
+            pydot_nodes[node_id] = pydot.Node(node_id, label='"' + name + '"',
                                               shape='plain',
                                               color=color)
             pygraph.add_node(pydot_nodes[node_id])

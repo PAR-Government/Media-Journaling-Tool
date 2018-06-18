@@ -493,7 +493,8 @@ class HPSpreadsheet(Toplevel):
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
                 colName = list(tab.model.df)[col]
-                currentExt = os.path.splitext(self.pt.model.getValueAt(row, 0))[1].lower()
+                fname = self.pt.model.getValueAt(row, 0)
+                currentExt = os.path.splitext(fname)[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
                 if notnans.iloc[row, col] and colName != 'HP-Collection':
                     rect = tab.create_rectangle(x1, y1, x2, y2,
@@ -502,9 +503,10 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     tab.disabled_cells.append((row, col))
                 if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
-                        (colName in self.mandatoryVideoNames and currentExt in hp_data.exts['VIDEO']) or \
-                        (colName in self.mandatoryAudioNames and currentExt in hp_data.exts['AUDIO']) or \
-                        (colName in self.mandatoryModelNames and self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
+                        (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
+                         fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and currentExt \
+                         in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and \
+                         self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',
@@ -633,12 +635,29 @@ class HPSpreadsheet(Toplevel):
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-            print('Archiving data...')
-            archive = self.create_hp_archive()
+            archives_in_dir = [x for x in os.listdir(self.dir) if os.path.splitext(x)[1] == ".tar"]
+            if not archives_in_dir:
+                print('Archiving and encrypting data...'),
+                archive = self.create_hp_archive()
+                print('done.')
+            else:
+                reuse_archive = tkMessageBox.askyesno("Archive Found", "A preexisting archive has been found.  Would"
+                                                                       " you like to reuse it?\n\nWARNING: If you reuse"
+                                                                       " the archive, none of the changes made since "
+                                                                       "the archive was made will be uploaded.")
+                if reuse_archive:
+                    print("Encrypting data..."),
+                    archive = self.encrypt(os.path.join(self.dir, archives_in_dir[-1]))
+                    print("done.")
+                else:
+                    print('Archiving and encrypting data...'),
+                    archive = self.create_hp_archive()
+                    print('done.')
 
             print('Uploading...')
             try:
                 s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+                os.remove(archive)
             except Exception as e:
                 tkMessageBox.showerror(title='Error', message='Could not complete upload.', parent=self)
                 return
@@ -733,18 +752,25 @@ class HPSpreadsheet(Toplevel):
         Archive output folder into a .tar file.
         :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
         """
-        import subprocess
 
         val = self.pt.model.df['HP-DeviceLocalID'][0] if type(self.pt.model.df['HP-DeviceLocalID'][0]) is str else ''
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
         archive = tarfile.open(tname, "w", errorlevel=2)
-        archive.add(self.dir, arcname=os.path.split(self.dir)[1])
+        for d in os.listdir(self.dir):
+            fp = os.path.join(self.dir, d)
+            if os.path.isdir(fp):
+                archive.add(fp, arcname=os.path.join(os.path.split(self.dir)[1], d))
         archive.close()
         os.close(fd)
         final_name = os.path.join(self.dir, '-'.join((self.settings.get_key('username'), val, dt)) + '.tar')
         tar_path = os.path.join(self.dir, final_name)
         shutil.move(tname, tar_path)
+        gpg = self.encrypt(tar_path)
+        return gpg
+
+    def encrypt(self, tar_path):
+        import subprocess
 
         recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:

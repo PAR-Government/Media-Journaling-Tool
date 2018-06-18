@@ -55,7 +55,7 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI])])
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -108,6 +108,15 @@ def _fixPNGS(scModel,gopLoader):
     for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
+
+def _fixErasure(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if getValue(edge,'op','') == 'ErasureByGAN':
+            if getValue(edge,'arguments.model','') == 'resize_GAN_model.npz':
+                edge['op'] = 'ErasureByGAN::Resize'
+            else:
+                edge['op'] = 'ErasureByGAN::Multi'
 
 def _emptyMask(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():

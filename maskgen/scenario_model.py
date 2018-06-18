@@ -304,6 +304,9 @@ class Modification:
         self.category = category
         self.generateMask = generateMask
 
+    def getSemanticGroups(self):
+        return [] if self.semanticGroups is None else self.semanticGroups
+
     def setSemanticGroups(self, groups):
         self.semanticGroups = groups
 
@@ -456,6 +459,7 @@ class ImageImageLinkTool(LinkTool):
             predecessors = scModel.G.predecessors(destination)
             mask = None
             expect_donor_mask = False
+            analysis = {}
             if not skipDonorAnalysis:
                 errors = list()
                 for pred in predecessors:
@@ -493,7 +497,6 @@ class ImageImageLinkTool(LinkTool):
                 analysis = {}
             else:
                 mask = startIm.apply_alpha_to_mask(mask)
-                analysis = {}
         else:
             logging.getLogger('maskgen').debug('Create Mask')
             mask, analysis, error = createMask(startIm,
@@ -1222,7 +1225,7 @@ class ImageProjectModel:
                 }))
         probes = list()
         for future in futures:
-            probes.extend(future.get(timeout=1000))
+            probes.extend(future.get(timeout=int(prefLoader.get_key('probe_timeout', 100000))))
         return probes
 
     def getProbeSet(self, inclusionFunction=mask_rules.isEdgeLocalized, saveTargets=True,

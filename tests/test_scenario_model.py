@@ -3,10 +3,13 @@ import unittest
 from test_support import TestSupport
 import csv
 
+from maskgen.plugins import loadPlugins
 class TestScenarioModel(TestSupport):
 
    def test_link_tool(self):
+      loadPlugins()
       model = scenario_model.loadProject(self.locateFile('images/sample.json'))
+      model.imageFromPlugin('OutputPNG::Foo')
       lt = model.getLinkTool('sample','orig_input')
       self.assertTrue(isinstance(lt,scenario_model.ImageImageLinkTool))
       mask, analysis,errors = lt.compareImages('sample','orig_input',model,'OutputPng')

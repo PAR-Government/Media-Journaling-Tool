@@ -191,6 +191,13 @@ class TestVideoTools(TestSupport):
         self.filesToKill.extend(files)
         return writer_main.filename, files
 
+    def test_duration(self):
+        expected = 59350
+        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'))
+        self.assertTrue(abs(duration - expected) < 1)
+        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'),audio=True)
+        self.assertTrue(abs(duration - expected) < 2)
+
     def test_meta(self):
         meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'), with_frames=True)
         self.assertEqual(803, len(frames['0']))

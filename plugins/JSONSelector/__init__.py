@@ -11,7 +11,7 @@ def transform(img, source, target, **kwargs):
     if kwargs['Json File'] != jsName:
         js = json.load(open(kwargs['Json File']))
         jsName = kwargs['Json File']
-    index = kwargs['index'] if 'index' in kwargs else np.random.randint(0, len(js), 1) #use given, if none given, pick.
+    index = kwargs['index'] if 'index' in kwargs else np.random.randint(0, len(js), 1)[0] #use given, if none given, pick.
     if str(index).isdigit(): #see if we are trying to reference by index, else search through values.
         dictionary = js[int(index)]
     else:
@@ -23,10 +23,13 @@ def transform(img, source, target, **kwargs):
                     dictionary = js[d]
                     break
 
+    result = {}
+    result.update(dictionary)
     if 'File Key' in kwargs and kwargs['File Key'] != '':
         if os.path.isfile(dictionary[kwargs['File Key']]):
             openImageFile(dictionary[kwargs['File Key']]).save(target)
-    return dictionary, None
+            result['file'] = dictionary[kwargs['File Key']]
+    return result, None
 
 
 def operation():
