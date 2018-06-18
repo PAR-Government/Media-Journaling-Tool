@@ -679,7 +679,7 @@ class QAProjectDialog(Toplevel):
         #print('resized image')
         self.photos[t] = ImageTk.PhotoImage(finalResized.toPIL())
         #print('stored image')
-        self.image_on_canvas = self.c.create_image(205, 205, image=self.photos[t], anchor=CENTER, tag='imgc')
+        self.image_on_canvas = self.c.create_image(255, 255, image=self.photos[t], anchor=CENTER, tag='imgc')
 
     def nexCheck(self):
         self.move(1,True)
