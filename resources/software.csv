@@ -62,7 +62,7 @@ both,No Software, Direct Capture,
 both,ON1 Photo,10.5,10,9.5,9,8.5,8,7.5,7,
 both,OpenCV,2.4.13,2.4.11,
 both,OpenShot,
-both,PIL,3.4.2,1.1.7,
+both,PIL,3.4.2,1.1.7,5.1,
 both,Paint.net,4.0.13,4.0.10,4.0.9,4.0.6,4.0.5,4.0.3,4.0.2,4.0.1,4.0.0,3.5.11,3.5.10,3.5.8,3.5.7,3.5.6,3.5.5,3.5.4,3.5.3,3.5.2,3.5.1,3.5.0,3.3.6,3.3.5,3.3.1,3.3.0,3.2.2,3.2.0,3.1.0,3.0.8,3.0.7,3.0.5,3.0.1,3.0.0,2.7.2,2.7.0,2.6.4,2.6.3,2.6.2,2.6.1,2.6.0,2.5.0,2.1,
 both,PaintShop Pro Ultimate,X8,X7,X6,X5,X4,X3,X2,X,
 both,PaintStar,2.7,
@@ -137,4 +137,5 @@ image,JPEG_DCT_Modify,0.1,
 image,Lytro Desktop,5.0
 image,GAN_face_splice,0.1
 image,DLIB,19.9
+image,GANImageCompletion,d25cd7b8a3988a3a88bfb33a564de0c88a6f3127
 video,UoMInPainting,2.8

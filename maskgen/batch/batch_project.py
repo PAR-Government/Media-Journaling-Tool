@@ -1157,12 +1157,15 @@ class BatchProject:
 
     def _postProcessProject(self, local_state, global_state):
         recompress = self.G.graph['recompress'] if 'recompress' in self.G.graph else False
+        rename = self.G.graph['rename'] if 'rename' in self.G.graph else True
         sm = local_state['model']
         if recompress:
             self.logger.debug("Run Save As")
             op = group_operations.CopyCompressionAndExifGroupOperation(local_state['model'])
             op.performOp()
-        sm.renameFileImages()
+        if rename:
+            sm.renameFileImages()
+        sm.save()
         summary_file = os.path.join(sm.get_dir(), '_overview_.png')
         ImageGraphPainter(sm.getGraph()).output(summary_file)
         if 'archives' in global_state:

@@ -1,0 +1,146 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "unicorn",
+    "name": "GanFill",
+    "organization": "wonderland",
+    "projectdescription" : "http://hi.cs.waseda.ac.jp/~iizuka/projects/completion/en/",
+    "technicalsummary" : "Automated: Globally and Locally Consistent Image Completion",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+    {
+      "op_type": "NodeAttachment",
+      "id": "extend"
+    },
+    {
+      "op_type":"InputMaskPluginOperation",
+      "plugin": "DirMaskSelect",
+      "id":"mask",
+      "arguments":{"directory":"{maskDir}"}
+    },
+    {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "JSONSelector",
+      "id": "Selector",
+      "prnu": true,
+      "arguments": {
+        "Json File": "{json_path}",
+        "File Key": "prnu"
+      }
+    },
+    {
+      "op_type":"PreProcessedMediaOperation",
+      "plugin": "GANFill",
+      "op": "GANFill",
+      "directory": "{FillDir}",
+      "id": "Filled",
+      "arguments": {
+        "samplemaskname": "imagefile",
+        "source" : "mask"
+      },
+      "software": "GANImageCompletion",
+	  "software version": "d25cd7b8a3988a3a88bfb33a564de0c88a6f3127",
+	  "description": "Runs GAN Completion"
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "CompressAs",
+      "id": "Output1",
+      "arguments": {
+        "donor": {
+          "type":"donor",
+          "source": "base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "PRNU-AddFromDonor",
+      "id": "PRNUAdded",
+      "arguments": {
+        "donor": {
+          "type": "donor",
+          "source": "base"
+        }
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "CompressAs",
+      "id": "Output2",
+      "arguments": {
+        "donor": {
+          "type":"donor",
+          "source": "base"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin" : "PCCameraModelGan",
+      "id": "cfaAdded",
+      "arguments": {
+        "Camera Model": "{model@Selector}",
+        "Camera Make": "{make@Selector}",
+        "model": "{model_path@Selector}"
+      }
+    },
+    {
+      "op_type":"PluginOperation",
+      "plugin": "CompressAs",
+      "id": "Output3",
+      "arguments": {
+        "donor": {
+          "type":"donor",
+          "source": "base"
+        }
+      }
+    }
+    ],
+  "links": [
+    {
+      "source": "extend",
+      "target": "Filled"
+    },
+    {
+      "source": "extend",
+      "target": "Selector",
+      "connect": false
+    },
+    {
+      "source": "extend",
+      "target": "mask",
+      "connect": false
+    },
+    {
+      "source":  "mask",
+      "target": "Filled",
+      "connect": false
+    },
+    {
+      "source": "Filled",
+      "target": "Output1"
+    },
+    {
+      "source": "Filled",
+      "target": "PRNUAdded"
+    },
+    {
+      "source": "PRNUAdded",
+      "target": "Output2"
+    },
+    {
+      "source": "PRNUAdded",
+      "target": "cfaAdded"
+    },
+    {
+      "source": "cfaAdded",
+      "target": "Output3"
+    }
+  ],
+  "multigraph": false
+}

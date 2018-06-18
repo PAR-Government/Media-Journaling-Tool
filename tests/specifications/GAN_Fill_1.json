@@ -1,0 +1,41 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "unicorn",
+    "name": "completion_gan_images",
+    "organization": "wonderland",
+    "projectdescription" : "http://hi.cs.waseda.ac.jp/~iizuka/projects/completion/en/",
+    "technicalsummary" : "Automated: Globally and Locally Consistent Image Completion",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false,
+    "rename": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "1",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    }
+  ],
+  "multigraph": false
+}
