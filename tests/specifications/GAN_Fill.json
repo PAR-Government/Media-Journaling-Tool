@@ -23,6 +23,16 @@
       "arguments":{"directory":"{maskDir}"}
     },
     {
+      "op_type": "InputMaskPluginOperation",
+      "plugin": "JSONSelector",
+      "id": "Selector",
+      "prnu": true,
+      "arguments": {
+        "Json File": "{json_path}",
+        "File Key": "prnu"
+      }
+    },
+    {
       "op_type":"PreProcessedMediaOperation",
       "plugin": "GANFill",
       "op": "GANFill",
@@ -71,7 +81,7 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin" : "CameraModelGan",
+      "plugin" : "PCCameraModelGan",
       "id": "cfaAdded",
       "arguments": {
         "Camera Model": "{model@Selector}",
@@ -95,6 +105,11 @@
     {
       "source": "extend",
       "target": "Filled"
+    },
+    {
+      "source": "extend",
+      "target": "Selector",
+      "connect": false
     },
     {
       "source": "extend",
