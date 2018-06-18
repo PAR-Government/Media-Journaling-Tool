@@ -32,7 +32,8 @@ imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files"
                   ("PTX Pentax", "*.ptx"),
                   ("PEF Pentax", "*.pef"), ("MRW Minolta", "*.nrw"), ("Adobe", "*.dng"),
                   ("bmp files", "*.bmp"), ("pdf files", "*.pdf"), ('cr2', '*.cr2'), ('raf Fuji', '*.raf'),
-                  ("NITF files","*.ntf"),("NITF files","*.nitf"),('JP2','*.jp2'), ('Lytro Raw','*.lfr')]
+                  ("NITF files","*.ntf"),("NITF files","*.nitf"),('JP2','*.jp2'), ('Lytro Raw','*.lfr'),
+                  ("High Efficiency Image File Format", "*.heic"), ("High Efficiency Image File Format", "*.heif")]
 
 videofiletypes = [("mpeg files", "*.mp4"), ("mov files", "*.mov"), ('wmv', '*.wmv'), ('m4p', '*.m4p'), ('m4v', '*.m4v'),
                   ('f4v', '*.flv'), ("avi files", "*.avi"), ('asf', '*.asf'), ('mts', '*.mts'), ('3gp', '*.3gp'),

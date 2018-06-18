@@ -1,4 +1,5 @@
 import json
+import subprocess
 import tarfile
 import ttk
 from Tkinter import *
@@ -42,6 +43,7 @@ class HPSpreadsheet(Toplevel):
             self.audioDir = os.path.join(self.dir, 'audio')
             self.modelDir = os.path.join(self.dir, 'model')
             self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
+            self.tempDir = os.path.join(self.dir, "temp")
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -49,6 +51,8 @@ class HPSpreadsheet(Toplevel):
         self.saveState = True
         self.highlighted_cells = []
         self.error_cells = []
+        self.needs_temps = ['heic', 'heif']
+        self.temps_created = False
         self.create_widgets()
         self.kinematics = self.load_kinematics()
         self.collections = sorted(hp_data.load_json_dictionary(data_files._COLLECTIONS).keys())
@@ -184,15 +188,17 @@ class HPSpreadsheet(Toplevel):
         Open clicked image in system default viewer. Primarily for video and raw files.
         :return: None
         """
-        image = os.path.join(self.imageDir, self.imName)
+        image = os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png")
         if not os.path.exists(image):
-            image = os.path.join(self.videoDir, self.imName)
+            image = os.path.join(self.imageDir, self.imName)
             if not os.path.exists(image):
-                image = os.path.join(self.audioDir, self.imName)
+                image = os.path.join(self.videoDir, self.imName)
                 if not os.path.exists(image):
-                    image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
+                    image = os.path.join(self.audioDir, self.imName)
                     if not os.path.exists(image):
-                        image = os.path.join(self.thumbnailDir, self.imName)
+                        image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
+                        if not os.path.exists(image):
+                            image = os.path.join(self.thumbnailDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
@@ -223,10 +229,11 @@ class HPSpreadsheet(Toplevel):
         self.currentImageNameVar.set('Current Image: ' + current_file)
         maxSize = 480
         try:
-            ext_col = 13
+            type_col = self.pt.get_col_by_name("FileType")
 
-            if type == "image" and "." + self.pt.model.getValueAt(row, ext_col).lower() not in hp_data.exts['nonstandard']:
-
+            if type == "image" and self.pt.model.getValueAt(row, type_col).lower() in self.needs_temps:
+                im = Image.open(os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png"))
+            elif type == "image" and self.pt.model.getValueAt(row, type_col).lower() not in hp_data.exts['nonstandard']:
                 im = Image.open(os.path.join(self.imageDir, self.imName))
             elif type == "model":
                 im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
@@ -463,8 +470,36 @@ class HPSpreadsheet(Toplevel):
 
         self.processErrors = self.check_process_errors()
         self.color_code_cells()
+        self.generate_temp_images()
         self.update_current_image()
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
+
+    def generate_temp_images(self):
+        name_col = self.pt.get_col_by_name("ImageFilename")
+        type_col = self.pt.get_col_by_name("FileType")
+        imgs_needed = [self.pt.model.getValueAt(x, name_col) for x in xrange(0, self.pt.rows) if self.pt.model.getValueAt(x, type_col).lower() in self.needs_temps]
+
+        if not imgs_needed:
+            return None
+
+        print("Generating preview images...")
+
+        if not os.path.isdir(self.tempDir):
+            os.mkdir(self.tempDir)
+
+        errs = []
+
+        for i, img in enumerate(imgs_needed):
+            new_img = os.path.join(self.tempDir, os.path.splitext(img)[0] + ".png")
+            if not os.path.isfile(new_img):
+                magic = subprocess.Popen(['magick', 'convert', os.path.join(self.imageDir, img), new_img],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+                if magic[1] != "":
+                    errs.append(magic[1])
+            print("\r{0}% Complete".format(int(float(i+1)/len(imgs_needed) * 100))),
+        print  # This has to be here to break to the next line
+        if errs:
+            print("Error generating preview images.\n\n" + "\n".join(errs))
 
     def color_code_cells(self, tab=None):
         """
@@ -753,13 +788,14 @@ class HPSpreadsheet(Toplevel):
         :return: string, archive filename formatted as "USR-LocalID-YYmmddHHMMSS.tar"
         """
 
+        ignore_dirs = ["temp"]
         val = self.pt.model.df['HP-DeviceLocalID'][0] if type(self.pt.model.df['HP-DeviceLocalID'][0]) is str else ''
         dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')[2:]
         fd, tname = tempfile.mkstemp(suffix='.tar')
         archive = tarfile.open(tname, "w", errorlevel=2)
         for d in os.listdir(self.dir):
             fp = os.path.join(self.dir, d)
-            if os.path.isdir(fp):
+            if os.path.isdir(fp) and d not in ignore_dirs:
                 archive.add(fp, arcname=os.path.join(os.path.split(self.dir)[1], d))
         archive.close()
         os.close(fd)
@@ -871,7 +907,9 @@ class HPSpreadsheet(Toplevel):
         for root, dirs, files in os.walk(self.dir):
             for f in files:
                 if os.path.splitext(f)[1] not in ['.csv', '.tar']:
-                    if "model" not in os.path.normpath(root).split("\\"):
+                    if "temp" in os.path.normpath(root).split("\\"):
+                        continue
+                    elif "model" not in os.path.normpath(root).split("\\"):
                         files_in_dir.append(f)
                     elif os.path.normpath(root) not in files_in_dir:
                             files_in_dir.append(os.path.normpath(root))
@@ -986,6 +1024,9 @@ class HPSpreadsheet(Toplevel):
         Prompts user to save sheet if edits have been made
         :return: None. Closes spreadsheet.
         """
+        if os.path.isdir(self.tempDir):
+            shutil.rmtree(self.tempDir)
+
         if self.saveState == False:
             message = 'Would you like to save before closing this sheet?'
             confirm = tkMessageBox.askyesnocancel(title='Save On Close', message=message, default=tkMessageBox.YES, parent=self)
