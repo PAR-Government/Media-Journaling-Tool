@@ -52,7 +52,7 @@ class HelpFrame(Frame):
 
         if image_count == 0:
             with Image.open(get_icon("Manny_icon_color.jpg"), "r") as f:
-                f.thumbnail(self.slide_size,Image.ANTIALIAS)
+                f.thumbnail(self.slide_size, Image.BILINEAR)
                 tkimg = ImageTk.PhotoImage(f)
             fr = Frame(self.img_nb)
             img = Button(fr)
