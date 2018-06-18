@@ -85,8 +85,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
             currentExt = os.path.splitext(i)[1].lower()
             if i.lower().endswith(".3d.zip"):
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
-            elif os.path.splitext(i)[1].lower() in exts["nonstandard"]:
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".lfr")
+            elif currentExt in exts["nonstandard"]:
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
             elif currentExt in exts['IMAGE']:
                 newThumbnailName = "{0}_{1}{2}".format(newNameStr, str(thumbnail_counter), currentExt)
                 dest = os.path.join(thumbnail_folder, newThumbnailName)
@@ -498,10 +498,11 @@ def parse_image_info(self, imageList, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-
         if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
-
-            data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+            try:
+                data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
+            except KeyError:
+                data[i] = combine_exif({}, reverseLUT, master.copy())
         else:
             image_file_list = os.listdir(os.path.normpath(os.path.dirname(imageList[i])))
             del image_file_list[image_file_list.index(os.path.basename(imageList[i]))]
