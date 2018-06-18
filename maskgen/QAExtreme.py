@@ -129,7 +129,7 @@ class QAProjectDialog(Toplevel):
             statusLabelText.set('Probe Generation failed.  Please consult logs for more details.')
             self.parent.update()
         else:
-            statusLabelText.set('Probes Complete. Press Next to Continue.')
+            statusLabelText.set('Probes Complete. Generating Preview Pages.')
             self.pages = []
             self.pages.append(page1)
             self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
@@ -172,7 +172,7 @@ class QAProjectDialog(Toplevel):
             for k in self.qaData.keys():
                 #print(self.qaData.get_qalink_status(k))
                 count += 1 if self.qaData.get_qalink_status(k) == 'yes' else 0
-            self.progress = count / len(self.crit_links)
+            self.progress = count / len(self.crit_links) if len(self.crit_links) != 0 else 0.99999
             #print(self.progress)
             #print(self.crit_links)
             count= 1
@@ -262,6 +262,12 @@ class QAProjectDialog(Toplevel):
             self.check_ok()
             self.pages.append(lastpage)
             self.cur=page1
+            if len(self.crit_links) != 0:
+                statusLabelText.set('Preview Pages Complete. Press Next to Continue.')
+            else:
+                statusLabelText.set('Preview Pages Complete. Press Next to Continue. '
+                                    '\nPlease Note That This Journal Contains No Probes Perhaps You Forgot to '
+                                    '\nInclude Someting in the Composite?')
             wnext.config(state=NORMAL)
             #self.cur.grid()
             #print(len(self.pages))
