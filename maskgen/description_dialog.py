@@ -1308,10 +1308,10 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
                                yscrollcommand=yscrollbar.set,
                                xscrollcommand=xscrollbar.set)
         self.listbox.bind("<Double-Button-1>", self.remove)
-        self.listbox.grid(row=0, column=1, sticky=E + W + N + S,
-                               columnspan=2)
+        self.listbox.grid(row=0, column=0, sticky=E + W + N + S,
+                               columnspan=3)
         xscrollbar.config(command=self.listbox.xview)
-        xscrollbar.grid(row=1, column=0, stick=E + W,columnspan=2)
+        xscrollbar.grid(row=1, column=0, stick=E + W,columnspan=3)
         yscrollbar.config(command=self.listbox.yview)
         yscrollbar.grid(row=0, column=2, stick=N + S)
         for item in self.urls:
@@ -1320,6 +1320,8 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
         self.url = Text(master, takefocus=True, width=60, height=1, relief=RAISED,
                       borderwidth=2)
         self.url.grid(row=2, column=1,sticky=EW)
+        self.url_submit = Button(master, text="Add", command=lambda: self.add(None))
+        self.url_submit.grid(row=2, column=2, sticky=W)
         #self.url.bind("<Return>", self.add)
 
     def buttonbox(self):
@@ -1343,6 +1345,8 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
         tkSimpleDialog.Dialog.cancel(self)
 
     def apply(self):
+        # if len(self.listbox.get(0, END)):
+
         self.urls = self.listbox.get(0, END)
 
     def remove(self,event):
@@ -2195,6 +2199,9 @@ class PropertyFrame(VerticalScrolledFrame):
                else:
                    widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
+           elif prop.type == 'label':
+               widget = Label(master, takefocus=(row==0), width=80, text=prop.information)
+               widget.grid(row=row, column=0, columnspan=12, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
