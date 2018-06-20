@@ -701,7 +701,7 @@ def select_cut_frames_preprocess(mask, edge):
         mask.pop('videomasks')
     mask['startframe'] = mask['startframe']  - 1
     mask['endframe'] = mask['startframe'] + 1
-    mask['framecount'] = 2
+    mask['frames'] = 2
     fps = 1000.0/mask['rate']
     mask['starttime'] = mask['starttime'] - fps
     mask['endtime'] = mask['starttime'] + fps
@@ -2867,10 +2867,16 @@ class CompositeDelegate:
                     (edge['recordMaskInComposite'] == 'yes' or
                          inclusionFunction(edge_id,edge,self.gopLoader.getOperationWithGroups(edge['op'],fake=True))):
                 fullpath = os.path.abspath(os.path.join(self.get_dir(), edge['inputmaskname']))
-                if not os.path.exists(fullpath) and getValue(exclusions,'global.inputmaskname',False):
+                source =  self.graph.get_image_path(edge_id[0])
+                if not os.path.exists(source):
+                    startMask = None
+                elif not os.path.exists(fullpath) and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing input mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
                     # we do need to invert because these masks are white=Keep(unchanged), Black=Remove (changed)
                     # we want to capture the 'unchanged' part, where as the other type we capture the changed part
+                elif tool_set.fileType(fullpath) not in ['video','audio'] and tool_set.fileType(source) in ['video','audio']:
+                    #undefined at this point
+                    startMask = None
                 elif tool_set.fileType(fullpath) in ['video','audio'] and 'videomasks' in edge:
                     startMask = _prepare_video_masks(self.graph,
                                                      video_tools.getMaskSetForEntireVideo(fullpath),
