@@ -524,7 +524,13 @@ class PRNU_Uploader(Frame):
                     copy_to_res(width_height[i], luminance_dir)
 
         if files_in_dir:
-            width_height = json.loads(subprocess.Popen(['exiftool', '-ImageWidth', '-ImageHeight', 'Software', '-j', luminance_dir], stdout=subprocess.PIPE).communicate()[0])
+            for useless in [x for x in os.listdir(luminance_dir) if
+                            os.path.splitext(x)[1] in [".ini"] or x.startswith(".")]:
+                os.remove(os.path.join(luminance_dir, useless))
+
+            exif_r = subprocess.Popen(['exiftool', '-ImageWidth', '-ImageHeight', '-j', luminance_dir],stdout=subprocess.PIPE).communicate()[0]  # ['-Software',]
+            width_height = json.loads(exif_r)
+
             for i in range(0, len(width_height)):
                 # if width_height[i]['Software'] not in software_list:
                 #     error = "{0} is not in the approved software list for this camera.".format(

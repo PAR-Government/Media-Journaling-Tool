@@ -14,14 +14,17 @@ hp_settings = os.path.join(os.path.expanduser("~"), ".hpsettings")
 
 
 class Window(Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, errors, gpg):
         Frame.__init__(self, parent)
         self.parent = parent
         self.parent.title("Settings")
         self.valid_usernames = []
+        self.gpg = gpg
         self.setup_window()
         maskgen.maskgen_loader.imageLoaded = False
         self.loader = maskgen.maskgen_loader.MaskGenLoader()
+        if errors:
+            tkMessageBox.showerror("Error", "\n".join(errors))
 
     def setup_window(self):
         r = 0
@@ -159,14 +162,6 @@ class Window(Frame):
         if self.username not in self.valid_usernames:
             tkMessageBox.showerror("Invalid Username", "Username not in list of valid usernames.")
 
-        elif not self.eemail:
-            ans = tkMessageBox.askyesno("No Recipient", "The encryption file was not found.  You can continue with"
-                                                        " out an encryption file, but the HP Tool media will not be"
-                                                        " ingested.  Would you like to continue?")
-            if not ans:
-                return
-            self.eemail = ""
-
         self.apitoken = self.get_token()
 
         if self.apitoken:
@@ -181,13 +176,17 @@ class Window(Frame):
         if not os.path.isfile(key):
             return None
 
-        gpg_result = subprocess.Popen(["gpg", "--with-colons", key], stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE).communicate()
+        if self.gpg:
+            try:
+                gpg_result = subprocess.Popen([self.gpg, "--with-colons", key], stdout=subprocess.PIPE,
+                                              stderr=subprocess.PIPE).communicate()
+            except WindowsError:
+                tkMessageBox.showerror("Error", "There has been an error retrieving the encryption key.")
 
-        for line in gpg_result[0].split("\n"):
-            if line.startswith("uid"):
-                email = line.split("<")[1].split(">")[0]
-                return email
+            for line in gpg_result[0].split("\n"):
+                if line.startswith("uid"):
+                    email = line.split("<")[1].split(">")[0]
+                    return email
         return None
 
     def get_token(self):
@@ -226,7 +225,8 @@ class Window(Frame):
                 self.valid_usernames = sorted(f.read().splitlines())
                 self.username_field['values'] = self.valid_usernames
 
-def updateUserName():
+
+def update_user_name():
     import json
     from maskgen.software_loader import getFileName
     property_file = getFileName('project_properties.json')
@@ -238,14 +238,21 @@ def updateUserName():
     with open(property_file, 'w') as f:
         json.dump(props, f, indent=2, encoding='utf-8')
 
-def setup():
+
+def setup(gpg):
+    errors = []
+
     if os.path.isfile(key):
-        key_installed = subprocess.Popen(["gpg", "--list-keys", key], stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE).communicate()
-        if not key_installed[0]:
-            subprocess.Popen(["gpg", "--import", key])
-        else:
-            os.remove(key)
+        try:
+            if gpg is not None:
+                key_installed = subprocess.Popen([gpg, "--list-keys", key], stdout=subprocess.PIPE,
+                                                 stderr=subprocess.PIPE).communicate()
+                if not key_installed[0] or len(key_installed[0]) < 3:
+                    subprocess.Popen([gpg, "--import", key])
+                else:
+                    os.remove(key)
+        except WindowsError as e:
+            errors.append("Error encountered while installing encryption key " + str(e))
 
     if os.path.isfile(os.path.join(os.path.expanduser("~"), "Desktop", "JT.cmd")):
         os.remove(os.path.join(os.path.expanduser("~"), "Desktop", "JT.cmd"))
@@ -255,7 +262,9 @@ def setup():
         os.remove(os.path.join(os.path.expanduser("~"), "Desktop", "HP_Tool.cmd"))
     with open(os.path.join(os.path.expanduser("~"), "Desktop", "HP_Tool.cmd"), "a+") as starthp:
         starthp.writelines(["title HP Tool\n", "cd {0}\n".format(os.path.expanduser("~")), "cls\n", "hpgui"])
-    updateUserName()
+    update_user_name()
+
+    return errors
 
 
 def combine_settings():
@@ -290,7 +299,9 @@ def combine_settings():
 
 
 if __name__ == "__main__":
-    setup()
+    gpg_path = "C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe"
+
+    errs = setup(gpg_path)
 
     if os.path.isfile(hp_settings):
         combine_settings()
@@ -299,6 +310,6 @@ if __name__ == "__main__":
         exit(0)
 
     root = Tk()
-    Window(root)
+    Window(root, errs, gpg_path)
     root.wm_resizable(width=FALSE, height=FALSE)
     root.mainloop()

@@ -480,7 +480,7 @@ class HPSpreadsheet(Toplevel):
         imgs_needed = [self.pt.model.getValueAt(x, name_col) for x in xrange(0, self.pt.rows) if self.pt.model.getValueAt(x, type_col).lower() in self.needs_temps]
 
         if not imgs_needed:
-            return None
+            return
 
         print("Generating preview images...")
 
@@ -492,8 +492,12 @@ class HPSpreadsheet(Toplevel):
         for i, img in enumerate(imgs_needed):
             new_img = os.path.join(self.tempDir, os.path.splitext(img)[0] + ".png")
             if not os.path.isfile(new_img):
-                magic = subprocess.Popen(['magick', 'convert', os.path.join(self.imageDir, img), new_img],
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+                try:
+                    magic = subprocess.Popen(['magick', 'convert', os.path.join(self.imageDir, img), new_img],
+                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+                except WindowsError:
+                    tkMessageBox.showerror("Error", "ImageMagick must be installed to create temporary images.")
+                    return
                 if magic[1] != "":
                     errs.append(magic[1])
             print("\r{0}% Complete".format(int(float(i+1)/len(imgs_needed) * 100))),

@@ -45,6 +45,9 @@ class MaskGenLoader:
 
     def get_key(self, key, default_value=None):
         global_image = self.load()
+        if key == "apiurl" and global_image[key].endswith("/"):
+            global_image[key] = global_image[key][:-1]
+            self.save("apiurl", global_image[key])
         return global_image[key] if key in global_image else default_value
 
     def _backup(self):

@@ -135,7 +135,7 @@ class API_Camera_Handler:
             self.source = 'remote'
 
             print 'complete.'
-        except (requests.ConnectionError, requests.ConnectTimeout):
+        except (requests.ConnectionError, requests.ConnectTimeout, requests.HTTPError):
             print 'Could not connect to browser.  Try again later.'
             self.source = 'local'
 
