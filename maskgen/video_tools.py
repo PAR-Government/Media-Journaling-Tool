@@ -1492,6 +1492,27 @@ def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
 
+def clampToEnd(filename, sets_tuple):
+    """
+
+    :param filename:
+    :param sets:
+    :return:
+    @type filename: str
+    @type sets: list
+    """
+    realmasks = getMaskSetForEntireVideo(filename,
+                             media_types=list(set([mask['type'] for mask in sets_tuple[0]])))
+
+    for mask in sets_tuple[0]:
+        realmask = [rl for rl in realmasks if rl['type'] == mask['type']][0]
+        if realmask['endframe'] < mask['endframe']:
+            mask['endframe'] = realmask['endframe']
+            mask['endtime'] = realmask['endtime']
+            mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+    return sets_tuple
+
+
 def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         video_masks = getValue(edge, 'videomasks', [])
         if len(video_masks) > 0:
@@ -1803,10 +1824,10 @@ class AudioCompare:
             self.fone.close()
 
     def audioCompare(self):
-        return self.__initiateCompare(self.__compare)
+        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__compare))
 
     def audioInsert(self):
-        return self.__initiateCompare(self.__insert)
+        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__insert))
 
 
 def audioInsert(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
