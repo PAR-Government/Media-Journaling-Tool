@@ -116,7 +116,7 @@ class QAProjectDialog(Toplevel):
         img = openImage(filename)
         imgm = openImage(filenamecol).to_mask()
         imgm = imageResizeRelative(imgm, (500,500), imgm.size)
-        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0,6)]).toPIL())
+        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0,len(self.colors))]).toPIL())
         self.image_on_canvas = c.create_image(510/2,510/2, image=self.manny, anchor=CENTER, tag='things')
         Label(page1,textvariable=statusLabelText).grid(column=0,row=3,columnspan=2,sticky=E+W)
         c.bind("<Double-Button-1>", self.help)
@@ -264,11 +264,12 @@ class QAProjectDialog(Toplevel):
             self.cur=page1
             if len(self.crit_links) != 0:
                 statusLabelText.set('Preview Pages Complete. Press Next to Continue.')
+                wnext.config(state=NORMAL)
             else:
-                statusLabelText.set('Preview Pages Complete. Press Next to Continue. '
-                                    '\nPlease Note That This Journal Contains No Probes Perhaps You Forgot to '
-                                    '\nInclude Someting in the Composite?')
-            wnext.config(state=NORMAL)
+                statusLabelText.set('\nPlease Note That This Journal Contains No Probes Perhaps You Forgot to '
+                                    '\nInclude Someting in the Composite? Anyway You aren\'t Allowed to QA a '
+                                    '\nJournal With No Probes Sorry. :(')
+
             #self.cur.grid()
             #print(len(self.pages))
             #print(len(self.photos))
