@@ -950,6 +950,9 @@ class TestVideoTools(TestSupport):
         self.assertTrue(int(new_mask_set[0]['startframe']) == 22)
         self.assertTrue(int(new_mask_set[0]['starttime']) == 2078)
 
+    def testMetaDiff(self):
+        video_tools.formMetaDataDiff(self.locateFile('tests/videos/sample1.mov'),self.locateFile('tests/videos/sample1_slow.mov'))
+
     def testAudio(self):
         from maskgen.tool_set import  VidTimeManager
         video_tools.audioWrite('test_ta.0.0.wav',512)
