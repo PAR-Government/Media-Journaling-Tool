@@ -116,7 +116,7 @@ class QAProjectDialog(Toplevel):
         img = openImage(filename)
         imgm = openImage(filenamecol).to_mask()
         imgm = imageResizeRelative(imgm, (500,500), imgm.size)
-        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0,len(self.colors))]).toPIL())
+        self.manny = ImageTk.PhotoImage(imageResizeRelative(img, (500,500), img.size).overlay(imgm, self.colors[random.randint(0, len(self.colors) - 1)]).toPIL())
         self.image_on_canvas = c.create_image(510/2,510/2, image=self.manny, anchor=CENTER, tag='things')
         Label(page1,textvariable=statusLabelText).grid(column=0,row=3,columnspan=2,sticky=E+W)
         c.bind("<Double-Button-1>", self.help)
