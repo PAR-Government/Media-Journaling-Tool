@@ -30,7 +30,7 @@ class ResizeTestCase(unittest.TestCase):
                                          interpolation='cubic')
         wrapper = image_wrap.openImageFile(filename_output)
         output = wrapper.to_array()
-        self.assertTrue(output.shape == (550,450,3))
+        self.assertTrue(output.shape == (450,550,3))
 
 
 

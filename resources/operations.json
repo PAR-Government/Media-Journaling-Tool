@@ -1508,7 +1508,8 @@
         "default": false
       },
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
@@ -1531,7 +1532,8 @@
         "default": false
       },
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
@@ -1554,7 +1556,8 @@
         "default": false
       },
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
@@ -1576,7 +1579,8 @@
         "default": false
       },
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {
@@ -1615,7 +1619,8 @@
         "default": true
       },
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {

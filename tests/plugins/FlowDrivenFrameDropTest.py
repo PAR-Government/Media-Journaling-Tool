@@ -36,7 +36,7 @@ class CropSelectorTestCase(TestSupport):
             get_channel_data(video_tools.getMeta(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
         diff = frames1-frames2
         self.assertTrue(diff>0)
-        diff_time = int(args['End Time']) - int(args['Start Time'])
+        diff_time = int(args['End Time']) - int(args['Start Time']) + 1
         self.assertEqual(diff, diff_time)
         filename_output2 = os.path.join(os.path.dirname(os.path.abspath(filename)), 'sample_out2a.avi')
         args['codec'] = 'XVID'

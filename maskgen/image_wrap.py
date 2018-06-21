@@ -536,7 +536,7 @@ class ImageWrapper:
             # with open(filename, 'w') as f:
             #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
             #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
-        elif image_format == 'PNG':
+        elif image_format not in ['TIFF','TIF']:
             Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
         else:
             imsave(filename, img_array, **tiff_masssage_args(**newargs))
