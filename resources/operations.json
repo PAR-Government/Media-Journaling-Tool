@@ -818,6 +818,14 @@
             "Remove"
           ],
           "description": ""
+        },
+        "Approach": {
+          "type": "list",
+          "values": [
+            "Crop",
+            "Other"
+          ],
+          "description":"Cropping for Drone Shake or Other"
         }
       },
       "rules": [

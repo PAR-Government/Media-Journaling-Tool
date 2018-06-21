@@ -1222,6 +1222,10 @@ def checkSize(op, graph, frm, to):
              @type to: str
     """
     change = getSizeChange(graph, frm, to)
+    approach = getValue(graph.get_edge(frm, to), 'arguments.Approach', None)
+    if approach == 'Crop':
+        return None
+
     if change is not None and (change[0] != 0 or change[1] != 0):
         return (Severity.ERROR,'operation is not permitted to change the size of the image')
     return None
