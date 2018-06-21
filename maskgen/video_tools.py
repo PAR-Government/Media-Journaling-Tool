@@ -768,7 +768,7 @@ def compareMeta(oneMeta, twoMeta, skipMeta=None, streamId=0,  meta_diff=None, su
 
 def compareStreams(oneMeta, twoMeta):
     meta_diff = {}
-    one_stream_by_id = {item['index']:item for item in oneMeta}
+    one_stream_by_id = {item['index']: item for item in oneMeta}
     two_stream_by_id = {item['index']: item for item in twoMeta}
     for id,item in one_stream_by_id.iteritems():
         compareMeta(item,
@@ -919,14 +919,34 @@ def compareFrames(one_frames, two_frames, meta_diff=dict(), summarize=[],skip_me
             diff[streamId] = ('add', [])
     return diff
 
+def __alignStreamsMeta(meta_and_frames):
+    """
+    Force '0' to be video for metadata diff purposes, keeping things consistent.
+    This supports backward compatability with journals.
+    Occassionaly, software will flip the order of the streams in the container.
+    :param meta_and_frames:
+    :return:
+    """
+
+    meta = meta_and_frames[0]
+    frames = meta_and_frames[1]
+    index_of_vid = [m['codec_type'] if 'codec_type' in m else 'N/A' for m in meta].index('video')
+    if index_of_vid > 0:
+        other = meta[0]
+        meta[0]  = meta[index_of_vid]
+        meta[index_of_vid] = other
+        other = frames['0']
+        frames['0'] = frames[str(index_of_vid)]
+        frames[str(index_of_vid)] = other
+    return meta,frames
 
 # video_tools.formMetaDataDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
 def formMetaDataDiff(file_one, file_two, frames=True):
     """
     Obtaining frame and video meta-data, compare the two videos, identify changes, frame additions and frame removals
     """
-    one_meta, one_frames = getMeta(file_one, show_streams=True, with_frames=frames)
-    two_meta, two_frames = getMeta(file_two, show_streams=True, with_frames=frames)
+    one_meta, one_frames = __alignStreamsMeta(getMeta(file_one, show_streams=True, with_frames=frames))
+    two_meta, two_frames = __alignStreamsMeta(getMeta(file_two, show_streams=True, with_frames=frames))
     meta_diff = compareStreams(one_meta, two_meta)
     counters= {}
     counters['interlaced_frame'] = [0,0]
