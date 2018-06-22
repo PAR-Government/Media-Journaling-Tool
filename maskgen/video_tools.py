@@ -919,7 +919,7 @@ def compareFrames(one_frames, two_frames, meta_diff=dict(), summarize=[],skip_me
             diff[streamId] = ('add', [])
     return diff
 
-def __alignStreamsMeta(meta_and_frames):
+def __alignStreamsMeta(meta_and_frames, excludeAudio=True):
     """
     Force '0' to be video for metadata diff purposes, keeping things consistent.
     This supports backward compatability with journals.
@@ -938,15 +938,18 @@ def __alignStreamsMeta(meta_and_frames):
         other = frames['0']
         frames['0'] = frames[str(index_of_vid)]
         frames[str(index_of_vid)] = other
+    if excludeAudio:
+        for audio_frame_index in range(index_of_vid+1,len(frames)):
+            frames[str(audio_frame_index)] = []
     return meta,frames
 
 # video_tools.formMetaDataDiff('/Users/ericrobertson/Documents/movie/videoSample.mp4','/Users/ericrobertson/Documents/movie/videoSample1.mp4')
-def formMetaDataDiff(file_one, file_two, frames=True):
+def formMetaDataDiff(file_one, file_two, frames=True, media_types=['audio','video']):
     """
     Obtaining frame and video meta-data, compare the two videos, identify changes, frame additions and frame removals
     """
-    one_meta, one_frames = __alignStreamsMeta(getMeta(file_one, show_streams=True, with_frames=frames))
-    two_meta, two_frames = __alignStreamsMeta(getMeta(file_two, show_streams=True, with_frames=frames))
+    one_meta, one_frames = __alignStreamsMeta(getMeta(file_one, show_streams=True, with_frames=frames,media_types=media_types))
+    two_meta, two_frames = __alignStreamsMeta(getMeta(file_two, show_streams=True, with_frames=frames,media_types=media_types))
     meta_diff = compareStreams(one_meta, two_meta)
     counters= {}
     counters['interlaced_frame'] = [0,0]
@@ -1512,7 +1515,7 @@ def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
 
-def clampToEnd(filename, sets_tuple):
+def clampToEnd(filename, sets_tuple, media_type):
     """
 
     :param filename:
@@ -1522,7 +1525,9 @@ def clampToEnd(filename, sets_tuple):
     @type sets: list
     """
     realmasks = getMaskSetForEntireVideo(filename,
-                             media_types=list(set([mask['type'] for mask in sets_tuple[0]])))
+                             media_types=[media_type])
+    if sets_tuple is None:
+        return realmasks
 
     for mask in sets_tuple[0]:
         realmask = [rl for rl in realmasks if rl['type'] == mask['type']][0]
@@ -1672,6 +1677,7 @@ class AudioCompare:
 
     def __compare(self):
         framerateone = self.fone.getframerate()
+        frameratetwo = self.ftwo.getframerate()
         start = None
         totalonecount = 0
         sections = []
@@ -1701,12 +1707,18 @@ class AudioCompare:
                     if section is None:
                         start = totalonecount
                         section = {'startframe': start,
-                                   'starttime': float(start - 1) / float(framerateone),
+                                   'starttime': float(start - 1) / float(framerateone) * 1000.0,
                                    'endframe': end,
-                                   'endtime': float(end) / float(framerateone),
+                                   'endtime': float(end) / float(framerateone) * 1000.0,
                                    'rate': framerateone,
                                    'type': 'audio',
                                    'frames': 1}
+                        if self.time_manager.spansToEnd():
+                            section['endframe'] = self.ftwo.getnframes()
+                            section['rate']=  frameratetwo
+                            section['endtime'] =section['endframe']/float(frameratetwo) * 1000.0
+                            section['frames'] = section['endframe'] - start + 1
+                            return [section],[]
                     elif self.maxdiff is not None and end - start > self.maxdiff:
                         self.countone = 0
                         self.counttwo = 0
@@ -1716,11 +1728,11 @@ class AudioCompare:
             section['endtime'] = float(end) / float(framerateone) * 1000.0
             section['frames'] = end - start + 1
             sections.append(section)
-        startframe = self.time_manager.getExpectedStartFrameGiveRate(float(framerateone))
-        stopframe = self.time_manager.getExpectedEndFrameGiveRate(float(framerateone))
         errors = [
             'Channel selection is all however only one channel is provided.'] if self.channel == 'all' and self.onechannels > self.twochannels else []
         if len(sections) == 0:  # or (startframe is not None and abs(sections[0]['startframe'] - startframe) > 2):
+            startframe = self.time_manager.getExpectedStartFrameGiveRate(float(framerateone))
+            stopframe = self.time_manager.getExpectedEndFrameGiveRate(float(framerateone))
             starttime = (startframe - 1) / float(framerateone) * 1000.0
             if stopframe is None:
                 if self.maxdiff is not None:
@@ -1844,10 +1856,10 @@ class AudioCompare:
             self.fone.close()
 
     def audioCompare(self):
-        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__compare))
+        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__compare), 'audio')
 
     def audioInsert(self):
-        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__insert))
+        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__insert), 'audio')
 
 
 def audioInsert(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):

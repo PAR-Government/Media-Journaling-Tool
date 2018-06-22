@@ -63,6 +63,8 @@ def rotationCheck(op, graph, frm, to):
     args = edge['arguments'] if 'arguments' in edge  else {}
     frm_img = graph.get_image(frm)[0]
     to_img = graph.get_image(to)[0]
+    diff_frm = frm_img.size[0] - frm_img.size[1]
+    diff_to = to_img.size[0] - to_img.size[1]
     rotated = 'Image Rotated' in args and args['Image Rotated'] == 'yes'
     orientation = getValue(edge, 'exifdiff.Orientation')
     if orientation is not None:
@@ -70,8 +72,6 @@ def rotationCheck(op, graph, frm, to):
         if '270' in orientation or '90' in orientation:
             if rotated and frm_img.size == to_img.size and frm_img.size[0] != frm_img.size[1]:
                 return (Severity.ERROR,'Image was not rotated as stated by the parameter Image Rotated')
-    diff_frm = frm_img.size[0] - frm_img.size[1]
-    diff_to = to_img.size[0] - to_img.size[1]
     if not rotated and numpy.sign(diff_frm) != numpy.sign(diff_to):
         return (Severity.ERROR,'Image was rotated. Parameter Image Rotated is set to "no"')
     return None
@@ -408,7 +408,7 @@ def checkResizeInterpolation(op, graph, frm, to):
     @type to: str
     """
     edge = graph.get_edge(frm, to)
-    interpolation = edge['arguments']['interpolation']
+    interpolation = getValue(edge,'arguments.interpolation','')
     if 'shape change' in edge:
         changeTuple = toIntTuple(edge['shape change'])
         sizeChange = (changeTuple[0], changeTuple[1])
@@ -886,7 +886,7 @@ def checkDurationAudio(op, graph, frm, to):
     to_img, to_file = graph.get_image(to)
     fm = getDuration(from_file,audio=True)
     tm = getDuration(to_file,audio=True)
-    if abs(fm-tm)>100:
+    if fm is not None and abs(fm-tm)>100:
         return (Severity.ERROR,"Duration of media changed")
 
 def checkLengthSmaller(op, graph, frm, to):
@@ -1200,12 +1200,14 @@ def checkSizeAndExif(op, graph, frm, to):
             orientation = getOrientationFromMetaData(edge)
         if orientation is not None:
             orientation = str(orientation)
-            if '270' in orientation or '90' in orientation:
-                frm_shape = graph.get_image(frm)[0].size
-                to_shape = graph.get_image(to)[0].size
-                if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
-                    return None
-        return (Severity.ERROR,'operation is not permitted to change the size of the image')
+            frm_img = graph.get_image(frm)[0]
+            to_img = graph.get_image(to)[0]
+            diff_frm = frm_img.size[0] - frm_img.size[1]
+            diff_to = to_img.size[0] - to_img.size[1]
+            if '270' in orientation or '90' in orientation and \
+                numpy.sign(diff_frm) != numpy.sign(diff_to):
+                return (Severity.ERROR, 'Rotation not applied')
+        return (Severity.WARNING,'operation changed the size of the image')
     return None
 
 

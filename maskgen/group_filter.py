@@ -120,7 +120,7 @@ class OperationGroupFilter(GroupFilter):
         return True
 
 def rankGenerateMask(setting):
-    rank = 'metaframesall'
+    rank = 'metaaudioframesall'
     return rank.find(setting)
 
 def chooseHigherRank(setting1, setting2):

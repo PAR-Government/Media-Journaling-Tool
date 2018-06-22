@@ -2841,6 +2841,33 @@ class CompositeDelegate:
             donors.append(DonorImage(target, baseNode, mask_wrapper, fname, media_type))
         return donors
 
+    def reconstructDonors(self, probes,
+                          saveImage=True,
+                          inclusionFunction=isEdgeComposite,
+                          exclusions={}
+                          ):
+        """
+        Update donors for the associated edge of this instance
+        :param probes:
+        :param saveImage:
+        :param inclusionFunction:
+        :param exclusions:
+        :return:
+        """
+        donors = self.constructDonors(saveImage=saveImage,
+                                      inclusionFunction=inclusionFunction,
+                                      errorNotifier=raiseError,
+                                      exclusions=exclusions)
+        for probe in probes:
+            for donortuple in donors:
+                if probe.edgeId == self.edge_id and probe.donorBaseNodeId == donortuple.base:
+                    probe.donorMaskFileName = donortuple.mask_wrapper if donortuple.media_type == 'image' else \
+                                (None if donortuple.mask_wrapper is None else tool_set.getSingleFrameFromMask(
+                                    donortuple.mask_wrapper.videomasks))
+                    probe.donorVideoSegments = _compositeImageToVideoSegment(
+                                donortuple.mask_wrapper) if donortuple.media_type != 'image' else None
+                    probe.donorMaskFileName = donortuple.mask_file_name if donortuple.media_type == 'image' else None
+
     def constructDonors(self,
                         saveImage=True,
                         inclusionFunction=isEdgeComposite,

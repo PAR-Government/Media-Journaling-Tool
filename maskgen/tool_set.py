@@ -320,6 +320,12 @@ class VidTimeManager:
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
 
+    def isAtBeginning(self):
+        return self.startTimeandFrame is None or (self.startTimeandFrame[0] < 0 and self.startTimeandFrame[1] < 2)
+
+    def spansToEnd(self):
+        return self.stopTimeandFrame is None or (self.stopTimeandFrame[0] is None and self.stopTimeandFrame[1] is None)
+
     def getExpectedStartFrameGiveRate(self, rate, defaultValue=None):
         if not self.startTimeandFrame:
             return defaultValue
