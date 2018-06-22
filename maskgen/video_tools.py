@@ -935,9 +935,13 @@ def __alignStreamsMeta(meta_and_frames, excludeAudio=True):
         other = meta[0]
         meta[0]  = meta[index_of_vid]
         meta[index_of_vid] = other
-        other = frames['0']
-        frames['0'] = frames[str(index_of_vid)]
-        frames[str(index_of_vid)] = other
+        if '0' not in frames:
+            if str(index_of_vid) in frames:
+                frames['0'] = frames.pop(str(index_of_vid))
+        else:
+            other = frames['0']
+            frames['0'] = frames[str(index_of_vid)]
+            frames[str(index_of_vid)] = other
     if excludeAudio:
         for audio_frame_index in range(index_of_vid+1,len(frames)):
             frames[str(audio_frame_index)] = []
