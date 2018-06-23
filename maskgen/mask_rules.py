@@ -750,37 +750,37 @@ def select_crop_frames(buildState):
     start = []
     end = []
     if len(video_bound) > 0:
-        start_vid = [{
+        start_vid = {
                 'starttime': 0.0,
                 'startframe': 0,
                 'endtime': video_bound[0]['starttime'],
                 'endframe': video_bound[0]['startframe'],
                 'rate': video_bound[0]['rate'],
                 'type': video_bound[0]['type']
-            }]
-        end_vid = [{
+            }
+        end_vid = {
                 'starttime': video_bound[0]['endtime'],
                 'startframe': video_bound[0]['endframe'],
                 'rate': video_bound[0]['rate'],
                 'type': video_bound[0]['type']
-            }]
+            }
         start.append(start_vid)
         end.append(end_vid)
     if len(audio_bound) > 0:
-        start_audio = [{
+        start_audio = {
             'starttime': 0.0,
             'startframe': 0,
             'endtime': audio_bound[0]['starttime'],
             'endframe': audio_bound[0]['startframe'],
             'rate': audio_bound[0]['rate'],
             'type': audio_bound[0]['type']
-        }]
-        end_audio = [{
+        }
+        end_audio = {
             'starttime': audio_bound[0]['endtime'],
             'startframe': audio_bound[0]['endframe'],
             'rate': audio_bound[0]['rate'],
             'type': audio_bound[0]['type']
-        }]
+        }
         start.append(start_audio)
         end.append(end_audio)
     if buildState.isComposite:
@@ -2943,6 +2943,9 @@ class CompositeDelegate:
                 except EdgeMaskError as e:
                     errorNotifier('constructDonors',e.message,e.edge_id)
                 except Exception as e:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    logging.getLogger('maskgen').info(
+                        ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                     errorNotifier('constructDonors',str(e), edge_id)
         return donors
 

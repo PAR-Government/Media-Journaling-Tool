@@ -36,7 +36,6 @@ class QAProjectDialog(Toplevel):
         self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
-        self.type = self.parent.scModel.getEndType()
         #print('Stalled?')
         self.probes = None
         #print("Done")
@@ -160,12 +159,8 @@ class QAProjectDialog(Toplevel):
                 #print(len(self.backs[end]))
                 self.backs[end].reverse()
 
-            if (self.type =='image'):
-                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                      self.probes if p.donorMaskImage is not None] if self.probes else []
-            else:
-                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                          self.probes if p.donorVideoSegments is not None] if self.probes else []
+            donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
+                      self.probes if p.donorMaskImage is not None or p.donorVideoSegments is not None] if self.probes else []
             donors = set(sorted(donors))
             self.crit_links.extend([x for x in donors])
             count = 0.0
@@ -512,7 +507,7 @@ class QAProjectDialog(Toplevel):
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
         #print(self.type)
         #print(operation)
-        if self.type == 'image':
+        if probe.targetVideoSegments is None:
             self.loadt(t)
             #print('loaded image')
         else:

@@ -605,11 +605,12 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
                         break
                     else:
                         framessince_start += 1
+            lastrate = aptime - last
             last = aptime
         if not startcomplete and aptime > 0:
             mask['starttime'] = aptime
             mask['startframe'] = frmcnt
-            mask['rate'] = 1000 / (aptime - last)
+            mask['rate'] = 1000 / lastrate
         try:
             mask['frames'] = mask['endframe'] - mask['startframe'] + 1
         except:
@@ -617,6 +618,21 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     finally:
         cap.release()
     return mask
+
+def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
+    """
+    Depending on variable or constraint frame rate, the time may not be accurate.
+    For accuracy, use getFrameCount.
+    :param rate: FPS
+    :param start_time: millis + frames
+    :param end_time: millis + frames
+    :return:
+    """
+    return  {'starttime':start_time[0] + (start_time[1] -1)*1000.0/rate,
+             'startframe': start_time[0]*rate/1000.0 + start_time[1],
+             'endtime': end_time[0] + end_time[1]*1000/rate,
+             'endframe': end_time[0]*rate/1000.0 + end_time[1]}
+
 
 def getMaskSetForEntireVideo(video_file, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0):
     return getMaskSetForEntireVideoForTuples(video_file,
@@ -661,6 +677,10 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                         mask['endtime'] = mask['endframe']/rate*1000.0
                     except:
                         mask.update(getFrameCount(video_file))
+                elif end_time_tuple is not None and rate > 0 and 'r_frame_rate' in item and \
+                                end_time_tuple[0] == 0 and start_time_tuple[0] == 0:
+                    # input provides frames, so assume constant frame rate as time is just a reference point
+                    mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
                 else:
                    mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
