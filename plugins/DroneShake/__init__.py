@@ -115,8 +115,3 @@ def operation():
 
 def suffix():
     return '.avi'
-
-
-filename = "test/poland_4.mp4"
-filename_output = "test/poland_4_drone.avi"
-transform(None, filename, filename_output, fps=24.00, height=480, width=640)

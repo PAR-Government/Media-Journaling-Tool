@@ -677,7 +677,7 @@ def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFile
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = np.roll(frame, 1, axis=-1)
+            frame = frame[..., ::-1]
             elapsed_time = cap.get(cv2api.cv2api_delegate.prop_pos_msec)
             time_manager.updateToNow(elapsed_time)
             if time_manager.isPastTime():
