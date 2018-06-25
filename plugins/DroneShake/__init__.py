@@ -32,7 +32,7 @@ def transform(img, source, target, **kwargs):
         cornerX = (width - pixelWidth) / 2
         cornerY = (height - pixelHeight) / 2
 
-        out = cv2.VideoWriter(target, 0, int(kwargs['fps']), (pixelWidth, pixelHeight))
+        out = cv2api_delegate.videoWriter(target, 0, int(kwargs['fps']), (pixelWidth, pixelHeight))
         csvData = []
 
         csvFile = os.path.splitext(source)[0] + '.csv'
