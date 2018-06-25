@@ -334,7 +334,12 @@ def _guess_type(edge):
     return 'audio' if edge['op'].find('Audio') >= 0 else 'video'
 
 
-def _prepare_video_masks(graph, video_masks, media_type, source, target,  edge,
+def _prepare_video_masks(graph,
+                         video_masks,
+                         media_type,
+                         source,
+                         target,
+                         edge,
                          returnEmpty=True,
                          fillWithUserBoundaries=False,
                          operation=None):
@@ -2467,21 +2472,34 @@ class CompositeDelegate:
         self.baseNodeId, self.level, self.path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (
         None, None)
 
-    def _getComposite(self, keepFailures=False):
+    def _getComposites(self, keepFailures=False):
+        """
+
+        :param keepFailures:
+        :return: if video masks, return the composite images by audio and video media types separately
+        """
         if self.composite is not None:
             return self.composite
         op = self.gopLoader.getOperationWithGroups(self.edge['op'])
         if 'videomasks' in self.edge :
-            return _prepare_video_masks(self.graph, self.edge['videomasks'], _guess_type(self.edge),
-                                        self.edge_id[0], self.edge_id[1],
-                                        self.edge,
-                                        fillWithUserBoundaries=True,
-                                        operation=op)
+            videomasks = getValue(self.edge, 'videomasks')
+            if len(videomasks) == 0:
+                media_types = [_guess_type(self.edge)]
+            else:
+                media_types = set([mask['type'] for mask in videomasks])
+            return [mask for mask in [_prepare_video_masks(self.graph,
+                                            self.edge['videomasks'],
+                                            media_type,
+                                            self.edge_id[0], self.edge_id[1],
+                                            self.edge,
+                                            fillWithUserBoundaries=True,
+                                            operation=op)
+                    for media_type in media_types] if mask is not None]
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
                                                  'maskname', returnNoneOnMissing=True)
             if edgeMask is None and not keepFailures:
-                raiseError('_getComposite','Edge Mask is Missing',self.edge_id)
+                raiseError('_getComposites','Edge Mask is Missing',self.edge_id)
             mask = edgeMask.invert().to_array()
             args = {}
             args.update(op.mandatoryparameters)
@@ -2495,7 +2513,7 @@ class CompositeDelegate:
                     break
             if mask.shape != expectedShape:
                 mask = tool_set.applyResizeComposite(mask, expectedShape)
-            return mask
+            return [mask]
 
     def find_donor_edges(self):
         donors = [(pred, self.edge_id[1]) for pred in self.graph.predecessors(self.edge_id[1])
@@ -2504,7 +2522,10 @@ class CompositeDelegate:
         return donors
 
     def constructComposites(self):
-        return self.constructTransformedMask(self.edge_id, self._getComposite())
+        results = []
+        for composite in self._getComposites():
+            results.extend(self.constructTransformedMask(self.edge_id,composite))
+        return results
 
     def get_dir(self):
         return self.graph.dir
@@ -2588,9 +2609,11 @@ class CompositeDelegate:
         %rtype: list of Probe
         """
         selectMasks = _getUnresolvedSelectMasksForEdge(self.edge)
-        finaNodeIdMasks = self.constructTransformedMask(self.edge_id, self._getComposite(keepFailures=keepFailures), saveTargets=saveTargets, keepFailures=keepFailures)
+        finaNodeIdMasks = []
+        for composite in self._getComposites(keepFailures=keepFailures):
+            finaNodeIdMasks.extend(self.constructTransformedMask(self.edge_id,composite, saveTargets=saveTargets, keepFailures=keepFailures))
         probes = []
-        for target_mask, target_mask_filename, finalNodeId, nodetype, failure in finaNodeIdMasks:
+        for target_mask, target_mask_filename, finalNodeId, media_type, failure in finaNodeIdMasks:
             if finalNodeId in selectMasks:
                 try:
                     tm = openImageFile(os.path.join(self.get_dir(),
@@ -2604,7 +2627,8 @@ class CompositeDelegate:
             try:
                 donors = self.constructDonors(saveImage=saveTargets,
                                               inclusionFunction=inclusionFunction,
-                                              exclusions=exclusions) if constructDonors else []
+                                              exclusions=exclusions,
+                                              media_type=media_type) if constructDonors else []
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.getLogger('maskgen').info(
@@ -2622,7 +2646,7 @@ class CompositeDelegate:
                                                target_mask,
                                                target_mask_filename,
                                                self.level,
-                                               nodetype,
+                                               media_type,
                                                failure,
                                                donors
                                                )
@@ -2654,7 +2678,7 @@ class CompositeDelegate:
                                       target_mask,
                                       target_mask_filename,
                                       level,
-                                      nodetype,
+                                      media_type,
                                       failure,
                                       donors):
         """
@@ -2666,7 +2690,7 @@ class CompositeDelegate:
         :param target_mask:
         :param target_mask_filename:
         :param level:
-        :param nodetype:
+        :param media_type: audio,video,image
         :param donors:
         :return:
         @type donors : list(DonorImage)
@@ -2678,14 +2702,14 @@ class CompositeDelegate:
                                     finalNodeId,
                                     baseNodeId,
                                     donortuple.base,
-                                    targetMaskImage=target_mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
+                                    targetMaskImage=target_mask if media_type == 'image' else tool_set.getSingleFrameFromMask(
                                         target_mask.videomasks),
                                     targetMaskFileName=target_mask_filename if target_mask_filename is not None else None,
                                     targetVideoSegments=_compositeImageToVideoSegment(
-                                        target_mask) if nodetype != 'image' else None,
+                                        target_mask) if media_type != 'image' else None,
                                     # TODO: what to do here
                                     targetChangeSizeInPixels=sizeOfChange(
-                                        np.asarray(target_mask).astype('uint8')) if nodetype == 'image' else None,
+                                        np.asarray(target_mask).astype('uint8')) if media_type == 'image' else None,
                                     donorMaskImage=donortuple.mask_wrapper if donortuple.media_type == 'image' else \
                                         (None if donortuple.mask_wrapper is None else tool_set.getSingleFrameFromMask(
                                         donortuple.mask_wrapper.videomasks)),
@@ -2701,14 +2725,14 @@ class CompositeDelegate:
                                 finalNodeId,
                                 baseNodeId,
                                 None,
-                                targetMaskImage=target_mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
+                                targetMaskImage=target_mask if media_type == 'image' else tool_set.getSingleFrameFromMask(
                                     target_mask.videomasks),
                                 targetMaskFileName=target_mask_filename if target_mask_filename is not None else None,
                                 targetVideoSegments=_compositeImageToVideoSegment(
-                                    target_mask) if nodetype != 'image' else None,
+                                    target_mask) if media_type != 'image' else None,
                                 # TODO: what to do here
                                 targetChangeSizeInPixels=sizeOfChange(
-                                    np.asarray(target_mask).astype('uint8')) if nodetype == 'image' else None,
+                                    np.asarray(target_mask).astype('uint8')) if media_type == 'image' else None,
                                 level=level,
                                 empty=self.empty,
                                 failure=failure,
@@ -2739,19 +2763,20 @@ class CompositeDelegate:
                                        directory=self.get_dir(),
                                        pred_edges=[p for p in pred_edges if p != edge],
                                        graph=self.graph)
-            result.extend(fillEmptyMasks(pred, node,self._constructDonor(pred, donorMask)))
+            result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask)))
         return result
 
     def __getDonorMaskForEdge(self, edge_id,returnEmpty=True):
         edge = self.graph.get_edge(edge_id[0], edge_id[1])
         op = self.gopLoader.getOperationWithGroups(edge['op'], fake=True)
         if 'videomasks' in edge:
-            return _prepare_video_masks(self.graph, edge['videomasks'], _guess_type(edge),
+            return _prepare_video_masks(self.graph, edge['videomasks'],
+                                        _guess_type(edge),
                                         edge_id[0],
                                         edge_id[1],
                                         edge,
                                         returnEmpty=returnEmpty,
-                                        fillWithUserBoundaries=False)
+                                        fillWithUserBoundaries=True)
         startMask = self.graph.get_edge_image(edge_id[0], edge_id[1], 'maskname', returnNoneOnMissing=True)
         if startMask is None:
             raise EdgeMaskError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
@@ -2872,7 +2897,8 @@ class CompositeDelegate:
                         saveImage=True,
                         inclusionFunction=isEdgeComposite,
                         errorNotifier=raiseError,
-                        exclusions={}):
+                        exclusions={},
+                        media_type=None):
         """
           Construct donor images
           Find all valid base node, leaf node tuples
@@ -2907,6 +2933,7 @@ class CompositeDelegate:
                 elif tool_set.fileType(fullpath) in ['video','audio'] and 'videomasks' in edge:
                     startMask = _prepare_video_masks(self.graph,
                                                      video_tools.getMaskSetForEntireVideo(fullpath),
+                                                     # TODO: need to reconsider this and base the type on the videomask type
                                                      tool_set.fileType(fullpath),
                                                      edge_id[0],
                                                      edge_id[1],

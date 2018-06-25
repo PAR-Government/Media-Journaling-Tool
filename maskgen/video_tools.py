@@ -399,7 +399,6 @@ def __addMetaToFrames(frames, meta):
         frames[index].append(meta)
         meta.pop('stream_index')
 
-
 def processFrames(stream, errorstream):
     frames = {}
     meta = {}
@@ -628,10 +627,13 @@ def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
     :param end_time: millis + frames
     :return:
     """
+    startframe = start_time[0]*rate/1000.0 + start_time[1]
+    endframe = end_time[0]*rate/1000.0 + end_time[1]
     return  {'starttime':start_time[0] + (start_time[1] -1)*1000.0/rate,
-             'startframe': start_time[0]*rate/1000.0 + start_time[1],
+             'startframe': int(startframe),
              'endtime': end_time[0] + end_time[1]*1000/rate,
-             'endframe': end_time[0]*rate/1000.0 + end_time[1]}
+             'endframe': int(endframe),
+             'frames':endframe - startframe + 1}
 
 
 def getMaskSetForEntireVideo(video_file, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0):
@@ -1526,7 +1528,38 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
     return [change],[]
 
 def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
-    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
+    """
+
+    :param fileOne:
+    :param fileTwo:
+    :param name_prefix:
+    :param time_manager:
+    :param arguments:
+    :param analysis:
+    :return:
+    @retype: list of dict
+    """
+    maskSet, errors =  __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
+    audioMaskSetOne = getMaskSetForEntireVideo(fileOne, media_types=['audio'])
+    audioMaskSetTwo = getMaskSetForEntireVideo(fileTwo, media_types=['audio'])
+    # audio was not dropped
+    if len(maskSet) > 0 and len(audioMaskSetOne) > 0 and len(audioMaskSetTwo)>0:
+        # audio was changed
+        if audioMaskSetOne[0]['frames'] != audioMaskSetTwo[0]['frames']:
+            startframe = int(maskSet[0]['starttime']*audioMaskSetOne[0]['rate']/1000.0)
+            realframediff = audioMaskSetOne[0]['frames'] - audioMaskSetTwo[0]['frames']
+            maskSet.append({
+                'starttime':maskSet[0]['starttime'],
+                'startframe':startframe,
+                'endtime':maskSet[0]['starttime'] + realframediff*1000.0/audioMaskSetOne[0]['rate'],
+                'endframe':startframe + realframediff - 1,
+                'frames':realframediff,
+                'type':'audio',
+                'rate':audioMaskSetOne[0]['rate']
+            })
+        else:
+            errors.append('Audio must also be cut if the audio and video are in source and target files')
+    return maskSet, errors
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     if 'add type' in 'arguments' and arguments['add type'] == 'replace':
@@ -2343,6 +2376,8 @@ def dropFramesFromMask(bounds,
                 writer.close()
         return new_mask_set
     new_mask_set = video_masks
+    if bounds is None:
+        return new_mask_set
     for bound in bounds:
         new_mask_set = dropFrameFromMask(bound,new_mask_set,keepTime=keepTime,expectedType=expectedType)
     return new_mask_set
@@ -2432,6 +2467,8 @@ def dropFramesWithoutMask(bounds,
                     new_mask_set.append(change)
         return new_mask_set
     new_mask_set = video_masks
+    if bounds is None:
+        return new_mask_set
     for bound in bounds:
         new_mask_set = dropFramesWithoutMaskBound(bound, new_mask_set, keepTime=keepTime, expectedType=expectedType)
     return new_mask_set
@@ -2546,6 +2583,8 @@ def insertFramesToMask(bounds,
         return new_mask_set
 
     new_mask_set = video_masks
+    if bounds is None:
+        return new_mask_set
     for bound in bounds:
         new_mask_set = insertFramesToMaskForBound(bound, new_mask_set,  expectedType=expectedType)
     return new_mask_set
@@ -2554,7 +2593,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
     new_mask_set = []
     if composite_mask_set['startframe'] < edge_video_mask['startframe']:
         if composite_mask_set['endframe'] >= edge_video_mask['endframe']:
-            return composite_mask_set
+            return [composite_mask_set]
         change = dict()
         diff_time = composite_mask_set['endtime'] - composite_mask_set['starttime']
         change['starttime'] = composite_mask_set['starttime']
@@ -2578,7 +2617,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         new_mask_set.append(change)
     else:
         if composite_mask_set['endframe'] <= edge_video_mask['endframe']:
-            return composite_mask_set
+            return [composite_mask_set]
         change = dict()
         diff_frame = edge_video_mask['endframe'] - composite_mask_set['startframe']
         diff_time = edge_video_mask['endtime'] - composite_mask_set['starttime']
@@ -3087,6 +3126,8 @@ def insertFramesWithoutMask(bounds,
         return new_mask_set
 
     new_mask_set = video_masks
+    if bounds is None:
+        return new_mask_set
     for bound in bounds:
         new_mask_set = insertFramesWithoutMaskForBound(bound, new_mask_set, expectedType=expectedType)
     return new_mask_set
