@@ -701,7 +701,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                 mask['endframe'] = mask['startframe']
                 mask['frames'] = mask['endframe'] - mask['startframe'] + 1
             results.append(mask)
-    return results  if len(results) > 0 else None
+    return results
 
 def get_ffmpeg_version():
     command = [tool_set.getFFmpegTool(),'-version']
