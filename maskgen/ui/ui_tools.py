@@ -105,6 +105,40 @@ class SelectDialog(tkSimpleDialog.Dialog):
             self.callback(self.var1.get())
 
 
+class AddRemove(SelectDialog):
+    def __init__(self, parent, name, description, values, initial_value=None, information=None, callback=None):
+        SelectDialog.__init__(self, parent, name, description, values, initial_value, information, callback)
+
+    def buttonbox(self):
+        box = Frame(self)
+
+        self.add_button = Button(box, text="Add", width=10, command=lambda: self.ok("add"), default=ACTIVE)
+        self.add_button.pack(side=LEFT, padx=5, pady=5)
+        self.remove_button = Button(box, text="Remove", width=10, command=lambda: self.ok("remove"))
+        self.remove_button.pack(side=LEFT, padx=5, pady=5)
+        self.cancel_button = Button(box, text="Cancel", width=10, command=self.cancel)
+        self.cancel_button.pack(side=LEFT, padx=5, pady=5)
+
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def ok(self, stype, event=None):
+        self.withdraw()
+        self.update_idletasks()
+
+        try:
+            self.apply(stype)
+        finally:
+            self.cancel()
+
+    def apply(self, stype):
+        self.cancelled = False
+        self.choice = (self.var1.get(), stype)
+        if self.callback is not None:
+            self.callback((self.var1.get(), stype))
+
+
 class EntryDialog(tkSimpleDialog.Dialog):
     cancelled = True
 

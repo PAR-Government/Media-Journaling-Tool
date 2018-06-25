@@ -40,7 +40,7 @@ from mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import preferences_initializer
 from software_loader import getMetDataLoader
 from cachetools import LRUCache
-from ui.ui_tools import ProgressBar
+from ui.ui_tools import ProgressBar, AddRemove
 from maskgen.services.probes import archive_probes
 
 from QAExtreme import QAProjectDialog
@@ -896,17 +896,21 @@ class MakeGenUI(Frame):
             self.setSelectState('normal')
 
     def selectgroup(self):
-        d = SelectDialog(self, "Set Semantic Group", 'Select a semantic group for these operations.', getSemanticGroups())
+        d = AddRemove(self, "Set Semantic Group", 'Select a semantic group for these operations.',
+                      getSemanticGroups(), information="semanticgroup")
         res = d.choice
-        if res is not None and len(res) > 0:
+        if res[0] is not None and len(res[0]) > 0:
             for start in self.groupselection:
                 for end in self.groupselection:
-                    edge = self.scModel.getGraph().get_edge(start,end)
+                    edge = self.scModel.getGraph().get_edge(start, end)
                     if edge is not None:
-                        grps = self.scModel.getSemanticGroups(start,end)
-                        if res not in grps:
-                            grps.append(res)
-                            self.scModel.setSemanticGroups(start,end,grps)
+                        grps = self.scModel.getSemanticGroups(start, end)
+                        if res[0] not in grps and res[1] == "add":
+                            grps.append(res[0])
+                            self.scModel.setSemanticGroups(start, end, grps)
+                        if res[0] in grps and res[1] == "remove":
+                            grps.remove(res[0])
+                            self.scModel.setSemanticGroups(start, end, grps)
 
     def removegroup(self):
         if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
