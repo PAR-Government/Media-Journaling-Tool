@@ -2626,7 +2626,7 @@ class ImageProjectModel:
             path, errors = self.G.create_archive(location, include=include)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[]):
+    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[], log=None):
         """
 
         :param location:
@@ -2650,7 +2650,7 @@ class ImageProjectModel:
                 DIR = location[location.find('/') + 1:].strip()
                 logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
+                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path,log))
                 os.remove(path)
                 if self.notify is not None and not self.notify(self.getName(), 'export',
                                    location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
