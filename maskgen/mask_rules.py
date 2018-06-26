@@ -2625,10 +2625,13 @@ class CompositeDelegate:
                 except Exception as e:
                     logging.getLogger('maskgen').error('bad replacement file ' + selectMasks[finalNodeId])
             try:
+                # if video, then the media type is in the composite tuple.
+                # images still use an ImageWrapper for the target_mask type
+                # TODO: Big change will be to make all composites using a CompositeImage type.
                 donors = self.constructDonors(saveImage=saveTargets,
                                               inclusionFunction=inclusionFunction,
                                               exclusions=exclusions,
-                                              media_type=media_type) if constructDonors else []
+                                              media_type=target_mask.media_type if media_type != 'image' else 'image') if constructDonors else []
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.getLogger('maskgen').info(
@@ -2738,7 +2741,7 @@ class CompositeDelegate:
                                 failure=failure,
                                 finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
-    def _constructDonor(self, node, mask):
+    def _constructDonor(self, node, mask, media_type=None):
         """
         Walks up the tree assembling donor masks
         """
@@ -2753,7 +2756,7 @@ class CompositeDelegate:
         for pred in preds:
             edge = self.graph.get_edge(pred, node)
             if mask is None:
-                donorMask = self.__getDonorMaskForEdge((pred, node), returnEmpty=False)
+                donorMask = self.__getDonorMaskForEdge((pred, node), returnEmpty=False, media_type=media_type)
             else:
                 donorMask = alterDonor(mask,
                                        self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
@@ -2763,15 +2766,15 @@ class CompositeDelegate:
                                        directory=self.get_dir(),
                                        pred_edges=[p for p in pred_edges if p != edge],
                                        graph=self.graph)
-            result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask)))
+            result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask, media_type=media_type)))
         return result
 
-    def __getDonorMaskForEdge(self, edge_id,returnEmpty=True):
+    def __getDonorMaskForEdge(self, edge_id,returnEmpty=True,media_type=None):
         edge = self.graph.get_edge(edge_id[0], edge_id[1])
         op = self.gopLoader.getOperationWithGroups(edge['op'], fake=True)
         if 'videomasks' in edge:
             return _prepare_video_masks(self.graph, edge['videomasks'],
-                                        _guess_type(edge),
+                                        _guess_type(edge) if media_type is None else media_type,
                                         edge_id[0],
                                         edge_id[1],
                                         edge,
@@ -2913,7 +2916,7 @@ class CompositeDelegate:
         for edge_id in self.find_donor_edges():
             edge = self.graph.get_edge(edge_id[0], edge_id[1])
             startMask = None
-            edgeMask = self.__getDonorMaskForEdge(edge_id)
+            edgeMask = self.__getDonorMaskForEdge(edge_id, media_type=media_type)
             if edge['op'] == 'Donor':
                 startMask = edgeMask
             elif len(getValue(edge,'inputmaskname',defaultValue='')) > 0 and \
@@ -2958,7 +2961,7 @@ class CompositeDelegate:
                         type(startMask) == CompositeImage:
                         donor_masks = {}
                     else:
-                        donor_masks = self._constructDonor(edge_id[0], startMask)
+                        donor_masks = self._constructDonor(edge_id[0], startMask, media_type=media_type)
                     imageDonorToNodes = self.__processImageDonor(donor_masks)
                     videoDonorToNodes = self.__processVideoDonor(donor_masks)
                     donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,

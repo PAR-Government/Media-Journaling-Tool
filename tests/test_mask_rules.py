@@ -3,7 +3,7 @@ import unittest
 from maskgen.image_graph import ImageGraph
 import numpy as np
 import networkx as nx
-from tests.test_support import TestSupport
+from test_support import TestSupport
 
 class ImageGraphB:
     def __init__(self, G):
