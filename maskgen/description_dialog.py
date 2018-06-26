@@ -1515,18 +1515,20 @@ class MaskSetTable(Frame):
 
     def __init__(self, master, items, openColumn=3, dir='.', **kwargs):
         self.items = items
+        bh = kwargs.pop('boxheight') if 'boxheight' in kwargs else 125
+        bw = kwargs.pop('boxwidth') if 'boxwidth' in kwargs else None
         Frame.__init__(self, master, **kwargs)
-        self._drawMe(dir, openColumn)
+        self._drawMe(dir, openColumn,bw,bh)
 
 
-    def _drawMe(self, dir, openColumn):
+    def _drawMe(self, dir, openColumn, boxWidth=140, boxHeight=125):
         model = ExtendedTableModel( self.items)
         for c in self.items.columnNames:
             model.addColumn(c)
         model.importDict(self.items.columnValues)
         model.reclist = sorted(model.reclist)
 
-        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=125,
+        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=boxHeight, width=boxWidth,
                                            openColumn=openColumn, dir=dir, allowSave=True)
         self.table.updateModel(model)
         self.table.createTableFrame()
