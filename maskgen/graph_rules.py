@@ -1205,7 +1205,7 @@ def checkSizeAndExif(op, graph, frm, to):
             diff_frm = frm_img.size[0] - frm_img.size[1]
             diff_to = to_img.size[0] - to_img.size[1]
             if '270' in orientation or '90' in orientation and \
-                numpy.sign(diff_frm) != numpy.sign(diff_to):
+                numpy.sign(diff_frm) == numpy.sign(diff_to):
                 return (Severity.ERROR, 'Rotation not applied')
         return (Severity.WARNING,'operation changed the size of the image')
     return None
