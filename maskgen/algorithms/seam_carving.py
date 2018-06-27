@@ -283,8 +283,8 @@ class MaskTracker:
             self.neighbors_mask[row, col + 1] += 1
 
     def drop_pixel(self, oldrow, oldcol, newrow, newcol):
-        if newrow < self.dropped_adjuster.shape[0] and \
-            newcol < self.dropped_adjuster.shape[1]:
+        if newrow < self.dropped_adjuster.shape[1] and \
+            newcol < self.dropped_adjuster.shape[2]:
             self.dropped_adjuster[0, newrow, newcol] = oldrow
             self.dropped_adjuster[1, newrow, newcol] = oldcol
             self.__set_neighbors(newrow, newcol)

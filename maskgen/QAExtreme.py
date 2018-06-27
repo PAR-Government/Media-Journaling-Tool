@@ -22,7 +22,9 @@ import qa_logic
 import video_tools
 import tool_set
 import random
+import scenario_model
 import validation
+from maskgen.description_dialog import MaskSetTable
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 import webbrowser
@@ -36,7 +38,6 @@ class QAProjectDialog(Toplevel):
         self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
-        self.type = self.parent.scModel.getEndType()
         #print('Stalled?')
         self.probes = None
         #print("Done")
@@ -58,6 +59,7 @@ class QAProjectDialog(Toplevel):
         self.progressBars = []
         #This actually stores failed or success icons
         self.narnia = {}
+        self.pageDisplays = {}
         #print(self)
         #threading.stack_size(0x2000000)
 
@@ -160,12 +162,8 @@ class QAProjectDialog(Toplevel):
                 #print(len(self.backs[end]))
                 self.backs[end].reverse()
 
-            if (self.type =='image'):
-                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                      self.probes if p.donorMaskImage is not None] if self.probes else []
-            else:
-                donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
-                          self.probes if p.donorVideoSegments is not None] if self.probes else []
+            donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
+                      self.probes if p.donorMaskImage is not None or p.donorVideoSegments is not None] if self.probes else []
             donors = set(sorted(donors))
             self.crit_links.extend([x for x in donors])
             count = 0.0
@@ -319,6 +317,42 @@ class QAProjectDialog(Toplevel):
         else:
             return str
 
+    def setUpFrames(self,t):
+        self.pageDisplays[self.cur] = [0,[]]
+        self.setUpPlot(t)
+        self.setUpMask(t)
+        self.frameMove(0)
+        nextButton = Button(self.cImgFrame, text='Next', command=self.frameNext, width=15)
+        nextButton.grid(row=1, column=2, columnspan=2, sticky='E')# padx=(20, 20))
+        prevButton = Button(self.cImgFrame, text='Previous', command=self.framePrev, width=15)
+        prevButton.grid(row=1, column=0, columnspan=2, sticky='W') #padx=(20, 20))
+
+    def frameNext(self):
+        self.frameMove(1)
+
+    def framePrev(self):
+        self.frameMove(-1)
+
+    def setUpMask(self,t):
+        self.displayFrame = Frame(self.cImgFrame, height=500,width=50)
+
+        if (len(t.split('->'))>1):
+            probe = [probe for probe in self.probes if
+                 probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[self.edgeTuple[1]]][0]
+        else:
+            probe = \
+            [probe for probe in self.probes if
+             probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId ==
+             self.lookup[
+                 self.edgeTuple[1]]][0]
+        edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
+        description = self.scModel.getModificationForEdge(probe.edgeId[0], probe.edgeId[1], edge)
+        if description.maskSet is not None:
+            self.maskBox = MaskSetTable(self.displayFrame, description.maskSet, openColumn=3,
+                                        dir=self.scModel.get_dir(),boxheight=389,boxwidth=452)#,rowwidth=120)
+            self.maskBox.grid()
+            self.pageDisplays[self.cur][1].append(self.displayFrame)
+
     def setUpPlot(self,t):
         ps = [mpatches.Patch(color="red", label="Target Video"),mpatches.Patch(color="blue",label="Current Manipulations"),mpatches.Patch(color="green",label="Other Manipulations")]
         data = []
@@ -361,16 +395,20 @@ class QAProjectDialog(Toplevel):
                     if cur:
                         high = max(high,mvs.endtime)
                         low = min(low,mvs.starttime)
-                        subplot.text(mvs.starttime - 100, count-0.5, "F:" + str(int(mvs.startframe)))
-                        subplot.text(mvs.endtime + 100, count-0.5, "F:" + str(int(mvs.endframe)))
+                        subplot.text(mvs.starttime - 100, count-0.5, "F:" + str(int(mvs.startframe)),{'size':10})
+                        subplot.text(mvs.endtime + 100, count-0.5, "F:" + str(int(mvs.endframe)),{'size':10})
+                        subplot.text(mvs.starttime - 100, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
+                        subplot.text(mvs.endtime + 100, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
             else:
                 for mvs in p.targetVideoSegments:
                     data.append([count,col,mvs.starttime,mvs.endtime])
                     if cur:
                         high = max(high,mvs.endtime)
                         low = min(low,mvs.starttime)
-                        subplot.text(mvs.starttime, count-0.5, "F:" + str(int(mvs.startframe)))
-                        subplot.text(mvs.endtime,count-0.5, "F:" + str(int(mvs.endframe)))
+                        subplot.text(mvs.starttime, count-0.5, "F:" + str(int(mvs.startframe)),{'size':10})
+                        subplot.text(mvs.endtime,count-0.5, "F:" + str(int(mvs.endframe)),{'size':10})
+                        subplot.text(mvs.starttime, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
+                        subplot.text(mvs.endtime, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
             ytics.append(count)
             ytic_lbl.append(str(self.abreive(p.edgeId[0])))
 
@@ -394,9 +432,10 @@ class QAProjectDialog(Toplevel):
             i[1] = high + 1000
             subplot.xaxis.set_view_interval(i[0],i[1])
         self.pltdata[self.cur] = na
-        canvas = Canvas(self.cImgFrame,height=50,width=50)
-
-        imscroll = Scrollbar(self.cImgFrame, orient=HORIZONTAL)
+        self.displayFrame = Frame(self.cImgFrame)
+        self.pageDisplays[self.cur][1].append(self.displayFrame)
+        canvas = Canvas(self.displayFrame,height=50,width=50)
+        imscroll = Scrollbar(self.displayFrame, orient=HORIZONTAL)
         imscroll.grid(row =1,column=0,sticky=EW)
         imscroll.config(command=self.scrollplt)
         fcanvas = FigureCanvasTkAgg(f, master=canvas)
@@ -408,7 +447,14 @@ class QAProjectDialog(Toplevel):
         canvas.config(height=50,width=50)
         self.subplots[self.cur] = f
 
-
+    def frameMove(self, i):
+        displays = self.pageDisplays[self.cur]
+        cur = displays[0]
+        frames = displays[1]
+        if 0 <= cur+i < len(frames):
+            frames[cur].grid_forget()
+            frames[cur+i].grid(row=0,column=0,columnspan=3)
+            displays[0] += i
 
     def scrollplt(self, *args):
         if (args[0] == 'moveto'):
@@ -512,12 +558,12 @@ class QAProjectDialog(Toplevel):
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
         #print(self.type)
         #print(operation)
-        if self.type == 'image':
+        if probe.targetVideoSegments is None:
             self.loadt(t)
             #print('loaded image')
         else:
             self.transitionString(None)
-            self.setUpPlot(t)
+            self.setUpFrames(t)
                 #print('Video loaded')
         #thread.start_new_thread(self.loadt, ())
         if operation.qaList is not None:

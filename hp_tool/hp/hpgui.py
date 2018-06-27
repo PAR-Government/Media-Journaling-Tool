@@ -10,6 +10,8 @@ from boto3.s3.transfer import S3Transfer
 import matplotlib
 import requests
 from maskgen.maskgen_loader import MaskGenLoader
+from maskgen.tool_set import openImage
+
 matplotlib.use("TkAgg")
 import ttk
 import tkFileDialog
@@ -442,9 +444,9 @@ class PRNU_Uploader(Frame):
             res = self.check_luminance(folder)
             if res is not None:
                 msgs.append(res)
-            organization_error = self.organize_prnu_dir(folder)
-            if organization_error:
-                tkMessageBox.showerror('Organization Error', organization_error)
+            organization_errors = self.organize_prnu_dir(folder)
+            if organization_errors:
+                msgs.extend(organization_errors)
                 return
 
         if not self.newCam.get() and not self.local_id_used():
@@ -482,13 +484,23 @@ class PRNU_Uploader(Frame):
     def organize_prnu_dir(self, luminance_dir):
         subfolders = [os.path.normpath(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir) if os.path.isdir(os.path.join(luminance_dir, x))]
         files_in_dir = any(os.path.isfile(os.path.join(luminance_dir, x)) for x in os.listdir(luminance_dir))
+        warning_res = []
 
         def copy_to_res(image_data, root_dir):
-            correct_res_dir = os.path.join(root_dir, "{0}x{1}".format(image_data['ImageWidth'], image_data['ImageHeight']))
-            if not os.path.exists(correct_res_dir):
-                os.mkdir(correct_res_dir)
-            filename = os.path.split(image_data['SourceFile'])[1]
-            shutil.move(image_data['SourceFile'], os.path.join(correct_res_dir, filename))
+            correct_res_dir = None
+            if 'ImageWidth' in width_height[i] and 'ImageHeight'in width_height[i]:
+                correct_res_dir = os.path.join(root_dir, "{0}x{1}".format(image_data['ImageWidth'], image_data['ImageHeight']))
+            else:
+                mg_size = openImage(image_data['SourceFile']).size
+                if mg_size:
+                    correct_res_dir = os.path.join(root_dir, "{0}x{1}".format(str(mg_size[0]), str(mg_size[1])))
+                else:
+                    warning_res.append("Unable to verify the resolution of {0}".format(image_data['SourceFile']))
+            if correct_res_dir:
+                if not os.path.exists(correct_res_dir):
+                    os.mkdir(correct_res_dir)
+                filename = os.path.split(image_data['SourceFile'])[1]
+                shutil.move(image_data['SourceFile'], os.path.join(correct_res_dir, filename))
 
         for subdir in subfolders:
             try:
@@ -517,10 +529,8 @@ class PRNU_Uploader(Frame):
                 return error
 
             for i in xrange(0, len(width_height)):
-                # if width_height[i]['Software'] not in software_list:
-                #     error = "{0} is not in the approved software list for this camera.".format(width_height[i]['Software'])
-                #     return error
-                if width_height[i]['ImageWidth'] != int(width) or width_height[i]['ImageHeight'] != int(height):
+                if ('ImageWidth' in width_height[i] and 'ImageHeight' in width_height[i]) and \
+                        (width_height[i]['ImageWidth'] != int(width) or width_height[i]['ImageHeight'] != int(height)):
                     copy_to_res(width_height[i], luminance_dir)
 
         if files_in_dir:
@@ -537,7 +547,7 @@ class PRNU_Uploader(Frame):
                 #         width_height[i]['Software'])
                 #     return error
                 copy_to_res(width_height[i], luminance_dir)
-        return
+        return warning_res if warning_res else None
 
     def check_luminance(self, foldername):
         """

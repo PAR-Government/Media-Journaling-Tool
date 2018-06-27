@@ -654,8 +654,10 @@ class VideoVideoLinkTool(LinkTool):
         mask, analysis = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
-        if op != 'Donor' and operation.generateMask != "all":
-            maskSet = list()
+        if op != 'Donor' and operation.generateMask not in ['audio', 'all']:
+            maskSet = video_tools.getMaskSetForEntireVideo(destFileName)
+            if maskSet is None:
+                maskSet = list()
             errors = list()
         elif op == 'Donor':
             maskSet, errors = self._constructDonorMask(startFileName, destFileName,
@@ -730,13 +732,13 @@ class AudioVideoLinkTool(LinkTool):
         analysis = dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
-        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
+        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName, frames=False,media_types=['audio'])
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         errors = []
 
-        if op != 'Donor' and operation.generateMask == 'all':
+        if op != 'Donor' and operation.generateMask in ['audio','all']:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -794,7 +796,7 @@ class VideoAudioLinkTool(LinkTool):
         analysis = dict()
         analysis['masks count'] = 0
         analysis['videomasks'] = list()
-        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName)
+        metaDataDiff = video_tools.formMetaDataDiff(startFileName, destFileName,frames=False,media_types=['audio'])
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',

@@ -276,7 +276,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "transitions": [
         "video.video",
         "audio.audio",
@@ -386,7 +386,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
@@ -489,7 +489,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
@@ -568,7 +568,7 @@
       },
       "analysisOperations": [],
       "description": "Amplify Audio Signal",
-      "generateMask": "all",
+      "generateMask": "audio",
       "transitions": [
         "audio.audio",
         "video.video"
@@ -650,7 +650,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "transitions": [
         "audio.audio",
         "video.video"
@@ -721,7 +721,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "transitions": [
         "audio.audio",
         "video.video"
@@ -790,7 +790,7 @@
       "includeInMask": {
         "default": true
       },
-      "generateMask": "all",
+      "generateMask": "audio",
       "transitions": [
         "video.video",
         "audio.audio"
@@ -818,6 +818,14 @@
             "Remove"
           ],
           "description": ""
+        },
+        "Approach": {
+          "type": "list",
+          "values": [
+            "Crop",
+            "Other"
+          ],
+          "description":"Cropping for Drone Shake or Other"
         }
       },
       "rules": [
@@ -5223,9 +5231,10 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+      "generateMask": "meta",
       "transitions": [
-        "image.image"
+        "image.image",
+        "video.video"
       ]
     },
     {

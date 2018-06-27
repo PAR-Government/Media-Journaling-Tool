@@ -16,7 +16,7 @@ class TestImageWrap(TestSupport):
     def test_open(self):
         wrapper = image_wrap.openImageFile(self.locateFile('images/sample.jpg'))
         self.assertTrue(wrapper.to_image() is not None)
-        im = Image.open('images/sample.jpg')
+        im = Image.open(self.locateFile('images/sample.jpg'))
         im_array = np.asarray(im)
         self.assertTrue(wrapper.image_array.shape == im_array.shape)
 

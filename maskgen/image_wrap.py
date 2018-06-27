@@ -232,7 +232,6 @@ def defaultOpen(filename, isMask=False, args=None):
     result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
     return None if result.size == (0, 0) else result
 
-
 def readPNG(filename, isMask=False):
     import itertools
     exifdata = exif.getexif(filename)
@@ -244,9 +243,9 @@ def readPNG(filename, isMask=False):
             if shape > 1:
                 image_3d = np.reshape(image_2d,
                                       (pngdata[1], pngdata[0], image_2d.shape[1] / pngdata[0]))
-                result = ImageWrapper(image_3d, to_mask=isMask)
+                return ImageWrapper(image_3d, to_mask=isMask)
             else:
-                result = ImageWrapper(image_2d)
+                return ImageWrapper(image_2d)
     else:
         result = _openCV2(filename)
     return ImageWrapper(result)
@@ -410,7 +409,7 @@ def tiff_masssage_args(**args):
     }
     result = {}
     for k,v in args.iteritems():
-        if k == 'compression':
+        if k == 'compression' and v != 'raw':
             result['compress'] = v
         elif k == 'photometric':
             result['photometric'] = TIFF_PHOTOMETRICS[v]
@@ -432,7 +431,7 @@ class ImageWrapper:
         :param filename:
         @type image_array: np.ndarray or ImageWrapper
         """
-        if str(type(image_array)) == 'ImageWrapper':
+        if type(image_array).__name__ == 'instance' and image_array.__class__.name == 'ImageWrapper':
             self.image_array = image_array.image_array
         else:
             self.image_array = image_array

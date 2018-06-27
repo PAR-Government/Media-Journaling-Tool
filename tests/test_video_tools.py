@@ -615,6 +615,31 @@ class TestVideoTools(TestSupport):
         self.assertEqual(167, result[1]['endframe'])
         self._add_mask_files_to_kill(result)
 
+
+    def test_cutCompare(self):
+        source = self.locateFile('tests/videos/sample1.mov')
+        video_tools.runffmpeg(['-y','-i',source,'-ss','00:00:00.00', '-t','10','part1.mov'])
+        video_tools.runffmpeg(['-y','-i', source, '-ss', '00:00:12.00', 'part2.mov'])
+        video_tools.runffmpeg(['-y','-i', 'part1.mov', '-i','part2.mov','-filter_complex',
+                               '[0:v][0:a][1:v][1:a] concat=n=2:v=1:a=1 [outv] [outa]',
+                               '-map','[outv]','-map','[outa]','sample1_cut_full.mov'])
+        self.filesToKill.append('part1.mov')
+        self.filesToKill.append('part2.mov')
+        self.filesToKill.append('sample1_cut_full.mov')
+        maskSet, errors = video_tools.cutCompare(source,'sample1_cut_full.mov','sample1',tool_set.VidTimeManager(startTimeandFrame=(10000,0),
+                                                                                       stopTimeandFrame=(12000,0)))
+        audioSet = [mask for mask in  maskSet if mask['type']=='audio']
+        self.assertEqual(1, len(audioSet))
+        self.assertEqual(85526, audioSet[0]['frames'])
+        self.assertEqual(440025, audioSet[0]['startframe'])
+        self.assertEqual(525550, audioSet[0]['endframe'])
+        self.assertEquals(audioSet[0]['starttime'],maskSet[0]['starttime'])
+        self.assertAlmostEqual(0.13,abs(audioSet[0]['endtime']/1000.0-maskSet[0]['endtime']/1000.0),places=2)
+        self.assertEqual(44100.0, audioSet[0]['rate'])
+
+
+
+
     def test_cut(self):
         sets = []
         change = dict()
@@ -743,6 +768,21 @@ class TestVideoTools(TestSupport):
 
 
     def test_reverse(self):
+
+        result = video_tools.reverseMasks([{
+            'startframe': 0,
+            'starttime': 0,
+            'endframe': 130,
+            'endtime': 4333
+        }], [{'starttime':0,
+              'startframe': 0,
+              'endframe': 130,
+              'endtime': 4333,
+              'type':'video'}])
+        self.assertEqual(1,len(result))
+        self.assertEqual(4333,result[0]['endtime'])
+        self.assertEqual(130, result[0]['endframe'])
+
         amount = 30
         fileOne = self._init_write_file('test_tr1',2500,75,30,30)
         fileTwo = self._init_write_file('test_tr2', 4100, 123, 30, 27)
@@ -831,6 +871,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(149, result[3]['endframe'])
         self.assertEqual(131, result[3]['startframe'])
         self._add_mask_files_to_kill(result)
+
+
 
 
     def test_invertVideoMasks(self):
@@ -951,7 +993,10 @@ class TestVideoTools(TestSupport):
         self.assertTrue(int(new_mask_set[0]['starttime']) == 2078)
 
     def testMetaDiff(self):
-        video_tools.formMetaDataDiff(self.locateFile('tests/videos/sample1.mov'),self.locateFile('tests/videos/sample1_slow.mov'))
+        video_tools.formMetaDataDiff(self.locateFile('tests/videos/sample1.mov'),self.locateFile('tests/videos/sample1_slow_swap.mov'))
+        video_tools.formMetaDataDiff(self.locateFile('tests/videos/sample1.mov'),self.locateFile('tests/videos/sample1_slow_swap.mov'),True,['video'])
+        video_tools.formMetaDataDiff(self.locateFile('tests/videos/sample1.mov'),
+                                     self.locateFile('tests/videos/sample1_slow_swap.mov'), False, ['audio'])
 
     def testAudio(self):
         from maskgen.tool_set import  VidTimeManager
