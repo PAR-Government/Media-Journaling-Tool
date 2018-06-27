@@ -1200,12 +1200,14 @@ def checkSizeAndExif(op, graph, frm, to):
             orientation = getOrientationFromMetaData(edge)
         if orientation is not None:
             orientation = str(orientation)
-            if '270' in orientation or '90' in orientation:
-                frm_shape = graph.get_image(frm)[0].size
-                to_shape = graph.get_image(to)[0].size
-                if frm_shape[0] == to_shape[1] and frm_shape[1] == to_shape[0]:
-                    return None
-        return (Severity.ERROR,'operation is not permitted to change the size of the image')
+            frm_img = graph.get_image(frm)[0]
+            to_img = graph.get_image(to)[0]
+            diff_frm = frm_img.size[0] - frm_img.size[1]
+            diff_to = to_img.size[0] - to_img.size[1]
+            if '270' in orientation or '90' in orientation and \
+                numpy.sign(diff_frm) == numpy.sign(diff_to):
+                return (Severity.ERROR, 'Rotation not applied')
+        return (Severity.WARNING,'operation changed the size of the image')
     return None
 
 
