@@ -20,6 +20,7 @@ from subprocess import Popen, PIPE
 import threading
 import loghandling
 import cv2api
+import ffmpeg_api
 from maskgen.support import removeValue,getValue
 import os
 from maskgen.userinfo import get_username
@@ -161,11 +162,11 @@ def fileTypeChanged(file_one, file_two):
 
 
 def getFFmpegTool():
-    return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
+    return ffmpeg_api.getFFmpegTool();
 
 
 def getFFprobeTool():
-    return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
+    return ffmpeg_api.getFFprobeTool();
 
 
 def isVideo(filename):

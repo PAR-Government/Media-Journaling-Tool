@@ -974,7 +974,7 @@ class TestVideoTools(TestSupport):
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_out.mov'
-        os.system('ffmpeg -y -i {}  -r 10/1  {}'.format(source, target))
+        os.system('ffmpeg -y -i "{}"  -r 10/1  "{}"'.format(source, target))
         source_set = video_tools.getMaskSetForEntireVideo(source,
                                                       start_time='29',end_time='55')
         new_mask_set = video_tools._warpMask(source_set, {}, source, source)

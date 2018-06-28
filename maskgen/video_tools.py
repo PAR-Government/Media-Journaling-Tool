@@ -21,6 +21,7 @@ from maskgen_loader import  MaskGenLoader
 import logging
 from cv2api import cv2api_delegate
 import cv2
+import ffmpeg_api
 from cachetools import LRUCache
 from cachetools import cached
 from threading import RLock
@@ -479,70 +480,7 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False,media_types=['video','audio'],extras=None):
-    import uuid
-    import time
-    def runProbeWithFrames(func, args=None):
-        if len(media_types) == 1:
-            ffmpegcommand = [tool_set.getFFprobeTool(),'-select_streams',media_types[0][0]]
-        else:
-            ffmpegcommand = [tool_set.getFFprobeTool()]
-       # if extras is not None:
-       #     ffmpegcommand.append('-show_entries')
-       #     ffmpegcommand.append('-packet:' + ','.join(extras))
-        ffmpegcommand.append(file)
-        if args != None:
-            ffmpegcommand.append(args)
-        stdout_fd, stdout_path = tempfile.mkstemp('.txt',
-                                                  'stdout_{}_{}'.format(uuid.uuid4(),
-                                                                        str(os.getpid())))
-        try:
-            stder_fd, stder_path = tempfile.mkstemp('.txt',
-                                                    'stderr_{}_{}'.format(uuid.uuid4(),
-                                                                          str(os.getpid())))
-            try:
-                p = Popen(ffmpegcommand, stdout=stdout_fd, stderr=stder_fd)
-                p.wait()
-            finally:
-                os.close(stder_fd)
-        finally:
-            os.close(stdout_fd)
-
-        try:
-            with open(stdout_path) as stdout_fd:
-                with open(stder_path) as stder_fd:
-                    return func(stdout_fd,stder_fd)
-        finally:
-            persistantDelete(stder_path)
-            persistantDelete(stdout_path)
-
-    def persistantDelete(path, attempts=10):
-        if os.path.exists(path):
-            for x in range(attempts):
-                try:
-                    os.remove(path)
-                    break
-                except WindowsError:
-                    time.sleep(0.1)
-        if os.path.exists(path):
-            logging.getLogger('maskgen').warn("Failed to remove file {}".format(path))
-
-    def runProbe(func, args=None):
-        ffmpegcommand = [tool_set.getFFprobeTool(), file]
-        if args != None:
-            ffmpegcommand.append(args)
-        stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
-        return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
-
-    if with_frames:
-        frames = runProbeWithFrames(processFrames,args='-show_frames')
-    else:
-        frames = {}
-    if show_streams:
-        meta = runProbe(processMetaStreams, args='-show_streams')
-    else:
-        meta = runProbe(processMeta, args='-show_streams')
-
-    return meta, frames
+    return ffmpeg_api.getMeta(file, with_frames, show_streams, media_types, extras)
 
 def getShape(video_file):
     """
@@ -618,6 +556,37 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
         cap.release()
     return mask
 
+def getFrameCountwFFMPEG(video_file, item, frames, start_time_tuple=(0,1),end_time_tuple=None):
+    mask = {'starttime': 0, 'startframe': 1, 'endtime': 0, 'endframe': 1, 'frames': 0}
+    frmcnt = 0
+    frame_set = frames[item['index']]
+    aptime = 0
+    framessince_start = 1
+    startcomplete = False
+    for packet in frame_set:
+        frmcnt += 1
+        lasttime = aptime * 1000
+        aptime = __getOrder(packet, orderAttr='pkt_pts_time', lasttime=aptime)
+        if aptime * 1000 >= start_time_tuple[0] and not startcomplete:
+            if framessince_start >= start_time_tuple[1]:
+                startcomplete = True
+                mask['starttime'] = aptime * 1000
+                mask['startframe'] = frmcnt
+                framessince_start = 1
+                if end_time_tuple is None:
+                    break
+            else:
+                framessince_start += 1
+        elif end_time_tuple is not None and aptime * 1000 >= end_time_tuple[0]:
+            if framessince_start >= end_time_tuple[1]:
+                mask['endtime'] = aptime * 1000
+                mask['endframe'] = frmcnt
+                break
+            else:
+                framessince_start += 1
+    mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+    return mask
+
 def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
     """
     Depending on variable or constraint frame rate, the time may not be accurate.
@@ -638,7 +607,7 @@ def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
 
 def getMaskSetForEntireVideo(video_file, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0):
     return getMaskSetForEntireVideoForTuples(video_file,
-                                      start_time_tuple=tool_set.getMilliSecondsAndFrameCount(start_time),
+                                      start_time_tuple=tool_set.getMilliSecondsAndFrameCount(start_time, defaultValue=(0,1)),
                                       end_time_tuple = tool_set.getMilliSecondsAndFrameCount(end_time) if end_time is not None and end_time != '0' else None,
                                       media_types=media_types,channel=channel)
 
@@ -651,7 +620,8 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    meta, frames = getMeta(video_file, show_streams=True, media_types=media_types)
+    calculate_frames = st[0] > 0 or st[1] > 1 or et is not None
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames, media_types=media_types)
     found_num = 0
     results = []
     for item in meta:
@@ -684,7 +654,8 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                     # input provides frames, so assume constant frame rate as time is just a reference point
                     mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
                 else:
-                   mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
+                   mask.update(getFrameCountwFFMPEG(video_file, item, frames, start_time_tuple=start_time_tuple, end_time_tuple=end_time_tuple))
+                   #mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
@@ -703,6 +674,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
             results.append(mask)
     return results
 
+
 def get_ffmpeg_version():
     command = [tool_set.getFFmpegTool(),'-version']
     try:
@@ -718,20 +690,7 @@ def get_ffmpeg_version():
     return '?'
 
 def runffmpeg(args, noOutput=True):
-    command = [tool_set.getFFmpegTool()]
-    command.extend(args)
-    try:
-        pcommand = Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
-        stdout, stderr = pcommand.communicate()
-        if pcommand.returncode != 0:
-            error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
-            raise ValueError(error)
-        if noOutput == False:
-            return stdout
-    except OSError as e:
-        logging.getLogger('maskgen').error("FFmpeg not installed")
-        logging.getLogger('maskgen').error(str(e))
-        raise e
+   return ffmpeg_api.runffmpeg(args, noOutput)
 
 def __aggregate(k, oldValue, newValue, summary):
     """

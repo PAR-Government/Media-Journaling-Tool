@@ -7,6 +7,7 @@
 #==============================================================================
 
 import cv2
+import ffmpeg_api
 
 """
 Wrapper class around CV2 to support different API versions (opencv 2 and 3)
@@ -51,6 +52,44 @@ class CAPReader:
     def isOpened(self):
         return self.cap.isOpened()
 
+class CAPReaderWithFFMPEG(CAPReader):
+
+    def __init__(self, frames, cap):
+        """
+        :param cap:
+        @type cap: cv2.VideoCapture
+        """
+        CAPReader.__init__(self, cap)
+        self.frames = frames
+        self.pos = 0
+
+
+    def grab(self):
+        result = CAPReader.grab(self.cap)
+        if result:
+            self.pos += 1
+        return result
+
+
+    def read(self):
+        ret, frame = CAPReader.read(self)
+        if not ret:
+            self.pos += 1
+            return ret, frame
+        return ret, frame
+
+
+    def get(self, prop):
+        if prop == self.cap.prop_pos_msec:
+            try:
+                return self.frames[self.pos]['pkt_pts_time'] * 1000
+            except:
+                try:
+                    return self.frames[self.pos]['pkt_dts_time'] * 1000
+                except:
+                    pass
+        return CAPReader.get(self, prop)
+
 class CV2Api:
     def __init__(self):
         pass
@@ -61,10 +100,17 @@ class CV2Api:
     def videoWriter(self, out_file,fourcc, fps, dimensions, isColor=1):
         pass
 
-    def videoCapture(self, filename, preference=None):
+    def videoCapture(self, filename, preference=None, useFFMPEGForTime=True):
+        cap = None
+        meta, frames = ffmpeg_api.getMeta(filename, show_streams=True, with_frames=True, media_types=['Video'])
+        # is FIXED RATE (with some confidence)
+        if not ffmpeg_api.isVFRVideo(frames):
+            cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
+            return CAPReader(cap)
+        # getframe meta from video
         if preference is not None:
-            return CAPReader(cv2.VideoCapture(filename, preference))
-        return CAPReader(cv2.VideoCapture(filename))
+            cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
+        return CAPReaderWithFFMPEG(frames, cap)
 
     def computeSIFT(self, img):
         None, None
