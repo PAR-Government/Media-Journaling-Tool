@@ -4,6 +4,7 @@ import os, StringIO, tempfile
 import uuid, time
 from subprocess import Popen, PIPE
 import logging
+import itertools
 
 
 def getFFmpegTool():
@@ -217,10 +218,10 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
     return meta, frames
 
 def isVFRVideo(frames):
-    frame_duration = frames[0]['ptk_duration_time']
+    frame_duration = frames[0]['pkt_duration_time']
     idx = 0
     for frame in frames:
-        if frame['ptk_duration_time'] != frame_duration:
+        if frame['pkt_duration_time'] != frame_duration:
             return True
         if idx > len(frames)/3: # first 3rd of the video is constant, assume whole thing is.
             return False

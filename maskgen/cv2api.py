@@ -65,7 +65,7 @@ class CAPReaderWithFFMPEG(CAPReader):
 
 
     def grab(self):
-        result = CAPReader.grab(self.cap)
+        result = CAPReader.grab(self)
         if result:
             self.pos += 1
         return result
@@ -80,12 +80,12 @@ class CAPReaderWithFFMPEG(CAPReader):
 
 
     def get(self, prop):
-        if prop == self.cap.prop_pos_msec:
+        if prop == cv2api_delegate.prop_pos_msec:
             try:
-                return self.frames[self.pos]['pkt_pts_time'] * 1000
+                return float(self.frames[self.pos]['pkt_pts_time']) * 1000
             except:
                 try:
-                    return self.frames[self.pos]['pkt_dts_time'] * 1000
+                    return float(self.frames[self.pos]['pkt_dts_time']) * 1000
                 except:
                     pass
         return CAPReader.get(self, prop)
@@ -104,13 +104,11 @@ class CV2Api:
         cap = None
         meta, frames = ffmpeg_api.getMeta(filename, show_streams=True, with_frames=True, media_types=['Video'])
         # is FIXED RATE (with some confidence)
-        if not ffmpeg_api.isVFRVideo(frames):
+        if not ffmpeg_api.isVFRVideo(frames['0']):
             cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
             return CAPReader(cap)
-        # getframe meta from video
-        if preference is not None:
-            cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
-        return CAPReaderWithFFMPEG(frames, cap)
+        cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
+        return CAPReaderWithFFMPEG(frames['0'], cap)
 
     def computeSIFT(self, img):
         None, None
