@@ -4,11 +4,11 @@ import sys
 import os
 
 
-def main():
-    project = maskgen.scenario_model.loadProject(sys.argv[1])
+def start(projectfile, s3bucket):
+    project = maskgen.scenario_model.loadProject(projectfile)
     logger = filewriter(os.path.join('.','ExportLogs',project.getName() + '.txt'))
     try:
-        project.exporttos3(sys.argv[2],log=logger)
+        project.exporttos3(s3bucket,log=logger)
     except Exception:
         logger('Failed')
     logger('Done')
