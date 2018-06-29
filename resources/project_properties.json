@@ -688,7 +688,7 @@
       "information": "Tests suitable for electric network frequency"
 	},  
     {
-	  "description": "Building Fire, Flooding, or Earth Quake",
+	  "description": "Disaster",
       "name": "Disaster",
       "type": "yesno",
       "semanticgroup" : true,
