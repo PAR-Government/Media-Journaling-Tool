@@ -686,6 +686,13 @@
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Tests suitable for electric network frequency"
+	},  
+    {
+	  "description": "Building Fire, Flooding, or Earth Quake",
+      "name": "Disaster",
+      "type": "yesno",
+      "semanticgroup" : true,
+      "information": "Building Fire, Flooding, Earth Quake"
 	},
     {
       "description": "Mosaicing",
