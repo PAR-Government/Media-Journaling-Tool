@@ -46,6 +46,11 @@
             "images": [
                 "dialog_change.png"
             ]
+        },  
+        "Disaster": {
+            "images": [
+                "disaster.png"
+            ]
         }, 
         "Face Manipulations": {
             "images": [
