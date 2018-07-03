@@ -100,9 +100,10 @@ class HP_Starter(Frame):
                                                 'and uploaded for a device prior to HP uploads.')
                 return
         except KeyError:
-            tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
-                                            'and uploaded for a device prior to HP uploads.')
-            return
+            if self.localID.get() != "":
+                tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
+                                                'and uploaded for a device prior to HP uploads.')
+                return
 
         if not self.master.cameras:
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
@@ -412,7 +413,7 @@ class PRNU_Uploader(Frame):
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
-                    elif sub.lower().startswith('rgb_no_lens') or sub.lower().startswith('roof_tile'):
+                    elif sub.lower().startswith('rgb_no_lens') or sub.lower().startswith('roof_tile') or sub.lower().startswith('lens_cap'):
                         luminance_folders.append(os.path.join(path, sub))
                 if files:
                     for f in files:
@@ -564,7 +565,8 @@ class PRNU_Uploader(Frame):
         try:
             target = int(foldername.split("_")[-1])
         except ValueError:
-            return 'Warning: Luminance of ' + foldername + ' could not be verified.'
+            return 'Warning: Luminance of ' + foldername + ' could not be verified.' if not \
+                os.path.split(foldername)[1].lower() == "lens_cap" else None
         min_value = target - 10
         max_value = target + 10
 
