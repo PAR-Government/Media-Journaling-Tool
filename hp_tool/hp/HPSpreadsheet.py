@@ -461,7 +461,8 @@ class HPSpreadsheet(Toplevel):
         for m in self.mandatoryModelNames:
             self.mandatoryModels.append(self.pt.model.df. columns.get_loc(m))
 
-        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake', 'HP-Thumbnails', 'HP-Username', 'HP-seed']
+        self.disabledColNames = ['HP-DeviceLocalID', 'HP-CameraModel', 'CameraModel', 'DeviceSN', 'CameraMake',
+                                 'HP-Thumbnails', 'HP-Username', 'HP-seed', 'HP-HDLocation']
         self.disabledCols = []
         for d in self.disabledColNames:
             self.disabledCols.append(self.pt.model.df.columns.get_loc(d))
@@ -524,9 +525,9 @@ class HPSpreadsheet(Toplevel):
 
         local_id = self.pt.model.getValueAt(0, 9)
         try:
-            device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
+            self.device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
         except IndexError:
-            device_type = None
+            self.device_type = None
 
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
@@ -535,7 +536,7 @@ class HPSpreadsheet(Toplevel):
                 fname = self.pt.model.getValueAt(row, 0)
                 currentExt = os.path.splitext(fname)[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                if notnans.iloc[row, col] and colName != 'HP-Collection':
+                if notnans.iloc[row, col] and not colName.startswith("HP"):
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
@@ -561,7 +562,7 @@ class HPSpreadsheet(Toplevel):
                                                 tag='cellrect')
                     if (row, col) not in tab.disabled_cells:
                         tab.disabled_cells.append((row, col))
-                elif colName == "HP-PrimarySecondary" and device_type != "CellPhone":
+                elif colName == "HP-PrimarySecondary" and self.device_type != "CellPhone":
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
@@ -876,25 +877,28 @@ class HPSpreadsheet(Toplevel):
                 uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
 
         local_id = self.pt.model.getValueAt(0, 9)
-        browser_res_list = ValidResolutions(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"),
-                                            local_id=local_id).get_resolutions()
         tkerrs = [[], []]
-        for r in resolutions:
-            opp = "secondary" if r[1] == 'primary' else 'primary'
-            if r[1] != "":
-                if r[0] not in browser_res_list[r[1]]:
-                    tkerrs[0].append("{0}x{1} - {2}.".format(r[0][0], r[0][1], r[1]))
-                if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
-                    tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
-            else:
-                tkMessageBox.showerror("Error", "The HP-PrimarySecondary field MUST be filled in prior to uploading.")
-                return
+        if self.device_type == "CellPhone":
+            browser_res_list = ValidResolutions(self, self.settings.get_key("apiurl"),
+                                                self.settings.get_key("apitoken"),
+                                                local_id=local_id).get_resolutions()
+
+            for r in resolutions:
+                opp = "secondary" if r[1] == 'primary' else 'primary'
+                if r[1] != "":
+                    if r[0] not in browser_res_list[r[1]]:
+                        tkerrs[0].append("{0}x{1} - {2}.".format(r[0][0], r[0][1], r[1]))
+                    if r[0] in browser_res_list[opp] and not r[0] in browser_res_list[r[1]]:
+                        tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
+                else:
+                    tkMessageBox.showerror("Error", "The HP-PrimarySecondary field MUST be filled in prior to uploading.")
+                    return
 
         if tkerrs[0] or tkerrs[1]:
             tkMessageBox.showwarning("New Resolutions", "\nThe following resolutions do not exist under the camera "
                                      "indicated\n" * (len(tkerrs[0]) > 0) + "\n".join(tkerrs[0]) + "\nThe following "
                                      "resolutions were found online tagged as the opposite.\n" *(len(tkerrs[1]) > 0) +
-                                     "\n".join(tkerrs[1]))
+                                     "\n".join(tkerrs[1]) + "\n\nPlease check your HP-PrimarySecondary selections.")
 
         for coord in self.highlighted_cells:
             val = str(self.pt.model.getValueAt(coord[0], coord[1]))
