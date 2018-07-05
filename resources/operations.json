@@ -4977,6 +4977,40 @@
         "video.video"
       ]
     },
+
+    {
+      "category": "Steganography",
+      "name": "EncodeMessage",
+      "mandatoryparameters": {
+        "message": {
+          "type": "file:txt",
+          "description": "Filename for the message text"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange",
+        "check_local_warn",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+      },
+      "compareparameters": {
+        "tolerance": 0.0001
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
+      "description": "Embed text into an Image",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+
+
     {
       "category": "Transform",
       "name": "TransformDistort",
@@ -5743,6 +5777,7 @@
         "audio.audio"
       ]
     }
+
   ],
   "filtergroups": {
     "PasteSpliceBlend": [
