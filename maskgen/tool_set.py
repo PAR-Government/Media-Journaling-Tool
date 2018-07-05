@@ -432,12 +432,12 @@ def sutractOne(num_string):
 
 
 def addOneFrame(time_string):
-    time_val = getMilliSecondsAndFrameCount(time_string)
+    time_val = getMilliSecondsAndFrameCount(time_string, defaultValue=(0,0))
     return str(time_val[1] + 1)
 
 
 def subtractOneFrame(time_string):
-    time_val = getMilliSecondsAndFrameCount(time_string)
+    time_val = getMilliSecondsAndFrameCount(time_string, defaultValue=(0,1))
     return str(time_val[1] - 1) if time_val[1] > 1 else '0'
 
 
@@ -478,9 +478,9 @@ def getMilliSeconds(v):
     return millis
 
 
-def getMilliSecondsAndFrameCount(v, rate=None):
+def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
     if v is None:
-        return None, 0
+        return defaultValue
     if type(v) == int:
         return (float(v) / rate * 1000, 0) if rate is not None else (0, 1 if v == 0 else v)
     frame_count = 0
@@ -490,7 +490,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
             frame_count = int(v[v.rfind(':') + 1:])
             v = v[0:v.rfind(':')]
         except:
-            return None, 1
+            return defaultValue
     elif coloncount == 0:
         return (float(v) / rate * 1000.0, 0) if rate is not None else (0, 1 if v == 0 else int(v))
     try:
@@ -499,7 +499,7 @@ def getMilliSecondsAndFrameCount(v, rate=None):
         try:
             dt = datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None, 1
+            return defaultValue
     millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
     if rate is not None:
         millis += float(frame_count) / rate * 1000.0

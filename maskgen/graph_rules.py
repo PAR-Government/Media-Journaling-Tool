@@ -278,7 +278,7 @@ def checkFrameTimes(op, graph, frm, to):
         if k.endswith('End Time'):
             et = getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v)
+            st = getMilliSecondsAndFrameCount(v, defaultValue=(0,1))
     if et is None:
         return None
     st = st if st is not None else (0, 1)
@@ -305,9 +305,9 @@ def checkCropLength(op, graph, frm, to):
     et = None
     for k, v in args.iteritems():
         if k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v)
+            st = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
         elif k.endswith('End Time'):
-            et = getMilliSecondsAndFrameCount(v)
+            et = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
     if st is None and et is None:
         return None
     st = st if st is not None else (0, 0)
@@ -349,9 +349,9 @@ def checkCutFrames(op, graph, frm, to):
     et = None
     for k, v in args.iteritems():
         if k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v)
+            st = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
         elif k.endswith('End Time'):
-            et = getMilliSecondsAndFrameCount(v)
+            et = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
     if st is None and et is None:
         return None
     st = st if st is not None else (0, 0)
@@ -860,9 +860,9 @@ def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     st = getValue(edge, 'arguments.Start Time','00:00:00')
     et = getValue(edge, 'arguments.End Time', '00:00:00')
-    if getMilliSecondsAndFrameCount(et)[1] > 1:
+    if getMilliSecondsAndFrameCount(et, defaultValue=(0,0))[1] > 1:
         return (Severity.ERROR,"End Time should not include frame number")
-    if getMilliSecondsAndFrameCount(st)[1] > 1:
+    if getMilliSecondsAndFrameCount(st, defaultValue=(0,0))[1] > 1:
         return (Severity.ERROR,"Start Time should not include frame number")
 
 def checkOverlay(op, graph, frm, to):
@@ -905,8 +905,8 @@ def checkLengthSmaller(op, graph, frm, to):
     durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
-                         getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] <
-                         getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
+                         getMilliSecondsAndFrameCount(durationChangeTuple[1], defaultValue=(0,1))[0] <
+                         getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[0]):
         return (Severity.ERROR,"Length of video is not shorter")
 
 
@@ -1042,8 +1042,8 @@ def checkLengthBigger(op, graph, frm, to):
     durationChangeTuple = getValue(edge, 'metadatadiff[0].0:nb_frames')
     if durationChangeTuple is None or \
             (durationChangeTuple[0] == 'change' and \
-                         getMilliSecondsAndFrameCount(durationChangeTuple[1])[0] >
-                         getMilliSecondsAndFrameCount(durationChangeTuple[2])[0]):
+                         getMilliSecondsAndFrameCount(durationChangeTuple[1], defaultValue=(0,1))[0] >
+                         getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[0]):
         return (Severity.ERROR,"Length of video is not longer")
 
 
