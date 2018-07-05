@@ -248,27 +248,33 @@ class MaskTracker:
         self.neighbors_mask = _image_rotate(self.neighbors_mask,direction)
 
     def move_pixels(self, image):
+        type_var = image.dtype
+        image = image.astype(np.float32)
         if len(image.shape) == 3:
             output = np.zeros((self.dropped_adjuster[0].shape[0],
                                self.dropped_adjuster[0].shape[1],
-                               image.shape[2]), dtype=np.uint8)
+                               image.shape[2]), dtype=type_var)
             for channel in range(image.shape[2]):
                 self._move_pixels(output[:,:,channel],image[:,:,channel],self.dropped_adjuster)
         else:
-            output = np.zeros(self.dropped_adjuster[0].shape, dtype=np.uint8)
+            output = np.zeros(self.dropped_adjuster[0].shape, dtype=type_var)
             self._move_pixels(output,image,self.dropped_adjuster)
+        output.astype(type_var)
         return output
 
     def invert_move_pixels(self, image):
+        type_var = image.dtype
+        image = image.astype(np.float32)
         if len(image.shape) == 3:
             output = np.zeros((self.dropped_mask.shape[0],
                                self.dropped_mask.shape[1],
-                               image.shape[2]), dtype=np.uint8)
+                               image.shape[2]), dtype=type_var)
             for channel in range(image.shape[2]):
                 self._invert_move_pixels(output[:,:,channel],image[:,:,channel])
         else:
-            output = np.zeros(self.dropped_mask.shape, dtype=np.uint8)
-            self._invert_move_pixels(output,image)
+            output = np.zeros(self.dropped_mask.shape, dtype=type_var)
+            self._invert_move_pixels(output, image)
+        output.astype(type_var)
         return output
 
 
@@ -360,7 +366,7 @@ class MaskTracker:
         adjuster_cp[adjuster_cp==maxdisplacementvalue] = da[adjuster_cp==maxdisplacementvalue]
         #remap wants float 32
         adjuster_cp = adjuster_cp.astype(np.float32)
-        output[:] = cv2.remap(input,adjuster_cp[1], adjuster_cp[0], cv2.INTER_LINEAR)
+        output[:] = cv2.remap(input, adjuster_cp[1], adjuster_cp[0], cv2.INTER_NEAREST)
 
     def _rebuildInverter(self):
         self.inverter = np.array([

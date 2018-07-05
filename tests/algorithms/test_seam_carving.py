@@ -44,11 +44,15 @@ class TestToolSet(TestSupport):
     def test_shrink(self):
         filename = self.locateFile('tests/algorithms/twins.jpg')
         img = openImageFile(filename)
+
+        #img = openImageFile(filename, False, None)
+
         somemask = img.to_array()
         somemaskcopy = somemask
         sc = SeamCarver(filename, shape=(
         350, 450),energy_function=SobelFunc())  # mask_filename=self.locateFile('tests/algorithms/cat_mask.png'))
         image, mask = sc.remove_seams()
+
         #ImageWrapper(image).save(os.path.join(os.path.dirname(filename), 'twins_f.png'))
         #ImageWrapper(mask).save(os.path.join(os.path.dirname(filename), 'twins_m.png'))
         radj, cadj = sc.mask_tracker.save_adjusters('adjusters.png')
@@ -67,6 +71,7 @@ class TestToolSet(TestSupport):
         #ImageWrapper(somemaskcopy).save(os.path.join(os.path.dirname(filename), 'twins_om.png'))
         #ImageWrapper(originalmask).save(os.path.join(os.path.dirname(filename), 'twins_om2.png'))
         self.assertTrue(np.all(somemaskcopy[mask==0] == originalmask[mask==0]))
+
 
     def test_shrink_forward_energy(self):
         filename = self.locateFile('tests/algorithms/twins.jpg')
@@ -104,6 +109,7 @@ class TestToolSet(TestSupport):
     def test_shrink_forward_energy_arch(self):
         #filename = self.locateFile('tests/algorithms/arch_sunset.jpg')
         #newshape = (470, 250)
+
         filename = self.locateFile('tests/algorithms/pexels-photo-746683.jpg')
         newshape = (1450, 1950)
         img = openImageFile(filename)
@@ -165,19 +171,44 @@ class TestToolSet(TestSupport):
 # it is a legitimate case, so the final assertion must change.
 
     def test_createHorizontalSeamMask(self):
-        dim = 10
-        old = np.random.randint(255, size=(dim, dim+1))
-        new = self.createHorizontal(old ,dim-3, dim+1)
+        dim = 25
+        #random.seed = 10
+        old = [] #np.random.randint(180, 255, size=(dim, dim+1))
+
+        f = open(self.locateFile("tests/algorithms/inputImages.txt"), "r")
+        for line in f:
+            for num in line.split(" "):
+                old.append(int(num))
+        f.close()
+        old = np.array(old)
+        old.resize((dim, dim+1))
+
+        #old = np.random.randint(255, size=(dim, dim+1))  # can change this to make it so that this is static values
+
+        new = []
+        n = open(self.locateFile("tests/algorithms/newHorizontal.txt"), "r")
+        for line in n:
+            for num in line.split(" "):
+                num = num.strip('.')
+                num = num.strip('\n')
+                num = num.strip('.\n')
+                new.append(int(num))
+        n.close()
+        new = np.array(new)
+        new.resize((dim-3, dim+1))
+        #new = self.createHorizontal(old, dim-3, dim+1)  # creates a new image from the old one with 3 rows cut out
+
         mask = np.zeros((dim, dim+1)).astype('uint8')
-        removeset = sorted([x for x in random.sample(range(0,dim), 3)])
+        random.seed(10)
+        removeset = sorted([x for x in random.sample(range(0, dim), 3)])
         for y in range(dim+1):
             for x in range(dim):
                 mask[x, y] = (x in removeset)
             removeset = self.extendRemoveSet(removeset,dim)
         newx = [0 for y in range(dim+1)]
         for y in range(dim+1):
-            for x in range (dim):
-                if mask[x,y] == 0:
+            for x in range(dim):
+                if mask[x, y] == 0:
                     new[newx[y], y] = old[x, y]
                     newx[y] = newx[y]+1
 
@@ -194,15 +225,38 @@ class TestToolSet(TestSupport):
 
 
     def test_createVerticalSeamMask(self):
-        dim = 10
-        old = np.random.randint(255, size=(dim, dim))
-        new = self.createVertical(old, dim, dim -3)
+        dim = 25
+        old = []
+
+        f = open(self.locateFile("tests/algorithms/inputImages.txt"), "r")
+        for line in f:
+            for num in line.split(" "):
+                old.append(int(num))
+        f.close()
+        old = np.array(old)
+        old.resize((dim, dim), refcheck=False)
+
+        #old = np.random.randint(255, size=(dim, dim))
+        new = []
+        n = open(self.locateFile("tests/algorithms/newImage.txt"), "r")
+        for line in n:
+            for num in line.split(" "):
+                num = num.strip('.')
+                num = num.strip('\n')
+                num = num.strip('.\n')
+                new.append(int(num))
+        n.close()
+        new = np.array(new)
+        new.resize((dim, dim-3))
+        # new = self.createVertical(old, dim, dim-3)
+
         mask = np.zeros((dim, dim)).astype('uint8')
-        removeset = sorted([x for x in random.sample(range(0,dim-1), 3)])
+        random.seed(10)
+        removeset = sorted([x for x in random.sample(range(0, dim-1), 3)])
         for x in range(dim):
             for y in range(dim):
                 mask[x, y] = (y in removeset)
-            removeset = self.extendRemoveSet(removeset,dim-1)
+            removeset = self.extendRemoveSet(removeset, dim-1)
         newy = [0 for y in range(dim)]
         for y in range(dim):
             for x in range (dim):
@@ -215,9 +269,14 @@ class TestToolSet(TestSupport):
         newmask = newmask_tracker.dropped_mask*255
         print mask * 255
         print newmask
-        if not np.all(newmask==mask*255):
+        if not np.all(newmask == mask*255):
             self.assertTrue(sum(sum(newmask != mask * 255)) < 4)
+
+
         somemask = newmask_tracker.move_pixels(old)
+
+
+        self.assertTrue(old.dtype == somemask.dtype)
         self.assertTrue(np.all(new == somemask))
             # ImageWrapper(somemask).save(os.path.join(os.path.dirname(filename), 'twins_sm.png'))
         originalmask = newmask_tracker.invert_move_pixels(somemask)
