@@ -132,6 +132,18 @@ def getStreamId(line):
         return line[start:end]
     return ''
 
+def getStreamindexesOfType(stream_data, stream_type):
+    """
+    Get indexes of the streams that are of a given type
+    :param stream_data: metadata with stream information.
+    :param stream_type: codec_type to look for.
+    :return: list of indexes in string form.
+    """
+    indicies = []
+    for data in stream_data:
+        if data['codec_type'] == stream_type:
+            indicies.append(data['index'])
+    return indicies if len(indicies) > 0 else None
 
 def processMeta(stream,errorstream):
     meta = {}
@@ -217,13 +229,23 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
 
     return meta, frames
 
+
+
 def isVFRVideo(frames):
-    frame_duration = frames[0]['pkt_duration_time']
+    first_frame_duration = 0
     idx = 0
     for frame in frames:
-        if frame['pkt_duration_time'] != frame_duration:
-            return True
-        if idx > len(frames)/3: # first 3rd of the video is constant, assume whole thing is.
-            return False
+        if idx > 0:
+            frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
+            if first_frame_duration == 0:
+                first_frame_duration = frame_duration
+            if frame_duration != first_frame_duration:
+                return True
         idx += 1
     return False
+
+def correctEndFrame(target_milliseconds, guess_frame, frames_metadata):
+    while True:
+        if float(frames_metadata[guess_frame-1]['pkt_pts_time'])*1000 >= target_milliseconds:
+            return guess_frame
+        guess_frame += 1

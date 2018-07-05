@@ -19,7 +19,7 @@ import time
 from image_wrap import ImageWrapper
 from maskgen_loader import  MaskGenLoader
 import logging
-from cv2api import cv2api_delegate
+from cv2api import cv2api_delegate, CAPReaderWithFFMPEG
 import cv2
 import ffmpeg_api
 from cachetools import LRUCache
@@ -619,11 +619,26 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                     except:
                         mask.update(getFrameCount(video_file))
                 elif end_time_tuple is not None and rate > 0 and 'r_frame_rate' in item and \
-                                end_time_tuple[0] == 0 and start_time_tuple[0] == 0:
+                                end_time_tuple[0] == 0 and start_time_tuple[0] == 0 and \
+                        not ffmpeg_api.isVFRVideo(frames[ffmpeg_api.getStreamindexesOfType(meta, 'video')[0]]):
                     # input provides frames, so assume constant frame rate as time is just a reference point
                     mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
                 else:
-                   mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple,end_time_tuple=end_time_tuple))
+                   maskupdate = getFrameCount(video_file, start_time_tuple=start_time_tuple, end_time_tuple=end_time_tuple)
+                   if ffmpeg_api.isVFRVideo(frames[ffmpeg_api.getStreamindexesOfType(meta, 'video')[0]]):
+                       maskupdate.pop('rate') #don't overwrite ffmpegs avg frame rate
+                       # catch if a VFR video fails to grab all frames
+                       if end_time_tuple is None:
+                           maskupdate['endframe'] = int(item['nb_frames'])
+                       elif end_time_tuple[0] == 0:
+                           maskupdate['endframe'] = end_time_tuple[1]
+                       elif end_time_tuple[1] == 0 and maskupdate['endtime'] < end_time_tuple[0]:
+                           maskupdate['endframe'] = ffmpeg_api.correctEndFrame(target_milliseconds=end_time_tuple[0],
+                                                                               guess_frame=maskupdate['endframe'],
+                                                                               frames_metadata=frames[ffmpeg_api.getStreamindexesOfType(meta,'video')[0]])
+                       maskupdate['frames'] = int(maskupdate['endframe']) - int(maskupdate['startframe']) + 1
+                       maskupdate['endtime'] = float(frames[ffmpeg_api.getStreamindexesOfType(meta,'video')[0]][maskupdate['endframe']-1]['pkt_pts_time'])*1000
+                   mask.update(maskupdate)
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
@@ -2859,8 +2874,8 @@ def get_video_orientation_change(source, target):
     source_data = getMeta(source, show_streams=True)[0]
     donor_data = getMeta(target, show_streams=True)[0]
 
-    source_channel_data = __get_channel_data(source_data, 'video')
-    target_channel_data = __get_channel_data(donor_data, 'video')
+    source_channel_data = source_data[ffmpeg_api.getStreamIndiciesOfType(source_data, 'video')[0]]
+    target_channel_data = donor_data[ffmpeg_api.getStreamIndiciesOfType(donor_data, 'video')[0]]
 
     return int(__get_metadata_item(target_channel_data, 'rotation', 0)) - int(__get_metadata_item(source_channel_data, 'rotation', 0))
 
