@@ -5,6 +5,7 @@ import uuid, time
 from subprocess import Popen, PIPE
 import logging
 import itertools
+from .support import getValue
 
 
 def getFFmpegTool():
@@ -138,6 +139,7 @@ def getStreamindexesOfType(stream_data, stream_type):
     :param stream_data: metadata with stream information.
     :param stream_type: codec_type to look for.
     :return: list of indexes in string form.
+    @rtype: list of str
     """
     indicies = []
     for data in stream_data:
@@ -229,23 +231,37 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
 
     return meta, frames
 
+def getVideoFrameRate(meta, frames):
+    index = getStreamindexesOfType(meta, 'video')[0]
+    r = getValue(meta[int(index)],'r_frame_rate','30/1')
+    avg = getValue(meta[int(index)],'avg_frame_rate',r)
+    parts = avg.split('/')
+    if parts[0] == 'N':
+        parts = r.split('/')
+    if parts[0] != 'N':
+        return float(parts[0]) / int(parts[1]) if len(parts) > 0 and int(parts[1]) != 0 else float(parts[0])
+    return len(frames[index])/float(getValue(meta[int(index)],'duration',1)) if index in frames else 30
 
+def isVFRVideo(meta):
+    """
 
-def isVFRVideo(frames):
-    first_frame_duration = 0
-    idx = 0
-    for frame in frames:
-        if idx > 0:
-            frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
-            if first_frame_duration == 0:
-                first_frame_duration = frame_duration
-            if frame_duration != first_frame_duration:
-                return True
-        idx += 1
+    :param meta:
+    :return: based on meta data for video, is the stream variable frame rate
+    @rtype: bool
+    """
+    avg = getValue(meta,'avg_frame_rate','N/A')
+    r = getValue(meta,'r_frame_rate','N/A')
+    if (r[0] != 'N' and r != avg) or r[0] == 'N':
+        return True
+    # approach requires frames which is more expensive to gather but more efficient
+    #first_frame_duration = 0
+    #idx = 0
+    #for frame in frames:
+    #    if idx > 0:
+    ##        frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
+    #        if first_frame_duration == 0:
+    #            first_frame_duration = frame_duration
+    #        if frame_duration != first_frame_duration:
+    #            return True
+    #    idx += 1
     return False
-
-def correctEndFrame(target_milliseconds, guess_frame, frames_metadata):
-    while True:
-        if float(frames_metadata[guess_frame-1]['pkt_pts_time'])*1000 >= target_milliseconds:
-            return guess_frame
-        guess_frame += 1

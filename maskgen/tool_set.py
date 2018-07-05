@@ -302,14 +302,8 @@ def sumMask(mask):
 
 
 class VidTimeManager:
-    stopTimeandFrame = None
-    startTimeandFrame = None
-    frameCountSinceStart = 0
-    frameCountSinceStop = 0
-    frameSinceBeginning = 0
-    frameCountWhenStarted = 0
-    frameCountWhenStopped = 0
-    milliNow = 0
+
+
     """
     frameCountWhenStarted: record the frame at start
     frameCountWhenStopped: record the frame at finish
@@ -318,8 +312,19 @@ class VidTimeManager:
     def __init__(self, startTimeandFrame=None, stopTimeandFrame=None):
         self.startTimeandFrame = startTimeandFrame
         self.stopTimeandFrame = stopTimeandFrame
+        if startTimeandFrame is not None and startTimeandFrame[1] > 0  and startTimeandFrame[0] > 0:
+            self.startTimeandFrame = (startTimeandFrame[0],startTimeandFrame[1]+1)
+        if stopTimeandFrame is not None and stopTimeandFrame[1] > 0  and stopTimeandFrame[0] > 0:
+            self.stopTimeandFrame = (stopTimeandFrame[0],stopTimeandFrame[1]+1)
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
+        self.reachedEnd = False
+        self.milliNow = 0
+        self.frameCountWhenStopped = 0
+        self.frameCountWhenStarted = 0
+        self.frameSinceBeginning = 0
+        self.frameCountSinceStart = 0
+        self.frameCountSinceStop = 0
 
     def isAtBeginning(self):
         return self.startTimeandFrame is None or (self.startTimeandFrame[0] < 0 and self.startTimeandFrame[1] < 2)
@@ -347,13 +352,21 @@ class VidTimeManager:
         return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
 
     def updateToNow(self, milliNow, frames=1):
+        """
+
+        :param milliNow: time after the frame is to be displayed or sound emitted
+        :param frames:
+        :return:
+        """
         self.milliNow = milliNow
         self.frameSinceBeginning += frames
         if self.stopTimeandFrame:
             if self.milliNow > self.stopTimeandFrame[0]:
                 self.frameCountSinceStop += frames
-                if self.frameCountSinceStop > self.stopTimeandFrame[1]:
-                    if not self.pastEndTime:
+                if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
+                    self.frameCountWhenStopped = self.frameSinceBeginning
+                    self.reachedEnd = True
+                    if not self.pastEndTime and self.frameCountSinceStop > self.stopTimeandFrame[1]:
                         self.pastEndTime = True
                         self.frameCountWhenStopped = self.frameSinceBeginning - 1
 
@@ -368,8 +381,8 @@ class VidTimeManager:
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
 
-    def isPastTime(self):
-        return self.pastEndTime
+    def isEnd(self):
+        return self.reachedEnd
 
     def isPastTime(self):
         return self.pastEndTime
@@ -503,7 +516,7 @@ def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
     millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
     if rate is not None:
         millis += float(frame_count) / rate * 1000.0
-        frame_count = 1
+        frame_count = 0
     return (millis, frame_count) if (millis, frame_count) != (0, 0) else (0, 1)
 
 

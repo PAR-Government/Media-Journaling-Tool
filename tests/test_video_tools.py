@@ -135,6 +135,12 @@ def insertAudio(filename,outfilname,pos,length):
 class TestVideoTools(TestSupport):
     filesToKill = []
 
+    def setUp(self):
+        source = self.locateFile('tests/videos/sample1.mov')
+        target = 'sample1_ffr.mov'
+        os.system('ffmpeg -y -i "{}"  -r 10/1  "{}"'.format(source, target))
+        self.addFileToRemove(target)
+
     def _init_write_file(self, name, start_time, start_position, amount, fps,mask_set=None):
         writer = tool_set.GrayBlockWriter(name, fps)
         amount = int(amount)
@@ -204,52 +210,125 @@ class TestVideoTools(TestSupport):
         meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'),show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
 
-    def test_frame_binding(self):
+    def test_frame_count(self):
+
+        result = video_tools.getFrameCount('sample1_ffr.mov',(0,21),(0,593))
+        self.assertEqual(59200.0, round(result['endtime']))
+        self.assertEqual(573, result['frames'])
+        self.assertEqual(593, result['endframe'])
+        self.assertEqual(2000.0, result['starttime'])
+        self.assertEqual(21, result['startframe'])
+
+        result = video_tools.getFrameCount('sample1_ffr.mov',(2010,0),(59200,0))
+        self.assertEqual(59200.0, round(result['endtime']))
+        self.assertEqual(573, result['frames'])
+        self.assertEqual(593, result['endframe'])
+        self.assertEqual(2000.0, result['starttime'])
+        self.assertEqual(21, result['startframe'])
+
+        result = video_tools.getFrameCount('sample1_ffr.mov',(0,21), None)
+        self.assertEqual(576, result['frames'])
+        self.assertEqual(596, result['endframe'])
+        self.assertEqual(59500.0, result['endtime'])
+        self.assertEqual(2000.0, result['starttime'])
+        self.assertEqual(21, result['startframe'])
+
+        result = video_tools.getFrameCount('sample1_ffr.mov', (2010, 0), None)
+        self.assertEqual(576, result['frames'])
+        self.assertEqual(596, result['endframe'])
+        self.assertEqual(59500.0, result['endtime'])
+        self.assertEqual(2000.0, result['starttime'])
+        self.assertEqual(21, result['startframe'])
+
+    def test_frame_binding_ffr(self):
+        result = video_tools.getMaskSetForEntireVideo('sample1_ffr.mov',
+                                                      start_time='00:00:02.01',
+                                                      end_time='00:00:59.29')
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(59200.0, round(result[0]['endtime']))
+        self.assertEqual(573, result[0]['frames'])
+        self.assertEqual(593, result[0]['endframe'])
+        self.assertEqual(2000.0, result[0]['starttime'])
+        self.assertEqual(21, result[0]['startframe'])
+
+        result = video_tools.getMaskSetForEntireVideo('sample1_ffr.mov',
+                                                      start_time='00:00:02.01:02')
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(2200.0, round(result[0]['starttime']))
+        self.assertEqual(59500.0, round(result[0]['endtime']))
+        self.assertEqual(23, result[0]['startframe'])
+        self.assertEqual(574, result[0]['frames'])
+
+        result = video_tools.getMaskSetForEntireVideo('sample1_ffr.mov',
+                                                      start_time='00:00:02.01')
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(576, result[0]['frames'])
+        self.assertEqual(596, result[0]['endframe'])
+        self.assertEqual(59500.0, result[0]['endtime'])
+        self.assertEqual(2000.0, result[0]['starttime'])
+        self.assertEqual(21, result[0]['startframe'])
+
+        result = video_tools.getMaskSetForEntireVideo('sample1_ffr.mov', start_time='23',
+                                                      end_time='29')
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(2200.0, round(result[0]['starttime']))
+        self.assertEqual(23, result[0]['startframe'])
+        self.assertEqual(2800.0, round(result[0]['endtime']))
+        self.assertEqual(29, result[0]['endframe'])
+        self.assertEqual(29 - 23 + 1, result[0]['frames'])
+
+    def test_frame_binding_vfr(self):
+
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov')) #Variable FR
         self._add_mask_files_to_kill(result)
         self.assertEqual(0.0, result[0]['starttime'])
         self.assertEqual(1, result[0]['startframe'])
         self.assertEqual(803,result[0]['frames'])
         self.assertEqual(803.0, result[0]['endframe'])
-        self.assertEqual(59350.0, result[0]['endtime'])
+        self.assertEqual(59348.0, round(result[0]['endtime']))
         self.assertEqual('video', result[0]['type'])
+
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_slow.mov')) #Constant FR
         self._add_mask_files_to_kill(result)
         self.assertEqual(0.0, result[0]['starttime'])
         self.assertEqual(1, result[0]['startframe'])
         self.assertEqual(596, result[0]['frames'])
         self.assertEqual(596, result[0]['endframe'])
-        self.assertEqual(59600.0, result[0]['endtime'])
+        self.assertEqual(59500.0, result[0]['endtime'])
         self.assertEqual('video', result[0]['type'])
-        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_swap.mov'),
-                                                      start_time='00:00:02.01') #Variable FR, swapped streams.
-        self._add_mask_files_to_kill(result)
-        self.assertEqual(2124.0, round(result[0]['starttime']))
-        self.assertEqual(24, result[0]['startframe'])
-        self.assertEqual(803 - 24 + 1, result[0]['frames'])
+
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_swap.mov'),
                                                       start_time='00:00:02.01', end_time='00:00:59.29')  # Variable FR, swapped streams, fails to grab all frames
         self._add_mask_files_to_kill(result)
-        self.assertEqual(59292.0, round(result[0]['endtime']))
+        self.assertEqual(59221.0, round(result[0]['endtime']))
         self.assertEqual(779, result[0]['frames'])
-        self.assertEqual(802, result[0]['endframe'])
+        self.assertEqual(801, result[0]['endframe'])
+        self.assertEqual(23, result[0]['startframe'])
+        self.assertEqual(1982.0, round(result[0]['starttime']))
+
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_swap.mov'),
+                                                      start_time='00:00:02.01') #Variable FR, swapped streams.
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(1982.0, round(result[0]['starttime']))
+        self.assertEqual(23, result[0]['startframe'])
+        self.assertEqual(803 - 23 + 1, result[0]['frames'])
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'),start_time='00:00:02.01')
         self._add_mask_files_to_kill(result)
-        self.assertEqual(2123.0, round(result[0]['starttime']))
-        self.assertEqual(24, result[0]['startframe'])
-        self.assertEqual(803-24+1, result[0]['frames'])
+        self.assertEqual(1982.0, round(result[0]['starttime']))
+        self.assertEqual(23, result[0]['startframe'])
+        self.assertEqual(803-23+1, result[0]['frames'])
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01:02')
         self._add_mask_files_to_kill(result)
-        self.assertEqual(2265.0, round(result[0]['starttime']))
-        self.assertEqual(26, result[0]['startframe'])
-        self.assertEqual(778, result[0]['frames'])
+        self.assertEqual(2195.0, round(result[0]['starttime']))
+        self.assertEqual(25, result[0]['startframe'])
+        self.assertEqual(779, result[0]['frames'])
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01',end_time='00:00:04.01')
         self._add_mask_files_to_kill(result)
-        self.assertEqual(2123.0, round(result[0]['starttime']))
-        self.assertEqual(24, result[0]['startframe'])
+        self.assertEqual(1982.0, round(result[0]['starttime']))
+        self.assertEqual(23, result[0]['startframe'])
         self.assertEqual(3965.0, round(result[0]['endtime']))
         self.assertEqual(47, result[0]['endframe'])
-        self.assertEqual(47-24+1, result[0]['frames'])
+        self.assertEqual(47-23+1, result[0]['frames'])
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='23',end_time='29')
         self._add_mask_files_to_kill(result)
         self.assertEqual(1982.0, round(result[0]['starttime']))
@@ -288,7 +367,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(1, result[0]['startframe'])
         self.assertEqual(803, result[0]['frames'])
         self.assertEqual(803, result[0]['endframe'])
-        self.assertEqual(59350.0, round(result[0]['endtime']))
+        self.assertEqual(59348.0, round(result[0]['endtime']))
         self.assertEqual('video', result[0]['type'])
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1.mov'), start_time='00:00:02.01',
                                                       end_time='00:00:04',
@@ -653,7 +732,7 @@ class TestVideoTools(TestSupport):
         print(audioSet[0])
         self.assertEqual(1, len(audioSet))
         self.assertEqual(85526, audioSet[0]['frames'])
-        self.assertEqual(440025, audioSet[0]['startframe'])
+        self.assertEqual(440338, audioSet[0]['startframe'])
         self.assertEqual(525550, audioSet[0]['endframe'])
         self.assertEquals(audioSet[0]['starttime'],maskSet[0]['starttime'])
         self.assertAlmostEqual(0.13,abs(audioSet[0]['endtime']/1000.0-maskSet[0]['endtime']/1000.0),places=2)
@@ -995,8 +1074,7 @@ class TestVideoTools(TestSupport):
 
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
-        target = 'sample1_out.mov'
-        os.system('ffmpeg -y -i "{}"  -r 10/1  "{}"'.format(source, target))
+        target = 'sample1_ffr.mov'
         source_set = video_tools.getMaskSetForEntireVideo(source,
                                                       start_time='29',end_time='55')
         print(source_set[0])
@@ -1008,7 +1086,6 @@ class TestVideoTools(TestSupport):
         self.assertTrue(new_mask_set[0]['startframe'] == source_set[0]['startframe'])
         self.assertTrue(new_mask_set[0]['starttime'] == source_set[0]['starttime'])
         self._add_mask_files_to_kill(source_set)
-        self.addFileToRemove(target)
         new_mask_set = video_tools._warpMask(source_set,{}, source,target)
         self.assertTrue(new_mask_set[0]['frames'] == 20)
         self.assertTrue(int(new_mask_set[0]['endtime']) == 4082)

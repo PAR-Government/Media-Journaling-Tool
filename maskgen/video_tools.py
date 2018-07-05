@@ -6,25 +6,23 @@
 # All rights reserved.
 # ==============================================================================
 
-import numpy as np
-from subprocess import call, Popen, PIPE
-import os
-import sys
-import tempfile
 import json
-import StringIO
-from datetime import datetime
-import tool_set
-import time
-from image_wrap import ImageWrapper
-from maskgen_loader import  MaskGenLoader
 import logging
-from cv2api import cv2api_delegate, CAPReaderWithFFMPEG
+import os
+import time
+from datetime import datetime
+from subprocess import Popen, PIPE
+from threading import RLock
+
 import cv2
 import ffmpeg_api
+import numpy as np
+import tool_set
 from cachetools import LRUCache
 from cachetools import cached
-from threading import RLock
+from cv2api import cv2api_delegate
+from image_wrap import ImageWrapper
+from maskgen_loader import  MaskGenLoader
 from support import getValue
 
 meta_lock = RLock()
@@ -499,16 +497,9 @@ def getShape(video_file):
     return width,height
 
 def getFrameCountOnly(video_file):
-  frmcnt = 0
-  cap = cv2api_delegate.videoCapture(video_file)
-  while True:
-     grab, frame = cap.read()
-     if grab:
-         frmcnt += 1
-     else:
-        break
-  cap.release()
-  return frmcnt
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types='video')
+    index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
+    return len(frames[index])
 
 @cached(count_cache,lock=meta_lock)
 def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
@@ -516,47 +507,50 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     startcomplete = False
     framessince_start = 1 if start_time_tuple[0] == 0 else 0
     mask = {'starttime':0,'startframe':1,'endtime':0,'endframe':1,'frames':0,'rate':0}
-    last = 0
-    cap = cv2api_delegate.videoCapture(video_file)
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types='video')
+    index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
+    rate = ffmpeg_api.getVideoFrameRate(meta,frames)
+    video_frames = frames[index]
+    time_manager = tool_set.VidTimeManager(startTimeandFrame=start_time_tuple,stopTimeandFrame=end_time_tuple)
     aptime = 0
-    try:
-        while cap.grab():
-            frmcnt+=1
-            aptime = cap.get(cv2api_delegate.prop_pos_msec)
-            if last >= start_time_tuple[0] and not startcomplete:
-                if framessince_start >= start_time_tuple[1]:
-                    startcomplete = True
-                    mask['starttime'] = last
-                    mask['startframe'] = frmcnt
-                    mask['endtime'] = last
-                    mask['endframe'] = frmcnt
-                    mask['rate'] = 1000/(aptime-last)
-                    if end_time_tuple is not None and end_time_tuple[0] > 0:
-                        framessince_start = 0
-                framessince_start += 1
-            else:
-                mask['endtime'] = aptime
-                mask['endframe'] = frmcnt
-                if end_time_tuple is not None and aptime >= end_time_tuple[0]:
-                    if framessince_start >= end_time_tuple[1]:
-                        break
-                    else:
-                        framessince_start += 1
-            lastrate = aptime - last
-            last = aptime
-        if not startcomplete and aptime > 0:
-            mask['starttime'] = aptime
-            mask['startframe'] = frmcnt
-            mask['rate'] = 1000 / lastrate
+    lasttime = 0
+    for pos in range(1,len(video_frames)):
+        frmcnt += 1
         try:
-            mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+            aptime = float(video_frames[pos]['pkt_pts_time']) * 1000
         except:
+            try:
+                aptime = float(video_frames[pos]['pkt_dts_time']) * 1000
+            except:
+                aptime += rate
+        time_manager.updateToNow(aptime)
+        if not time_manager.beforeStartTime and not startcomplete:
+                startcomplete = True
+                mask['starttime'] = lasttime
+                mask['startframe'] = time_manager.frameCountWhenStarted
+                mask['endtime'] = lasttime
+                mask['endframe'] = time_manager.frameCountWhenStarted
+                mask['rate'] = rate
+        elif time_manager.isEnd():
+                break
+        lasttime = aptime
+    if not time_manager.isEnd():
+        mask['endtime'] = aptime
+        mask['endframe'] = len(video_frames)
+    else:
+        mask['endtime'] = lasttime
+        mask['endframe'] = frmcnt
+    if not startcomplete and aptime > 0:
+            mask['starttime'] = lasttime
+            mask['startframe'] = frmcnt
+            mask['rate'] = rate
+    try:
+            mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+    except:
             mask['frames'] = 0
-    finally:
-        cap.release()
     return mask
 
-def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
+def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
     """
     Depending on variable or constraint frame rate, the time may not be accurate.
     For accuracy, use getFrameCount.
@@ -565,14 +559,16 @@ def maskSetFromConstraints(rate,start_time=(0,1),end_time=(0,1)):
     :param end_time: millis + frames
     :return:
     """
-    startframe = start_time[0]*rate/1000.0 + start_time[1]
-    endframe = end_time[0]*rate/1000.0 + end_time[1]
-    return  {'starttime':start_time[0] + (start_time[1] -1)*1000.0/rate,
+    import math
+    start_adj = 1 if start_time[0] > 0 else 0
+    end_adj = 1 if end_time[0] > 0 else 0
+    startframe = int(math.floor(start_time[0]*rate/1000.0) + start_time[1]) + start_adj
+    endframe =  int(math.floor(end_time[0]*rate/1000.0) + end_time[1]) + end_adj
+    return  {'starttime':(startframe-1)*1000.0/rate,
              'startframe': int(startframe),
-             'endtime': end_time[0] + end_time[1]*1000/rate,
+             'endtime': (endframe-1)*1000/rate,
              'endframe': int(endframe),
              'frames':endframe - startframe + 1}
-
 
 def getMaskSetForEntireVideo(video_file, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0):
     return getMaskSetForEntireVideoForTuples(video_file,
@@ -590,7 +586,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
     st = start_time_tuple
     et = end_time_tuple
     calculate_frames = st[0] > 0 or st[1] > 1 or et is not None
-    meta, frames = getMeta(video_file, show_streams=True, with_frames=calculate_frames, media_types=media_types)
+    meta, frames = getMeta(video_file, show_streams=True, media_types=media_types)
     found_num = 0
     results = []
     for item in meta:
@@ -599,46 +595,25 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                 found_num+=1
                 continue
             mask = {}
-            fr = item['avg_frame_rate'] if 'avg_frame_rate' in item else (item['r_frame_rate'] if 'r_frame_rate' in item else '30000/1001')
             if item['codec_type'] == 'video':
-                parts = fr.split('/')
-                rate = float(parts[0])/int(parts[1]) if len(parts)>0 and int(parts[1]) != 0 else float(parts[0])
+                rate = ffmpeg_api.getVideoFrameRate(meta, frames)
             else:
                 rate = float(item['sample_rate'])
             mask['rate'] = rate
             mask['type'] = item['codec_type']
             if mask['type'] == 'video':
-                if 'nb_frames' in item and item['nb_frames'][0] not in ['N','0'] and end_time_tuple is None and \
-                        start_time_tuple in [(0,0),(0,1)]:
+                if ffmpeg_api.isVFRVideo(meta[int(ffmpeg_api.getStreamindexesOfType(meta, 'video')[0])]):
+                    maskupdate = getFrameCount(video_file, start_time_tuple=start_time_tuple,
+                                               end_time_tuple=end_time_tuple)
+                    mask.update(maskupdate)
+                elif 'nb_frames' in item and item['nb_frames'][0] not in ['N','0'] and end_time_tuple in [None,(0,0)]:
                     try:
-                        mask['frames'] = int(item['nb_frames'])
-                        mask['starttime'] = 0
-                        mask['startframe'] = 1
-                        mask['endframe'] = mask['frames']
-                        mask['endtime'] = mask['endframe']/rate*1000.0
+                       mask.update(maskSetFromConstraints(rate,start_time_tuple,(0, int(item['nb_frames']))))
                     except:
-                        mask.update(getFrameCount(video_file))
-                elif end_time_tuple is not None and rate > 0 and 'r_frame_rate' in item and \
-                                end_time_tuple[0] == 0 and start_time_tuple[0] == 0 and \
-                        not ffmpeg_api.isVFRVideo(frames[ffmpeg_api.getStreamindexesOfType(meta, 'video')[0]]):
+                        mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple))
+                else:
                     # input provides frames, so assume constant frame rate as time is just a reference point
                     mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
-                else:
-                   maskupdate = getFrameCount(video_file, start_time_tuple=start_time_tuple, end_time_tuple=end_time_tuple)
-                   if ffmpeg_api.isVFRVideo(frames[ffmpeg_api.getStreamindexesOfType(meta, 'video')[0]]):
-                       maskupdate.pop('rate') #don't overwrite ffmpegs avg frame rate
-                       # catch if a VFR video fails to grab all frames
-                       if end_time_tuple is None:
-                           maskupdate['endframe'] = int(item['nb_frames'])
-                       elif end_time_tuple[0] == 0:
-                           maskupdate['endframe'] = end_time_tuple[1]
-                       elif end_time_tuple[1] == 0 and maskupdate['endtime'] < end_time_tuple[0]:
-                           maskupdate['endframe'] = ffmpeg_api.correctEndFrame(target_milliseconds=end_time_tuple[0],
-                                                                               guess_frame=maskupdate['endframe'],
-                                                                               frames_metadata=frames[ffmpeg_api.getStreamindexesOfType(meta,'video')[0]])
-                       maskupdate['frames'] = int(maskupdate['endframe']) - int(maskupdate['startframe']) + 1
-                       maskupdate['endtime'] = float(frames[ffmpeg_api.getStreamindexesOfType(meta,'video')[0]][maskupdate['endframe']-1]['pkt_pts_time'])*1000
-                   mask.update(maskupdate)
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
