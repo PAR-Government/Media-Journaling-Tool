@@ -2874,26 +2874,67 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     if sourceFrames == targetFrames and sourceTime == targetTime:
         return video_masks
 
-    def apply_change(existing_value, orig_count, final_count, inverse=False, round_value=True):
+    def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True):
+        import math
         multiplier = -1.0 if inverse else 1.0
-        adjustment = existing_value/ float(orig_count) * ( orig_count - final_count)*multiplier
-        return round(existing_value - adjustment) if round_value else existing_value - adjustment
+        adjustment = existing_value*math.pow(final_rate/orig_rate,multiplier)
+        return round( adjustment) if round_value else adjustment
+
+    def adjustPositions(video_file, hits):
+        # used if variable frame rate
+        frmcnt = 0
+        hitspos = 0
+        last = 0
+        cap = cv2api_delegate.videoCapture(video_file)
+        try:
+            while cap.grab() and hitspos < len(hits):
+                frmcnt += 1
+                aptime = cap.get(cv2api_delegate.prop_pos_msec)
+                while hitspos < len(hits) and aptime > hits[hitspos][0]:
+                    mask = hits[hitspos][2]
+                    element = hits[hitspos][1]
+                    if element == 'starttime':
+                        mask['starttime'] = last
+                        mask['startframe'] = frmcnt
+                    else:
+                        mask['endtime'] = last
+                        mask['endframe'] = frmcnt
+                        mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+                    hitspos+=1
+                last = aptime
+        finally:
+            cap.release()
+        return mask
 
     import time
     new_mask_set = []
+    hits = []
     for mask_set in video_masks:
         if 'type' in mask_set and mask_set['type'] != expectedType:
             new_mask_set.append(mask_set)
             continue
         change = dict()
-        change['starttime'] = apply_change(mask_set['starttime'],sourceTime,targetTime,inverse=inverse,round_value=False)
-        change['startframe'] = int(apply_change(mask_set['startframe'],sourceFrames,targetFrames,inverse=inverse,round_value=True))
-        change['endtime'] = apply_change(mask_set['endtime'], sourceTime, targetTime, inverse=inverse, round_value=False)
-        change['endframe'] = int(apply_change(mask_set['endframe'], sourceFrames, targetFrames, inverse=inverse,
-                                          round_value=True))
-        change['frames'] = change['endframe'] - change['startframe'] + 1
-        change['type'] = mask_set['type']
         change['rate'] = targetRate
+        change['type'] = mask_set['type']
+        change['starttime'] = apply_change(mask_set['starttime'],sourceTime,targetTime,inverse=inverse,round_value=False)
+        change['startframe'] = int(apply_change(mask_set['startframe'], float(sourceFrames),float(targetFrames),inverse=inverse,round_value=True))
+        change['endtime'] = apply_change(mask_set['endtime'], float(sourceTime),targetTime, inverse=inverse, round_value=False)
+        change['endframe'] = int(apply_change(mask_set['endframe'], float(sourceFrames),float(targetFrames), inverse=inverse,
+                                              round_value=True))
+        change['frames'] = change['endframe'] - change['startframe'] + 1
+        new_mask_set.append(change)
+        hits.append((change['starttime'],'starttime',change))
+        hits.append((change['endtime'],'endime',change))
+
+    # only required when one of the two videos is variable rate
+    hits = sorted(hits)
+    adjustPositions(outputFile,hits)
+
+    pos = 0
+    for mask_set in video_masks:
+        orig_rate = mask_set['rate']
+        change = new_mask_set[pos]
+        pos+=1
         if 'videosegment' in mask_set:
             change['videosegment'] = mask_set['videosegment']
             mask_file_name = mask_set['videosegment']
@@ -2901,20 +2942,17 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
             try:
                 writer = None
                 mask_file_name_prefix = os.path.splitext(mask_file_name)[0] + str(time.clock())
-                writer = tool_set.GrayBlockWriter( mask_file_name_prefix,
-                                                   targetRate)
+                writer = tool_set.GrayBlockWriter( mask_file_name_prefix, targetRate)
+                frame_time = change['starttime']
+                frame_count = change['startframe']
                 while True:
-                    frame_time = apply_change(reader.current_frame_time(),sourceTime,targetTime,
-                                              inverse=inverse,
-                                              round_value=False)
-                    frame_count = int(apply_change(reader.current_frame(), sourceFrames, targetFrames,
-                                               inverse=inverse,
-                                               round_value=True))
                     mask = reader.read()
                     if mask is not None:
                         writer.write(mask, frame_time, frame_count)
                     else:
                         break
+                    frame_count += 1
+                    frame_time += 1000.0/targetRate
                 change['videosegment'] = writer.filename
 
             except Exception as e:
@@ -2924,7 +2962,6 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
                 reader.close()
                 if writer is not None:
                     writer.close()
-        new_mask_set.append(change)
     return new_mask_set
 
 

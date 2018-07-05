@@ -972,9 +972,14 @@ class TestVideoTools(TestSupport):
 
 
     def testWarp(self):
+
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_out.mov'
+        meta,frames =  video_tools.getMeta(source, show_streams=True,with_frames=True, media_types=['video'])
+        frames_source = frames['0']
         os.system('ffmpeg -y -i {}  -r 10/1  {}'.format(source, target))
+        meta, frames = video_tools.getMeta(target, show_streams=True, with_frames=True, media_types=['video'])
+        frames_target= frames['0']
         source_set = video_tools.getMaskSetForEntireVideo(source,
                                                       start_time='29',end_time='55')
         new_mask_set = video_tools._warpMask(source_set, {}, source, source)
@@ -986,6 +991,7 @@ class TestVideoTools(TestSupport):
         self._add_mask_files_to_kill(source_set)
         self.addFileToRemove(target)
         new_mask_set = video_tools._warpMask(source_set,{}, source,target)
+        frames_source[new_mask_set[0]['startframe'] -1 ]['pkt_dts_time']
         self.assertTrue(new_mask_set[0]['frames'] == 20)
         self.assertTrue(int(new_mask_set[0]['endtime']) == 4082)
         self.assertTrue(new_mask_set[0]['rate'] == 10)
