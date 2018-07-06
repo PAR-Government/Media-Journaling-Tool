@@ -3526,6 +3526,7 @@
       "category": "Output",
       "name": "OutputJp2",
       "mandatoryparameters": {},
+      "optionalparameters":{},
       "rules": [
         "checkSize"
       ],
@@ -3544,6 +3545,7 @@
       "category": "Output",
       "name": "OutputNITF",
       "mandatoryparameters": {},
+      "optionalparameters":{},
       "rules": [
         "checkSize"
       ],
