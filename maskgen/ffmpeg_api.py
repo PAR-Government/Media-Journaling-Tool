@@ -5,7 +5,7 @@ import uuid, time
 from subprocess import Popen, PIPE
 import logging
 import itertools
-from .support import getValue
+from support import getValue
 
 
 def getFFmpegTool():

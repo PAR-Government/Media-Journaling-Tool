@@ -559,7 +559,6 @@ class MakeGenUI(Frame):
             self.scModel.update_node(d.argvalues)
         self.drawState()
 
-
     def imageanalysis(self):
         d = AnalsisViewDialog(self, 'Final Image Analysis', self.scModel,nodes=[self.scModel.start])
 
@@ -895,15 +894,20 @@ class MakeGenUI(Frame):
                 self.canvas.showNode(start)
             self.setSelectState('normal')
 
-    def selectgroup(self):
+    def editallsemanticgroups(self):
+        self.editgroups(self.scModel.getGraph().get_nodes())
+
+    def editgroups(self, groupselection):
         d = AddRemove(self, "Set Semantic Group", 'Select a semantic group for these operations.',
                       getSemanticGroups(), information="semanticgroup")
         res = d.choice
         if res[0] is not None and len(res[0]) > 0:
-            for start in self.groupselection:
-                for end in self.groupselection:
+            for start in groupselection:
+                for end in groupselection:
                     edge = self.scModel.getGraph().get_edge(start, end)
                     if edge is not None:
+                        if edge['op'] == 'Donor':
+                            continue
                         grps = self.scModel.getSemanticGroups(start, end)
                         if res[0] not in grps and res[1] == "add":
                             grps.append(res[0])
@@ -911,6 +915,10 @@ class MakeGenUI(Frame):
                         if res[0] in grps and res[1] == "remove":
                             grps.remove(res[0])
                             self.scModel.setSemanticGroups(start, end, grps)
+
+    def selectgroup(self):
+        self.editgroups(self.groupselection)
+
 
     def removegroup(self):
         if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
@@ -1097,6 +1105,7 @@ class MakeGenUI(Frame):
         validationmenu.add_command(label="Final Image Analysis", command=self.finalimageanalysis)
         validationmenu.add_command(label="Probes",command=self.createProbes)
         validationmenu.add_command(label="Recompute All Masks", command=self.recomputeallrmask)
+        validationmenu.add_command(label="Edit All Semantic Groups", command=self.editallsemanticgroups,accelerator="Ctrl+Shift+G")
 
         menubar.add_cascade(label="Validation", menu=validationmenu)
 

@@ -1276,26 +1276,26 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         cut['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         cut['rate'] = vidAnalysisComponents.fps_one
         cut['type'] = 'video'
-        end_time = 0
+        end_time = vidAnalysisComponents.time_manager.milliNow
         cut['mask'] = vidAnalysisComponents.mask
         if type(cut['mask']) == int:
             cut['mask'] = vidAnalysisComponents.frame_one_mask
-        last_time = 0
         while (vidAnalysisComponents.vid_one.isOpened()):
             ret_one, frame_one = vidAnalysisComponents.vid_one.read()
             if not ret_one:
                 vidAnalysisComponents.vid_one.release()
                 break
-            end_time = vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec)
-            vidAnalysisComponents.time_manager.updateToNow(end_time)
             diff = 0 if vidAnalysisComponents.frame_two is None else np.abs(frame_one - vidAnalysisComponents.frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
                 break
+            vidAnalysisComponents.time_manager.updateToNow(
+                vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec))
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
+            end_time = vidAnalysisComponents.time_manager.milliNow
         cut['endtime'] = end_time
-        cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
-        cut['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - cut['startframe']
+        cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        cut['frames'] = cut['endframe'] - cut['startframe'] + 1
         ranges.append(cut)
         return False
     return True
@@ -1307,8 +1307,8 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     :param ranges: collection of meta-data describing then range of add frames
     :return:
     """
-    frame_count_diff = vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count) - \
-       vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count)
+    frame_count_diff = int(vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count) - \
+       vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count)) - 1
 
     if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_one.isOpened():
         addition = {}
@@ -1316,7 +1316,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         addition['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         addition['rate'] = vidAnalysisComponents.fps_one
         addition['type'] = 'video'
-        end_time = None
+        end_time = vidAnalysisComponents.time_manager.milliNow
         addition['mask'] = vidAnalysisComponents.mask
         if type(addition['mask']) == int:
             addition['mask'] = vidAnalysisComponents.frame_two_mask
@@ -1325,17 +1325,17 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             if not ret_two:
                 vidAnalysisComponents.vid_two.release()
                 break
-            end_time = vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec)
-            vidAnalysisComponents.time_manager.updateToNow(end_time)
-            frame_count_diff-=1
             diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_one.isOpened():
                 break
-            if vidAnalysisComponents.time_manager.isPastTime():
+            vidAnalysisComponents.time_manager.updateToNow(vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec))
+            frame_count_diff-=1
+            if frame_count_diff == 0:
                 break
+            end_time = vidAnalysisComponents.time_manager.milliNow
         addition['endtime'] = end_time
-        addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning - 1
-        addition['frames'] = vidAnalysisComponents.time_manager.frameSinceBeginning - addition['startframe']
+        addition['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        addition['frames'] = addition['endframe'] - addition['startframe'] + 1
         ranges.append(addition)
         return False
     return True
@@ -1352,8 +1352,7 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
        :param ranges: collection of meta-data describing then range of changed frames
        :return:
        """
-    #diff_in_time = abs(vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.elapsed_time_two)
-    if __changeCount(vidAnalysisComponents.mask) > 0:# and diff_in_time < vidAnalysisComponents.fps:
+    if __changeCount(vidAnalysisComponents.mask) > 0:
         vidAnalysisComponents.writer.write(255-vidAnalysisComponents.mask,
                                            vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                                            vidAnalysisComponents.time_manager.frameSinceBeginning)
@@ -1375,8 +1374,8 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
         change['rate'] = vidAnalysisComponents.fps
         # advanced one frame...so back one frame.
         adjust = -1 if vidAnalysisComponents.time_manager.isPastTime() else 0
-        change['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning + adjust
-        change['frames']  = change['endframe'] - change['startframe'] + 1
+        change['endframe'] = change['startframe'] +  ranges[-1]['frames'] - 1
+        change['frames']  = ranges[-1]['frames']
         change['type'] = 'video'
         vidAnalysisComponents.writer.release()
     return True
@@ -1479,7 +1478,7 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analy
     return maskSet, errors
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
-    if 'add type' in 'arguments' and arguments['add type'] == 'replace':
+    if arguments['add type'] == 'replace':
         return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
 
