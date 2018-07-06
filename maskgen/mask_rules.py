@@ -909,7 +909,7 @@ def copy_paste_frames(buildState):
     """
     startTime = getValue(buildState.edge,'arguments.Dest Paste Time')
     framesCount = getValue(buildState.edge,'arguments.Number of Frames')
-    endTime = addFrame(getMilliSecondsAndFrameCount(startTime),framesCount)
+    endTime = addFrame(getMilliSecondsAndFrameCount(startTime, defaultValue=(0,0)),framesCount)
 
     args = buildState.arguments()
     if 'add type' not in args or args['add type'] == 'insert':
