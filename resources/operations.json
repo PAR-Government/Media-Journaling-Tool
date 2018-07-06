@@ -3524,6 +3524,42 @@
     },
     {
       "category": "Output",
+      "name": "OutputJp2",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the jp2 format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputNITF",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the NITF format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputPng",
       "mandatoryparameters": {
         "Image Rotated": {
