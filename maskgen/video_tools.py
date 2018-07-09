@@ -560,6 +560,8 @@ def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
     :return:
     """
     import math
+    # artificial increment: (time, frame) where time and frame > 0 means frame AFTER time.
+    # where (time,frame) where time == 0 and frame > 0 means frame.
     start_adj = 1 if start_time[0] > 0 else 0
     end_adj = 1 if end_time[0] > 0 else 0
     startframe = int(math.floor(start_time[0]*rate/1000.0) + start_time[1]) + start_adj
@@ -585,7 +587,6 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
     """
     st = start_time_tuple
     et = end_time_tuple
-    calculate_frames = st[0] > 0 or st[1] > 1 or et is not None
     meta, frames = getMeta(video_file, show_streams=True, media_types=media_types)
     found_num = 0
     results = []
@@ -2849,6 +2850,7 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     meta_o, frames_o = getMeta(outputFile, show_streams=True, media_types=[expectedType])
     index_i = ffmpeg_api.getStreamindexesOfType(meta_i, expectedType)[0]
     index_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)[0]
+    #TODO: change to use ffmpeg and then use the same data to calucate frame time for masks
     if ffmpeg_api.isVFRVideo(meta_i[int(index_i)]) or ffmpeg_api.isVFRVideo(meta_o[int(index_o)]):
         adjustPositions(outputFile, hits)
 
@@ -2873,6 +2875,7 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
                     else:
                         break
                     frame_count += 1
+                    # for now, assume fixed rate.
                     frame_time += 1000.0/targetRate
                 change['videosegment'] = writer.filename
 
