@@ -2626,6 +2626,12 @@ class ImageProjectModel:
             path, errors = self.G.create_archive(location, include=include)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
+    def exportExternal(self, location, tempdir):
+        newpid = os.fork()
+        if newpid == 0:
+            pass
+
+
     def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[], log=None):
         """
 
