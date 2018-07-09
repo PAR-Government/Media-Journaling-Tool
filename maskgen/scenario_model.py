@@ -35,6 +35,7 @@ from validation.core import Validator, ValidationMessage,Severity,removeErrorMes
 import traceback
 from support import MaskgenThreadPool, StatusTracker
 import notifiers
+import maskgen.export.exporter as exporter
 
 def formatStat(val):
     if type(val) == float:
@@ -2627,9 +2628,10 @@ class ImageProjectModel:
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def exportExternal(self, location, tempdir):
-        newpid = os.fork()
-        if newpid == 0:
-            pass
+        from multiprocessing import Process
+        p = Process(target=exporter.start, args=(os.path.join(self.get_dir(),self.G.get_name()),location,tempdir))
+        p.start()
+
 
 
     def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[], log=None):
