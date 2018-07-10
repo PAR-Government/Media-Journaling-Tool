@@ -478,7 +478,7 @@ def __get_metadata_item(data, item, default_value):
     return data[item]
 
 def getMeta(file, with_frames=False, show_streams=False,media_types=['video','audio'],extras=None):
-    return ffmpeg_api.getMeta(file, with_frames, show_streams, media_types, extras)
+    return ffmpeg_api.getMeta(file, with_frames=with_frames, show_streams=show_streams,media_types= media_types, extras=extras)
 
 def getShape(video_file):
     """
@@ -1004,24 +1004,37 @@ def vid_md5(filename):
     except OSError as e:
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
-def __vid_compress(filename, expressions, criteria, suffix='avi', outputname=None, remove_video=False):
-    #md5 = vid_md5(filename)
-    one_meta, one_frames = getMeta(filename, with_frames=False)
-    execute_remove= False
-    execute_compress = False
+def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=None, remove_video=False):
+    """
+
+    :param filename:
+    :param expressions: ffmpeg array of expressions
+    :param dest_codec:
+    :param suffix: the output suffix
+    :param outputname: the output file name, with None use <inputfilename>_compressed.<suffix>
+    :param remove_video: if intent is to leave only audio stream
+    :return:
+    """
+    one_meta, one_frames = getMeta(filename, show_streams=True,with_frames=False)
     input_filename = filename
-    #see if already compressed
-    if one_meta is not None:
-        for k,v in one_meta.iteritems():
-            if 'Stream' in k and 'Video' in v and remove_video:
-                execute_remove= True
-            if 'Stream' in k and criteria in v:
-                execute_compress = False
-    if not input_filename.endswith('_compressed.' + suffix):
-        execute_compress = True
+    # has video?
+    if one_meta is None:
+        return input_filename
+    indices = ffmpeg_api.getStreamindexesOfType(one_meta, 'video')
+    if indices is None or len(indices) == 0:
+        return input_filename
+    # file has video, determine the codec of the video
+    index = indices[0]
+    codec = getValue(one_meta[int(index)],'codec_long_name',getValue(one_meta[int(index)],'codec_name','raw'))
+    # is compressed?
+    execute_compress = 'raw' in codec and not input_filename.endswith('_compressed.' + suffix)
+
     outFileName = os.path.splitext(input_filename)[0] + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = tool_set.getFFmpegTool()
-    if  execute_remove:
+
+    # has video and want to remove it
+    if remove_video:
+        # use compressed name if not executing compression
         input_filename = removeVideoFromAudio(input_filename, outputname=outFileName if not execute_compress else None)
     elif input_filename == outFileName:
         return input_filename
