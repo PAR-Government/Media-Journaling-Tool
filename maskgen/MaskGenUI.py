@@ -42,7 +42,7 @@ from software_loader import getMetDataLoader
 from cachetools import LRUCache
 from ui.ui_tools import ProgressBar
 from maskgen.services.probes import archive_probes
-
+from maskgen.export.watcher import ExportWatcherDialouge
 from QAExtreme import QAProjectDialog
 from qa_logic import ValidationData
 
@@ -410,6 +410,23 @@ class MakeGenUI(Frame):
             except ClientError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
+
+    def exportExternal(self):
+        status, message = self._preexport()
+        if not status:
+            return
+        info = self.prefLoader.get_key('s3info')
+        val = tkSimpleDialog.askstring("S3 Bucket/Folder", "Bucket/Folder",
+                                       initialvalue=info if info is not None else '')
+        if (val is not None and len(val) > 0):
+            self.prefLoader.save('s3info', val)
+            tkMessageBox.showinfo("Starting", "Export beginning the JT will now close please open another journal to work on and then open "
+                                              "the Export Manager to veiw progress.")
+            self.scModel.exportExternal(val, additional_message=message)
+            #self.quitnosave()
+
+    def exportManager(self):
+        d = ExportWatcherDialouge(self)
 
     def _promptRotate(self,donor_im,rotated_im, orientation):
         dialog = RotateDialog(self.master, donor_im, rotated_im, orientation)
@@ -1028,6 +1045,8 @@ class MakeGenUI(Frame):
         exportmenu = Menu(tearoff=0)
         exportmenu.add_command(label="To File", command=self.export, accelerator="Ctrl+E")
         exportmenu.add_command(label="To S3", command=self.exporttoS3)
+        exportmenu.add_command(label="To S3 Externally", command=self.exportExternal)
+        exportmenu.add_command(label="Manager", command=self.exportManager)
 
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="System Properties", command=self.getsystemproperties)

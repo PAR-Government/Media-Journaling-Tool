@@ -1,13 +1,15 @@
-import maskgen.scenario_model
+
 import maskgen.image_graph
 import os
 
 
-def start(projectfile, s3bucket, tempdir):
+def startExporter(projectfile, s3bucket, tempdir, additionalmessage):
+    import maskgen.scenario_model
+
     project = maskgen.scenario_model.loadProject(projectfile)
     logger = filewriter(os.path.join(os.path.expanduser('~'),'ExportLogs',project.getName() + '.txt'))
     try:
-        project.exporttos3(s3bucket,log=logger,tempdir=tempdir)
+        project.exporttos3(s3bucket,log=logger,tempdir=tempdir, additional_message=additionalmessage)
     except Exception:
         logger('Failed')
     logger('Done')
@@ -20,7 +22,7 @@ class filewriter():
             os.mkdir(os.path.split(fp)[0])
         self.fileName = fp
         file = open(fp, 'w+')
-        file.write(str(os.getpid()))
+        file.write(str(os.getpid()) + '\n')
         file.close()
 
     def __call__(self, txt):
