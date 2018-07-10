@@ -746,7 +746,7 @@ class HPSpreadsheet(Toplevel):
         list_id = data_files._TRELLO['hp_list']
 
         # post the new card
-        new = os.path.splitext(os.path.basename(archive))[0]
+        new = os.path.splitext(os.path.splitext(os.path.basename(archive))[0])[0]  # one split for tar, one for gpg
         stats = filestr + '\n' + self.collect_stats() + '\n' + 'User comment: ' + comment
         stats = stats
         resp = requests.post("https://trello.com/1/cards", params=dict(key=self.trello_key, token=token),
@@ -815,11 +815,12 @@ class HPSpreadsheet(Toplevel):
 
         recipient = self.settings.get_key("archive_recipient") if self.settings.get_key("archive_recipient") else None
         if recipient:
-            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', tar_path]).communicate()
+            subprocess.Popen(['gpg', '--recipient', recipient, '--trust-model', 'always', '--encrypt', "--yes",
+                              tar_path]).communicate()
             final_name = tar_path + ".gpg"
             return final_name
 
-        tkMessageBox.showerror("No Recipient", "The HP Tool cannot upload archives unless they are encrypted to a"
+        tkMessageBox.showerror("No Recipient", "The HP Tool cannot upload archives unless they are encrypted to a "
                                                "recipient.  Enter your recipient in the settings menu.")
         return None
 
@@ -923,14 +924,16 @@ class HPSpreadsheet(Toplevel):
                             files_in_dir.append(os.path.normpath(root))
 
         for r in range(0, self.pt.rows):
-            name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
+            name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else \
+                os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
             files_in_csv.append(name)
 
         dif_list = [x for x in files_in_dir if (x not in files_in_csv and "_" not in x and os.path.splitext(x)[1]
                                                 not in ["tar", "gpg"])]
 
         if dif_list:
-            ans = tkMessageBox.askyesno("Missing Data", "There have been files found in the output directory that are not in the csv.  Would you like to delete them?")
+            ans = tkMessageBox.askyesno("Missing Data", "There have been files found in the output directory that are"
+                                                        " not in the csv.  Would you like to delete them?")
             if ans:
                 for root, dirs, files in os.walk(self.dir):
                     for f in files:
