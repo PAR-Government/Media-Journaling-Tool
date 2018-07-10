@@ -310,7 +310,6 @@ class ImageGraph:
     def get_project_type(self):
         return self.G.graph['projecttype'] if 'projecttype' in self.G.graph else None
 
-
     def set_project_type(self,projecttype):
         self.G.graph['projecttype'] = projecttype
 
