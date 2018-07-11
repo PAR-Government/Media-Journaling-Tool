@@ -35,7 +35,6 @@ from validation.core import Validator, ValidationMessage,Severity,removeErrorMes
 import traceback
 from support import MaskgenThreadPool, StatusTracker
 import notifiers
-from maskgen.export.exporter import startExporter
 
 def formatStat(val):
     if type(val) == float:
@@ -2629,12 +2628,13 @@ class ImageProjectModel:
 
     def exportExternal(self, location, tempdir=None, additional_message=None):
         from multiprocessing import Process
+        from maskgen.export.exporter import startExporter
         p = Process(target=startExporter, args=(os.path.join(self.get_dir(),self.G.get_name()),location,tempdir,additional_message))
         p.daemon = False
         p.start()
 
 
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[], log=None):
+    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[], log=None, external=False):
         """
 
         :param location:
@@ -2643,8 +2643,6 @@ class ImageProjectModel:
         :param redacted: list of file paths to exclude
         :return:
         """
-        import boto3
-        from boto3.s3.transfer import S3Transfer, TransferConfig
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
@@ -2652,20 +2650,35 @@ class ImageProjectModel:
             #path = ''
             path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir, redacted=redacted)
             if len(errors) == 0:
-                config = TransferConfig()
-                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-                BUCKET = location.split('/')[0].strip()
-                DIR = location[location.find('/') + 1:].strip()
-                logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
-                DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path,log))
-                os.remove(path)
-                if self.notify is not None and not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
-                                                               additional_message=additional_message):
-                    errors = [('', '',
-                               'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
+                if external == False:
+                    errors = self.begin_upload(location,path,additional_message,redacted,log)
+                else:
+                    from maskgen.export.exporter import startUpload
+                    from multiprocessing import Process
+                    p = Process(target=startUpload, args=(self.G.get_name(),location,path))
+                    p.daemon = False
+                    p.start()
+                    #startUpload(self.G.get_name(),location,path)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
+
+    def begin_upload(self,location,path, additional_message, redacted,log):
+        import boto3
+        from boto3.s3.transfer import S3Transfer, TransferConfig
+        config = TransferConfig()
+        s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
+        BUCKET = location.split('/')[0].strip()
+        DIR = location[location.find('/') + 1:].strip()
+        logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
+        DIR = DIR if DIR.endswith('/') else DIR + '/'
+        s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path, log))
+        os.remove(path)
+        if self.notify is not None and not self.notify(self.getName(), 'export',
+                                                       location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
+                                                       additional_message=additional_message):
+            errors = [('', '',
+                       'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
+            return errors
+        return []
 
     def export_path(self, location, redacted=[]):
         """

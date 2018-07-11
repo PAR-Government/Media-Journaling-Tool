@@ -422,7 +422,7 @@ class MakeGenUI(Frame):
             self.prefLoader.save('s3info', val)
             tkMessageBox.showinfo("Starting", "Export beginning the JT will now close please open another journal to work on and then open "
                                               "the Export Manager to veiw progress.")
-            self.scModel.exportExternal(val, additional_message=message)
+            self.scModel.exporttos3(val, additional_message=message,external=True)
             #self.quitnosave()
 
     def exportManager(self):
