@@ -49,7 +49,7 @@ class ExportProgress(Frame):
             if percent.lower() == 'do':
                 percent = 100, 'Complete'
             else:
-                percent = int(percent),'Working {}%'.format(percent)
+                percent = float(percent),'Working {}%'.format(percent)
             return percent
         return 0, "Initiating"
 
