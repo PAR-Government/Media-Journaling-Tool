@@ -440,7 +440,7 @@ def checkChannelLoss(op, graph, frm, to):
 def checkEmpty(op,graph, frm, to):
     edge = graph.get_edge(frm, to)
     if getValue(edge, 'empty mask')  == 'yes':
-        return (Severity.WARNING,"An empty change mask indicating an manipulation did not occur.")
+        return (Severity.ERROR,"An empty change mask indicating an manipulation did not occur.")
 
 def checkSameChannels(op, graph, frm, to):
     """

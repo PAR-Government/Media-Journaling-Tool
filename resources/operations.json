@@ -2721,7 +2721,8 @@
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule": {
             "purpose": "clone"
-          }
+          },
+          "source": "image"
         },
         "End Time": {
           "type": "time",

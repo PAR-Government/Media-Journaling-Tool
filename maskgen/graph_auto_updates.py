@@ -147,19 +147,23 @@ def _fixTool(scModel,gopLoader):
     tool_name = 'jtui'
     if summary.lower().startswith('automate'):
         tool_name = 'jtproject'
+    creator = scModel.getGraph().getDataItem('creator')
     modifier_tools = [tool_name]
     # no easy way to find extensions, since all extensions are plugins
-    #hasauto = False
-    #for frm, to in scModel.getGraph().get_edges():
-    #    edge = scModel.G.get_edge(frm, to)
-    #    hasauto |= (getValue(edge,'automated',defaultValue='no') == 'yes')
-    #if hasauto:
-    #    modifier_tools.append('jtprocess')
+    modified_users = set()
+    for frm, to in scModel.getGraph().get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        user = getValue(edge,'username',defaultValue='x')
+        if user in ['alice', 'saffire', 'dupre'] and getValue(edge,'automated', defaultValue='no') == 'yes':
+            modified_users.add(user)
+    if len(modified_users) > 2 or creator not in modified_users:
+        modifier_tools.append('jtprocess')
+
     if scModel.getGraph().getDataItem('modifier_tools') is None:
-        scModel.getGraph().setDataItem('creator_tool', tool_name)
         scModel.getGraph().setDataItem('modifier_tools', modifier_tools)
 
-
+    if scModel.getGraph().getDataItem('creator_tool') is None:
+        scModel.getGraph().setDataItem('creator_tool', tool_name)
 
 def _fixValidationTime(scModel,gopLoader):
     import time

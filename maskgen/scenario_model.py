@@ -1366,7 +1366,7 @@ class ImageProjectModel:
             return
         nodeids = results[0][2]
         graph = self.G.subgraph(nodeids)
-        probes = self.getProbeSet(graph=graph,saveTargets=False)
+        probes = self.getProbeSet(graph=graph,saveTargets=False,inclusionFunction=mask_rules.isEdgeComposite)
         return probes
 
     def executeFinalNodeRules(self):
