@@ -390,7 +390,7 @@ class QAProjectDialog(Toplevel):
                 col = 1
                 cur = True
             if self.finalNodeName == None:
-                for mvs in p.donorVideoSegments:
+                for mvs in p.donorVideoSegments if p.donorVideoSegments is not None else []:
                     data.append([count,col,mvs.starttime,mvs.endtime])
                     if cur:
                         high = max(high,mvs.endtime)
@@ -400,7 +400,7 @@ class QAProjectDialog(Toplevel):
                         subplot.text(mvs.starttime - 100, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
                         subplot.text(mvs.endtime + 100, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
             else:
-                for mvs in p.targetVideoSegments:
+                for mvs in p.targetVideoSegments if p.targetVideoSegments is not None else []:
                     data.append([count,col,mvs.starttime,mvs.endtime])
                     if cur:
                         high = max(high,mvs.endtime)
