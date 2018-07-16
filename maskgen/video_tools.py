@@ -870,7 +870,8 @@ def __alignStreamsMeta(meta_and_frames, excludeAudio=True):
 
     meta = meta_and_frames[0]
     frames = meta_and_frames[1]
-    index_of_vid = [m['codec_type'] if 'codec_type' in m else 'N/A' for m in meta].index('video')
+    meta_search = [m['codec_type'] if 'codec_type' in m else 'N/A' for m in meta]
+    index_of_vid = meta_search.index('video') if 'video' in meta_search else -1
     if index_of_vid > 0:
         other = meta[0]
         meta[0]  = meta[index_of_vid]
