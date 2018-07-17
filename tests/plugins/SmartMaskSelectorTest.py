@@ -4,6 +4,8 @@ from maskgen import plugins, image_wrap
 import numpy
 import tempfile
 from tests import test_support
+import random
+
 
 
 def widthandheight(img):
@@ -23,11 +25,10 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
         img = img_wrapper.to_array()
         img_wrapper = image_wrap.ImageWrapper(img)
         target_wrapper = image_wrap.ImageWrapper(img)
-        filename  = self.locateFile('tests/images/test.png')
+        filename = self.locateFile('tests/images/test.png')
         filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')
         self.filesToKill.extend([filename_output])
         target_wrapper.save(filename_output)
-
         args,error = plugins.callPlugin('SmartMaskSelector',
                             img_wrapper,
                            filename,
@@ -48,8 +49,8 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
         self.assertTrue(len(output.shape) == 2)
         totalsize = sum(sum(output / 255))
         print totalsize
-        self.assertTrue(totalsize <= (2 * 22500))
-        self.assertTrue(totalsize >= 22500)
+        self.assertTrue(totalsize <= (1.5 * 22500))
+        self.assertTrue(totalsize >= (22500 * 0.5))
         self.assertTrue('paste_x' in args and args['paste_x'] > 0)
         self.assertTrue('paste_y' in args and args['paste_y'] > 0)
 
@@ -62,7 +63,6 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
         filename_output = tempfile.mktemp(prefix='mstcr', suffix='.png', dir='.')
         self.filesToKill.extend([filename_output])
         target_wrapper.save(filename_output)
-
         args,error = plugins.callPlugin('SmartMaskSelector',
                             img_wrapper,
                            filename,
@@ -80,12 +80,13 @@ class SmartMaskSelectorTestCase(test_support.TestSupport):
                                         )
         wrapper = image_wrap.openImageFile(filename_output)
         output = wrapper.to_array()
-        self.assertTrue (img_wrapper.size[1] == wrapper.size[1])
+        self.assertTrue(img_wrapper.size[1] == wrapper.size[1])
         self.assertTrue(img_wrapper.size[0] == wrapper.size[0])
         self.assertTrue(len(output.shape) == 3)
         totalsize = sum(sum(output[:,:,1] / 255))
         print totalsize
-        self.assertTrue(totalsize >= 22500)
+        self.assertTrue(totalsize <= (1.5 * 22500))
+        self.assertTrue(totalsize >= (22500 * 0.5))
         self.assertTrue('paste_x' in args and args['paste_x'] > 0)
         self.assertTrue('paste_y' in args and args['paste_y'] > 0)
 

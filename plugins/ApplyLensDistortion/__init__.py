@@ -119,7 +119,7 @@ def applytoimage(input_file, output_file, model, k, bordertype='fit', interpolat
 def applytovideo(input_file, output_file, model, k, bordertype='fit', interpolation='linear', padmethod='symmetric',
                         ftype=2):
     cap = cv2api_delegate.videoCapture(input_file)
-    fourcc = int(cap.get(cv2api_delegate.fourcc))
+    fourcc = int(cap.get(cv2api_delegate.fourcc_prop))
     fps = cap.get(cv2api_delegate.prop_fps)
     height = int(np.rint(cap.get(cv2api_delegate.prop_frame_height)))
     width = int(np.rint(cap.get(cv2api_delegate.prop_frame_width)))

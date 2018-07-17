@@ -1,0 +1,75 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "Social Media",
+    "organization": "PAR",
+    "projectdescription" : "test",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": false,
+    "edgeFilePaths": ["arguments.paste mask"]
+  },
+  "nodes": [
+   {
+      "op_type": "BaseSelection",
+      "image_directory": "HP",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "PreProcessedMediaOperation",
+      "argument file": "arguments.csv",
+      "argument names": ["type","upload","download"],
+      "directory":"WhatsApp",
+      "op": "SocialMedia",
+      "category": "Laundering",
+      "software": "opencv",
+      "software version": "3.3.0",
+      "description":"output png",
+      "id": "1"
+    },
+     {
+      "op_type": "PreProcessedMediaOperation",
+      "argument file": "arguments.csv",
+      "argument names": ["type","upload","download"],
+      "directory":"Instagram",
+      "op": "SocialMedia",
+      "category": "Laundering",
+      "software": "opencv",
+      "software version": "3.3.0",
+      "description":"output png",
+      "id": "2"
+    },
+     {
+      "op_type": "PreProcessedMediaOperation",
+      "argument file": "arguments.csv",
+      "argument names": ["type","upload","download"],
+      "directory":"Messenger",
+      "op": "SocialMedia",
+      "category": "Laundering",
+      "software": "opencv",
+      "software version": "3.3.0",
+      "description":"output png",
+      "id": "3"
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1
+    },
+    {
+      "source": 0,
+      "target": 2
+    },
+    {
+      "source": 0,
+      "target": 3
+    }
+  ],
+  "multigraph": false
+}

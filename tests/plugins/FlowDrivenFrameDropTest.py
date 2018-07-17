@@ -9,7 +9,7 @@ def get_channel_data(source_data, codec_type):
     for data in source_data:
         if data['codec_type'] == codec_type:
             return data,pos
-        pos+=1
+        pos += 1
 
 class CropSelectorTestCase(TestSupport):
     filesToKill = []
@@ -36,7 +36,7 @@ class CropSelectorTestCase(TestSupport):
             get_channel_data(video_tools.getMeta(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
         diff = frames1-frames2
         self.assertTrue(diff>0)
-        diff_time = int(args['End Time']) - int(args['Start Time']) + 1
+        diff_time = int(args['End Time']) - int(args['Start Time'])+1
         self.assertEqual(diff, diff_time)
         filename_output2 = os.path.join(os.path.dirname(os.path.abspath(filename)), 'sample_out2a.avi')
         args['codec'] = 'XVID'
@@ -55,7 +55,7 @@ class CropSelectorTestCase(TestSupport):
         self.assertTrue(diff > 0)
         diff_time = int(args['End Time']) - int(args['Start Time'])
         print str(args)
-        self.assertEqual(diff, diff_time - 1)
+        self.assertEqual(diff, diff_time)
 
     def tearDown(self):
         for f in self.filesToKill:

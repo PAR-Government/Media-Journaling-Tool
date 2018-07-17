@@ -122,7 +122,7 @@ class TestMaskRules(TestSupport):
         buildState = BuildState(edge,
                                 self.locateFile('images/PreRotate.png'),
                                 self.locateFile('images/PostRotate.png'),
-                                openImageFile(self.locateFile('images/Rotate_mask.png'),isMask=True).image_array,
+                                openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
                                 (3984, 2988),
                                 (3984, 2988),
                                 directory='.',

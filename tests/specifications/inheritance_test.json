@@ -1,0 +1,51 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "gan_resize",
+    "organization": "wonderland",
+    "projectDescription": "GAN generated images with some Antiforensics applied.",
+    "technicalSummary": "Automated: Apply Antiforensics to GAN images",
+    "semanticrestaging": "no",
+    "semanticrepurposing": "no",
+    "semanticrefabrication": "no",
+    "recompress": false
+  },
+  "nodes":[
+     {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "base"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG::Test",
+      "id": "output"
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "OutputCopy",
+      "id": "outputcopy"
+    },
+     {
+      "op_type": "PluginOperation",
+      "plugin": "GaussianLocalBlur",
+      "id": "blur"
+    }
+    ],
+  "links":[
+    {
+	  "source":"base",
+	  "target":"output"
+    },
+     {
+	  "source":"output",
+	  "target":"outputcopy"
+    },
+     {
+	  "source":"output",
+	  "target":"blur"
+    }
+    ]
+}

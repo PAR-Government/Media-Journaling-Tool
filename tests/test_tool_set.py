@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 from maskgen import image_wrap
 from test_support import TestSupport
+import sys
 
 
 
@@ -10,6 +11,13 @@ class TestToolSet(TestSupport):
     def test_filetype(self):
         self.assertEquals(tool_set.fileType(self.locateFile('images/hat.jpg')), 'image')
         self.assertEquals(tool_set.fileType(self.locateFile('images/sample.json')), 'text')
+        f = open('test.log', 'w+')
+        f.close()
+        self.addFileToRemove('test.log')
+        if sys.platform.startswith('win'):
+            self.assertRaises(Exception, tool_set.fileType(self.locateFile('test.log')))
+        else:
+            self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
         self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
 
 

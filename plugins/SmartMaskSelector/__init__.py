@@ -11,6 +11,7 @@ import numpy as np
 from random import randint
 from skimage import segmentation
 import skimage
+import math
 
 """
 Select from a region from a segmented image to produce a selection mask. Can used with paste splice and paste clone.
@@ -43,13 +44,11 @@ def build(img, segment_labels, unique_labels, label_counts, size_constraint):
     segInd = randint(0, len(unique_labels) - 1)
     segVal = unique_labels[segInd]
 
-    while label_counts[segInd] > size_constraint * 1.5 and label_counts[segInd] < size_constraint * .5 and count < 20:
-        tempsegInd = randint(0, len(unique_labels) - 1)
-        tempsegVal = unique_labels[tempsegInd]
-        if label_counts[segInd] > label_counts[tempsegInd]:
-            segVal = tempsegVal
-            segInd = tempsegInd
-        count = count + 1
+    diffs = abs(label_counts - size_constraint)
+    best = np.where(diffs==min(diffs))
+
+    segInd = best[0][0]
+    segVal = unique_labels[segInd]
 
     mask = np.zeros((shape[0], shape[1]))
     mask[segment_labels == segVal] = 255

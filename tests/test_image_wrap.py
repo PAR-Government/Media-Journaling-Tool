@@ -7,11 +7,10 @@ import os
 from test_support import TestSupport
 
 
-
 class TestImageWrap(TestSupport):
 
     def test_pdf(self):
-        self.assertTrue( image_wrap.pdf2_image_extractor(self.locateFile('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf')) is not None)
+        self.assertTrue(image_wrap.pdf2_image_extractor(self.locateFile('tests/images/c0abb79c6607109f5e85494bda92b986-recapture.pdf')) is not None)
 
     def test_open(self):
         wrapper = image_wrap.openImageFile(self.locateFile('images/sample.jpg'))
@@ -22,7 +21,7 @@ class TestImageWrap(TestSupport):
 
         wrapper = image_wrap.openImageFile(self.locateFile('tests/images/test.png'))
         self.assertTrue(wrapper.to_image() is not None)
-        im = Image.open('tests/images/test.png')
+        im = Image.open(self.locateFile('images/test.png'))
         im_array = np.asarray(im)
         self.assertTrue(wrapper.image_array.shape == im_array.shape)
         self.assertEquals(wrapper.size, im.size)

@@ -123,7 +123,7 @@ def transform(img,source,target, **kwargs):
     donor = kwargs['donor']
     rotate = kwargs['rotate'] == 'yes'
     quality = int(kwargs['quality']) if 'quality' in kwargs else 0
-    color_mode = kwargs['color mode']
+    color_mode = kwargs['color mode'] if 'color mode' in kwargs else 'from donor'
     
     tables_zigzag = parse_tables(donor)
     tables_sorted = sort_tables(tables_zigzag)

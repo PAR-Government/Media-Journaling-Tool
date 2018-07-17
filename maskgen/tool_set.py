@@ -44,6 +44,8 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+
+textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
             ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
@@ -206,6 +208,8 @@ def fileType(fileName):
         file_type = 'audio'
     elif suffix in ['*.zip', '*.gz']:
         file_type = 'zip'
+    elif suffix in [x[1] for x in textfiletypes]:
+        file_type = 'text'
     return getMimeType(fileName) if file_type is None else file_type
 
 
