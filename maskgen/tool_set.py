@@ -15,6 +15,7 @@ import re
 import imghdr
 import sys
 from image_wrap import *
+from maskgen.export.lock_handler import get_lock_handler
 from maskgen_loader import MaskGenLoader
 from subprocess import Popen, PIPE
 import threading
@@ -55,9 +56,8 @@ class S3ProgressPercentage(object):
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._percentage_so_far = 0
-        self._lock = threading.Lock()
+        self._lock = get_lock_handler().new(os.path.split(filename)[1])
         self.log = log if log is not None else logging.getLogger('maskgen').info
-
 
     def __call__(self, bytes_amount):
         # To simplify we'll assume this is hooked up
