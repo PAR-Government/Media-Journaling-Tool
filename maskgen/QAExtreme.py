@@ -71,7 +71,9 @@ class QAProjectDialog(Toplevel):
 
     def getProbes(self):
         try:
+            #cur = time.time()
             self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
+            #print(time.time()-cur)
         except Exception as e:
             logging.getLogger('maskgen').error(str(e))
             self.probes = None

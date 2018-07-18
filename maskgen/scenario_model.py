@@ -7,6 +7,7 @@
 # ==============================================================================
 
 from image_graph import createGraph
+from maskgen.video_tools import DummyMemory
 from support import getPathValues
 import exif
 import os
@@ -926,6 +927,7 @@ class ImageProjectModel:
 
     def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
                  baseImageFileName=None, username=None,tool=None):
+        self.probeMaskMemory = DummyMemory(None)
         self.notify = None
         if notify is not None:
             self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier(self)])
@@ -934,6 +936,7 @@ class ImageProjectModel:
         # Group Operations are tied to models since
         # group operations are created by a local instance and stored in the graph model
         # when used.
+
         self.gopLoader = GroupOperationsLoader()
         self.username = username if username is not None else get_username()
         self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName,tool=tool)
@@ -1217,13 +1220,13 @@ class ImageProjectModel:
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
             if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
-                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader)
+                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader, self.probeMaskMemory)
                 futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
                     'saveTargets':saveTargets,
                     'inclusionFunction':inclusionFunction,
                     'constructDonors':constructDonors,
                     'keepFailures':keepFailures,
-                    'exclusions':exclusions
+                    'exclusions':exclusions,
                 }))
         probes = list()
         for future in futures:
@@ -1328,7 +1331,7 @@ class ImageProjectModel:
         """
         :return: list a mask transfomed to all final image nodes
         """
-        composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader)
+        composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader, self.probeMaskMemory)
         return composite_generator.constructComposites()
 
     def extendCompositeByOne(self, probes, start=None, override_args={}):
@@ -1350,7 +1353,7 @@ class ImageProjectModel:
             return
         nodeids = results[0][2]
         graph = self.G.subgraph(nodeids)
-        composite_generator = mask_rules.prepareComposite((self.start,self.end), graph, self.gopLoader)
+        composite_generator = mask_rules.prepareComposite((self.start,self.end), graph, self.gopLoader, self.probeMaskMemory)
         probes = composite_generator.extendByOne(probes,self.start,self.end,override_args=override_args)
         return self.getProbeSet(replacement_probes=probes)
 
@@ -1388,7 +1391,7 @@ class ImageProjectModel:
         for edge_id in self.G.get_edges():
             if self.start is not None and self.start != edge_id[1]:
                 continue
-            composite_generator = mask_rules.prepareComposite(edge_id, self.G, self.gopLoader)
+            composite_generator = mask_rules.prepareComposite(edge_id, self.G, self.gopLoader, self.probeMaskMemory)
             return composite_generator.constructDonors(saveImage=False)
         return []
 
@@ -1670,6 +1673,7 @@ class ImageProjectModel:
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                                                   (skip_data['start'], skip_data['end']) != mask_edge_id])
+        self.notify((self.start, self.end), 'update_edge')
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
@@ -1981,10 +1985,6 @@ class ImageProjectModel:
                     paths.append(path)
             paths = [(path[0]+[node], condition(node, path[0][-1]) | path[1]) for path in paths]
             return paths
-
-    def findDonorPaths(self,start):
-        condition = lambda x,y:  self.G.get_edge(x, y)['op'] == 'Donor'
-        return [path[0] for path in self.findPaths(start,condition) if path[1]]
 
     def getImage(self, name):
         if name is None or name == '':
@@ -2745,6 +2745,12 @@ class ImageProjectModel:
         logic = qa_logic.ValidationData(self)
         logic.clearProperties()
 
+    def set_probe_mask_memory(self, memory):
+        self.probeMaskMemory = memory
+
+    """Not sure if this will ever see any use"""
+    def get_probe_mask_memory(self):
+        return self.probeMaskMemory
 
 class VideoMaskSetInfo:
     """

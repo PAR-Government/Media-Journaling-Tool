@@ -1959,6 +1959,15 @@ def _getMaskTranformationFunction(
     return None
 
 
+def mAlterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None, maskMemory=None,baseEdge=None):
+    remember = maskMemory[('donor', baseEdge, (source, target))] if maskMemory is not None else None
+    if remember is not None:
+        # print("memoize")
+        return remember
+    result = alterDonor(donorMask, op, source, target, edge, directory, pred_edges, graph)
+    if maskMemory is not None:
+        maskMemory[('donor', baseEdge, (source, target))] = result
+    return result
 
 def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None):
     """
@@ -2092,6 +2101,34 @@ def getShapes(graph,source,target,edge, edgeMask):
         source_shape = (target_shape[0] - shapeChange[0], target_shape[1] - shapeChange[1])
 
     return source_shape,target_shape
+
+def mAlterComposite(graph,
+                   edge,
+                   op,
+                   source,
+                   target,
+                   composite,
+                   directory,
+                   base_id,
+                   replacementEdgeMask=None,
+                   maskMemory=None
+                   ):
+    remember = maskMemory[('composite', base_id, (source, target))] if maskMemory is not None else None
+    if remember is not None:
+        # print("memoize")
+        return remember
+    result = alterComposite(graph,
+                            edge,
+                            op,
+                            source,
+                            target,
+                            composite,
+                            directory,
+                            replacementEdgeMask)
+    if maskMemory is not None:
+        maskMemory[('composite', base_id, (source, target))] = result
+    return result
+
 
 def alterComposite(graph,
                    edge,
@@ -2448,7 +2485,7 @@ class ColorCompositeBuilder(CompositeBuilder):
 class CompositeDelegate:
     composite = None
 
-    def __init__(self, edge_id, graph, gopLoader):
+    def __init__(self, edge_id, graph, gopLoader, maskMemory):
         """
         :param edge_id
         :param graph:
@@ -2457,6 +2494,7 @@ class CompositeDelegate:
         @type graph: ImageGraph
         @type gopLoader: GroupFilterLoader
         """
+        self.maskMemory= maskMemory
         self.gopLoader = gopLoader
         self.edge_id = edge_id
         self.graph = graph
@@ -2536,6 +2574,7 @@ class CompositeDelegate:
         return: list of tuples (transformed mask, final image id)
         @rtype:  list of (ImageWrapper(compositeMask),str))
         """
+
         results = []
         successors = self.graph.successors(edge_id[1])
         for successor in successors:
@@ -2547,13 +2586,15 @@ class CompositeDelegate:
             newMask = compositeMask
             try:
                 for op in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
-                    newMask = alterComposite(self.graph,
+                    newMask = mAlterComposite(self.graph,
                                              edge,
                                              op,
                                              source,
                                              target,
                                              newMask,
-                                             self.get_dir())
+                                             self.get_dir(),
+                                             maskMemory=self.maskMemory,
+                                             base_id=self.edge_id)
                 results.extend(self.constructTransformedMask((source, target), newMask, saveTargets=saveTargets, keepFailures=keepFailures))
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -2583,13 +2624,15 @@ class CompositeDelegate:
                 edge = override_args
             altered_composite = compositeMask
             for innerop in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
-                altered_composite = alterComposite(self.graph,
+                altered_composite = mAlterComposite(self.graph,
                                                    edge,
                                                    innerop,
                                                    source,
                                                    target,
                                                    altered_composite,
-                                                   self.get_dir())
+                                                   self.get_dir(),
+                                                   base_id=self.edge_id
+                                                    )
             target_mask, target_mask_filename, finalNodeId, nodetype, failure = self._finalizeCompositeMask(altered_composite,target)
             new_probe.targetMaskImage = target_mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
                 target_mask.videomasks)
@@ -2631,7 +2674,8 @@ class CompositeDelegate:
                 donors = self.constructDonors(saveImage=saveTargets,
                                               inclusionFunction=inclusionFunction,
                                               exclusions=exclusions,
-                                              media_type=target_mask.media_type if media_type != 'image' else 'image') if constructDonors else []
+                                              media_type=target_mask.media_type if media_type != 'image' else 'image'
+                                              ) if constructDonors else []
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.getLogger('maskgen').info(
@@ -2758,14 +2802,16 @@ class CompositeDelegate:
             if mask is None:
                 donorMask = self.__getDonorMaskForEdge((pred, node), returnEmpty=False, media_type=media_type)
             else:
-                donorMask = alterDonor(mask,
+                donorMask = mAlterDonor(mask,
                                        self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
                                        pred,
                                        node,
                                        edge,
                                        directory=self.get_dir(),
                                        pred_edges=[p for p in pred_edges if p != edge],
-                                       graph=self.graph)
+                                       graph=self.graph,
+                                       maskMemory=self.maskMemory,
+                                       baseEdge=self.edge_id)
             result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask, media_type=media_type)))
         return result
 
@@ -2901,7 +2947,8 @@ class CompositeDelegate:
                         inclusionFunction=isEdgeComposite,
                         errorNotifier=raiseError,
                         exclusions={},
-                        media_type=None):
+                        media_type=None
+                        ):
         """
           Construct donor images
           Find all valid base node, leaf node tuples
@@ -2980,7 +3027,7 @@ class CompositeDelegate:
         return donors
 
 
-def prepareComposite(edge_id, graph, gopLoader):
+def prepareComposite(edge_id, graph, gopLoader, memory=None):
     """
     Depending on the edge properties, construct the composite mask
     :param graph
@@ -2991,4 +3038,4 @@ def prepareComposite(edge_id, graph, gopLoader):
     @type edge_id: (str, str)
     @type edge: dict
     """
-    return CompositeDelegate(edge_id, graph, gopLoader)
+    return CompositeDelegate(edge_id, graph, gopLoader, memory)

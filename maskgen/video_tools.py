@@ -3132,3 +3132,17 @@ def pullFrameNumber(video_file, frame_number):
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
+
+class DummyMemory:
+    def __init__(self,default=None):
+        self.default = default
+        pass
+    def __call__(self, *args, **kwargs):
+        return self.default
+    def forget(self, *args, **kwargs):
+        return self.default
+    def __getitem__(self, item):
+        return self.default
+    def __setitem__(self, key, item):
+        pass

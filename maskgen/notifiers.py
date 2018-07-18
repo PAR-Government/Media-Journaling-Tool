@@ -8,7 +8,6 @@
 
 from pkg_resources import iter_entry_points
 import qa_logic
-from maskgen.maskgen_loader import MaskGenLoader
 
 class MaskgenNotifer:
 
@@ -80,20 +79,29 @@ class NotifyDelegate:
             ok &= notify(*args,**kwargs)
         return ok
 
+
 class QaNotifier:
     def __init__(self, scmodel):
+        """
+
+        :param scmodel:
+        @type scmodel: ImageProjectModel
+        """
         self.qadata = None
         self.scmodel = scmodel
+        self.scmodel.set_probe_mask_memory(ProbeMaskMemory())
+
     def __call__(self, *args, **kwargs):
         if args[1] != 'update_edge':
             return True
         else:
             scmodel = self.scmodel
+            mem = self.scmodel.get_probe_mask_memory()
             qadata = qa_logic.ValidationData(scmodel)
+            # select edge in Model
             scmodel.select(args[0])
-            cnode = scmodel.getDescription()
-            backs = self._backtrack(cnode)
-
+            modified_edge = scmodel.getDescription()
+            edback, backs = self._backtrack(modified_edge)
             critlinks = qadata.keys()
             critdict = self._dictionaryify(qadata.keys())
             for i in backs:
@@ -102,13 +110,23 @@ class QaNotifier:
                     link = '->'.join([i,fin])
                     if link in critlinks:
                         qadata.set_qalink_status(link,'no')
-            fwd = self._forwards(cnode)
+
+            edfwd, fwd = self._forwards(modified_edge)
             for i in fwd:
                 curl = critdict[i] if i in critdict else []
                 for fin in curl:
                     donor = '<-'.join([i,fin])
                     if donor in critlinks:
                         qadata.set_qalink_status(donor,'no')
+
+            for back in edback:
+                # all predecessor edges flow through forward
+                mem.forget(back, 'composite', edfwd)
+
+            for forward in edfwd:
+                # all successor edges flow through backward
+                mem.forget(forward, 'donor', edback)
+
             return True
 
     def _dictionaryify(self,l):
@@ -121,22 +139,71 @@ class QaNotifier:
                 d[tup[0]] = [tup[1]]
         return d
 
+    #This needs to be changed do it by hand
     def _forwards(self, n):
-        fo = []
-        for path in self.scmodel.findDonorPaths(n.end):
-            for item in path:
-                fo.append(self.scmodel.getFileName(item))
-        return fo
-
+        fo = [n.end]
+        fwdedges = [(n.start,n.end)]
+        condition = lambda x, y: True
+        paths = self.scmodel.findPaths(n.end,condition)[0][0][:-1]
+        paths.reverse()
+        prev = n.end
+        for path in paths:
+            fwdedges.append((prev,path))
+            fo.append(path)
+            prev = path
+        return fwdedges, fo
 
     def _backtrack(self, n):
-        back = []
+        back = [n.end]
+        backedge = [(n.start,n.end)]
         back.append(self.scmodel.getFileName(n.end))
+        g = self.scmodel.getGraph()
         cur = self.scmodel.getDescriptionForPredecessor(n.start)
-        while cur is not None:
-            back.append((self.scmodel.getFileName(cur.end)))
-            cur = cur.start
-            cur = self.scmodel.getDescriptionForPredecessor(cur)
-        return back
+        seen = []
+        next = [n.end]
+        while len(next) != 0:
+            cur = next.pop(0)
+            if cur not in seen:
+                prevs = g.predecessors(cur)
+                for p in prevs:
+                    backedge.append((p,cur))
+                back.append((self.scmodel.getFileName(cur)))
+                next.extend(prevs)
+        return backedge, back
 
+class ProbeMaskMemory:
+    def __init__(self):
+        self.basetypeedge={}
 
+    def __getitem__(self, item):
+        if len(item) == 3:
+            if item[0] == 'composite' or item[0] == 'donor':
+                basedic = self.basetypeedge[item[1]] if item[1] in self.basetypeedge else None
+                edgedic = basedic[item[0]] if basedic is not None and item[0] in basedic else None
+                value = edgedic[item[2]] if edgedic is not None and item[2] in edgedic else None
+                return value
+        elif len(item) == 2:
+            if item[0] == 'composite' or item[0] == 'donor':
+                basedic = self.basetypeedge[item[1]] if item[1] in self.basetypeedge else None
+                edgedic = basedic[item[0]] if basedic is not None and item[0] in  basedic else None
+                return edgedic
+        else:
+            if item[0] == 'composite' or item[0] == 'donor':
+                basedic = self.basetypeedge[item[0]] if item[0] in self.basetypeedge else None
+                return basedic
+
+    def __setitem__(self, key, item):
+        if key[0] == 'composite' or key[0] == 'donor':
+            if key[1] not in self.basetypeedge:
+                self.basetypeedge[key[1]] = {}
+            if key[0] not in self.basetypeedge[key[1]]:
+                self.basetypeedge[key[1]][key[0]] = {}
+            self.basetypeedge[key[1]][key[0]][key[2]] = item
+
+    def forget(self, base, probe_type, references=None):
+        if base in self.basetypeedge and probe_type in self.basetypeedge[base]:
+            for edge in references if references is not None else []:
+                try:
+                    self.basetypeedge[base][probe_type].pop(edge)
+                except:
+                    pass
