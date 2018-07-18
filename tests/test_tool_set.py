@@ -15,7 +15,8 @@ class TestToolSet(TestSupport):
         f.close()
         self.addFileToRemove('test.log')
         if sys.platform.startswith('win'):
-            self.assertRaises(Exception, tool_set.fileType(self.locateFile('test.log')))
+            with self.assertRaises(ValueError):
+                tool_set.fileType(self.locateFile('test.log'))
         else:
             self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
         self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
