@@ -2194,12 +2194,13 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('listfromfile:'):
                filename = getFileName(prop.type[13:])
-               if os.path.isfile(filename):
+               if filename:
                    with open(filename) as f:
                        values = sorted(f.read().splitlines())
                    widget = ttk.Combobox(master, values=values, textvariable=self.values[row])
                else:
-                   widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
+                   logging.getLogger("maskgen").warning(prop.type[13:] + " NOT found.")
+                   widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            elif prop.type == 'label':
                widget = Label(master, takefocus=(row==0), width=80, text=prop.information)
