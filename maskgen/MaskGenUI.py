@@ -423,7 +423,9 @@ class MakeGenUI(Frame):
             tkMessageBox.showinfo("Starting", "Export beginning the JT will now close please open another journal to work on and then open "
                                               "the Export Manager to veiw progress.")
             self.scModel.exporttos3(val, additional_message=message,external=True)
-            #self.quitnosave()
+            uploaded = self.prefLoader.get_key('lastlogupload')
+            uploaded = exportlogsto3(val, uploaded)
+            self.prefLoader.save('s3info', val)
 
     def exportManager(self):
         d = ExportWatcherDialouge(self)

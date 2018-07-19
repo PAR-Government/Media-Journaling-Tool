@@ -6,17 +6,6 @@ from maskgen.tool_set import S3ProgressPercentage
 import logging
 
 
-def startExporter(projectfile, s3bucket, tempdir, additionalmessage):
-    import maskgen.scenario_model
-
-    project = maskgen.scenario_model.loadProject(projectfile)
-    logger = filewriter(os.path.join(os.path.expanduser('~'),'ExportLogs',project.getName() + '.txt'))
-    try:
-        project.exporttos3(s3bucket,log=logger,tempdir=tempdir, additional_message=additionalmessage)
-    except Exception:
-        logger('Failed')
-    logger('Done')
-
 def startUpload(name, location, path):
     logger = filewriter(os.path.join(os.path.expanduser('~'), 'ExportLogs', name + '.txt'))
     try:
