@@ -235,11 +235,13 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                 ffargs.extend(['-vsync', '2'])
                 data['r_frame_rate'] = 'N/A'
             for option, setting in video_settings.iteritems():
-                if setting == 'profile' and setting in data:
-                    for tup in profile_map:
-                        if data[setting].find(tup[0]) >= 0:
-                            ffargs.extend([option, tup[1]])
-                            break
+                if setting == 'profile':
+                    if setting in data and video_codec == 'use donor':
+                        for tup in profile_map:
+                            if data[setting].find(tup[0]) >= 0:
+                                ffargs.extend([option, tup[1]])
+                                break
+                    continue
                 elif setting in data and data[setting] not in ['unknown', 'N/A']:
                     ffargs.extend([option, data[setting]])
 
