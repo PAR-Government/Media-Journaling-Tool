@@ -699,6 +699,7 @@ class HPSpreadsheet(Toplevel):
                 s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
             except Exception as e:
                 tkMessageBox.showerror(title='Error', message='Could not complete upload.\n\n\n' + str(e), parent=self)
+                print e
                 return
 
             try:
