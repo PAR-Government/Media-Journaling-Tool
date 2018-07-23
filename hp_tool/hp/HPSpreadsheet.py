@@ -697,10 +697,15 @@ class HPSpreadsheet(Toplevel):
             print('Uploading...')
             try:
                 s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+            except Exception as e:
+                tkMessageBox.showerror(title='Error', message='Could not complete upload.\n\n\n' + str(e), parent=self)
+                print e
+                return
+
+            try:
                 os.remove(archive)
             except Exception as e:
-                tkMessageBox.showerror(title='Error', message='Could not complete upload.', parent=self)
-                return
+                tkMessageBox.showerror(title='Error', message='Could not remove file.\n\n\n' + str(e), parent=self)
 
             #self.verify_upload(all_files, os.path.join(BUCKET, DIR))
             if tkMessageBox.askyesno(title='Complete', message='Successfully uploaded HP data to S3://' + val + '. Would you like to notify via Trello?', parent=self):
