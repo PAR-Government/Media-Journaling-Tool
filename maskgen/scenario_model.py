@@ -1673,7 +1673,7 @@ class ImageProjectModel:
         if len(errors) == 0:
             self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
                                                   (skip_data['start'], skip_data['end']) != mask_edge_id])
-        self.notify((self.start, self.end), 'update_edge')
+        self.notify(mask_edge_id, 'update_edge')
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
