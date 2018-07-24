@@ -28,7 +28,7 @@ exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
 
 orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
 
-RVERSION = '#@version=01.12'
+RVERSION = '#@version=01.13'
 thumbnail_conversion = {}
 
 

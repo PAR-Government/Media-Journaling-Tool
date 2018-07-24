@@ -435,7 +435,7 @@ class HPSpreadsheet(Toplevel):
 
         self.booleanColNums = []
         self.booleanColNames = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection',
-                        'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier']
+                        'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier', 'HP-MultipleLightSources']
         for b in self.booleanColNames:
             self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 

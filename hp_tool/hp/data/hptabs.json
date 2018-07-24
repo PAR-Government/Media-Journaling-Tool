@@ -39,7 +39,8 @@
     "HP-StrongReflection",
     "HP-TransparentReflection",
     "HP-ReflectedObject",
-    "HP-Shadows"
+    "HP-Shadows",
+	"HP-MultipleLightSources"
   ],
   "Location": [
     "ImageFilename",
