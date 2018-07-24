@@ -34,6 +34,7 @@
     "HP-TransparentReflection":"",
     "HP-ReflectedObject":"",
     "HP-Shadows":"",
+	"HP-MultipleLightSources":"",
     "HP-HDR":"",
     "HP-CameraKinematics":"",
     "HP-App":"",
