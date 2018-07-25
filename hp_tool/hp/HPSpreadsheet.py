@@ -79,7 +79,8 @@ class HPSpreadsheet(Toplevel):
         self.nb.pack(fill=BOTH, expand=1)
         self.nbtabs = {'main': ttk.Frame(self.nb)}
         self.nb.add(self.nbtabs['main'], text='All Items')
-        self.pt = CustomTable(self.nbtabs['main'], scrollregion=None, width=1024, height=720)
+        self.pt = CustomTable(self.nbtabs['main'], scrollregion=None, width=1024, height=720,
+                              color_cb=self.color_code_cells)
         self.pt.show()
         self.on_main_tab = True
         self.add_tabs()
@@ -117,6 +118,7 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu.add_command(label='Save', command=self.exportCSV, accelerator='ctrl-s')
         self.fileMenu.add_command(label='Validate', command=self.validate)
         self.fileMenu.add_command(label='Export to S3', command=self.s3export)
+        self.fileMenu.add_command(label='Organize Columns', command=self.sort_columns)
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -129,6 +131,8 @@ class HPSpreadsheet(Toplevel):
         self.editMenu.add_command(label='Undo', command=self.undo, accelerator='ctrl-z')
         self.editMenu.add_command(label='Redo', command=self.redo, accelerator='ctrl-y')
         self.config(menu=self.menubar)
+
+        self.pt.bind_columns()
 
     def set_bindings(self):
         self.bind('<Key>', self.keypress)
@@ -222,7 +226,7 @@ class HPSpreadsheet(Toplevel):
         else:
             row = self.tabpt.getSelectedRow()
         type = self.pt.model.getValueAt(row, 32)
-        current_file = str(self.pt.model.getValueAt(row, 0))
+        current_file = str(self.pt.model.getValueAt(row, self.pt.get_col_by_name("ImageFilename")))
 
         self.imName = str(self.pt.model.getValueAt(row, 0) if (type == "image" and "." + self.pt.model.getValueAt(row, 13).lower() not in hp_data.exts['nonstandard']) else self.pt.model.getValueAt(row, 61).split(";")[0])
 
@@ -275,10 +279,12 @@ class HPSpreadsheet(Toplevel):
         else:
             self.update_main()
             headers = tabs[clickedTab]
-            self.tabpt = CustomTable(self.nbtabs[clickedTab], scrollregion=None, width=1024, height=720, rows=0, cols=0)
+            self.tabpt = CustomTable(self.nbtabs[clickedTab], scrollregion=None, width=1024, height=720, rows=0, cols=0,
+                                     color_cb=self.color_code_cells)
             for h in headers:
                 self.tabpt.model.df[h] = self.pt.model.df[h]
             self.tabpt.show()
+            self.tabpt.bind_columns(self.tabpt)
             self.tabpt.redraw()
             self.on_main_tab = False
             self.color_code_cells(self.tabpt)
@@ -588,6 +594,13 @@ class HPSpreadsheet(Toplevel):
         tab.lift('cellrect')
         tab.redraw()
 
+    def sort_columns(self):
+        with open(data_files._HEADERS, "r") as f:
+            headers = json.load(f)["rit"]
+        self.pt.model.df = self.pt.model.df[headers]
+        self.pt.redraw()
+        return
+
     def exportCSV(self, showErrors=True, quiet=False):
         """
         Export the spreadsheet to CSV. DOES NOT EXPORT TO S3 (see s3export).
@@ -599,7 +612,7 @@ class HPSpreadsheet(Toplevel):
             self.nb.select(self.nbtabs['main'])
             self.update_main()
             self.on_main_tab = True
-        self.pt.redraw()
+        self.sort_columns()
         self.pt.doExport(self.ritCSV)
         tmp = self.ritCSV + '-tmp.csv'
         with open(self.ritCSV, 'r') as source:
@@ -612,6 +625,7 @@ class HPSpreadsheet(Toplevel):
         shutil.move(tmp, self.ritCSV)
         self.export_rankOne()
         self.saveState = True
+        self.color_code_cells()
         if not quiet and showErrors:
             msg = tkMessageBox.showinfo('Status', 'Saved! The spreadsheet will now be validated.', parent=self)
         if showErrors:
@@ -1214,8 +1228,9 @@ class CustomTable(pandastable.Table):
     """
     Backend for pandastable. Modify this to change shortcuts, right-click menus, cell movement, etc.
     """
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, color_cb=None, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
+        self.color_cb = color_cb
         self.copied_val = None
 
     def doBindings(self):
@@ -1597,6 +1612,20 @@ class CustomTable(pandastable.Table):
         self.importpath = os.path.dirname(filename)
         return
 
+    def bind_columns(self, tab=None):
+        self.tab = tab
+        self.tablecolheader.bind("<B1-Motion>", self.mouse_drag_with_color_cb)
+
+    def mouse_drag_with_color_cb(self, event):
+        self.tablecolheader.handle_mouse_drag(event)
+        self.tablecolheader.bind("<ButtonRelease-1>", self.release)
+        return
+
+    def release(self, event):
+        self.tablecolheader.handle_left_release(event)
+        self.color_cb(tab=self.tab)
+        self.tablecolheader.bind("<ButtonRelease-1>", self.handle_left_release)
+        return
 
     # right click menu!
     def popupMenu(self, event, rows=None, cols=None, outside=None):
