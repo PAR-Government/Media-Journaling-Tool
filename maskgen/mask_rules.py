@@ -2785,7 +2785,7 @@ class CompositeDelegate:
                                 failure=failure,
                                 finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
-    def _constructDonor(self, node, mask, media_type=None):
+    def _constructDonor(self, node, mask, media_type=None, baseEdge=None):
         """
         Walks up the tree assembling donor masks
         """
@@ -2801,6 +2801,7 @@ class CompositeDelegate:
             edge = self.graph.get_edge(pred, node)
             if mask is None:
                 donorMask = self.__getDonorMaskForEdge((pred, node), returnEmpty=False, media_type=media_type)
+                baseEdge = (pred, node)
             else:
                 donorMask = mAlterDonor(mask,
                                        self.gopLoader.getOperationWithGroups(edge['op'], fake=True),
@@ -2811,8 +2812,8 @@ class CompositeDelegate:
                                        pred_edges=[p for p in pred_edges if p != edge],
                                        graph=self.graph,
                                        maskMemory=self.maskMemory,
-                                       baseEdge=self.edge_id)
-            result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask, media_type=media_type)))
+                                       baseEdge=baseEdge)
+            result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask, media_type=media_type,baseEdge=baseEdge)))
         return result
 
     def __getDonorMaskForEdge(self, edge_id,returnEmpty=True,media_type=None):
@@ -3008,7 +3009,7 @@ class CompositeDelegate:
                         type(startMask) == CompositeImage:
                         donor_masks = {}
                     else:
-                        donor_masks = self._constructDonor(edge_id[0], startMask, media_type=media_type)
+                        donor_masks = self._constructDonor(edge_id[0], startMask, media_type=media_type, baseEdge=edge_id)
                     imageDonorToNodes = self.__processImageDonor(donor_masks)
                     videoDonorToNodes = self.__processVideoDonor(donor_masks)
                     donors.extend(self.__saveDonors(edge_id[1], imageDonorToNodes, self.__imagePreprocess,
