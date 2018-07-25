@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import os
 from test_support import TestSupport
-
+from maskgen.ffmpeg_api import getDuration
 
 def cropForTest(frame,no):
     return frame[100:-100,100:-100,:]
@@ -80,7 +80,6 @@ def singleChannelSample(filename,outfilname,skip=0):
     ftwo.writeframes(framesone[24+skip:192-2+skip:2])
     fone.close()
     ftwo.close()
-
 
 def augmentAudio(filename,outfilname,augmentFunc):
     import wave
@@ -208,9 +207,9 @@ class TestVideoTools(TestSupport):
 
     def test_duration(self):
         expected = 59350
-        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'))
+        duration = getDuration(self.locateFile('tests/videos/sample1.mov'))
         self.assertTrue(abs(duration - expected) < 1)
-        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'),audio=True)
+        duration = getDuration(self.locateFile('tests/videos/sample1.mov'),audio=True)
         self.assertTrue(abs(duration - expected) < 2)
 
     def test_meta(self):
@@ -1114,10 +1113,6 @@ class TestVideoTools(TestSupport):
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr.mov'
-        #meta,frames =  video_tools.getMeta(source, show_streams=True,with_frames=True, media_types=['video'])
-        #frames_source = frames['0']
-        #meta, frames = video_tools.getMeta(target, show_streams=True, with_frames=True, media_types=['video'])
-        #frames_target= frames['0']
         source_set = video_tools.getMaskSetForEntireVideo(source,
                                                       start_time='29',end_time='55')
         target_set = video_tools.getMaskSetForEntireVideoForTuples(target,
@@ -1138,6 +1133,24 @@ class TestVideoTools(TestSupport):
         self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
         self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
         self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        source_mask_set = video_tools._warpMask(new_mask_set, {}, source, target, inverse=True)
+        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error']*2)
+        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
+        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error']*2)
+        new_mask_set = video_tools._warpMask(source_set, {}, source, target,useFFMPEG=True)
+        self.assertTrue(new_mask_set[0]['frames'] == target_set[0]['frames'])
+        self.assertTrue(new_mask_set[0]['endtime'] == target_set[0]['endtime'])
+        self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
+        self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
+        self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        source_mask_set = video_tools._warpMask(new_mask_set, {}, source, target, inverse=True,useFFMPEG=True)
+        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error']*2)
+        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
+        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error']*2)
 
         source_set  = target_set
         source = target

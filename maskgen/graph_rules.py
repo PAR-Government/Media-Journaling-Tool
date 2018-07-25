@@ -19,7 +19,8 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration,getFrameCount
+from ffmpeg_api import getFrameRate, getDuration
+from video_tools import getMeta, getMaskSetForEntireVideo, getFrameCount
 import numpy as np
 from maskgen.validation.core import Severity
 
