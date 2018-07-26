@@ -53,6 +53,7 @@ class HPSpreadsheet(Toplevel):
         self.error_cells = []
         self.needs_temps = ['heic', 'heif']
         self.temps_created = False
+        self.device_type = None
         self.create_widgets()
         self.kinematics = self.load_kinematics()
         self.collections = sorted(hp_data.load_json_dictionary(data_files._COLLECTIONS).keys())
@@ -82,6 +83,7 @@ class HPSpreadsheet(Toplevel):
         self.pt = CustomTable(self.nbtabs['main'], scrollregion=None, width=1024, height=720,
                               color_cb=self.color_code_cells)
         self.pt.show()
+        self.pt.bind_columns()
         self.on_main_tab = True
         self.add_tabs()
         self.nb.bind('<<NotebookTabChanged>>', self.switch_tabs)
@@ -131,8 +133,6 @@ class HPSpreadsheet(Toplevel):
         self.editMenu.add_command(label='Undo', command=self.undo, accelerator='ctrl-z')
         self.editMenu.add_command(label='Redo', command=self.redo, accelerator='ctrl-y')
         self.config(menu=self.menubar)
-
-        self.pt.bind_columns()
 
     def set_bindings(self):
         self.bind('<Key>', self.keypress)
@@ -276,6 +276,7 @@ class HPSpreadsheet(Toplevel):
         if clickedTab == 'All Items':
             self.update_main()
             self.on_main_tab = True
+            self.pt.bind_columns()
         else:
             self.update_main()
             headers = tabs[clickedTab]
@@ -530,19 +531,19 @@ class HPSpreadsheet(Toplevel):
         tab.disabled_cells = []
 
         local_id = self.pt.model.getValueAt(0, 9)
-        try:
+        if not self.device_type:
             self.device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
-        except IndexError:
-            self.device_type = None
 
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
+                color_assigned = False
                 colName = list(tab.model.df)[col]
                 fname = self.pt.model.getValueAt(row, 0)
                 currentExt = os.path.splitext(fname)[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
                 if notnans.iloc[row, col] and not colName.startswith("HP"):
+                    color_assigned = True
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
@@ -553,6 +554,7 @@ class HPSpreadsheet(Toplevel):
                          fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and currentExt \
                          in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and \
                          self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
+                    color_assigned = True
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#f3f315',
                                                 outline='#084B8A',
@@ -561,20 +563,19 @@ class HPSpreadsheet(Toplevel):
                         self.highlighted_cells.append((row, col))
                     if (row, col) in tab.disabled_cells:
                         tab.disabled_cells.remove((row, col))
-                if colName in self.disabledColNames:
+                if colName in self.disabledColNames or (colName == "HP-PrimarySecondary" and self.device_type != "CellPhone"):
+                    color_assigned = True
                     rect = tab.create_rectangle(x1, y1, x2, y2,
                                                 fill='#c1c1c1',
                                                 outline='#084B8A',
                                                 tag='cellrect')
                     if (row, col) not in tab.disabled_cells:
                         tab.disabled_cells.append((row, col))
-                elif colName == "HP-PrimarySecondary" and self.device_type != "CellPhone":
+                if not color_assigned:
                     rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                fill='#c1c1c1',
+                                                fill="#fff",
                                                 outline='#084B8A',
                                                 tag='cellrect')
-                    if (row, col) not in tab.disabled_cells:
-                        tab.disabled_cells.append((row, col))
 
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
@@ -595,10 +596,15 @@ class HPSpreadsheet(Toplevel):
         tab.redraw()
 
     def sort_columns(self):
+        if not self.on_main_tab:
+            self.nb.select(self.nbtabs['main'])
+            self.update_main()
+            self.on_main_tab = True
         with open(data_files._HEADERS, "r") as f:
             headers = json.load(f)["rit"]
         self.pt.model.df = self.pt.model.df[headers]
         self.pt.redraw()
+        self.color_code_cells()
         return
 
     def exportCSV(self, showErrors=True, quiet=False):
@@ -608,10 +614,6 @@ class HPSpreadsheet(Toplevel):
         :param quiet: boolean, set True to skip message dialog pop-ups
         :return: True if cancelled, None otherwise
         """
-        if not self.on_main_tab:
-            self.nb.select(self.nbtabs['main'])
-            self.update_main()
-            self.on_main_tab = True
         self.sort_columns()
         self.pt.doExport(self.ritCSV)
         tmp = self.ritCSV + '-tmp.csv'
@@ -1623,7 +1625,8 @@ class CustomTable(pandastable.Table):
 
     def release(self, event):
         self.tablecolheader.handle_left_release(event)
-        self.color_cb(tab=self.tab)
+        if self.color_cb:
+            self.color_cb(tab=self.tab)
         self.tablecolheader.bind("<ButtonRelease-1>", self.handle_left_release)
         return
 
