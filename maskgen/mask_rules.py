@@ -1476,6 +1476,24 @@ def move_transform(buildState):
         return res
     return buildState.edgeMask
 
+def ca_fill(buildState):
+    """
+       :param buildState:
+       :return: updated composite mask
+       @type buildState: BuildState
+       @rtype: np.ndarray
+       """
+    if buildState.isComposite:
+        args = buildState.arguments()
+        if 'purpose' in args and args['purpose'] == 'remove':
+            buildState.compositeMask[buildState.edgeMask == 0] = 0
+        return buildState.compositeMask
+    else:
+        args = buildState.arguments()
+        if 'purpose' in args and args['purpose'] in ['remove']:
+            buildState.donorMask[buildState.edgeMask == 0] = 0
+        return buildState.donorMask
+
 def paste_sampled(buildState):
     """
     :param buildState:
@@ -1488,7 +1506,11 @@ def paste_sampled(buildState):
         if 'purpose' in args and args['purpose'] == 'remove':
             buildState.compositeMask[buildState.edgeMask==0] = 0
         return buildState.compositeMask
-    return buildState.donorMask
+    else:
+        args = buildState.arguments()
+        if 'purpose' in args and args['purpose'] in ['remove']:
+            buildState.donorMask[buildState.edgeMask == 0] = 0
+        return buildState.donorMask
 
 def paste_splice(buildState):
     """
