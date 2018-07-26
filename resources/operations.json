@@ -1359,7 +1359,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkMetaDate"
+        "checkMetaDate",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {},
       "description": "Alter image metadata.",
@@ -1489,7 +1490,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {},
       "description": "Apply artificial lens distortion",
@@ -1508,7 +1510,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1532,7 +1535,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1560,7 +1564,8 @@
       },
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {
       },
@@ -1624,7 +1629,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
