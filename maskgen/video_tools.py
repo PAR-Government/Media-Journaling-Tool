@@ -2866,6 +2866,12 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
         change['endtime'] = apply_change(mask_set['endtime'], float(sourceTime),targetTime, inverse=inverse, round_value=False)
         change['endframe'],error_end = apply_change(mask_set['endframe'], float(sourceFrames),float(targetFrames), inverse=inverse,
                                               round_value=True)
+        try:
+            if change['endframe'] == int(getValue(meta_o[int(index_o)],'nb_frames',0)) and \
+               float(getValue(meta_o[int(index_o)], 'duration', 0)) > 0:
+              change['endtime'] =  float(getValue(meta_o[int(index_o)], 'duration', 0)) * 1000.0
+        except:
+            pass
         change['error'] = getValue(mask_set,'error',0) + (max(error_start, error_end) * targetRate)
         change['frames'] = change['endframe'] - change['startframe'] + 1
         new_mask_set.append(change)

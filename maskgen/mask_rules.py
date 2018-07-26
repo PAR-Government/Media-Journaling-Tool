@@ -655,6 +655,7 @@ def copy_exif(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     orientrotate = video_tools.get_video_orientation_change(getNodeFile(
         buildState.graph,buildState.source),getNodeFile(buildState.graph,buildState.target))
     if buildState.isComposite:
