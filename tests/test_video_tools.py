@@ -218,6 +218,10 @@ class TestVideoTools(TestSupport):
         meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'),show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
 
+
+    def test_orientation(self):
+        video_tools.get_video_orientation_change('sample1_ffr.mov','sample1_ffr.mov')
+
     def test_frame_count(self):
 
         result = video_tools.getFrameCount('sample1_ffr.mov',(0,21),(0,593))

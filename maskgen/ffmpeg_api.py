@@ -227,7 +227,7 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
         frames = runProbeWithFrames(processFrames,args='-show_frames')
     else:
         frames = {}
-    args = '-show_streams' + ' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else ''
+    args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
     if show_streams:
         meta = runProbe(processMetaStreams, args=args)
     else:
