@@ -81,7 +81,9 @@ class QAProjectDialog(Toplevel):
     def getFileNameForNode(self, nodeid):
         try:
             fn = self.scModel.getFileName(nodeid)
-            self.lookup[fn] = nodeid
+            if fn not in self.lookup:
+                self.lookup[fn] = []
+            self.lookup[fn].append(nodeid)
         except TypeError:
             fn = None
             logging.getLogger('maskgen').warn("Unable to locate File for node with Id {}".format(nodeid))
@@ -154,7 +156,9 @@ class QAProjectDialog(Toplevel):
             self.finNodes = list(set(self.finNodes))
 
             for end in self.finNodes:
-                n = self.lookup[end]
+                for n in self.lookup[end]:
+                    if n in self.scModel.finalNodes():
+                        break
                 self.backs[end] = []
                 next = self.getPredNode(n)
                 while next != None:
@@ -340,11 +344,11 @@ class QAProjectDialog(Toplevel):
 
         if (len(t.split('->'))>1):
             probe = [probe for probe in self.probes if
-                 probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[self.edgeTuple[1]]][0]
+                 probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.finalNodeId in self.lookup[self.edgeTuple[1]]][0]
         else:
             probe = \
             [probe for probe in self.probes if
-             probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId ==
+             probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId in
              self.lookup[
                  self.edgeTuple[1]]][0]
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
@@ -364,10 +368,10 @@ class QAProjectDialog(Toplevel):
         prolist = []
         for p in self.probes:
             if (self.finalNodeName == None):
-                if p.donorBaseNodeId is not None and self.getFileNameForNode(p.donorBaseNodeId) == self.edgeTuple[1]:
+                if p.donorBaseNodeId is not None and  self.edgeTuple[1] in self.getFileNameForNode(p.donorBaseNodeId):
                     prolist.append(p)
             else:
-                if (self.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
+                if ( self.edgeTuple[1] in self.getFileNameForNode(p.finalNodeId)):
                     prolist.append(p)
         try:
             tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
@@ -388,7 +392,7 @@ class QAProjectDialog(Toplevel):
             count += 1
             col = 2
             cur = False
-            if (self.lookup[self.edgeTuple[0]] == p.edgeId[1]):
+            if (p.edgeId[1] in self.lookup[self.edgeTuple[0]]):
                 col = 1
                 cur = True
             if self.finalNodeName == None:
@@ -491,11 +495,11 @@ class QAProjectDialog(Toplevel):
             self.finalNodeName = None
         if (len(t.split('->'))>1):
             probe = [probe for probe in self.probes if
-                 probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[self.edgeTuple[1]]][0]
+                 probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.finalNodeId in self.lookup[self.edgeTuple[1]]][0]
         else:
             probe = \
             [probe for probe in self.probes if
-             probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId ==
+             probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId in
              self.lookup[
                  self.edgeTuple[1]]][0]
         success = tool_set.get_icon('RedX.png') if probe.failure else tool_set.get_icon('check.png')
@@ -695,7 +699,7 @@ class QAProjectDialog(Toplevel):
         message = 'final image'
         if (len(t.split('->')) > 1):
             probe = [probe for probe in self.probes if
-                     probe.edgeId[1] == self.lookup[self.edgeTuple[0]] and probe.finalNodeId == self.lookup[
+                     probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.finalNodeId in self.lookup[
                          self.edgeTuple[1]]][0]
             n = self.parent.scModel.G.get_node(probe.finalNodeId)
             finalFile = os.path.join(self.parent.scModel.G.dir,
@@ -709,7 +713,7 @@ class QAProjectDialog(Toplevel):
         else:
             message = 'donor'
             probe = \
-        [probe for probe in self.probes if probe.edgeId[1] == self.lookup[edgeTuple[0]] and probe.donorBaseNodeId == self.lookup[edgeTuple[1]]][0]
+        [probe for probe in self.probes if probe.edgeId[1] in self.lookup[edgeTuple[0]] and probe.donorBaseNodeId in self.lookup[edgeTuple[1]]][0]
             n = self.scModel.G.get_node(probe.donorBaseNodeId)
             finalFile = os.path.join(self.scModel.G.dir,
                                  self.scModel.G.get_node(probe.donorBaseNodeId)['file'])
