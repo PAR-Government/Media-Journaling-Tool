@@ -614,7 +614,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                         mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple))
                 else:
                     # input provides frames, so assume constant frame rate as time is just a reference point
-                    mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
+                    mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple if end_time_tuple is not None else (0,1)))
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
@@ -2907,8 +2907,8 @@ def get_video_orientation_change(source, target):
     source_data = getMeta(source, show_streams=True)[0]
     donor_data = getMeta(target, show_streams=True)[0]
 
-    source_channel_data = source_data[ffmpeg_api.getStreamindexesOfType(source_data, 'video')[0]]
-    target_channel_data = donor_data[ffmpeg_api.getStreamindexesOfType(donor_data, 'video')[0]]
+    source_channel_data = source_data[int(ffmpeg_api.getStreamindexesOfType(source_data, 'video')[0])]
+    target_channel_data = donor_data[int(ffmpeg_api.getStreamindexesOfType(donor_data, 'video')[0])]
 
     return int(__get_metadata_item(target_channel_data, 'rotation', 0)) - int(__get_metadata_item(source_channel_data, 'rotation', 0))
 
