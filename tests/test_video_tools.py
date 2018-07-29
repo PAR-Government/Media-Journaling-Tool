@@ -309,6 +309,16 @@ class TestVideoTools(TestSupport):
         self.assertEqual(59500.0, result[0]['endtime'])
         self.assertEqual('video', result[0]['type'])
 
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_slow.mov'),
+                                                      start_time='00:00:02.01')  # Constant FR
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(2000.0, result[0]['starttime'])
+        self.assertEqual(21, result[0]['startframe'])
+        self.assertEqual(576, result[0]['frames'])
+        self.assertEqual(596, result[0]['endframe'])
+        self.assertEqual(59500.0, result[0]['endtime'])
+        self.assertEqual('video', result[0]['type'])
+
         result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_swap.mov'),
                                                       start_time='00:00:02.01', end_time='00:00:59.29')  # Variable FR, swapped streams, fails to grab all frames
         self._add_mask_files_to_kill(result)

@@ -2931,8 +2931,8 @@ def get_video_orientation_change(source, target):
     source_data = getMeta(source, show_streams=True)[0]
     donor_data = getMeta(target, show_streams=True)[0]
 
-    source_channel_data = source_data[ffmpeg_api.getStreamindexesOfType(source_data, 'video')[0]]
-    target_channel_data = donor_data[ffmpeg_api.getStreamindexesOfType(donor_data, 'video')[0]]
+    source_channel_data = source_data[int(ffmpeg_api.getStreamindexesOfType(source_data, 'video')[0])]
+    target_channel_data = donor_data[int(ffmpeg_api.getStreamindexesOfType(donor_data, 'video')[0])]
 
     return int(__get_metadata_item(target_channel_data, 'rotation', 0)) - int(__get_metadata_item(source_channel_data, 'rotation', 0))
 

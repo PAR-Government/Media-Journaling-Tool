@@ -171,6 +171,16 @@ def processMeta(stream,errorstream):
 
 def getMeta(file, with_frames=False, show_streams=False,media_types=['video','audio'],extras=None):
 
+    def realignMeta(metas):
+        result = []
+        max_position = max([int(getValue(meta,'index',0)) for meta in metas])
+        for i in range(max_position+1):
+            matches = [meta for meta in metas if int(getValue(meta, 'index', 0)) == i]
+            if len(matches) == 0:
+                result.append({'codec_type':'na','index':str(i)})
+            else:
+                result.append(matches[0])
+        return result
     def runProbeWithFrames(func, args=None):
         if len(media_types) == 1:
             ffmpegcommand = [getFFprobeTool(),'-select_streams',media_types[0][0]]
@@ -227,11 +237,11 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
         frames = runProbeWithFrames(processFrames,args='-show_frames')
     else:
         frames = {}
-    args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
     if show_streams:
-        meta = runProbe(processMetaStreams, args=args)
+        args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
+        meta = realignMeta(runProbe(processMetaStreams, args=args))
     else:
-        meta = runProbe(processMeta, args=args)
+        meta = runProbe(processMeta, args='')
 
     return meta, frames
 
