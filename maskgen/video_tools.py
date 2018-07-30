@@ -497,7 +497,7 @@ def getShape(video_file):
     return width,height
 
 def getFrameCountOnly(video_file):
-    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types='video')
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types=['video'])
     index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
     return len(frames[index])
 
@@ -507,7 +507,7 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     startcomplete = False
     framessince_start = 1 if start_time_tuple[0] == 0 else 0
     mask = {'starttime':0,'startframe':1,'endtime':0,'endframe':1,'frames':0,'rate':0}
-    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types='video')
+    meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types=['video'])
     index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
     rate = ffmpeg_api.getVideoFrameRate(meta,frames)
     video_frames = frames[index]
@@ -611,10 +611,13 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                     try:
                        mask.update(maskSetFromConstraints(rate,start_time_tuple,(0, int(item['nb_frames']))))
                     except:
-                        mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple))
-                else:
+                        mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple)) #is this redundant/equal to below?
+                elif end_time_tuple is None:
                     # input provides frames, so assume constant frame rate as time is just a reference point
+                    mask.update(getFrameCount(video_file, start_time_tuple=start_time_tuple))
+                else:
                     mask.update(maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
+
                 mask['mask'] = np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8)
             else:
                 mask['starttime'] = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
