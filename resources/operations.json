@@ -2561,6 +2561,9 @@
       "compareparameters": {
         "tolerance": 0.0001
       },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.ca_fill"
+      },
       "includeInMask": {
         "default": true
       },
