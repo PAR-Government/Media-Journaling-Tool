@@ -444,7 +444,8 @@ class HPSpreadsheet(Toplevel):
         self.booleanColNames = ['HP-OnboardFilter', 'HP-WeakReflection', 'HP-StrongReflection', 'HP-TransparentReflection',
                         'HP-ReflectedObject', 'HP-Shadows', 'HP-HDR', 'HP-Inside', 'HP-Outside', 'HP-MultiInput', 'HP-Echo', 'HP-Modifier', 'HP-MultipleLightSources']
         for b in self.booleanColNames:
-            self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
+            if b in self.pt.model.df:
+                self.booleanColNums.append(self.pt.model.df.columns.get_loc(b))
 
         self.mandatoryImage = []
         self.mandatoryImageNames = ['HP-OnboardFilter', 'HP-HDR', 'HP-DeviceLocalID', 'HP-Inside', 'HP-Outside', 'HP-PrimarySecondary']
@@ -602,7 +603,8 @@ class HPSpreadsheet(Toplevel):
             self.on_main_tab = True
         with open(data_files._HEADERS, "r") as f:
             headers = json.load(f)["rit"]
-        self.pt.model.df = self.pt.model.df[headers]
+        valid = [x for x in headers if x in self.pt.model.df]
+        self.pt.model.df = self.pt.model.df[valid]
         self.pt.redraw()
         self.color_code_cells()
         return
