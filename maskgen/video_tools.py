@@ -611,7 +611,7 @@ def getMaskSetForEntireVideoForTuples(video_file, start_time_tuple=(0,1), end_ti
                     try:
                        mask.update(maskSetFromConstraints(rate,start_time_tuple,(0, int(item['nb_frames']))))
                     except:
-                        mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple)) #is this redundant/equal to below?
+                        mask.update(getFrameCount(video_file,start_time_tuple=start_time_tuple))
                 elif end_time_tuple is None:
                     # input provides frames, so assume constant frame rate as time is just a reference point
                     mask.update(getFrameCount(video_file, start_time_tuple=start_time_tuple))
