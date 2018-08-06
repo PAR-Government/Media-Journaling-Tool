@@ -1689,6 +1689,7 @@ def scale_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     tm = buildState.transformMatrix()
     if buildState.isComposite:
         res = buildState.compositeMask
