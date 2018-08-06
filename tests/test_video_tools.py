@@ -250,6 +250,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(21, result['startframe'])
 
     def test_frame_binding_ffr(self):
+
         result = video_tools.getMaskSetForEntireVideo('sample1_ffr.mov',
                                                       start_time='00:00:02.01',
                                                       end_time='00:00:59.29')
@@ -285,6 +286,14 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2800.0, round(result[0]['endtime']))
         self.assertEqual(29, result[0]['endframe'])
         self.assertEqual(29 - 23 + 1, result[0]['frames'])
+
+        result = video_tools.getMaskSetForEntireVideo('videos/Sample2_ffr.mxf', start_time=21, end_time=None) #ffr vid with 'N/A' nbframes.
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(567.0, round(result[0]['starttime']))
+        self.assertEqual(21, result[0]['startframe'])
+        self.assertEqual(44975.0, round(result[0]['endtime']))
+        self.assertEqual(1350, result[0]['endframe'])
+        self.assertEqual(1350 - 21 + 1, result[0]['frames'])
 
     def test_frame_binding_vfr(self):
 
