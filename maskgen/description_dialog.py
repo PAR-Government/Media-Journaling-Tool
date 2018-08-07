@@ -26,7 +26,7 @@ from maskgen.ui.PictureEditor import PictureEditor
 from maskgen.ui.CompositeViewer import  ScrollCompositeViewer
 from maskgen.validation.core import ValidationMessage,Severity
 from maskgen.ui.semantic_frame import *
-from maskgen.ui.ui_tools import SelectDialog,EntryDialog
+from maskgen.ui.ui_tools import SelectDialog,EntryDialog, TimeFrame
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -247,7 +247,7 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
     """
      argumentTuple is (name,dict(values, type,descriptipn))
      type is list, imagefile, donor, float, int, time.  float and int have a range in the follow format: [-80:80]
-      
+
     """
     res = None
     if argumentTuple[1]['type'] == 'file:image':
@@ -2205,6 +2205,12 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type == 'label':
                widget = Label(master, takefocus=(row==0), width=80, text=prop.information)
                widget.grid(row=row, column=0, columnspan=12, sticky=E + W)
+           elif prop.type.startswith('time:'):
+                micro_frames = prop.type[5:]
+                if micro_frames.startswith("frame"):
+                    widget = TimeFrame(self, microseconds=False)
+                else:
+                    widget = TimeFrame(self)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
