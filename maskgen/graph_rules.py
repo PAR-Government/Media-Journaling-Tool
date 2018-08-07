@@ -287,6 +287,14 @@ def checkFrameTimes(op, graph, frm, to):
         return (Severity.ERROR,'Start Time occurs after End Time')
     return None
 
+def checkFrameRateChange_Strict(op, graph, frm, to):
+    if checkFrameRateChange(op, graph, frm, to):
+        return (Severity.ERROR, 'Frame Rate Changed between nodes')
+
+def checkFrameRateChange_Lenient(op, graph, frm, to):
+    if checkFrameRateChange(op, graph, frm, to):
+        return (Severity.WARNING, 'Frame Rate Changed between nodes')
+
 def checkFrameRateChange(op, graph, frm, to):
     """
 
@@ -296,17 +304,13 @@ def checkFrameRateChange(op, graph, frm, to):
     :param to: str
     :return:
     """
-    """edge = graph.get_edge(frm, to)
-    args = edge['arguments'] if 'arguments' in edge else {}
-    st = None
-    et = None"""
     frm_file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     to_file = os.path.join(graph.dir, graph.get_node(to)['file'])
     from_rate = getFrameRate(frm_file)
     to_rate = getFrameRate(to_file)
     if from_rate != to_rate:
-        return (Severity.WARNING, 'Frame Rate Changed between nodes')
-    return None
+        return True
+    return False
 
 
 def checkCropLength(op, graph, frm, to):

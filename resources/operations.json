@@ -111,7 +111,8 @@
       },
       "rules": [
         "checkFrameTimes",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkAudioChannels"
       ],
       "optionalparameters": {
         "End Time": {
@@ -119,10 +120,6 @@
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": [
-        "checkFrameTimes",
-        "checkAudioChannels"
-      ],
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
       "generateMask": "all",
@@ -835,13 +832,17 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
         }
       },
       "analysisOperations": [
@@ -877,7 +878,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
 
       ],
       "optionalparameters": {
@@ -935,7 +936,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -1360,9 +1361,14 @@
         "checkFileTypeChange",
         "checkSameChannels",
         "checkMetaDate",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
+        }
+      },
       "description": "Alter image metadata.",
       "includeInMask": {
         "default": false
@@ -1491,9 +1497,14 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+        "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
+        }
+      },
       "description": "Apply artificial lens distortion",
       "includeInMask": {
         "default": false
@@ -1511,7 +1522,7 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1536,7 +1547,7 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1565,9 +1576,13 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
+         "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
+        }
       },
       "description": "Add PRNU fingerprint trace, generated from a set of images.",
       "includeInMask": {
@@ -1630,9 +1645,14 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+         "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
+        }
+      },
       "description": "Chromatic Aberration Correction",
       "includeInMask": {
         "default": true
@@ -2724,7 +2744,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2733,8 +2753,7 @@
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule": {
             "purpose": "clone"
-          },
-          "source": "image"
+          }
         },
         "End Time": {
           "type": "time",
@@ -2780,7 +2799,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "type": {
@@ -2832,7 +2851,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2871,7 +2890,7 @@
         "checkForRawFile",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2939,7 +2958,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "gamma": {
@@ -2997,7 +3017,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3043,7 +3063,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3096,7 +3116,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3140,7 +3160,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3189,7 +3209,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3240,7 +3260,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3285,7 +3305,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3333,7 +3353,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3380,7 +3400,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3921,7 +3941,8 @@
         "checkFileTypeChange",
         "check_local",
         "check_pastemask",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "mode": {
@@ -4001,7 +4022,7 @@
         "checkPasteFrameLength",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.paste_add_frames",
@@ -4061,7 +4082,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4132,7 +4153,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4174,12 +4195,13 @@
         "checkLengthBigger",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
-      "optionalparameters": {},
+      "optionalparameters": {
+      },
       "description": "Copy & Paste a series of frames within the same video",
       "includeInMask": {
         "default": true
@@ -4211,9 +4233,10 @@
       "rules": [
         "checkLengthSame",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+      },
       "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": {
         "default": true
@@ -4271,9 +4294,13 @@
       ],
       "rules": [
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
+         "Frame Count": {
+          "type": "int",
+          "description": "Frame Amount Change (due to altered frame rate)"
+        },
         "Capture Printer Make/Model": {
           "type": "text",
           "description": "The brand and make of the Printer used to compose the image"
@@ -4403,7 +4430,7 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4441,7 +4468,7 @@
         "checkSameChannels",
         "checkEmpty",
         "checkCutFrames",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4479,7 +4506,7 @@
         "checkLengthSmaller",
         "checkEmpty",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
       },
@@ -4508,7 +4535,7 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkCropLength",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4568,6 +4595,7 @@
         }
       },
       "rules": [
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
       },
@@ -4641,7 +4669,7 @@
         "checkLengthSame",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4669,8 +4697,7 @@
       "rules": [
         "checkLengthSame",
         "checkFrameTimes",
-        "checkSameChannels",
-        "checkFrameRateChange"
+        "checkSameChannels"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -4723,7 +4750,7 @@
         "checkLengthSame",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -4761,7 +4788,7 @@
         "checkLengthSame",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Start Time": {
@@ -4808,7 +4835,7 @@
       "rules": [
         "checkFrameTimes",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Smoothing": {
@@ -4873,7 +4900,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -4912,7 +4939,7 @@
         "checkUncompressed",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -4971,7 +4998,7 @@
         "checkUncompressed",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -5031,7 +5058,7 @@
         "checkCropSize",
         "check_eight_bit",
         "checkSameChannels",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "location": {
@@ -5113,7 +5140,7 @@
         "checkUncompressed",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5178,7 +5205,7 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5231,7 +5258,7 @@
         "checkEmpty",
         "checkMoveMask",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -5313,7 +5340,7 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5381,7 +5408,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "homography": {
@@ -5445,7 +5473,7 @@
         "checkUncompressed",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -5497,7 +5525,7 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkEmpty",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5586,7 +5614,7 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5648,7 +5676,7 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5711,7 +5739,7 @@
         "checkFrameTimeAlignment",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5835,7 +5863,7 @@
       "rules": [
         "checkSameChannels",
         "checkHomography",
-        "checkFrameRateChange"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Homography": {
