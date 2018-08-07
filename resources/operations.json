@@ -111,8 +111,7 @@
       },
       "rules": [
         "checkFrameTimes",
-        "checkAudioTimeFormat",
-        "checkAudioChannels"
+        "checkAudioTimeFormat"
       ],
       "optionalparameters": {
         "End Time": {
@@ -839,10 +838,6 @@
           "type": "time",
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
         }
       },
       "analysisOperations": [
@@ -878,7 +873,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
 
       ],
       "optionalparameters": {
@@ -1360,15 +1355,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkMetaDate",
-        "checkFrameRateChange_Lenient"
+        "checkMetaDate"
       ],
-      "optionalparameters": {
-        "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
-        }
-      },
       "description": "Alter image metadata.",
       "includeInMask": {
         "default": false
@@ -1496,15 +1484,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkEmpty"
       ],
-      "optionalparameters": {
-        "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
-        }
-      },
       "description": "Apply artificial lens distortion",
       "includeInMask": {
         "default": false
@@ -1522,7 +1503,7 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1547,7 +1528,7 @@
         "checkSize",
         "check_eight_bit",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1576,14 +1557,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
-      "optionalparameters": {
-         "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
-        }
-      },
       "description": "Add PRNU fingerprint trace, generated from a set of images.",
       "includeInMask": {
         "default": false
@@ -1624,7 +1599,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {},
       "description": "Remove effects of manipulations depending on the GAN model and architecture",
@@ -1647,12 +1623,6 @@
         "checkEmpty",
         "checkFrameRateChange_Lenient"
       ],
-      "optionalparameters": {
-         "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
-        }
-      },
       "description": "Chromatic Aberration Correction",
       "includeInMask": {
         "default": true
@@ -2744,7 +2714,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2799,7 +2769,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "type": {
@@ -2851,7 +2821,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2890,7 +2860,7 @@
         "checkForRawFile",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2959,7 +2929,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "gamma": {
@@ -3017,7 +2987,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3063,7 +3033,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3116,7 +3086,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3160,7 +3130,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3209,7 +3179,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3260,7 +3230,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3305,7 +3275,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3353,7 +3323,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3400,7 +3370,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3942,7 +3912,7 @@
         "check_local",
         "check_pastemask",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "mode": {
@@ -4082,7 +4052,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4153,7 +4123,7 @@
         "checkVideoMasks",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4293,14 +4263,9 @@
         "maskgen.tool_set.siftAnalysis"
       ],
       "rules": [
-        "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkEmpty"
       ],
       "optionalparameters": {
-         "Frame Count": {
-          "type": "int",
-          "description": "Frame Amount Change (due to altered frame rate)"
-        },
         "Capture Printer Make/Model": {
           "type": "text",
           "description": "The brand and make of the Printer used to compose the image"
@@ -4430,7 +4395,7 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -4900,7 +4865,7 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -4998,7 +4963,7 @@
         "checkUncompressed",
         "checkEmpty",
         "checkHomography",
-        "checkFrameRateChange_Lenient"
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "homography": {

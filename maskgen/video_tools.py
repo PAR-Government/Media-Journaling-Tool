@@ -2211,6 +2211,7 @@ def dropFramesFromMask(bounds,
                             change['endframe'] = frame_count - 1
                             change['frames'] = change['endframe']-change['startframe']+1
                             change['rate'] = rate
+                            change['error'] = getValue(mask_set, 'error', 0)
                             change['videosegment'] = writer.filename
                             new_mask_set.append(change)
                             writer.release()
@@ -2243,6 +2244,7 @@ def dropFramesFromMask(bounds,
                     change['endframe'] = mask_set['endframe'] - elapsed_count
                     change['frames'] = written_count
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['videosegment'] = writer.filename
                     new_mask_set.append(change)
                     writer.release()
@@ -2312,6 +2314,7 @@ def dropFramesWithoutMask(bounds,
                 change['endframe'] = mask_set['startframe'] + start_diff_frame - 1
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['rate'] = rate
+                change['error'] = getValue(mask_set, 'error', 0)
                 new_mask_set.append(change)
             if drop_ef is not None:
                  end_diff_frame = drop_ef  - mask_ef
@@ -2323,6 +2326,7 @@ def dropFramesWithoutMask(bounds,
                         change['starttime'] = bound['endtime']
                         change['startframe'] = drop_ef
                         change['type'] = mask_set['type']
+                        change['error'] = getValue(mask_set, 'error', 0)
                         change['endframe'] = mask_set['endframe']
                         change['endtime'] = mask_set['endtime']
                         change['frames'] = change['endframe'] - change['startframe']  + 1
@@ -2338,6 +2342,7 @@ def dropFramesWithoutMask(bounds,
                         change['endframe'] = mask_set['endframe'] -  end_adjust_frame
                         change['frames'] = change['endframe'] - change['startframe'] + 1
                         change['type'] = mask_set['type']
+                        change['error'] = getValue(mask_set, 'error', 0)
                     change['rate'] = rate
                     new_mask_set.append(change)
         return new_mask_set
@@ -2420,6 +2425,7 @@ def insertFramesToMask(bounds,
                         change['endframe'] = startcount + written_count - 1
                         change['frames'] = written_count
                         change['rate'] = rate
+                        change['error'] = getValue(mask_set, 'error', 0)
                         change['type'] = mask_set['type']
                         change['videosegment'] = writer.filename
                         new_mask_set.append(change)
@@ -2448,6 +2454,7 @@ def insertFramesToMask(bounds,
                     change['endframe'] = startcount + written_count - 1
                     change['frames'] = written_count
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['type'] = mask_set['type']
                     change['videosegment'] = writer.filename
                     new_mask_set.append(change)
@@ -2475,6 +2482,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['startframe'] = composite_mask_set['startframe']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = edge_video_mask['starttime'] - 1000.0/composite_mask_set['rate']
         change['endframe'] = edge_video_mask['startframe'] -1
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2486,6 +2494,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['endtime'] - time_left_over + 1000.0/composite_mask_set['rate']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = edge_video_mask['endtime']
         change['endframe'] = edge_video_mask['endframe']
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2500,6 +2509,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['starttime']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = change['starttime'] + diff_time
         change['endframe'] = change['startframe'] + diff_frame
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2509,6 +2519,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['endtime'] + 1000.0/composite_mask_set['rate']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = composite_mask_set['endtime']
         change['endframe'] = composite_mask_set['endframe']
         change['frames'] = change['endframe'] - change['startframe'] +1
@@ -2547,6 +2558,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['startframe'] = mask_set['startframe']
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     frame_count = mask_set['startframe']
                     for i in range(edge_video_mask['startframe']-frame_count):
                         frame_time = reader.current_frame_time()
@@ -2588,6 +2600,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     frame_time = change['starttime']
                     frame_count = change['startframe']
                     diff_time = (change['endtime'] - change['starttime'])/(change['frames'] - 1)
@@ -2611,6 +2624,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     while True:
                         frame_time = reader.current_frame_time()
                         frame_count = reader.current_frame()
@@ -2658,6 +2672,7 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         change['frames'] = mask_set['frames']
         change['type'] = mask_set['type']
         change['rate'] = mask_set['rate']
+        change['error'] = getValue(mask_set, 'error', 0)
         change['videosegment'] = mask_set['videosegment']
         mask_file_name = mask_set['videosegment']
         reader = tool_set.GrayBlockReader(mask_set['videosegment'])
@@ -2832,7 +2847,7 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
                 while hitspos < len(hits) and aptime > hits[hitspos][0]:
                     mask = hits[hitspos][2]
                     element = hits[hitspos][1]
-                    error = max(last - hits[hitspos][0], aptime - hits[hitspos][0])
+                    error = max(abs(last - hits[hitspos][0]), abs(aptime - hits[hitspos][0]))
                     if element == 'starttime':
                         mask['starttime'] = last
                         mask['startframe'] = frmcnt
@@ -3100,6 +3115,7 @@ def insertFramesWithoutMask(bounds,
                 change['endframe'] = mask_set['startframe'] + start_diff_count - 1
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['type'] = mask_set['type']
+                change['error'] = getValue(mask_set,'error',0)
                 change['rate'] = rate
                 new_mask_set.append(change)
                 if end_adjust_count >= 0:
@@ -3110,6 +3126,7 @@ def insertFramesWithoutMask(bounds,
                     change['endframe'] = mask_set['endframe'] + end_adjust_count
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['type'] = mask_set['type']
                     new_mask_set.append(change)
             elif end_adjust_count >= 0:
@@ -3118,6 +3135,7 @@ def insertFramesWithoutMask(bounds,
                 change['startframe'] = mask_set['startframe'] + end_adjust_count
                 change['endtime'] = mask_set['endtime'] + end_adjust_time
                 change['endframe'] = mask_set['endframe'] + end_adjust_count
+                change['error'] = getValue(mask_set, 'error', 0)
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['rate'] = rate
                 change['type'] = mask_set['type']

@@ -49,19 +49,25 @@ def upload_projects(s3dir, dir, qa, username, organization, error_writer, update
             scModel.setProjectData('organization', organization)
             scModel.save()
         processProjectProperties(scModel)
+
         if qa:
             username = username if username is not None else get_username()
             scModel.set_validation_properties("yes", username, "QA redone via Batch Updater")
+
         errors = scModel.validate(external=True)
         for err in errors:
             error_writer.writerow((scModel.getName(), err.Severity.name,err.Start,err.End,err.Message))
-        if not ignore_errors and hasErrorMessages(errors,  contentCheck=lambda x: len([m for m in redactions if m not in x]) == 0 ):
-	    logging.getLogger('maskgen').error('Validaiton Errors for {}'.format(scModel.getName()))
+
+        if not ignore_errors and \
+           hasErrorMessages(errors,  contentCheck=lambda x: len([m for m in redactions if m not in x]) == 0 ):
+            logging.getLogger('maskgen').error('Validation Errors for {}'.format(scModel.getName()))
             continue
+
         if s3dir is None:
             error_list = scModel.export('.')
         else:
             error_list = scModel.exporttos3(s3dir, redacted=redactions)
+
         if len(error_list) > 0:
             for err in error_list:
                 print (err)

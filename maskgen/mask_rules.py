@@ -57,7 +57,7 @@ class VideoSegment:
     filename = None
     media_type = None
 
-    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type):
+    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type, error):
         """
 
         :param rate:
@@ -76,6 +76,7 @@ class VideoSegment:
         @type frames : int
         @type filename : str
         @type media_type : str
+        @type error : float
         """
         self.rate = rate
         self.startframe = startframe
@@ -85,6 +86,7 @@ class VideoSegment:
         self.frames = frames
         self.filename = filename
         self.media_type = media_type
+        self.error = error
 
 class Probe:
     edgeId = None
@@ -312,8 +314,9 @@ def _compositeImageToVideoSegment(compositeImage):
                          video_tools.getEndTimeFromSegment(item),
                          video_tools.getEndFrameFromSegment(item),
                          video_tools.getFramesFromSegment(item),
-                         item['videosegment'] if 'videosegment' in item else None,
-                         item['type']) for item in compositeImage.videomasks]
+                         getValue(item, 'videosegment',None),
+                         getValue(item,'type','video'),
+                         getValue(item,'error',0)) for item in compositeImage.videomasks]
 
 
 def _is_empty_composite(composite):

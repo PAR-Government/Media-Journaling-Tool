@@ -31,10 +31,10 @@ def append_segment(row, segment):
     @type segment: VideoSegment
     """
     if segment is None:
-        return row + ['', '', '', '', '', '', '', '']
+        return row + ['', '', '', '', '', '', '', '','']
     return row + [segment.media_type, '' if segment.filename is None else os.path.basename(segment.filename),
                   segment.startframe, segment.endframe, segment.frames,
-                  segment.starttime, segment.endtime, segment.rate]
+                  segment.starttime, segment.endtime, segment.rate, segment.error]
 
 
 def archive_probes(project, directory='.', archive=True, reproduceMask= True):
