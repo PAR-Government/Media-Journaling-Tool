@@ -4030,6 +4030,7 @@
       },
       "rules": [
         "checkForDonor",
+        "checkForSelectFrames",
         "checkLengthSame",
         "checkFrameTimes",
         "check_local",
