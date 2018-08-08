@@ -2208,9 +2208,10 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type.startswith('time:'):
                 micro_frames = prop.type[5:]
                 if micro_frames.startswith("frame"):
-                    widget = TimeFrame(self, microseconds=False)
+                    widget = TimeFrame(master, microseconds=False)
                 else:
-                    widget = TimeFrame(self)
+                    widget = TimeFrame(master)
+                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
