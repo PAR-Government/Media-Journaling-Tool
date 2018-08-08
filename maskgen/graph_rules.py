@@ -870,6 +870,26 @@ def checkOverlay(op, graph, frm, to):
     if getValue(edge,'arguments.add type') in ['overlay','replace']:
         return checkDurationAudio(op, graph, frm, to)
 
+def checkForSelectFrames(op, graph, frm, to):
+    """
+         :param op:
+         :param graph:
+         :param frm:
+         :param to:
+         :return:
+         @type op: Operation
+         @type graph: ImageGraph
+         @type frm: str
+         @type to: str
+    """
+    pred = graph.predecessors(to)
+    if len(pred) < 2:
+        return (Severity.ERROR,'donor image missing')
+    donor = pred[0] if pred[1] == frm else pred[1]
+    if not graph.findOp(donor, 'SelectRegionFromFrames'):
+        return (Severity.WARNING, 'SelectRegionFromFrames missing on path to donor')
+    return None
+
 def checkDurationAudio(op, graph, frm, to):
     """
          :param op:
