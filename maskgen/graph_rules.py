@@ -19,7 +19,8 @@ from image_graph import ImageGraph
 import os
 import exif
 import logging
-from video_tools import getFrameRate, getMeta, getMaskSetForEntireVideo, getDuration,getFrameCount
+from ffmpeg_api import getFrameRate, getDuration
+from video_tools import getMeta, getMaskSetForEntireVideo, getFrameCount
 import numpy as np
 from maskgen.validation.core import Severity
 
@@ -285,6 +286,31 @@ def checkFrameTimes(op, graph, frm, to):
     if st[0] > et[0] or (st[0] == et[0] and st[1] > et[1] and st[1] > 0):
         return (Severity.ERROR,'Start Time occurs after End Time')
     return None
+
+def checkFrameRateChange_Strict(op, graph, frm, to):
+    if checkFrameRateChange(op, graph, frm, to):
+        return (Severity.ERROR, 'Frame Rate Changed between nodes')
+
+def checkFrameRateChange_Lenient(op, graph, frm, to):
+    if checkFrameRateChange(op, graph, frm, to):
+        return (Severity.WARNING, 'Frame Rate Changed between nodes')
+
+def checkFrameRateChange(op, graph, frm, to):
+    """
+
+    :param op: Operation
+    :param graph: ImageGraph
+    :param frm: str
+    :param to: str
+    :return:
+    """
+    frm_file = os.path.join(graph.dir, graph.get_node(frm)['file'])
+    to_file = os.path.join(graph.dir, graph.get_node(to)['file'])
+    from_rate = getFrameRate(frm_file)
+    to_rate = getFrameRate(to_file)
+    if from_rate != to_rate:
+        return True
+    return False
 
 
 def checkCropLength(op, graph, frm, to):

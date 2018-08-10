@@ -163,6 +163,24 @@ def fileTypeChanged(file_one, file_two):
         return os.path.splitext(file_one)[1].lower() != os.path.splitext(file_two)[1].lower()
 
 
+def runCommand(command,outputCollector=None):
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    errors = []
+    if p.returncode == 0:
+        if outputCollector is not None:
+            for line in stdout.splitlines():
+                outputCollector.append(line)
+    if p.returncode != 0:
+        try:
+            if stderr is not None:
+                for line in stderr.splitlines():
+                    if len(line) > 2:
+                        errors.append(line)
+        except OSError as e:
+            errors.append(str(e))
+    return errors
+
 def getFFmpegTool():
     return ffmpeg_api.getFFmpegTool();
 

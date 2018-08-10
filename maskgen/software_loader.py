@@ -292,13 +292,14 @@ def loadOperationJSON(fileName):
     :return:
     @rtype: dict of str:Operation
     """
-    operations = {}
+    from collections import OrderedDict
+    operations = OrderedDict()
     fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
         ops = json.load(f)
         for op in ops['operations']:
             operations[op['name']] = Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
-                                        rules=op['rules'], optionalparameters=op['optionalparameters'],
+                                        rules=op['rules'], optionalparameters=op['optionalparameters'] if 'optionalparameters' in op else {},
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
                                         generateMask=op['generateMask'] if 'generateMask' in op else "all",

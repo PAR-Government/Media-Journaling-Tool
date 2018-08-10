@@ -31,6 +31,7 @@ def validate_export(error_writer,project, sm):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-u', '--username', help="optional username", required=False)
     parser.add_argument('--projects', help='Directory of projects')
     args = parser.parse_args()
     initialize(username=args.username)

@@ -501,11 +501,19 @@ def getFrameCountOnly(video_file):
     index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
     return len(frames[index])
 
+def _get_frame_time(video_frame, last_time, rate):
+    try:
+        return float(video_frame['pkt_pts_time']) * 1000
+    except:
+        try:
+            return float(video_frame['pkt_dts_time']) * 1000
+        except:
+            return last_time + rate
+
 @cached(count_cache,lock=meta_lock)
 def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     frmcnt = 0
     startcomplete = False
-    framessince_start = 1 if start_time_tuple[0] == 0 else 0
     mask = {'starttime':0,'startframe':1,'endtime':0,'endframe':1,'frames':0,'rate':0}
     meta, frames = getMeta(video_file, show_streams=True, with_frames=True, media_types=['video'])
     index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
@@ -516,13 +524,7 @@ def getFrameCount(video_file,start_time_tuple=(0,1),end_time_tuple=None):
     lasttime = 0
     for pos in range(1,len(video_frames)):
         frmcnt += 1
-        try:
-            aptime = float(video_frames[pos]['pkt_pts_time']) * 1000
-        except:
-            try:
-                aptime = float(video_frames[pos]['pkt_dts_time']) * 1000
-            except:
-                aptime += rate
+        aptime = _get_frame_time(video_frames[pos], aptime, rate)
         time_manager.updateToNow(aptime)
         if not time_manager.beforeStartTime and not startcomplete:
                 startcomplete = True
@@ -1029,7 +1031,7 @@ def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=N
         return input_filename
     # file has video, determine the codec of the video
     index = indices[0]
-    codec = getValue(one_meta[int(index)],'codec_long_name',getValue(one_meta[int(index)],'codec_name','raw'))
+    codec = getValue(one_meta[int(index)],'codec_long_name',getValue(one_meta[int(index)],'codec_name', 'raw'))
     # is compressed?
     execute_compress = 'raw' in codec and not input_filename.endswith('_compressed.' + suffix)
 
@@ -1078,67 +1080,9 @@ def outputRaw(input_filename, output_filename):
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(input_filename, str(e)))
     return None
 
-def _runCommand(command,outputCollector=None):
-    p = Popen(command, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate()
-    errors = []
-    if p.returncode == 0:
-        if outputCollector is not None:
-            for line in stdout.splitlines():
-                outputCollector.append(line)
-    if p.returncode != 0:
-        try:
-            if stderr is not None:
-                for line in stderr.splitlines():
-                    if len(line) > 2:
-                        errors.append(line)
-        except OSError as e:
-            errors.append(str(e))
-    return errors
-
-def getFrameAttribute(fileOne, attribute, default=None, audio=False):
-    ffmpegcommand = tool_set.getFFprobeTool()
-    results = []
-    errors = _runCommand([ffmpegcommand,
-                          '-show_entries', 'stream={},codec_type'.format(attribute),
-                          fileOne],
-                         outputCollector=results)
-    if len(results) > 0:
-        streams = []
-        for result in results:
-            if result.find('[STREAM]') >= 0:
-                streams.append(dict())
-                continue
-            parts = result.split('=')
-            if len(parts) < 2:
-                continue
-            streams[-1][parts[0]] = parts[1]
-        for stream in streams:
-            if (audio and stream['codec_type'] == 'audio') or \
-                    (not audio and stream['codec_type'] != 'audio'):
-                return stream[attribute]
-
-    return default
-
-def getFrameRate(fileOne, default=None, audio=False):
-    rate = getFrameAttribute(fileOne, 'sample_rate' if audio else 'r_frame_rate', default=None, audio=audio)
-    if rate is None:
-        return default
-    if len(rate) == 1 and float(rate[0]) > 0:
-        return float(rate[0])
-    if len(rate) == 2 and float(rate[1]) > 0:
-        return float(rate[0]) / float(rate[1])
-    return default
-
-def getDuration(fileOne, default=None, audio=False):
-    duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
-    if duration is None or duration[0]== 'N':
-        frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
-        rate = getFrameAttribute(fileOne, 'sample_rate', default=None, audio=audio)
-        if rate is not None and frames is not None and frames[0] != 'N' and rate[0] != 'N':
-            return 1000.0 * int(frames) / float(rate)
-        return default
-    return float(duration) *1000.0
+def getDuration(filename, default=None, audio=False):
+    # for backward compatible (YoutubeUpDown plugin)
+    return ffmpeg_api.getDuration(filename, default=default, audio=audio)
 
 def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         """
@@ -1158,10 +1102,10 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         ss = None
         to = None
         if start is not None:
-            rate = getFrameRate(fileOne, audio=True)
+            rate = ffmpeg_api.getFrameRate(fileOne, audio=True)
             ss = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(start,rate=rate)[0])
         if end is not None:
-            rate = getFrameRate(fileOne, audio=True)
+            rate = ffmpeg_api.getFrameRate(fileOne, audio=True)
             to = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(end,rate=rate)[0])
         if channel == 'left':
             fullCommand = [ffmpegcommand,'-y','-i', fileOne, '-map_channel', '0.1.0',  '-vn']
@@ -1174,7 +1118,7 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         if to is not None:
             fullCommand.extend(["-to", to])
         fullCommand.append(name)
-        errors = _runCommand(fullCommand)
+        errors = tool_set.runCommand(fullCommand)
         return name if len(errors) == 0 else None, errors
 
 # video_tools.formMaskDiff('/Users/ericrobertson/Documents/movie/s1/videoSample5.mp4','/Users/ericrobertson/Documents/movie/s1/videoSample6.mp4')
@@ -2270,6 +2214,7 @@ def dropFramesFromMask(bounds,
                             change['endframe'] = frame_count - 1
                             change['frames'] = change['endframe']-change['startframe']+1
                             change['rate'] = rate
+                            change['error'] = getValue(mask_set, 'error', 0)
                             change['videosegment'] = writer.filename
                             new_mask_set.append(change)
                             writer.release()
@@ -2302,6 +2247,7 @@ def dropFramesFromMask(bounds,
                     change['endframe'] = mask_set['endframe'] - elapsed_count
                     change['frames'] = written_count
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['videosegment'] = writer.filename
                     new_mask_set.append(change)
                     writer.release()
@@ -2371,6 +2317,7 @@ def dropFramesWithoutMask(bounds,
                 change['endframe'] = mask_set['startframe'] + start_diff_frame - 1
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['rate'] = rate
+                change['error'] = getValue(mask_set, 'error', 0)
                 new_mask_set.append(change)
             if drop_ef is not None:
                  end_diff_frame = drop_ef  - mask_ef
@@ -2382,6 +2329,7 @@ def dropFramesWithoutMask(bounds,
                         change['starttime'] = bound['endtime']
                         change['startframe'] = drop_ef
                         change['type'] = mask_set['type']
+                        change['error'] = getValue(mask_set, 'error', 0)
                         change['endframe'] = mask_set['endframe']
                         change['endtime'] = mask_set['endtime']
                         change['frames'] = change['endframe'] - change['startframe']  + 1
@@ -2397,6 +2345,7 @@ def dropFramesWithoutMask(bounds,
                         change['endframe'] = mask_set['endframe'] -  end_adjust_frame
                         change['frames'] = change['endframe'] - change['startframe'] + 1
                         change['type'] = mask_set['type']
+                        change['error'] = getValue(mask_set, 'error', 0)
                     change['rate'] = rate
                     new_mask_set.append(change)
         return new_mask_set
@@ -2479,6 +2428,7 @@ def insertFramesToMask(bounds,
                         change['endframe'] = startcount + written_count - 1
                         change['frames'] = written_count
                         change['rate'] = rate
+                        change['error'] = getValue(mask_set, 'error', 0)
                         change['type'] = mask_set['type']
                         change['videosegment'] = writer.filename
                         new_mask_set.append(change)
@@ -2507,6 +2457,7 @@ def insertFramesToMask(bounds,
                     change['endframe'] = startcount + written_count - 1
                     change['frames'] = written_count
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['type'] = mask_set['type']
                     change['videosegment'] = writer.filename
                     new_mask_set.append(change)
@@ -2534,6 +2485,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['startframe'] = composite_mask_set['startframe']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = edge_video_mask['starttime'] - 1000.0/composite_mask_set['rate']
         change['endframe'] = edge_video_mask['startframe'] -1
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2545,6 +2497,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['endtime'] - time_left_over + 1000.0/composite_mask_set['rate']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = edge_video_mask['endtime']
         change['endframe'] = edge_video_mask['endframe']
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2559,6 +2512,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['starttime']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = change['starttime'] + diff_time
         change['endframe'] = change['startframe'] + diff_frame
         change['frames'] = change['endframe'] - change['startframe'] + 1
@@ -2568,6 +2522,7 @@ def reverseNonVideoMasks(composite_mask_set, edge_video_mask):
         change['starttime'] = edge_video_mask['endtime'] + 1000.0/composite_mask_set['rate']
         change['type'] = composite_mask_set['type']
         change['rate'] = composite_mask_set['rate']
+        change['error'] = getValue(composite_mask_set, 'error', 0)
         change['endtime'] = composite_mask_set['endtime']
         change['endframe'] = composite_mask_set['endframe']
         change['frames'] = change['endframe'] - change['startframe'] +1
@@ -2606,6 +2561,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['startframe'] = mask_set['startframe']
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     frame_count = mask_set['startframe']
                     for i in range(edge_video_mask['startframe']-frame_count):
                         frame_time = reader.current_frame_time()
@@ -2647,6 +2603,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     frame_time = change['starttime']
                     frame_count = change['startframe']
                     diff_time = (change['endtime'] - change['starttime'])/(change['frames'] - 1)
@@ -2670,6 +2627,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['type'] = mask_set['type']
                     change['rate'] = mask_set['rate']
+                    change['error'] = getValue(mask_set, 'error', 0)
                     while True:
                         frame_time = reader.current_frame_time()
                         frame_count = reader.current_frame()
@@ -2717,6 +2675,7 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         change['frames'] = mask_set['frames']
         change['type'] = mask_set['type']
         change['rate'] = mask_set['rate']
+        change['error'] = getValue(mask_set, 'error', 0)
         change['videosegment'] = mask_set['videosegment']
         mask_file_name = mask_set['videosegment']
         reader = tool_set.GrayBlockReader(mask_set['videosegment'])
@@ -2751,47 +2710,66 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
     return new_mask_set
 
 
-def getChangeInFrames(edge, inputFile, outputFile, expectedType='video'):
-    changeFrame = None
-    changeDuration = None
+def getChangeAccordingToEdge(edge, expectedType='video'):
+    changeFrame=None
+    changeDuration=None
     changeRate = None
     if 'metadatadiff' in edge and expectedType == 'video':
         for item in edge['metadatadiff']:
             if changeFrame is None:
                 changeFrame = item['0:nb_frames'][1:] if '0:nb_frames' in item and \
-                                                            item['0:nb_frames'][0] == 'change' else None
+                                                         item['0:nb_frames'][0] == 'change' else None
             if changeDuration is None:
                 changeDuration = item['0:duration'][1:] if '0:duration' in item and \
-                                                              item['0:duration'][0] == 'change' else None
+                                                           item['0:duration'][0] == 'change' else None
             if changeRate is None:
                 changeRate = item['0:r_frame_rate'][1:] if '0:r_frame_rate' in item and \
                                                            item['0:r_frame_rate'][0] == 'change' else None
-        if not changeFrame and not changeDuration:
-            return None
+
+    if not changeFrame and not changeDuration:
+        return None
 
     try:
         if changeFrame and changeDuration and changeRate:
             if '/' in changeRate[1]:
                 parts = changeRate[1].split('/')
-                changeRate = float(parts[0])/float(parts[1])
+                changeRate = float(parts[0]) / float(parts[1])
             else:
                 changeRate = float(changeRate[1])
-            return int(changeFrame[0]),\
-                   float(changeDuration[0])*1000.0, \
-                   int(changeFrame[1]),\
-                   float(changeDuration[1])*1000.0,\
+            return int(changeFrame[0]), \
+                   float(changeDuration[0]) * 1000.0, \
+                   int(changeFrame[1]), \
+                   float(changeDuration[1]) * 1000.0, \
                    changeRate
     except:
         pass
+    return None
+
+
+def getChangeInFrames(edge, meta_i,meta_o, inputFile, outputFile, expectedType='video'):
+
+    if meta_i is None or meta_o is None:
+        result = getChangeAccordingToEdge(edge,expectedType=expectedType)
+        if result is not None:
+            return result
+    else:
+        change = getValue(meta_i,'duration', None) != getValue(meta_o,'duration', None) or \
+            getValue(meta_i, 'nb_frames', None) != getValue(meta_o, 'nb_frames', None) or \
+            getValue(meta_i, 'sample_rate', None) != getValue(meta_o, 'sample_rate', None) or \
+            getValue(meta_i, 'avg_frame_rate', None) != getValue(meta_o, 'avg_frame_rate', None) or \
+            getValue(meta_i, 'duration_ts', None) != getValue(meta_o, 'duration_ts', None)
+
+        if not change:
+            return None
 
     maskSource = getMaskSetForEntireVideoForTuples(inputFile, media_types=[expectedType])
     maskTarget= getMaskSetForEntireVideoForTuples(outputFile, media_types=[expectedType])
     return maskSource[0]['frames'], maskSource[0]['endtime'], \
            maskTarget[0]['frames'], maskTarget[0]['endtime'], \
-           maskTarget[0]['rate']
+           maskSource[0]['rate'],maskTarget[0]['rate']
 
 
-def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inverse=False):
+def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inverse=False,useFFMPEG=False):
     """
     Tranform masks when the frame rate has changed.
     :param video_masks: ithe set of video masks to walk through and transform
@@ -2799,20 +2777,65 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     :param video_masks:
     :return: new set of video masks
     """
-    result = \
-        getChangeInFrames(edge, inputFile,outputFile,expectedType=expectedType)
+    meta_i, frames_i = getMeta(inputFile,show_streams=True,media_types=[expectedType])
+    meta_o, frames_o = getMeta(outputFile, show_streams=True, media_types=[expectedType])
+    index_i = ffmpeg_api.getStreamindexesOfType(meta_i, expectedType)[0]
+    index_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)[0]
+    isVFR = ffmpeg_api.isVFRVideo(meta_i[int(index_i)]) or ffmpeg_api.isVFRVideo(meta_o[int(index_o)])
+
+    result =  getChangeInFrames(edge,
+                                meta_i[int(index_i)],
+                                meta_o[int(index_o)],
+                                inputFile,
+                                outputFile,
+                                expectedType=expectedType)
+
     if result is None:
         return video_masks
-    sourceFrames, sourceTime, targetFrames, targetTime, targetRate = result
+
+    sourceFrames, sourceTime, targetFrames, targetTime, sourceRate, targetRate = result
 
     if sourceFrames == targetFrames and sourceTime == targetTime:
         return video_masks
 
     def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True):
+        # if round_value, return a tuple of value plus rounding error
         import math
         multiplier = -1.0 if inverse else 1.0
         adjustment = existing_value*math.pow(final_rate/orig_rate,multiplier)
-        return round( adjustment) if round_value else adjustment
+        if round_value:
+            v = round(adjustment)
+            e = abs(adjustment - v)
+            return int(v),e
+        return adjustment
+
+    def adjustPositionsFFMPEG(meta, video_frames,  hits):
+        rate = ffmpeg_api.getVideoFrameRate([meta], [video_frames])
+        aptime = 0
+        lasttime = 0
+        hitspos = 0
+        start_mask = None
+        for pos in range(0, len(video_frames)):
+            aptime = _get_frame_time(video_frames[pos], aptime, rate)
+            while hitspos < len(hits) and aptime > hits[hitspos][0]:
+                mask = hits[hitspos][2]
+                element = hits[hitspos][1]
+                error = abs(aptime - hits[hitspos][0])
+                if element == 'starttime':
+                        mask['starttime'] = lasttime
+                        mask['startframe'] = pos
+                        mask['error'] = error + getValue(mask,'error',0)
+                        start_mask = mask
+                else:
+                        mask['endtime'] = lasttime
+                        # only record the error if not recorded
+                        if start_mask != mask:
+                            mask['error'] = error + getValue(mask,'error',0)
+                        mask['endframe'] = pos
+                        mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+                hitspos += 1
+            lasttime = aptime
+        return mask
 
     def adjustPositions(video_file, hits):
         # used if variable frame rate
@@ -2827,11 +2850,14 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
                 while hitspos < len(hits) and aptime > hits[hitspos][0]:
                     mask = hits[hitspos][2]
                     element = hits[hitspos][1]
+                    error = max(abs(last - hits[hitspos][0]), abs(aptime - hits[hitspos][0]))
                     if element == 'starttime':
                         mask['starttime'] = last
                         mask['startframe'] = frmcnt
+                        mask['error'] = error
                     else:
                         mask['endtime'] = last
+                        mask['error'] = max(error,getValue(mask,'error',0))
                         mask['endframe'] = frmcnt
                         mask['frames'] = mask['endframe'] - mask['startframe'] + 1
                     hitspos+=1
@@ -2843,18 +2869,28 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     import time
     new_mask_set = []
     hits = []
+    # First adjust all the frame and time references by the total change in the video.
+    # In most cases, the length of the video in time changes by a small amount which is distributed
+    # across all the masks
     for mask_set in video_masks:
         if 'type' in mask_set and mask_set['type'] != expectedType:
             new_mask_set.append(mask_set)
             continue
         change = dict()
-        change['rate'] = targetRate
+        change['rate'] = sourceRate if inverse else targetRate
         change['type'] = mask_set['type']
         change['starttime'] = apply_change(mask_set['starttime'],sourceTime,targetTime,inverse=inverse,round_value=False)
-        change['startframe'] = int(apply_change(mask_set['startframe'], float(sourceFrames),float(targetFrames),inverse=inverse,round_value=True))
+        change['startframe'],error_start = apply_change(mask_set['startframe'], float(sourceFrames),float(targetFrames),inverse=inverse,round_value=True)
         change['endtime'] = apply_change(mask_set['endtime'], float(sourceTime),targetTime, inverse=inverse, round_value=False)
-        change['endframe'] = int(apply_change(mask_set['endframe'], float(sourceFrames),float(targetFrames), inverse=inverse,
-                                              round_value=True))
+        change['endframe'],error_end = apply_change(mask_set['endframe'], float(sourceFrames),float(targetFrames), inverse=inverse,
+                                              round_value=True)
+        try:
+            if change['endframe'] == int(getValue(meta_o[int(index_o)],'nb_frames',0)) and \
+               float(getValue(meta_o[int(index_o)], 'duration', 0)) > 0:
+              change['endtime'] =  float(getValue(meta_o[int(index_o)], 'duration', 0)) * 1000.0
+        except:
+            pass
+        change['error'] = getValue(mask_set,'error',0) + (max(error_start, error_end) * targetRate)
         change['frames'] = change['endframe'] - change['startframe'] + 1
         new_mask_set.append(change)
         hits.append((change['starttime'],'starttime',change))
@@ -2863,13 +2899,16 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     # only required when one of the two videos is variable rate
     hits = sorted(hits)
 
-    meta_i,frames_i = getMeta(inputFile,show_streams=True,media_types=[expectedType])
-    meta_o, frames_o = getMeta(outputFile, show_streams=True, media_types=[expectedType])
-    index_i = ffmpeg_api.getStreamindexesOfType(meta_i, expectedType)[0]
-    index_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)[0]
-    #TODO: change to use ffmpeg and then use the same data to calucate frame time for masks
-    if ffmpeg_api.isVFRVideo(meta_i[int(index_i)]) or ffmpeg_api.isVFRVideo(meta_o[int(index_o)]):
-        adjustPositions(outputFile, hits)
+    if isVFR:
+        if useFFMPEG:
+            meta_o, frames_o = getMeta(inputFile if inverse else outputFile,
+                                       show_streams=True,
+                                       with_frames=True,
+                                       media_types=[expectedType])
+            index_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)[0]
+            adjustPositionsFFMPEG(meta_o[int(index_o)],frames_o[index_o],hits)
+        else:
+            adjustPositions(inputFile if inverse else outputFile, hits)
 
     pos = 0
     for mask_set in video_masks:
@@ -3079,6 +3118,7 @@ def insertFramesWithoutMask(bounds,
                 change['endframe'] = mask_set['startframe'] + start_diff_count - 1
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['type'] = mask_set['type']
+                change['error'] = getValue(mask_set,'error',0)
                 change['rate'] = rate
                 new_mask_set.append(change)
                 if end_adjust_count >= 0:
@@ -3089,6 +3129,7 @@ def insertFramesWithoutMask(bounds,
                     change['endframe'] = mask_set['endframe'] + end_adjust_count
                     change['frames'] = change['endframe'] - change['startframe'] + 1
                     change['rate'] = rate
+                    change['error'] = getValue(mask_set, 'error', 0)
                     change['type'] = mask_set['type']
                     new_mask_set.append(change)
             elif end_adjust_count >= 0:
@@ -3097,6 +3138,7 @@ def insertFramesWithoutMask(bounds,
                 change['startframe'] = mask_set['startframe'] + end_adjust_count
                 change['endtime'] = mask_set['endtime'] + end_adjust_time
                 change['endframe'] = mask_set['endframe'] + end_adjust_count
+                change['error'] = getValue(mask_set, 'error', 0)
                 change['frames'] = change['endframe'] - change['startframe'] + 1
                 change['rate'] = rate
                 change['type'] = mask_set['type']

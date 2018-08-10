@@ -8,10 +8,9 @@
 
 import logging
 import os
-from collections import namedtuple
-
 import sys
 import traceback
+from collections import namedtuple
 
 import cv2
 import exif
@@ -58,7 +57,7 @@ class VideoSegment:
     filename = None
     media_type = None
 
-    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type):
+    def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type, error):
         """
 
         :param rate:
@@ -77,6 +76,7 @@ class VideoSegment:
         @type frames : int
         @type filename : str
         @type media_type : str
+        @type error : float
         """
         self.rate = rate
         self.startframe = startframe
@@ -86,6 +86,7 @@ class VideoSegment:
         self.frames = frames
         self.filename = filename
         self.media_type = media_type
+        self.error = error
 
 class Probe:
     edgeId = None
@@ -313,8 +314,9 @@ def _compositeImageToVideoSegment(compositeImage):
                          video_tools.getEndTimeFromSegment(item),
                          video_tools.getEndFrameFromSegment(item),
                          video_tools.getFramesFromSegment(item),
-                         item['videosegment'] if 'videosegment' in item else None,
-                         item['type']) for item in compositeImage.videomasks]
+                         getValue(item, 'videosegment',None),
+                         getValue(item,'type','video'),
+                         getValue(item,'error',0)) for item in compositeImage.videomasks]
 
 
 def _is_empty_composite(composite):
@@ -398,6 +400,25 @@ def _prepare_video_masks(graph,
                                                                 edge,
                                                                 replace_with_dir(graph.dir, video_masks))])
 
+
+def frame_rate_check(buildState):
+    if buildState.isComposite:
+        buildState.compositeMask = CompositeImage(buildState.compositeMask.source,
+                                                  buildState.compositeMask.target,
+                                                  buildState.compositeMask.media_type,
+                                                  video_tools._warpMask(buildState.compositeMask.videomasks,
+                                                                        buildState.edge,
+                                                                        buildState.getSourceFileName(),
+                                                                        buildState.getTargetFileName()))
+    elif buildState.donorMask is not None:
+        buildState.donorMask = CompositeImage(buildState.donorMask.source,
+                                              buildState.donorMask.target,
+                                              buildState.donorMask.media_type,
+                                              video_tools._warpMask(buildState.donorMask.videomasks,
+                                                                    buildState.edge,
+                                                                    buildState.getSourceFileName(),
+                                                                    buildState.getTargetFileName(),
+                                                                    inverse=True))
 
 def recapture_transform(buildState):
     """
@@ -637,6 +658,7 @@ def copy_exif(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     orientrotate = video_tools.get_video_orientation_change(getNodeFile(
         buildState.graph,buildState.source),getNodeFile(buildState.graph,buildState.target))
     if buildState.isComposite:
@@ -666,6 +688,7 @@ def video_rotate_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     rotation = buildState.rotation()
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else 0
     if buildState.isComposite:
@@ -1110,6 +1133,7 @@ def reverse_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
@@ -1220,6 +1244,7 @@ def video_crop_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     targetSize = getNodeSize(buildState.graph, buildState.target)
     sourceSize = getNodeSize(buildState.graph, buildState.source)
     location = buildState.location()
@@ -1352,6 +1377,7 @@ def video_flip_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     args = buildState.arguments()
     flip = args['flip direction'] if 'flip direction' in args else None
     if buildState.isComposite:
@@ -1688,6 +1714,7 @@ def scale_transform(buildState):
     @type buildState: BuildState
     @rtype: np.ndarray
     """
+    frame_rate_check(buildState)
     tm = buildState.transformMatrix()
     if buildState.isComposite:
         res = buildState.compositeMask
@@ -2030,7 +2057,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
     if 'videomasks' in edge or nodefiletype in ['video','audio'] or type(donorMask) == CompositeImage:
         if transformFunction is not None:
             return transformFunction(buildState)
-        return donorMask
+        return output_video_change(buildState)
 
     try:
         if edgeMask is None:
@@ -2198,7 +2225,8 @@ def alterComposite(graph,
 
         if transformFunction is not None:
             return transformFunction(buildState)
-        return compositeMask
+
+        return output_video_change(buildState)
 
     try:
         if edgeMask is None:

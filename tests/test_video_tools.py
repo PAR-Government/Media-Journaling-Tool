@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import os
 from test_support import TestSupport
-
+from maskgen.ffmpeg_api import getDuration
 
 def cropForTest(frame,no):
     return frame[100:-100,100:-100,:]
@@ -80,7 +80,6 @@ def singleChannelSample(filename,outfilname,skip=0):
     ftwo.writeframes(framesone[24+skip:192-2+skip:2])
     fone.close()
     ftwo.close()
-
 
 def augmentAudio(filename,outfilname,augmentFunc):
     import wave
@@ -208,9 +207,9 @@ class TestVideoTools(TestSupport):
 
     def test_duration(self):
         expected = 59350
-        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'))
+        duration = getDuration(self.locateFile('tests/videos/sample1.mov'))
         self.assertTrue(abs(duration - expected) < 1)
-        duration = video_tools.getDuration(self.locateFile('tests/videos/sample1.mov'),audio=True)
+        duration = getDuration(self.locateFile('tests/videos/sample1.mov'),audio=True)
         self.assertTrue(abs(duration - expected) < 2)
 
     def test_meta(self):
@@ -218,6 +217,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(803, len(frames['0']))
         meta,frames = video_tools.getMeta(self.locateFile('tests/videos/sample1.mov'),show_streams=True)
         self.assertEqual('yuv420p',meta[0]['pix_fmt'])
+
+
+    def test_orientation(self):
+        video_tools.get_video_orientation_change('sample1_ffr.mov','sample1_ffr.mov')
 
     def test_frame_count(self):
 
@@ -311,6 +314,16 @@ class TestVideoTools(TestSupport):
         self.assertEqual(0.0, result[0]['starttime'])
         self.assertEqual(1, result[0]['startframe'])
         self.assertEqual(596, result[0]['frames'])
+        self.assertEqual(596, result[0]['endframe'])
+        self.assertEqual(59500.0, result[0]['endtime'])
+        self.assertEqual('video', result[0]['type'])
+
+        result = video_tools.getMaskSetForEntireVideo(self.locateFile('tests/videos/sample1_slow.mov'),
+                                                      start_time='00:00:02.01')  # Constant FR
+        self._add_mask_files_to_kill(result)
+        self.assertEqual(2000.0, result[0]['starttime'])
+        self.assertEqual(21, result[0]['startframe'])
+        self.assertEqual(576, result[0]['frames'])
         self.assertEqual(596, result[0]['endframe'])
         self.assertEqual(59500.0, result[0]['endtime'])
         self.assertEqual('video', result[0]['type'])
@@ -409,6 +422,7 @@ class TestVideoTools(TestSupport):
         change['endframe'] = 30
         change['frames'] = 30
         change['rate'] = 30
+        change['error'] = 1.1
         change['videosegment'] = ''
         change['type'] = 'video'
         sets.append(change)
@@ -419,6 +433,7 @@ class TestVideoTools(TestSupport):
         change['endframe'] = change['startframe'] + amount -1
         change['frames'] = amount
         change['rate'] = 30
+        change['error'] = 1.2
         change['videosegment'] = fileOne
         change['type'] = 'video'
         sets.append(change)
@@ -429,6 +444,7 @@ class TestVideoTools(TestSupport):
         change['endframe'] = change['startframe'] + 27 -1
         change['frames'] = int(27)
         change['rate'] = 30
+        change['error'] = 1.3
         change['videosegment'] = fileTwo
         change['type'] = 'video'
         sets.append(change)
@@ -446,6 +462,9 @@ class TestVideoTools(TestSupport):
         self.assertEqual(89, result[1]['endframe'])
         self.assertEqual(96, result[2]['startframe'])
         self.assertEqual(122, result[2]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.3, result[2]['error'])
+        self.assertEqual(1.2, result[1]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 63,
@@ -460,6 +479,9 @@ class TestVideoTools(TestSupport):
         self.assertEqual(77, result[1]['endframe'])
         self.assertEqual(96, result[2]['startframe'])
         self.assertEqual(122, result[2]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.3, result[2]['error'])
+        self.assertEqual(1.2, result[1]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 87,
@@ -477,6 +499,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(98, result[2]['endframe'])
         self.assertEqual(117, result[3]['startframe'])
         self.assertEqual(143, result[3]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.3, result[3]['error'])
 
 
         result = video_tools.dropFramesFromMask([{
@@ -496,6 +522,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(123, result[3]['startframe'])
         self.assertEqual(149, result[3]['endframe'])
         self.assertEqual(4, len(result))
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.3, result[3]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 1,
@@ -510,6 +540,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(12, result[0]['endframe'])
         self.assertEqual(31, result[1]['startframe'])
         self.assertEqual(57, result[1]['endframe'])
+        self.assertEqual(1.2, result[0]['error'])
+        self.assertEqual(1.3, result[1]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 93,
@@ -522,6 +554,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(30, result[0]['endframe'])
         self.assertEqual(75, result[1]['startframe'])
         self.assertEqual(92, result[1]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 1,
@@ -536,6 +570,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(104, result[0]['endframe'])
         self.assertEqual(123, result[1]['startframe'])
         self.assertEqual(149, result[1]['endframe'])
+        self.assertEqual(1.2, result[0]['error'])
+        self.assertEqual(1.3, result[1]['error'])
 
         result = video_tools.dropFramesFromMask([{
             'startframe': 93,
@@ -549,6 +585,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(18, result[1]['frames'])
         self.assertEqual(75, result[1]['startframe'])
         self.assertEqual(92, result[1]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
 
 
 
@@ -564,6 +602,7 @@ class TestVideoTools(TestSupport):
         change['rate'] = 30
         change['videosegment'] = ''
         change['type'] = 'video'
+        change['error'] = 1.1
         sets.append(change)
         change = dict()
         change['starttime'] = 2500
@@ -574,6 +613,7 @@ class TestVideoTools(TestSupport):
         change['rate'] = 30
         change['videosegment'] = ''
         change['type'] = 'video'
+        change['error'] = 1.2
         sets.append(change)
         change = dict()
         change['starttime'] = 4100
@@ -584,6 +624,7 @@ class TestVideoTools(TestSupport):
         change['rate'] = 30
         change['videosegment'] = ''
         change['type'] = 'video'
+        change['error'] = 1.3
         sets.append(change)
         result  = video_tools.dropFramesWithoutMask([{
             'startframe': 87,
@@ -600,6 +641,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(98, result[2]['endframe'])
         self.assertEqual(117, result[3]['startframe'])
         self.assertEqual(143, result[3]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.3, result[3]['error'])
 
         result = video_tools.dropFramesWithoutMask([{
             'startframe': 63,
@@ -613,6 +658,9 @@ class TestVideoTools(TestSupport):
         self.assertEqual(76, result[1]['endframe'])
         self.assertEqual(95, result[2]['startframe'])
         self.assertEqual(121, result[2]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.3, result[2]['error'])
 
         result = video_tools.dropFramesWithoutMask([{
             'startframe': 87,
@@ -629,6 +677,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(104, result[2]['endframe'])
         self.assertEqual(123, result[3]['startframe'])
         self.assertEqual(149, result[3]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.3, result[3]['error'])
 
         result = video_tools.dropFramesWithoutMask([{
             'startframe': 1,
@@ -690,6 +742,8 @@ class TestVideoTools(TestSupport):
             }], sets)
         self.assertEqual(2, len(result))
         self.assertEqual(30, result[1]['frames'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
         self._add_mask_files_to_kill(result)
 
         result = func([{
@@ -701,6 +755,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2, len(result))
         self.assertEqual(30, result[1]['frames'])
         self.assertEqual(103, result[1]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
         self._add_mask_files_to_kill(result)
 
         result = func([{
@@ -715,6 +771,9 @@ class TestVideoTools(TestSupport):
         self.assertEqual(24, result[2]['frames'])
         self.assertEqual(112, result[2]['startframe'])
         self.assertEqual(135, result[2]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
         self._add_mask_files_to_kill(result)
 
         result = func([{
@@ -730,6 +789,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(93, result[0]['endframe'])
         self.assertEqual(138, result[1]['startframe'])
         self.assertEqual(167, result[1]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.2, result[1]['error'])
         self._add_mask_files_to_kill(result)
 
 
@@ -844,6 +905,7 @@ class TestVideoTools(TestSupport):
         change['frames'] = amount
         change['rate'] = 30
         change['type'] = 'video'
+        change['error'] = 1.1
         change['videosegment'] = fileOne
         sets.append(change)
         change = dict()
@@ -853,6 +915,7 @@ class TestVideoTools(TestSupport):
         change['endframe'] = change['startframe'] + amount - 1
         change['frames'] = amount
         change['rate'] = 30
+        change['error'] = 1.2
         change['type'] = 'video'
         change['videosegment'] = fileTwo
         sets.append(change)
@@ -869,11 +932,13 @@ class TestVideoTools(TestSupport):
         change['frames'] = 30
         change['rate'] = 29
         change['type'] = 'video'
+        change['error'] = 1.1
         change['videosegment'] = fileOne
         result = video_tools.resizeMask([change], (1000, 1720))
         self.assertEqual(1, len(result))
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
 
     def test_crop(self):
         fileOne = self._init_write_file('test_td_rs', 0, 1, 30, 30)
@@ -885,16 +950,19 @@ class TestVideoTools(TestSupport):
         change['frames'] = 30
         change['rate'] = 29
         change['type'] = 'video'
+        change['error'] = 1.1
         change['videosegment'] = fileOne
         result = video_tools.cropMask([change], (100, 100, 900, 1120))
         self.assertEqual(1, len(result))
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
         self._add_mask_files_to_kill(result)
         result = video_tools.insertMask([change], (100, 100, 900, 1120), (1090, 1920))
         self.assertEqual(1, len(result))
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
         self._add_mask_files_to_kill(result)
 
     def test_rotate(self):
@@ -906,12 +974,14 @@ class TestVideoTools(TestSupport):
         change['endframe'] = 30
         change['frames'] = 30
         change['rate'] = 29
+        change['error'] = 1.1
         change['type'] = 'video'
         change['videosegment'] = fileOne
         result = video_tools.rotateMask(-90,[change],expectedDims=(1920,1090))
         self.assertEqual(1, len(result))
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
         self._add_mask_files_to_kill(result)
 
 
@@ -922,15 +992,18 @@ class TestVideoTools(TestSupport):
             'startframe': 0,
             'starttime': 0,
             'endframe': 130,
+            'error':1.1,
             'endtime': 4333
         }], [{'starttime':0,
               'startframe': 0,
               'endframe': 130,
+              'error':1.1,
               'endtime': 4333,
               'type':'video'}])
         self.assertEqual(1,len(result))
         self.assertEqual(4333,result[0]['endtime'])
         self.assertEqual(130, result[0]['endframe'])
+        self.assertEqual(1.1, result[0]['error'])
 
         amount = 30
         fileOne = self._init_write_file('test_tr1',2500,75,30,30)
@@ -945,6 +1018,7 @@ class TestVideoTools(TestSupport):
         change['rate'] = 30
         change['videosegment'] = fileOne
         change['type'] = 'video'
+        change['error'] = 1.1
         sets.append(change)
         change = dict()
         change['starttime'] = 4100
@@ -955,6 +1029,7 @@ class TestVideoTools(TestSupport):
         change['rate'] = 30
         change['videosegment'] = fileTwo
         change['type'] = 'video'
+        change['error'] = 1.2
         sets.append(change)
 
         result = video_tools.reverseMasks([{
@@ -976,6 +1051,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(19, result[3]['frames'])
         self.assertEqual(149, result[3]['endframe'])
         self.assertEqual(131, result[3]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.1, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.2, result[3]['error'])
         self._add_mask_files_to_kill(result)
 
         reader_orig = tool_set.GrayBlockReader(sets[0]['videosegment'])
@@ -1019,9 +1098,11 @@ class TestVideoTools(TestSupport):
         self.assertEqual(19, result[3]['frames'])
         self.assertEqual(149, result[3]['endframe'])
         self.assertEqual(131, result[3]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
+        self.assertEqual(1.1, result[1]['error'])
+        self.assertEqual(1.2, result[2]['error'])
+        self.assertEqual(1.2, result[3]['error'])
         self._add_mask_files_to_kill(result)
-
-
 
 
     def test_invertVideoMasks(self):
@@ -1034,12 +1115,14 @@ class TestVideoTools(TestSupport):
         change['endframe'] = 30
         change['frames'] = 30
         change['rate'] = 29
+        change['error'] = 1.1
         change['type'] = 'video'
         change['videosegment'] = fileOne
         result = video_tools.invertVideoMasks([change], 'x','y')
         self.assertEqual(1, len(result))
         self.assertEqual(30, result[0]['frames'])
         self.assertEqual(0, result[0]['startframe'])
+        self.assertEqual(1.1, result[0]['error'])
         reader = tool_set.GrayBlockReader(result[0]['videosegment'])
         self._add_mask_files_to_kill(result)
         mask = reader.read()
@@ -1123,10 +1206,6 @@ class TestVideoTools(TestSupport):
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr.mov'
-        #meta,frames =  video_tools.getMeta(source, show_streams=True,with_frames=True, media_types=['video'])
-        #frames_source = frames['0']
-        #meta, frames = video_tools.getMeta(target, show_streams=True, with_frames=True, media_types=['video'])
-        #frames_target= frames['0']
         source_set = video_tools.getMaskSetForEntireVideo(source,
                                                       start_time='29',end_time='55')
         target_set = video_tools.getMaskSetForEntireVideoForTuples(target,
@@ -1147,6 +1226,24 @@ class TestVideoTools(TestSupport):
         self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
         self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
         self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        source_mask_set = video_tools._warpMask(new_mask_set, {}, source, target, inverse=True)
+        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error']*2)
+        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
+        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error']*2)
+        new_mask_set = video_tools._warpMask(source_set, {}, source, target,useFFMPEG=True)
+        self.assertTrue(new_mask_set[0]['frames'] == target_set[0]['frames'])
+        self.assertTrue(new_mask_set[0]['endtime'] == target_set[0]['endtime'])
+        self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
+        self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
+        self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        source_mask_set = video_tools._warpMask(new_mask_set, {}, source, target, inverse=True,useFFMPEG=True)
+        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error']*2)
+        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
+        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error']*2)
 
         source_set  = target_set
         source = target

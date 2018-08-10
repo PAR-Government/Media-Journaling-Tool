@@ -15,14 +15,14 @@ def getFFmpegTool():
 def getFFprobeTool():
     return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
 
-
-def runffmpeg(args, noOutput=True):
-    command = [getFFmpegTool()]
+def runffmpeg(args, noOutput=True,tool=getFFmpegTool()):
+    command = [tool] if tool is not None else []
     command.extend(args)
     try:
         pcommand = Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr = pcommand.communicate()
         if pcommand.returncode != 0:
+            print stderr
             error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
             raise ValueError(error)
         if noOutput == False:
@@ -32,20 +32,23 @@ def runffmpeg(args, noOutput=True):
         logging.getLogger('maskgen').error(str(e))
         raise e
 
+def _runCommand(command,outputCollector=None):
+    try:
+        stdout = runffmpeg(command, noOutput=False, tool=None)
+        if outputCollector is not None:
+            for line in stdout.splitlines():
+                outputCollector.append(line)
+    except ValueError as e:
+        return [e.message]
+    return []
 
 def get_ffmpeg_version():
-    command = [getFFmpegTool(),'-version']
     try:
-        pcommand = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = pcommand.communicate()
-        if pcommand.returncode != 0:
-            logging.getLogger('maskgen').error(str(stderr) if stderr is not None else '')
-        else:
-            return stdout.split()[2][0:3]
-    except OSError as e:
-        logging.getLogger('maskgen').error("FFmpeg not installed")
-        logging.getLogger('maskgen').error(str(e))
-    return '?'
+        stdout = runffmpeg(['-version'],noOutput=False)
+        return  stdout.split()[2][0:3]
+    except:
+        pass
+    return "?"
 
 def __addMetaToFrames(frames, meta):
     if len(meta) > 0 and 'stream_index' in meta:
@@ -168,6 +171,16 @@ def processMeta(stream,errorstream):
 
 def getMeta(file, with_frames=False, show_streams=False,media_types=['video','audio'],extras=None):
 
+    def realignMeta(metas):
+        result = []
+        max_position = max([int(getValue(meta,'index',0)) for meta in metas])
+        for i in range(max_position+1):
+            matches = [meta for meta in metas if int(getValue(meta, 'index', 0)) == i]
+            if len(matches) == 0:
+                result.append({'codec_type':'na','index':str(i)})
+            else:
+                result.append(matches[0])
+        return result
     def runProbeWithFrames(func, args=None):
         if len(media_types) == 1:
             ffmpegcommand = [getFFprobeTool(),'-select_streams',media_types[0][0]]
@@ -216,7 +229,7 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
     def runProbe(func, args=None):
         ffmpegcommand = [getFFprobeTool(), file]
         if args != None:
-            ffmpegcommand.append(args)
+            ffmpegcommand.extend(args.split())
         stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
         return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
@@ -225,11 +238,65 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
     else:
         frames = {}
     if show_streams:
-        meta = runProbe(processMetaStreams, args='-show_streams')
+        args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
+        meta = realignMeta(runProbe(processMetaStreams, args=args))
     else:
-        meta = runProbe(processMeta, args='-show_streams')
+        meta = runProbe(processMeta, args='')
 
     return meta, frames
+
+
+def getFrameAttribute(fileOne, attribute, default=None, audio=False):
+    ffmpegcommand = getFFprobeTool()
+    results = []
+    errors = _runCommand([ffmpegcommand,
+                          '-show_entries', 'stream={},codec_type'.format(attribute),
+                          fileOne],
+                         outputCollector=results)
+    if len(results) > 0:
+        streams = []
+        for result in results:
+            if result.find('[STREAM]') >= 0:
+                streams.append(dict())
+                continue
+            parts = result.split('=')
+            if len(parts) < 2:
+                continue
+            streams[-1][parts[0]] = parts[1]
+        for stream in streams:
+            if (audio and stream['codec_type'] == 'audio') or \
+                    (not audio and stream['codec_type'] != 'audio'):
+                return stream[attribute]
+
+    return default
+
+def getFrameRate(fileOne, default=None, audio=False):
+    rate = getFrameAttribute(fileOne, 'sample_rate' if audio else 'r_frame_rate', default=None, audio=audio)
+    if not audio and rate is None:
+        rate = getFrameAttribute(fileOne, 'avg_frame_rate', default=rate, audio=audio)
+    if rate is None:
+        duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
+        frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
+        if frames is not None and duration is not None:
+            rate = frames + '/' + duration
+    if rate is None:
+        return default
+    parts = rate.split('/')
+    if len(parts) == 1 and float(rate) > 0:
+        return float(rate)
+    if len(parts) == 2 and float(parts[1]) > 0:
+        return float(parts[0]) / float(parts[1])
+    return default
+
+def getDuration(fileOne, default=None, audio=False):
+    duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
+    if duration is None or duration[0]== 'N':
+        frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
+        rate = getFrameAttribute(fileOne, 'sample_rate', default=None, audio=audio)
+        if rate is not None and frames is not None and frames[0] != 'N' and rate[0] != 'N':
+            return 1000.0 * int(frames) / float(rate)
+        return default
+    return float(duration) *1000.0
 
 def getVideoFrameRate(meta, frames):
     index = getStreamindexesOfType(meta, 'video')[0]
