@@ -26,7 +26,7 @@ from maskgen.ui.PictureEditor import PictureEditor
 from maskgen.ui.CompositeViewer import  ScrollCompositeViewer
 from maskgen.validation.core import ValidationMessage,Severity
 from maskgen.ui.semantic_frame import *
-from maskgen.ui.ui_tools import SelectDialog,EntryDialog, TimeFrame
+from maskgen.ui.ui_tools import SelectDialog, EntryDialog, TimeWidget
 
 
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
@@ -479,6 +479,12 @@ class DescriptionCaptureDialog(Toplevel):
             if argumentTuple[0] not in self.argvalues and \
                 'defaultvalue' in argumentTuple[1]:
                 self.argvalues[argumentTuple[0]] = argumentTuple[1]['defaultvalue']
+
+            if argumentTuple[1]['type'] == "frame_or_time":
+                if self.targetfiletype == "audio":
+                    argumentTuple[1]['type'] = "time"
+                else:
+                    argumentTuple[1]['type'] = "int[0:1000000000]"  # Frame Number
 
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
@@ -2205,12 +2211,8 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type == 'label':
                widget = Label(master, takefocus=(row==0), width=80, text=prop.information)
                widget.grid(row=row, column=0, columnspan=12, sticky=E + W)
-           elif prop.type.startswith('time:'):
-                micro_frames = prop.type[5:]
-                if micro_frames.startswith("frame"):
-                    widget = TimeFrame(master, microseconds=False)
-                else:
-                    widget = TimeFrame(master)
+           elif prop.type == 'time':
+                widget = TimeWidget(master)
                 widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            else:
                widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
