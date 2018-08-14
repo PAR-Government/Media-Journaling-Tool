@@ -228,7 +228,12 @@
                 "color.png"
 				
             ]
-        }, 
+        },
+        "OutputPng": {
+            "images": [
+                "output.png"
+            ]
+        },
         "OutputBmp": {
             "images": [
                 "output.png"
@@ -243,11 +248,7 @@
             "images": ["Transforms.png"
 			]
         }, 
-        "OutputPng": {
-            "images": [
-                "output.png"
-            ]
-        }, 
+
         "AudioSample": {
             "images": ["audio.png"
 			]

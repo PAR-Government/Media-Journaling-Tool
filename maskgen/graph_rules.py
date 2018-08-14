@@ -988,6 +988,40 @@ def checkResolution(op, graph, frm, to):
     if height is not None and height[2] != res_height:
         return (Severity.WARNING,'resolution height does not match video')
 
+def checkFileTypeUnchanged(op, graph, frm, to):
+    tofile =  graph.get_node(to)['file']
+    fromfile = graph.get_node(frm)['file']
+    if tofile.split('.')[-1].lower() != fromfile.split('.')[-1].lower():
+        return (Severity.ERROR,
+         "File type changed")
+    return None
+
+def checkAudioOutputType(op, graph, frm, to):
+    tofile = os.path.join(graph.dir, graph.get_node(to)['file'])
+    if fileType(tofile) != 'audio':
+        return (Severity.ERROR,
+         "Expecting Audio file type")
+    return None
+
+def _checkOutputType(graph,to,expected_types):
+    newFileExtension = graph.get_image_path(to).split('.')[-1].lower()
+    if newFileExtension not in expected_types:
+        return (Severity.ERROR, "Output file extension " + newFileExtension.upper() + " doesn't match operation allowed extensions: " + ', '.join(expected_types))
+
+def checkOutputType(op, graph, frm, to):
+    extension = op.name.lower().split('put')[1]
+    expected_extension = extension.lower()
+    return _checkOutputType(graph,to,[expected_extension])
+
+def checkJpgOutputType(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['jpg','jpeg'])
+
+def checkTifOutputType(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['tif', 'tiff'])
+
+def checkMp4OutputType(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['mp4', 'mpeg','mpg'])
+    
 
 def checkForAudio(op, graph, frm, to):
     """

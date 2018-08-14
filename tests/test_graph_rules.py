@@ -42,6 +42,72 @@ class TestToolSet(TestSupport):
         mock.predecessors.assert_called_with('b')
         mock.findOp.assert_called_once_with('d', 'SelectRegionFromFrames')
 
+    def test_checkAudioOutputType(self):
+        op_mock = Mock()
+        op_mock.name = 'OutputAudioPCM'
+        graph_mock = Mock()
+        graph_mock.get_node = Mock(return_value={'file':'foo.png'})
+        graph_mock.dir = '.'
+        r = graph_rules.checkAudioOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+        graph_mock.get_node.assert_called_with('b')
+        graph_mock.get_node = Mock(return_value={'file':'foo.wav'})
+        r = graph_rules.checkAudioOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertIsNone(r)
+
+    def test_ccheckFileTypeUnchanged(self):
+        op_mock = Mock()
+        op_mock.name = 'OutputCopy'
+        graph_mock = Mock()
+        graph_mock.get_node = lambda x: {'file':'x.png'} if x == 'a' else {'file':'y.pdf'}
+        graph_mock.dir = '.'
+        r = graph_rules.checkFileTypeUnchanged(op_mock, graph_mock, 'a', 'b')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+        graph_mock.get_node = Mock(return_value={'file':'foo.wav'})
+        r = graph_rules.checkFileTypeUnchanged(op_mock, graph_mock, 'a', 'b')
+        self.assertIsNone(r)
+
+    def test_checkOutputType(self):
+        op_mock = Mock()
+        op_mock.name='OutputPDF'
+        graph_mock = Mock()
+        graph_mock.get_image_path = Mock(return_value='foo.png')
+        r = graph_rules.checkOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+        graph_mock.get_image_path.assert_called_with('b')
+        graph_mock.get_image_path = Mock(return_value='foo.pdf')
+        r = graph_rules.checkOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertIsNone(r)
+
+    def test_checkJpgOutputType(self):
+        op_mock = Mock()
+        op_mock.name='OutputMp4'
+        graph_mock = Mock()
+        graph_mock.get_image_path = Mock(return_value='foo.png')
+        r = graph_rules.checkJpgOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+        graph_mock.get_image_path.assert_called_with('b')
+        graph_mock.get_image_path = Mock(return_value='foo.jpg')
+        r = graph_rules.checkJpgOutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertIsNone(r)
+
+    def test_checkMp4OutputType(self):
+        op_mock = Mock()
+        op_mock.name='OutputMp4'
+        graph_mock = Mock()
+        graph_mock.get_image_path = Mock(return_value='foo.png')
+        r = graph_rules.checkMp4OutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+        graph_mock.get_image_path.assert_called_with('b')
+        graph_mock.get_image_path = Mock(return_value='foo.mpeg')
+        r = graph_rules.checkMp4OutputType(op_mock, graph_mock, 'a', 'b')
+        self.assertIsNone(r)
+
     def test_checkSize(self):
         mock = Mock()
         mock.get_edge = Mock(return_value={'shape change': '(20,20)'})

@@ -3400,187 +3400,6 @@
     },
     {
       "category": "Output",
-      "name": "OutputCopy",
-      "mandatoryparameters": {
-      },
-      "rules": [
-        "checkSize",
-        "checkSameChannels"
-      ],
-      "optionalparameters": {
-      },
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.copy_transform"
-      },
-      "description": "Export the image in the in the same format. Used to branch off a final image  node",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image",
-        "video.video"
-      ],
-      "qaList": [
-        "Confirm that no other manipulation was done other than creating a duplicate of the previous file"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputBmp",
-      "mandatoryparameters": {
-        "Image Rotated": {
-          "type": "yesno",
-          "description": "Did the software rotate the image when removing the EXIF Orientation?"
-        }
-      },
-      "rules": [
-        "checkSize"
-      ],
-      "optionalparameters": {
-        "XMP File Name": {
-          "type": "file:xmp",
-          "description": "XMP file provided when exporting from a raw image."
-        }
-      },
-      "compareparameters": {
-        "function": "maskgen.tool_set.convertCompare"
-      },
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.output_transform"
-      },
-      "description": "Export the image in the bmp format.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputAudioPCM",
-      "mandatoryparameters": {
-      },
-      "rules": [
-        "checkLengthSame"
-      ],
-      "compareparameters": {
-        "video_function": "maskgen.video_tools.audioCompare"
-      },
-      "optionalparameters": {
-      },
-      "description": "Export the image in the PCM format (wave, aif, etc.).",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "audio.audio",
-        "video.audio",
-        "zip.audio"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputAudioCompressed",
-      "mandatoryparameters": {
-      },
-      "rules": [
-        "checkLengthSame"
-      ],
-      "compareparameters": {
-        "video_function": "maskgen.video_tools.audioCompare"
-      },
-      "optionalparameters": {
-      },
-      "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "audio.audio",
-        "video.audio"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputDng",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize"
-      ],
-      "optionalparameters": {},
-      "description": "Export the image in the DNG format.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputJpg",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize"
-      ],
-      "optionalparameters": {
-        "XMP File Name": {
-          "type": "file:xmp",
-          "description": "XMP file provided when exporting from a raw image."
-        }
-      },
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.output_transform"
-      },
-      "description": "Export the image in the jpeg format.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputJp2",
-      "mandatoryparameters": {},
-      "optionalparameters":{},
-      "rules": [
-        "checkSize"
-      ],
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.output_transform"
-      },
-      "description": "Export the image in the jp2 format.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image"
-      ]
-    },
-    {
-      "category": "Output",
-      "name": "OutputNITF",
-      "mandatoryparameters": {},
-      "optionalparameters":{},
-      "rules": [
-        "checkSize"
-      ],
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.output_transform"
-      },
-      "description": "Export the image in the NITF format.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image"
-      ]
-    },
-    {
-      "category": "Output",
       "name": "OutputPng",
       "mandatoryparameters": {
         "Image Rotated": {
@@ -3590,7 +3409,8 @@
       },
       "rules": [
         "checkSizeAndExifPNG",
-        "rotationCheck"
+        "rotationCheck",
+        "checkOutputType"
       ],
       "optionalparameters": {
         "XMP File Name": {
@@ -3618,6 +3438,197 @@
     },
     {
       "category": "Output",
+      "name": "OutputCopy",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkSize",
+        "checkSameChannels",
+        "checkFileTypeUnchanged"
+      ],
+      "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.copy_transform"
+      },
+      "description": "Export the image in the in the same format. Used to branch off a final image  node",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "qaList": [
+        "Confirm that no other manipulation was done other than creating a duplicate of the previous file"
+      ]
+    },
+
+    {
+      "category": "Output",
+      "name": "OutputBmp",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "optionalparameters": {
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file provided when exporting from a raw image."
+        }
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the bmp format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputAudioPCM",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkAudioOutputType"
+      ],
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "optionalparameters": {
+      },
+      "description": "Export the image in the PCM format (wave, aif, etc.).",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "audio.audio",
+        "video.audio",
+        "zip.audio"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputAudioCompressed",
+      "mandatoryparameters": {
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkAudioOutputType"
+      ],
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "optionalparameters": {
+      },
+      "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "audio.audio",
+        "video.audio"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputDng",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "optionalparameters": {},
+      "description": "Export the image in the DNG format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputJpg",
+      "mandatoryparameters": {},
+      "rules": [
+        "checkSize",
+        "checkJpgOutputType"
+      ],
+      "optionalparameters": {
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file provided when exporting from a raw image."
+        }
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the jpeg format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputJp2",
+      "mandatoryparameters": {},
+      "optionalparameters":{},
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the jp2 format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputNITF",
+      "mandatoryparameters": {},
+      "optionalparameters":{},
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the NITF format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+
+    {
+      "category": "Output",
       "name": "OutputPDF",
       "mandatoryparameters": {
         "resolution": {
@@ -3626,6 +3637,7 @@
         }
       },
       "rules": [
+        "checkOutputType"
       ],
       "optionalparameters": {
       },
@@ -3648,7 +3660,8 @@
       },
       "rules": [
         "checkSizeAndExif",
-        "rotationCheck"
+        "rotationCheck",
+        "checkTifOutputType"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.output_transform"
@@ -3696,7 +3709,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
@@ -3737,7 +3751,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
@@ -3778,7 +3793,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkMp4OutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
@@ -3799,7 +3815,8 @@
       "name": "OutputM4",
       "mandatoryparameters": {},
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
@@ -3824,7 +3841,8 @@
       },
       "rules": [
         "checkSameChannels",
-        "checkResolution"
+        "checkResolution",
+        "checkOutputType"
       ],
       "optionalparameters": {
         "resolution": {
