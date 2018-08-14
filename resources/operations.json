@@ -4503,7 +4503,7 @@
       },
       "description": "An interpolation that changes a selection of frames without changing the total number of frames",
       "includeInMask": {
-        "default": false
+        "default": true
       },
       "transitions": [
         "video.video"
