@@ -542,7 +542,7 @@ class DescriptionCaptureDialog(Toplevel):
         bottom.pack(padx=5, pady=5)
 
     def bottomBody(self, master):
-        return self.buildArgBox(master)
+        return self.buildArgBox(self.opname.get())
 
     def topBody(self, master):
         self.okButton = None
