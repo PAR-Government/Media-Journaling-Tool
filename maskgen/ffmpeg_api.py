@@ -173,7 +173,10 @@ def getMeta(file, with_frames=False, show_streams=False,media_types=['video','au
 
     def realignMeta(metas):
         result = []
-        max_position = max([int(getValue(meta,'index',0)) for meta in metas])
+        matches = [int(getValue(meta, 'index', 0)) for meta in metas]
+        if len(matches) == 0:
+            return result
+        max_position = max(matches)
         for i in range(max_position+1):
             matches = [meta for meta in metas if int(getValue(meta, 'index', 0)) == i]
             if len(matches) == 0:

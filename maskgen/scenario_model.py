@@ -675,10 +675,10 @@ class VideoVideoLinkTool(LinkTool):
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
-        # for now, just save the first mask
-        if len(maskSet) > 0 and 'mask' in maskSet[0]:
-            mask = ImageWrapper(maskSet[0]['mask'])
-            for item in maskSet:
+        mask = None
+        for item in maskSet:
+            if 'mask' in item:
+                mask = item['mask'] if mask is None else mask
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet

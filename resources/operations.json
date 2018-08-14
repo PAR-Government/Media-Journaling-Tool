@@ -4481,6 +4481,35 @@
       ]
     },
     {
+      "category": "Transform",
+      "name": "FrameBlend",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+        "checkFrameTimes",
+        "checkSameChannels",
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
+      ],
+      "optionalparameters": {
+      },
+      "description": "An interpolation that changes a selection of frames without changing the total number of frames",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
       "category": "PostProcessing",
       "name": "DuplicateFrameDrop",
       "mandatoryparameters": {

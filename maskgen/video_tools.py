@@ -1256,7 +1256,10 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             end_time = vidAnalysisComponents.time_manager.milliNow
         cut['endtime'] = end_time
-        cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        if vidAnalysisComponents.time_manager.isPastTime():
+            cut['endframe'] = vidAnalysisComponents.time_manager.frameCountWhenStopped
+        else:
+            cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
         cut['frames'] = cut['endframe'] - cut['startframe'] + 1
         ranges.append(cut)
         return False
