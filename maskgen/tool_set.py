@@ -1796,7 +1796,10 @@ def cropCompare(img1, img2, arguments=dict()):
     if (sum(img1.shape) > sum(img2.shape)):
         img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2))
         analysis = {'shape change': sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
-        mask, analysis_d = composeCropImageMask(img1_m, img2_m)
+        location = getValue(arguments,'location',None)
+        if type(location) == str:
+            location = toIntTuple(location)
+        mask, analysis_d = composeCropImageMask(img1_m, img2_m,location=location)
         analysis.update(analysis)
         return mask, analysis_d
     return None, {}
@@ -2195,7 +2198,7 @@ def composeCropImageMask(img1, img2, location=None):
     analysis = {}
     analysis['location'] = '(0,0)'
     if location is not None:
-        matched_tuple = (location[0],img2.shape[0]+location[0],location[1],img2.shape[1]+location[1])
+        matched_tuple = (location[0],location[1],img2.shape[0]+location[0],img2.shape[1]+location[1])
     else:
         matched_tuple = __findBestMatch(img1, img2)
     if matched_tuple is not None:

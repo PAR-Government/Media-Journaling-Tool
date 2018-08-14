@@ -5093,7 +5093,7 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+      "generateMask": "all",
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.crop_transform",
         "video": "maskgen.mask_rules.video_crop_transform"

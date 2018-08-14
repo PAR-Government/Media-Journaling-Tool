@@ -678,7 +678,7 @@ class VideoVideoLinkTool(LinkTool):
         mask = None
         for item in maskSet:
             if 'mask' in item:
-                mask = item['mask'] if mask is None else mask
+                mask = ImageWrapper(item['mask']) if mask is None else mask
                 item.pop('mask')
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet

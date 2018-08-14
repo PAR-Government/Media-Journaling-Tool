@@ -1387,7 +1387,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
             ret_two, frame_two = analysis_components.retrieveTwo()
             if time_manager.isPastTime():
                 break
-            compare_result, analysis_result  = tool_set.cropCompare(frame_one, frame_two)
+            compare_result, analysis_result  = tool_set.cropCompare(frame_one, frame_two, arguments=analysis)
             analysis.update(analysis_result)
             # go a few more rounds?
         analysis_components.mask = 0
