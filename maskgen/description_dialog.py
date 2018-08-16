@@ -481,7 +481,7 @@ class DescriptionCaptureDialog(Toplevel):
                 self.argvalues[argumentTuple[0]] = argumentTuple[1]['defaultvalue']
 
             if argumentTuple[1]['type'] == "frame_or_time":
-                if self.targetfiletype == "audio":
+                if self.sourcefiletype == "audio":
                     argumentTuple[1]['type'] = "time"
                 else:
                     argumentTuple[1]['type'] = "int[0:1000000000]"  # Frame Number
