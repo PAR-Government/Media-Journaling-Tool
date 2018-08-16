@@ -1,0 +1,52 @@
+{
+    "name": "Contrast",
+    "operation": {
+      "name": "Contrast",
+      "category": "Intensity",
+      "description": "Enhance or reduce the image contrast. (https://www.imagemagick.org/script/command-line-options.php#blur)",
+      "software": "ImageMagick",
+      "version": "7.0",
+      "arguments":{
+        "direction":{
+          "type": "list",
+          "defaultvalue": "increase",
+          "values" : ["increase","decrease"],
+          "description": ""
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "mapping": {
+      "direction" : {
+        "increase" : "+contrast",
+        "decrease" : "-contrast"
+      }
+    },
+    "command": {
+      "default":[
+        "convert",
+        "{inputimage}",
+        "{direction}",
+        "{outputimage}"
+      ],
+       "darwin": [
+        "convert",
+        "{inputimage}",
+        "{direction}",
+        "{outputimage}"
+      ],
+       "linux": [
+        "convert",
+      "{inputimage}",
+        "{direction}",
+        "{outputimage}"
+      ],
+      "win": [
+        "magick",
+        "convert",
+        "{inputimage}",
+        "{direction}",
+        "{outputimage}"
+      ]
+    }
+}

@@ -1,0 +1,42 @@
+{
+    "operation": {
+        "category": "Intensity",
+        "name": "Normalization",
+        "description": "Increase the contrast in an image by stretching the range of intensity values using ImageMagick.",
+        "version": "7.0", 
+        "arguments": {
+            "percent black": {
+                "defaultvalue": 0.01,
+                "type": "float[0:1]",
+                "description": "black-out at most black-point % pixels"
+            },
+             "percent white": {
+                "defaultvalue": 0.95,
+                "type": "float[0:1]",
+                "description": "white-out at most 100% minus white-point % pixels"
+            }
+        }, 
+        "transitions": [
+            "image.image"
+        ], 
+        "software": "ImageMagick"
+    },
+    "command": {
+        "default": [
+            "convert", 
+            "{inputimage}",
+            "-contrast-stretch",
+            "{percent black}%X{percent white}%",
+            "{outputimage}"
+        ], 
+        "win32": [
+            "magick", 
+            "convert", 
+            "{inputimage}",
+            "-contrast-stretch",
+            "{percent black}%X{percent white}%",
+            "{outputimage}"
+        ]
+    }, 
+    "name": "MagickContrastStretch"
+}

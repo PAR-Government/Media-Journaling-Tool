@@ -23,3 +23,7 @@ cd ..
 cd validation
 python -m unittest discover
 cd ..
+cd ..
+cd hp_tool
+python -m unittest discover
+cd ..

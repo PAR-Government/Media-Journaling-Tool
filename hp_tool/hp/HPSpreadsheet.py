@@ -532,8 +532,10 @@ class HPSpreadsheet(Toplevel):
         tab.disabled_cells = []
 
         local_id = self.pt.model.getValueAt(0, 9)
+        
         if not self.device_type and local_id:
-            self.device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
+            cam_handler = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id)
+            self.device_type = cam_handler.get_types()[0] if cam_handler.get_types() else "model"
 
         notnans = tab.model.df.notnull()
         for row in range(0, tab.rows):
