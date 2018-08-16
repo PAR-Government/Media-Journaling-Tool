@@ -2487,12 +2487,17 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file recording meta-data."
         }
       },
       "analysisOperations": [
@@ -2850,48 +2855,6 @@
       "qaList": [
         "Mask Correct?",
         "Time Stamps Correct?"
-      ]
-    },
-    {
-      "category": "Filter",
-      "name": "CameraRawFilter",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "checkForRawFile",
-        "checkSameChannels",
-        "checkEmpty",
-        "checkFrameRateChange_Strict"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        },
-        "XMP File Name": {
-          "type": "file:xmp",
-          "description": "XMP file recording meta-data."
-        }
-      },
-      "analysisOperations": [
-        "maskgen.tool_set.globalTransformAnalysis"
-      ],
-      "description": "Make edits to raw imagery in a raw processor.",
-      "includeInMask": {
-        "default": true
-      },
-      "transitions": [
-        "image.image",
-        "video.video"
-      ],
-      "qaList": [
-        "Confirm highlighted area represents the region that was affected by the operation",
-        "Are all relevant semantic groups assigned? More than one may be appropriate.",
-        "This operation includes the corresponding xmp file that details the changes if possible",
-        "This operation was used during output between a raw file and a png as an initial step to do custom raw image processing",
-        "This operation was used because it was impossible to break it up into other discrete steps."
       ]
     },
     {

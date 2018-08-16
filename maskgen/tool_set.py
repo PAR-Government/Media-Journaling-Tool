@@ -164,8 +164,8 @@ def fileTypeChanged(file_one, file_two):
      Return: True if the file types of the two provided files do not match
     """
     try:
-        one_type = imghdr.what(file_one)
-        two_type = imghdr.what(file_two)
+        one_type = fileType(file_one)
+        two_type = fileType(file_two)
         return one_type != two_type
     except:
         return os.path.splitext(file_one)[1].lower() != os.path.splitext(file_two)[1].lower()

@@ -55,7 +55,7 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure])])
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure, _fixRawFilter])])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -91,6 +91,12 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixRawFilter(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if getValue(edge,'op','') == 'CameraRawFilter':
+            edge['op'] = 'CreativeFilter'
 
 def _fixInputMasks(scModel,gopLoader):
     scModel.fixInputMasks()

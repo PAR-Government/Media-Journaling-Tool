@@ -574,7 +574,6 @@ def checkFileTypeChange(op, graph, frm, to):
         return (Severity.ERROR,'operation not permitted to change the type of image or video file')
     return None
 
-
 def serial_corr(wave, lag=1):
     n = len(wave)
     y1 = wave[lag:]

@@ -22,6 +22,20 @@ class TestToolSet(TestSupport):
         self.assertEqual('yes', result['imagecompression'])
 
 
+    def test_fileTypeChanged(self):
+        graph = Mock()
+        values= {'a': self.locateFile('images/hat.jpg'),
+                 'b': self.locateFile('images/sample.jpg'),
+                 'c': self.locateFile('tests/videos/sample1.mov')}
+        def side_effect(x):
+            return 0,values[x]
+        graph.get_image = Mock(side_effect=side_effect)
+        self.assertIsNone(graph_rules.checkFileTypeChange('op',graph,'a','b'))
+        graph.get_image.assert_called_with('b')
+        self.assertIsNotNone(
+            graph_rules.checkFileTypeChange('op',graph,'a','c'))
+        graph.get_image.assert_called_with('c')
+
     def test_checkForSelectFrames(self):
         def preds(a):
             pass
