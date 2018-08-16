@@ -17,7 +17,7 @@ from time import gmtime, strftime, strptime
 import logging
 from maskgen import __version__
 from threading import RLock
-from support import getPathValues, setPathValue, Proxy
+from support import getPathValues, setPathValue, Proxy, ModuleStatus
 from image_wrap import getProxy
 from tool_set import getMilliSecondsAndFrameCount,fileType,openImage,getOS
 from maskgen.userinfo import get_username
@@ -942,7 +942,7 @@ class ImageGraph:
                             edgename[1]) + ' is missing ' + path + ' file in project'))
         return missing
 
-    def create_archive(self, location, include=[], redacted=[]):
+    def create_archive(self, location, include=[], redacted=[], notifier=None):
         """
 
         :param location:
@@ -951,12 +951,14 @@ class ImageGraph:
         :return:
         """
         self.G.graph['exporttime'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        fname, errors, names_added = self._create_archive(location, include=include,redacted=redacted)
+        fname, errors, names_added = self._create_archive(location, include=include,
+                                                          redacted=redacted,
+                                                          notifier=notifier)
         names_added = [os.path.split(i)[1] for i in names_added]
         tries = 0
         if len(errors) == 0:
             while not self._check_archive_integrity(fname, names_added) and tries < 3:
-                fname, errors, names_added = self._create_archive(location, redacted=redacted)
+                fname, errors, names_added = self._create_archive(location, redacted=redacted,notifier=notifier)
                 tries += 1
         return fname, ([('', '', "Failed to create archive")] if (tries == 3 and len(errors) == 0) else errors)
 
@@ -1020,25 +1022,38 @@ class ImageGraph:
         except Exception as e:
             logging.getLogger('maskgen').error("Unable to create image graph: " + str(e))
 
-    def _create_archive(self, location, include=[], redacted=[]):
+    def _create_archive(self, location, include=[], redacted=[], notifier=None):
         self.save()
+        total = float(len(self.G.nodes()) + len(self.G.edges()) + len(include)) + 1
         fname = os.path.join(location, self.G.name + '.tgz')
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
         archive.add(os.path.join(self.dir, self.G.name + ".json"),
                     arcname=os.path.join(self.G.name, self.G.name + ".json"))
         errors = list()
         names_added = list()
+        count = 0
         for nname in self.G.nodes():
             self._archive_node(nname, archive, names_added=names_added)
+            count += 1
+            if notifier is not None:
+                notifier(ModuleStatus('Export', 'Archive', nname, 100.0 * count/total))
         for edgename in self.G.edges():
             edge = self.G[edgename[0]][edgename[1]]
             errors.extend(
                 self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
+            count += 1
+            if notifier is not None:
+                notifier(ModuleStatus('Export', 'Archive', str(edgename), 100.0 * count / total))
         for item in include:
             archive.add(os.path.join(self.dir, item),
                         arcname=item)
+            count += 1
+            if notifier is not None:
+                notifier(ModuleStatus('Export', 'Archive', item, 100.0 * count / total))
         self._output_summary(archive)
         archive.close()
+        if notifier is not None:
+            notifier(ModuleStatus('Export', 'Archive', 'summary', 100.0))
         return fname, errors, names_added
 
     def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list(), redacted=list()):

@@ -2619,14 +2619,14 @@ class ImageProjectModel:
         return [edge for edge in [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
                 if edge['op'] == opName]
 
-    def export(self, location, include=[]):
+    def export(self, location, include=[], notifier=None):
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
-            path, errors = self.G.create_archive(location, include=include)
+            path, errors = self.G.create_archive(location, include=include, notifier=notifier)
             return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[]):
+    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[],notifier=None):
         """
 
         :param location:
@@ -2642,7 +2642,9 @@ class ImageProjectModel:
             self.compress(all=True)
             #errors = []
             #path = ''
-            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir, redacted=redacted)
+            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir,
+                                                 redacted=redacted,
+                                                 notifier=notifier)
             if len(errors) == 0:
                 config = TransferConfig()
                 s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)

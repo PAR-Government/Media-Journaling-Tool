@@ -378,7 +378,7 @@ class MakeGenUI(Frame):
             return
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
-            errorList = self.scModel.export(val)
+            errorList = self.scModel.export(val,notifier=self.progress_bar.postChange)
             if len(errorList) > 0:
                 ValidationListDialog(self, errorList, "Export Errors")
             else:
@@ -393,7 +393,7 @@ class MakeGenUI(Frame):
                                        initialvalue=info if info is not None else '')
         if (val is not None and len(val) > 0):
             try:
-                errorList = self.scModel.exporttos3(val,additional_message=message)
+                errorList = self.scModel.exporttos3(val,additional_message=message,notifier=self.progress_bar.postChange)
                 uploaded = self.prefLoader.get_key('lastlogupload')
                 uploaded = exportlogsto3(val,uploaded)
                 # preserve the file uploaded
@@ -1223,7 +1223,7 @@ class MakeGenUI(Frame):
         mframe.grid(row=3, column=0, rowspan=1, columnspan=3, sticky=N + S + E + W)
         self.progress_bar = ProgressBar(self.master)
         self.progress_bar.grid(row=4, column=0, columnspan=3, sticky=S + E + W)
-        self.progress_bar.grid_propagate(False)
+        self.progress_bar.grid_propagate(True)
 
         if (self.scModel.start is not None):
             self.setSelectState('normal')

@@ -11,7 +11,7 @@ import ttk
 from Tkinter import *
 import  tkSimpleDialog
 import tkMessageBox
-
+import logging
 from maskgen.support import ModuleStatus
 
 
@@ -56,6 +56,10 @@ class ProgressBar(Frame):
         if module_status.system_name != self.system_label_var.get() or \
                                 current_time - self.last_time > 1.2 or \
                         module_status.percentage >= 99.9999:
+            logging.getLogger('maskgen').info('%s %s %s %2.3f' % (module_status.system_name,
+                                                                  module_status.module_name,
+                                                               module_status.component,
+                                                               module_status.percentage))
             self.system_label_var.set(module_status.system_name)
             self.module_label_var.set(module_status.module_name)
             self.function_label_var.set(module_status.component)
