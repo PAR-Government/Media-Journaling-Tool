@@ -51,6 +51,14 @@ suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".w
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
+modelfiletypes = [('3D Studio', '*.3ds'), ('Blender', '*.blen'), ('Collada', '*.dae'), ('AutoCAD', '*.dxf'),
+                  ('Autodesk Exchange', '*.fbx'), ('geoTIFF', '*.tif'), ('gITF', '*.gITF'), ('Lightwave', '*.lwo'),
+                  ('OBJ Files', '*.obj'), ('OFF File', '*.off'), ('PLY Files', '*.ply'), ('PTS Files', '*.pts'),
+                  ('PTX Files', '*.ptx'), ('Sculptris', '*.sc1'), ('Pro/ENGINEER', '*.scl'),
+                  ('Google Sketchup', '*.skp'), ('STL File', '*.stl'), ('TRI Files', '*.tri'), ('V3D Files', '*.v3d'),
+                  ('VRML (WRL Files)', '*.wrl'), ('X3D Files', '*.x3d'), ('X3DV Files', '*.x3dv'),
+                  ('SoftImage', '*.xsi'), ('ZBrush', '*.ztl'), ('XYZ Files', '*.xyz')]
+
 
 class S3ProgressPercentage(object):
     def __init__(self, filename):

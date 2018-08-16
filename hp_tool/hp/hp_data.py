@@ -19,12 +19,15 @@ import json
 import data_files
 from PIL import Image
 from hp.GAN_tools import SeedProcessor
+from zipfile import ZipFile
 
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
-        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes],
+        'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes] + [".zip"],
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
         'MODEL': ['.3d.zip'],
         'nonstandard': ['.lfr']}
+
+model_types = [x[1][1:] for x in maskgen.tool_set.modelfiletypes]
 
 orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
 
@@ -57,7 +60,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         sub = 'model'
     elif any(os.path.splitext(filename)[1].lower() in exts["nonstandard"] for filename in files_in_dir):
         sub = 'nonstandard'
-    elif currentExt.lower() in exts['VIDEO'] or image.lower().endswith(".dng.zip"):
+    elif currentExt.lower() in exts['VIDEO']:
         sub = 'video'
     elif currentExt.lower() in exts['AUDIO']:
         sub = 'audio'
@@ -66,8 +69,9 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     else:
         return image
     if sub not in ['model', 'nonstandard']:
-        if image.lower().endswith(".dng.zip"):
-            newPathName = os.path.join(path, sub, '.hptemp', newNameStr + ".dng.zip")
+        if currentExt == ".zip":
+            full_ext = os.path.splitext(os.path.splitext(image)[0])[1] + ".zip"
+            newPathName = os.path.join(path, sub, '.hptemp', newNameStr + full_ext)
         else:
             newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
     else:
@@ -363,16 +367,26 @@ def set_other_data(self, data, imfile, set_primary):
     :param imfile: name of corresponding image file
     :return: data with more information completed
     """
+    def get_model_ext(model):
+        zf = ZipFile(model)
+        exts_in_zip = [os.path.splitext(x)[1] for x in zf.namelist()]
+        matching_types = [x for x in exts_in_zip if x in model_types]
+        if matching_types:
+            return matching_types[0]
+        return "3d.zip"
+
     imext = os.path.splitext(imfile)[1]
-    data['FileType'] = imext[1:]
     if imext.lower() in exts['AUDIO']:
         data['Type'] = 'audio'
-    elif imext.lower() in exts['VIDEO'] or imfile.endswith(".dng.zip"):
-        data['Type'] = 'video'
     elif imfile.lower().endswith('.3d.zip'):
         data['Type'] = 'model'
+    elif imext.lower() in exts['VIDEO']:
+        data['Type'] = 'video'
     else:
         data['Type'] = 'image'
+
+    data['FileType'] = imext[1:] if imext[1:] != "zip" else os.path.splitext(os.path.splitext(imfile)[0])[1][1:] +\
+                                                            imext if data['Type'] != "model" else get_model_ext(imfile)
     # data['GPSLatitude'] = convert_GPS(data['GPSLatitude'])
     # data['GPSLongitude'] = convert_GPS(data['GPSLongitude'])
 
