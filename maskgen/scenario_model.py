@@ -896,6 +896,11 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'zip.audio': ImageZipAudioLinkTool()}
 
 
+def true__notify(object, message):
+    return True
+
+
+
 class ImageProjectModel:
     """
        A ProjectModel manages a project.  A project is made up of a directed graph of Image nodes and links.
@@ -925,12 +930,12 @@ class ImageProjectModel:
     """
     lock = Lock()
 
-    def __init__(self, projectFileName, graph=None, importImage=False, notify=None,
+    def __init__(self, projectFileName, graph=None, notify=None,
                  baseImageFileName=None, username=None,tool=None):
         self.probeMaskMemory = DummyMemory(None)
-        self.notify = None
+        self.notify = true__notify
         if notify is not None:
-            self.notify = notifiers.NotifyDelegate(self,[notify, notifiers.QaNotifier(self)])
+            self.notify = notifiers.NotifyDelegate([notify, notifiers.QaNotifier(self)])
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
@@ -992,8 +997,7 @@ class ImageProjectModel:
                     self.end = None
             except Exception as ex:
                 logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
-            if self.notify is not None:
-                self.notify(added, 'add')
+            self.notify(added, 'add')
 
 
     def addImage(self, pathname, cgi=False, prnu=False, **kwargs):
@@ -1015,8 +1019,7 @@ class ImageProjectModel:
                                 **additional)
         self.start = nname
         self.end = None
-        if self.notify is not None:
-            self.notify([self.start], 'add')
+        self.notify([self.start], 'add')
         return nname
 
     def getEdgesBySemanticGroup(self):
@@ -1462,8 +1465,7 @@ class ImageProjectModel:
         for k, v in self.getAddTool(pathname).getAdditionalMetaData(pathname).iteritems():
             params[k] = v
         destination = self.G.add_node(pathname, seriesname=self.getSeriesName(), **params)
-        if self.notify is not None:
-            self.notify([destination],'add')
+        self.notify([destination],'add')
         analysis_params = dict({ k:v for k,v in edge_parameters.iteritems() if v is not None})
         msgs, status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
                                              skipRules=skipRules, analysis_params=analysis_params)
@@ -1710,7 +1712,7 @@ class ImageProjectModel:
 
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 
-            if (self.notify is not None and sendNotifications):
+            if sendNotifications:
                 self.notify((self.start, destination), 'connect')
             logging.getLogger('maskgen').debug('Validation')
             edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
@@ -1857,8 +1859,7 @@ class ImageProjectModel:
         self.start = None
         self.end = None
         self.G.undo()
-        if self.notify is not None:
-            self.notify((s, e), 'undo')
+        self.notify((s, e), 'undo')
 
     def select(self, edge):
         if self.getGraph().get_node(edge[0]) == None:
@@ -2119,8 +2120,7 @@ class ImageProjectModel:
             self.end = None
             for node in p:
                 self.labelNodes(node)
-        if self.notify is not None:
-            self.notify((s, e), 'remove')
+        self.notify((s, e), 'remove')
 
     def getProjectData(self, item, default_value=None):
         return self.G.getDataItem(item, default_value=default_value)
@@ -2198,8 +2198,7 @@ class ImageProjectModel:
         prior = self.G.get_node(node)['nodetype'] if 'nodetype' in self.G.get_node(node) else None
         if prior != label:
             self.G.update_node(node, nodetype=label)
-            if self.notify is not None:
-                self.notify(node, 'label')
+            self.notify(node, 'label')
 
     def renameFileImages(self):
         """
@@ -2491,7 +2490,7 @@ class ImageProjectModel:
         os.remove(target)
         if status:
             pairs.append((self.start, self.end))
-            if (self.notify is not None and sendNotifications):
+            if sendNotifications:
                 self.notify((self.start,  self.end), 'connect')
 
             for donor in donors:
@@ -2654,7 +2653,7 @@ class ImageProjectModel:
                 DIR = DIR if DIR.endswith('/') else DIR + '/'
                 s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
                 os.remove(path)
-                if self.notify is not None and not self.notify(self.getName(), 'export',
+                if not self.notify(self.getName(), 'export',
                                    location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
                                                                additional_message=additional_message):
                     errors = [('', '',

@@ -28,12 +28,12 @@ class ProgressBar(Frame):
         self.module_label_var.set('              ')
         self.function_label_var = StringVar()
         self.function_label_var.set('              ')
-        Label(master,textvariable=self.system_label_var,anchor=W, justify=LEFT,width=20).grid(row=0,column=1)
-        ttk.Separator().grid(row=0,column=2)
-        Label(master,textvariable=self.module_label_var,anchor=W, justify=LEFT,width=20).grid(row=0, column=3)
-        ttk.Separator().grid(row=0,column=4)
-        Label(master,textvariable=self.function_label_var,anchor=W, justify=LEFT,width=40).grid(row=0, column=5)
-        ttk.Separator().grid(row=0,column=6)
+        Label(master,textvariable=self.system_label_var,anchor=W, justify=LEFT,width=20).grid(row=0,column=0)
+        ttk.Separator().grid(row=0,column=1)
+        Label(master,textvariable=self.module_label_var,anchor=W, justify=LEFT,width=20).grid(row=0, column=2)
+        ttk.Separator().grid(row=0,column=3)
+        Label(master,textvariable=self.function_label_var,anchor=W, justify=LEFT,width=40).grid(row=0, column=4)
+        ttk.Separator().grid(row=0,column=5)
         self.pb_status = DoubleVar()
         self.pb_status.set(0)
         self.pb = ttk.Progressbar(master,
@@ -41,7 +41,7 @@ class ProgressBar(Frame):
                                   orient='horizontal',
                                   mode='determinate',
                                   maximum=100.001)
-        self.pb.grid(row=0,column=7,sticky=E)
+        self.pb.grid(row=0,column=6,sticky=E)
 
     def postChange(self,module_status):
         """

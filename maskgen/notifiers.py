@@ -69,8 +69,7 @@ def getNotifier(loader):
 
 
 class NotifyDelegate:
-    def __init__(self, scmodel, notifiers):
-        self.scmodel = scmodel
+    def __init__(self, notifiers):
         self.notifiers = notifiers
 
     def __call__(self,*args,**kwargs):

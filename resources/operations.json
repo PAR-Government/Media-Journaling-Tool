@@ -1839,6 +1839,119 @@
       ]
     },
     {
+      "category": "CGI",
+      "name": "DeepFakeFaceSwap",
+      "mandatoryparameters": {
+        "urls": {
+          "type": "urls",
+          "description": "Urls to training videos if available"
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "check_local_warn",
+        "checkSameChannels",
+        "checkVideoMasks",
+        "checkFrameTimeAlignment",
+        "checkUncompressed",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+        "Trainer": {
+          "type": "list",
+          "values":["GAN","GAN128","Original","IAE"],
+          "description": "Trainer used.",
+          "defaultvalue":"Original"
+        },
+         "Detector": {
+          "type": "list",
+          "values":["all","hog","cnn"],
+          "description": "Face Detector used.",
+           "defaultvalue":"all"
+        },
+        "Batch Size": {
+          "type": "int[1:100000000]",
+          "description": "micro batches.",
+          "defaultvalue":32
+        },
+        "Epochs": {
+          "type": "int[1:100000000]",
+          "description": "Training epochs.",
+          "defaultvalue":10000
+        },
+         "Converter": {
+          "type": "list",
+          "values":["Masked","Adjust"],
+          "description": "Trainer used.",
+           "defaultvalue":"Masked"
+        },
+        "Mask Blur": {
+           "type": "yesno",
+           "description": "Trainer used.",
+           "defaultvalue" : "no"
+        },
+        "Mask Seamless": {
+           "type": "yesno",
+           "description": "Algorithm to erase seams.",
+           "defaultvalue" : "no"
+        },
+        "Mask Erode": {
+           "type": "yesno",
+           "description": "Erode edges (may reduce the fit).",
+           "defaultvalue" : "no"
+        },
+        "Adjust Smooth": {
+           "type": "yesno",
+           "description": "Smooth edges.",
+           "defaultvalue" : "no"
+        },
+        "Adjust Color": {
+           "type": "yesno",
+           "description": "Match color intensity.",
+           "defaultvalue" : "no"
+        },
+        "Histogram Color Match": {
+           "type": "yesno",
+           "description": "Match color with histogram (may be the same as adjust color).",
+           "defaultvalue" : "yes"
+        },
+        "Blur Size": {
+           "type": "int[1:1000]",
+           "description": "Blur Kernel Size.",
+           "defaultvalue" : "40"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
+      "description": "Face Swap with Deep Fake algorithms.",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Confirm URL(s) {urls} lead to training data"
+      ]
+    },
+    {
       "category": "Layer",
       "name": "LayerOpacity",
       "mandatoryparameters": {

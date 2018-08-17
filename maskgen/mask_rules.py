@@ -2657,6 +2657,18 @@ class CompositeDelegate:
                     logging.getLogger('maskgen').error('{} for edge {}'.format(ex, edge_id))
                     return [self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, failure=True)]
                 raise ex
+#        if len(successors) == 0 and self.edge_id == edge_id:
+#            edge = self.graph.get_edge(edge_id[0], edge_id[1])
+#            for op in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
+#                compositeMask = mAlterComposite(self.graph,
+#                                edge,
+#                                op,
+#                                edge_id[0],
+#                                edge_id[1],
+#                                compositeMask,
+#                                self.get_dir(),
+#                                maskMemory=self.maskMemory,
+#                                base_id=self.edge_id)
         return results if len(successors) > 0 else [
             self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets)]
 
@@ -2764,6 +2776,7 @@ class CompositeDelegate:
             if saveTargets:
                 target_mask.save(target_mask_filename, format='PNG')
             return target_mask, target_mask_filename, finalNodeId, 'image', failure
+
 
         return mask, None, finalNodeId, 'video', failure
 
