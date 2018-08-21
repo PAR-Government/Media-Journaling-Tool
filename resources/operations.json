@@ -67,6 +67,10 @@
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.add_audio"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
@@ -124,6 +128,10 @@
       "generateMask": "all",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioSample"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "includeInMask": {
         "default": true
@@ -252,12 +260,9 @@
         "checkChannelLoss",
         "checkAudioTimeFormat",
         "checkOverlay",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkAudioAdd"
       ],
-      "maskTransformFunction": {
-        "video": "maskgen.mask_rules.add_audio",
-        "audio": "maskgen.mask_rules.add_audio"
-      },
       "optionalparameters": {
         "End Time": {
           "type": "time",
@@ -273,6 +278,10 @@
         "default": true
       },
       "generateMask": "audio",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.add_audio",
+        "audio": "maskgen.mask_rules.add_audio"
+      },
       "transitions": [
         "video.video",
         "audio.audio",
@@ -386,6 +395,10 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "video.video",
         "audio.audio"
@@ -431,7 +444,8 @@
         "checkUncompressed",
         "checkAudioTimeFormat",
         "checkDurationAudio",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict"
       ],
       "parameter_dependencies": {
         "Filter Type": {
@@ -489,6 +503,10 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "video.video",
         "audio.audio"
@@ -538,7 +556,8 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -569,6 +588,10 @@
         "audio.audio",
         "video.video"
       ],
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
@@ -625,7 +648,8 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkDurationAudio",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Pre-Delay": {
@@ -653,6 +677,10 @@
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
+      },
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "qaList": [
         "Time Stamps Ok?"
@@ -695,7 +723,8 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkDurationAudio",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Stream": {
@@ -718,6 +747,10 @@
         "default": true
       },
       "generateMask": "audio",
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "audio.audio",
         "video.video"
@@ -769,7 +802,8 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
@@ -785,6 +819,10 @@
       "description": "Replacing with a donor audio stream to a video",
       "includeInMask": {
         "default": true
+      },
+       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "generateMask": "audio",
       "transitions": [
@@ -3585,6 +3623,10 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "optionalparameters": {
       },
       "description": "Export the image in the PCM format (wave, aif, etc.).",
@@ -3610,6 +3652,10 @@
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": {
@@ -5905,7 +5951,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "interlacing": {

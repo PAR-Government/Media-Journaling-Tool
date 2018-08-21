@@ -177,34 +177,6 @@ def getOrientationForEdge(edge):
             edge['exifdiff']['Orientation'][1]
     return ''
 
-def getMasksFromEdge(graph, source, edge, media_types, channel=0, startTime=None,endTime=None):
-    #TODO
-    if 'videomasks' in edge and \
-        edge['videomasks'] is not None and \
-        len(edge['videomasks']) > 0:
-        return [mask for mask in edge['videomasks'] if mask['type'] in media_types]
-           # [ {
-           # 'starttime': edge['videomasks'][0]['starttime'],
-           # 'startframe': edge['videomasks'][0]['startframe'],
-           ## 'endtime': edge['videomasks'][-1]['endtime'],
-           # 'endframe': edge['videomasks'][-1]['endframe'],
-           ## 'rate': edge['videomasks'][0]['rate'],
-           # 'type': media_type
-        #} for media_type in media_types]
-    else:
-       result = video_tools.getMaskSetForEntireVideo(getNodeFile(graph,source),
-                                             start_time = getValue(edge,'arguments.Start Time',
-                                                                   defaultValue='00:00:00.000')
-                                             if startTime is None else startTime,
-                                             end_time = getValue(edge,'arguments.End Time')
-                                             if endTime is None else endTime,
-                                             media_types=media_types,
-                                             channel=channel)
-       if result is None or len(result) == 0:
-            return None
-    return result
-
-
 class BuildState:
     def __init__(self,
                  edge,
@@ -290,6 +262,10 @@ class BuildState:
 
     def arguments(self):
         return getValue(self.edge,'arguments',{})
+
+    def getMasksFromEdge(self, expect_types,channel=0, startTime=None,endTime=None):
+        return video_tools.getMasksFromEdge(getNodeFile(self.graph,self.source), self.edge, expect_types,channel=channel,
+                                startTime=startTime,endTime=endTime)
 
     def getExifOrientation(self):
         """
@@ -586,7 +562,7 @@ def video_resize_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     shapeChange = buildState.shapeChange()
     args = buildState.arguments()
@@ -656,7 +632,7 @@ def copy_exif(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     frame_rate_check(buildState)
     orientrotate = video_tools.get_video_orientation_change(getNodeFile(
@@ -686,7 +662,7 @@ def video_rotate_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     frame_rate_check(buildState)
     rotation = buildState.rotation()
@@ -740,26 +716,20 @@ def select_cut_frames(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              video_tools.dropFramesFromMask(getMasksFromEdge(
-                                  buildState.graph,
-                                  buildState.source,
-                                  buildState.edge,
+                              video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['audio','video']),
                                   buildState.compositeMask.videomasks))
     elif buildState.donorMask is not None:
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.insertFramesToMask(getMasksFromEdge(
-                                  buildState.graph,
-                                  buildState.source,
-                                  buildState.edge,
+                              video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                   ['audio','video']),
                                 buildState.donorMask.videomasks))
     return None
@@ -770,59 +740,65 @@ def select_crop_frames(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
-    frame_bounds = getMasksFromEdge(buildState.graph, buildState.source, buildState.edge, ['audio','video'])
+    frame_bounds = buildState.getMasksFromEdge(['audio','video'])
+    masks_to_use = buildState.compositeMask if buildState.isComposite else buildState.donorMask
+    video_masks = [vm for vm in masks_to_use.videomasks if vm['type'] == 'video']
+    audio_masks = [vm for vm in masks_to_use.videomasks if vm['type'] == 'audio']
     video_bound = [frame_bound for frame_bound in frame_bounds if frame_bound['type'] == 'video']
     audio_bound = [frame_bound for frame_bound in frame_bounds if frame_bound['type'] == 'audio']
-    start = []
-    end = []
-    if len(video_bound) > 0:
+
+    def setbound(bound,max_mask):
         start_vid = {
-                'starttime': 0.0,
-                'startframe': 0,
-                'endtime': video_bound[0]['starttime'],
-                'endframe': video_bound[0]['startframe'],
-                'rate': video_bound[0]['rate'],
-                'type': video_bound[0]['type']
-            }
-        end_vid = {
-                'starttime': video_bound[0]['endtime'],
-                'startframe': video_bound[0]['endframe'],
-                'rate': video_bound[0]['rate'],
-                'type': video_bound[0]['type']
-            }
-        start.append(start_vid)
-        end.append(end_vid)
-    if len(audio_bound) > 0:
-        start_audio = {
             'starttime': 0.0,
-            'startframe': 0,
-            'endtime': audio_bound[0]['starttime'],
-            'endframe': audio_bound[0]['startframe'],
-            'rate': audio_bound[0]['rate'],
-            'type': audio_bound[0]['type']
+            'startframe': 1,
+            'endtime': bound[0]['starttime'] - 1000.0 / bound[0]['rate'],
+            'endframe': bound[0]['startframe'] - 1,
+            'rate': bound[0]['rate'],
+            'type': bound[0]['type']
         }
-        end_audio = {
-            'starttime': audio_bound[0]['endtime'],
-            'startframe': audio_bound[0]['endframe'],
-            'rate': audio_bound[0]['rate'],
-            'type': audio_bound[0]['type']
+        end_vid = {
+            'starttime': bound[0]['endtime'] + 1000.0 / bound[0]['rate'],
+            'startframe': bound[0]['endframe'] + 1,
+            'endtime': max_mask['endtime'],
+            'endframe': max_mask['endframe'],
+            'rate': bound[0]['rate'],
+            'type': bound[0]['type']
         }
-        start.append(start_audio)
-        end.append(end_audio)
+        return start_vid, end_vid
+
+
+    def run_composite(bound, masks):
+        if len(bound) > 0 and len(masks) > 0:
+            max_media = np.argmax([vm['endframe'] for vm in masks])
+            start, end = setbound(bound, masks[max_media])
+            return video_tools.dropFramesFromMask([start],
+                                                          video_tools.dropFramesFromMask([end],
+                                                                                         buildState.compositeMask.videomasks))
+        return []
+
+    def run_donor(bound, masks):
+        if len(bound) > 0 and len(masks) > 0:
+            max_media = np.argmax([vm['endframe'] for vm in masks])
+            start, end = setbound(bound, masks[max_media])
+            return video_tools.insertFramesToMask([start],buildState.donorMask.videomasks)
+        return []
+
     if buildState.isComposite:
+        results = run_composite(video_bound,video_masks)
+        results.extend(run_composite(audio_bound, audio_masks))
         return CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              video_tools.dropFramesFromMask(end,
-                                                             video_tools.dropFramesFromMask(start,
-                                                                                            buildState.compositeMask.videomasks)))
+                              results)
     elif buildState.donorMask is not None:
+        results = run_donor(video_bound, video_masks)
+        results.extend(run_composite(audio_bound, audio_masks))
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.insertFramesToMask(start,buildState.donorMask.videomasks))
+                              results)
     return None
 
 
@@ -831,16 +807,13 @@ def replace_audio(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              video_tools.dropFramesWithoutMask(getMasksFromEdge(
-                                  buildState.graph,
-                                  buildState.source,
-                                  buildState.edge,
+                              video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
                                   ['audio']),
                                   buildState.compositeMask.videomasks, keepTime=True,
                                                                 expectedType='audio'))
@@ -854,7 +827,7 @@ def add_audio(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         # if there is a match the source and target, then this is 'seeded' composite mask
@@ -867,20 +840,14 @@ def add_audio(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.insertFramesWithoutMask(
-                                          getMasksFromEdge(buildState.graph,
-                                                           buildState.source,
-                                                           buildState.edge,
+                                      video_tools.insertFrames(buildState.getMasksFromEdge(
                                                            ['audio']),
                                           buildState.compositeMask.videomasks,
                                           expectedType='audio'))
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.dropFramesWithoutMask(getMasksFromEdge(
-                                      buildState.graph,
-                                      buildState.source,
-                                      buildState.edge,
+                                  video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
                                       ['audio']),
                                                                     buildState.compositeMask.videomasks,
                                                                     keepTime=True,
@@ -896,7 +863,7 @@ def delete_audio(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
@@ -904,20 +871,14 @@ def delete_audio(buildState):
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.dropFramesWithoutMask(getMasksFromEdge(
-                                      buildState.graph,
-                                      buildState.source,
-                                      buildState.edge,
+                                  video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
                                       ['audio']),
                                       buildState.compositeMask.videomasks,
                                       expectedType='audio'))
         return buildState.compositeMask
     # in donor case, need to add the deleted frames back
     else:
-        return video_tools.insertFramesWithoutMask(getMasksFromEdge(
-            buildState.graph,
-            buildState.source,
-            buildState.edge,
+        return video_tools.insertFrames(buildState.getMasksFromEdge(
             ['audio']),
             buildState.compositeMask,
             expectedType='audio')
@@ -928,7 +889,7 @@ def copy_paste_frames(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     startTime = getValue(buildState.edge,'arguments.Dest Paste Time')
     framesCount = getValue(buildState.edge,'arguments.Number of Frames')
@@ -942,10 +903,7 @@ def copy_paste_frames(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.insertFramesToMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
+                                      video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                           ['video'],
                                           startTime=startTime,
                                           endTime=endTime),
@@ -955,10 +913,7 @@ def copy_paste_frames(buildState):
             return CompositeImage(buildState.donorMask.source,
                                   buildState.donorMask.target,
                                   buildState.donorMask.media_type,
-                                  video_tools.dropFramesFromMask(getMasksFromEdge(
-                                      buildState.graph,
-                                      buildState.source,
-                                      buildState.edge,
+                                  video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                       ['video'],
                                       startTime=startTime,
                                       endTime=endTime),
@@ -972,10 +927,7 @@ def copy_paste_frames(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.dropFramesFromMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
+                                      video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                           ['video'],
                                           startTime=startTime,
                                           endTime=endTime
@@ -983,17 +935,36 @@ def copy_paste_frames(buildState):
                                           buildState.compositeMask.videomasks,
                                           keepTime=True))
             return buildState.compositeMask
-        # in donor case, the donor was already trimmed
         else:
-            return buildState.donorMask
+            # the donor uses some of the pasted data from somewhere else
+            # so remove that part
+            donorMask= video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
+                                      ['video'],
+                                      startTime=startTime,
+                                      endTime=endTime),
+                                      buildState.donorMask.videomasks,
+                                  keepTime=True)
+            # that 'somewhere else' is still part of the donor, so add it back
+            startTime = getValue(buildState.edge, 'arguments.Select Start Time')
+            endTime = addFrame(getMilliSecondsAndFrameCount(startTime, defaultValue=(0, 0)), framesCount)
+            return CompositeImage(buildState.donorMask.source,
+                                  buildState.donorMask.target,
+                                  buildState.donorMask.media_type,
+                                  video_tools.removeIntersectionOfMaskSets(buildState.getMasksFromEdge(
+                                          ['video'],
+                                          startTime=startTime,
+                                          endTime=endTime
+                                      ),donorMask))
 
-def paste_add_frames(buildState):
+
+def _paste_add(buildState,media_types):
     """
-    :param buildState:
-    :return: updated composite mask
-    @type buildState: BuildState
-    @rtype: np.ndarray
-    """
+       :param buildState:
+       :return: updated composite mask
+       @type buildState: BuildState
+       @type media_types: list of str
+       @rtype: CompositeImage
+       """
     args = buildState.arguments()
     if 'add type' in args and args['add type'] == 'insert':
         if buildState.isComposite:
@@ -1002,76 +973,16 @@ def paste_add_frames(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.insertFramesToMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
-                                          ['video']),
+                                      video_tools.insertFramesToMask(buildState.getMasksFromEdge(
+                                          media_types),
                                           buildState.compositeMask.videomasks))
             return buildState.compositeMask
         elif buildState.donorMask is not None:
             return CompositeImage(buildState.donorMask.source,
                                   buildState.donorMask.target,
                                   buildState.donorMask.media_type,
-                                  video_tools.dropFramesFromMask(getMasksFromEdge(buildState.graph,
-                                                                                  buildState.source,
-                                                                                  buildState.edge,
-                                                                                  ['video']),
-                                                                 buildState.donorMask.videomasks))
-        return None
-    else:
-        # overlay case, trim masks
-        if buildState.isComposite:
-            if buildState.compositeMask.source != buildState.source and \
-                            buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
-                                      video_tools.dropFramesFromMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
-                                          ['video']),
-                                          buildState.compositeMask.videomasks,
-                                                                     keepTime=True))
-            return buildState.compositeMask
-        # in donor case, the donor was already trimmed
-        else:
-            return buildState.donorMask
-
-
-# ERIC
-def paste_add_audio_frames(buildState):
-    """
-    :param buildState:
-    :return: updated composite mask
-    @type buildState: BuildState
-    @rtype: np.ndarray
-    """
-    args = buildState.arguments()
-    if 'add type' in args and args['add type'] == 'insert':
-        if buildState.isComposite:
-            if buildState.compositeMask.source != buildState.source and \
-                            buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
-                                      video_tools.insertFramesToMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
-                                          ['audio']),
-                                          buildState.compositeMask.videomasks))
-            return buildState.compositeMask
-        elif buildState.donorMask is not None:
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
-                                  video_tools.dropFramesFromMask(getMasksFromEdge(
-                                      buildState.graph,
-                                      buildState.source,
-                                      buildState.edge,
-                                      ['audio']),
+                                  video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
+                                      media_types),
                                       buildState.donorMask.videomasks))
         return None
     else:
@@ -1082,24 +993,44 @@ def paste_add_audio_frames(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.dropFramesFromMask(getMasksFromEdge(
-                                          buildState.graph,
-                                          buildState.source,
-                                          buildState.edge,
-                                          ['audio']),
+                                      video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
+                                          media_types),
                                           buildState.compositeMask.videomasks,
-                                                                     keepTime=True))
+                                          keepTime=True))
             return buildState.compositeMask
-        # in donor case, the donor was already trimmed
         else:
-            return buildState.donorMask
+            return CompositeImage(buildState.donorMask.source,
+                                  buildState.donorMask.target,
+                                  buildState.donorMask.media_type,
+                                  video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
+                                      media_types),
+                                      buildState.donorMask.videomasks,
+                                      keepTime=True))
+
+def paste_add_frames(buildState):
+    """
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return _paste_add(buildState,['video'])
+
+def paste_add_audio_frames(buildState):
+    """
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return _paste_add(buildState,['audio'])
 
 def time_warp_frames(buildState):
     """
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
@@ -1107,10 +1038,7 @@ def time_warp_frames(buildState):
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.insertFramesToMask(getMasksFromEdge(
-                                      buildState.graph,
-                                      buildState.source,
-                                      buildState.edge,
+                                  video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                       ['video']),
                                       buildState.compositeMask.videomasks))
         return buildState.compositeMask
@@ -1118,10 +1046,7 @@ def time_warp_frames(buildState):
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.dropFramesFromMask(getMasksFromEdge(
-                                  buildState.graph,
-                                  buildState.source,
-                                  buildState.edge,
+                              video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['video']),
                                   buildState.donorMask.videomasks))
     return None
@@ -1131,7 +1056,7 @@ def reverse_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     frame_rate_check(buildState)
     if buildState.isComposite:
@@ -1140,9 +1065,7 @@ def reverse_transform(buildState):
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.reverseMasks(getMasksFromEdge(buildState.graph,
-                                                                            buildState.source,
-                                                                            buildState.edge,
+                                  video_tools.reverseMasks(buildState.getMasksFromEdge(
                                                                             ['video']),
                                                            buildState.compositeMask.videomasks))
         return buildState.compositeMask
@@ -1150,9 +1073,7 @@ def reverse_transform(buildState):
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.reverseMasks(getMasksFromEdge(buildState.graph,
-                                                                        buildState.source,
-                                                                        buildState.edge,
+                              video_tools.reverseMasks(buildState.getMasksFromEdge(
                                                                         ['video']),
                                                        buildState.donorMask.videomasks))
     return None
@@ -1162,7 +1083,7 @@ def time_warp_audio(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
@@ -1170,9 +1091,7 @@ def time_warp_audio(buildState):
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.insertFramesToMask(getMasksFromEdge(buildState.graph,
-                                                                                  buildState.source,
-                                                                                  buildState.edge,
+                                  video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                                                                   ['audio']),
                                                                  buildState.compositeMask.videomasks))
         return buildState.compositeMask
@@ -1180,10 +1099,7 @@ def time_warp_audio(buildState):
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.dropFramesFromMask(getMasksFromEdge(
-                                  buildState.graph,
-                                  buildState.source,
-                                  buildState.edge,
+                              video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['audio']),
                                   buildState.donorMask.videomasks))
     return None
@@ -1802,6 +1718,19 @@ def image_selection(buildState):
                              buildState.edge,
                              returnEmpty=False,
                              fillWithUserBoundaries=True)
+
+def echo(buildState):
+    """
+    Assumes frame rate has not changed.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: np.ndarray
+    """
+    if buildState.isComposite:
+        return buildState.compositeMask
+    else:
+        return buildState.donorMask
 
 def output_video_change(buildState):
     """

@@ -45,7 +45,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
 
-textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt")]
+textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
             ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
@@ -401,7 +401,7 @@ class VidTimeManager:
                         self.frameCountWhenStopped = self.frameSinceBeginning - 1
 
         if self.startTimeandFrame:
-            if self.milliNow >= self.startTimeandFrame[0]:
+            if self.milliNow > self.startTimeandFrame[0]:
                 self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
@@ -2645,6 +2645,11 @@ class GrayBlockReader:
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
                                       preferences=preferences) if self.convert else DummyWriter()
+
+    def create_writer(self):
+        import time
+        prefix = self.h_file.attrs['prefix'] if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
+        return GrayBlockWriter(prefix + str(time.clock()), self.fps)
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000 / self.fps))

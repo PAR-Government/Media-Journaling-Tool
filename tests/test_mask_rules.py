@@ -4,6 +4,7 @@ from maskgen.image_graph import ImageGraph
 import numpy as np
 import networkx as nx
 from test_support import TestSupport
+from mock import *
 
 class ImageGraphB:
     def __init__(self, G):
@@ -328,6 +329,887 @@ class TestMaskRules(TestSupport):
         self.assertEqual(0, result[0, 0])
         self.assertEqual(0, result[26, 26])
         self.assertEqual(1, result[51, 51])
+
+    def test_select_crop_transform(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other',
+                               'Start Time':15,
+                               'End Time':25},
+                u'op': u'SelectCropFramrs'}
+        mask =  dict()
+        mask['starttime'] = 0
+        mask['startframe'] = 1
+        mask['endtime'] = 2900
+        mask['endframe'] = 30
+        mask['frames'] = 30
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a','b','video', [mask])
+        graph = Mock()
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = select_crop_frames(mock_composite)
+            self.assertEqual(1,len(result.videomasks))
+            self.assertEqual(1,result.videomasks[0]['startframe'])
+            self.assertEqual(11, result.videomasks[0]['endframe'])
+            self.assertEqual(11, result.videomasks[0]['frames'])
+            self.assertEqual(0.0, result.videomasks[0]['starttime'])
+            self.assertEqual(1000.0, result.videomasks[0]['endtime'])
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                donorMask=cm,
+                                compositeMask=None,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value = [{
+                'starttime': 1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames': 11,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = select_crop_frames(mock_donor)
+            self.assertEqual(1, len(result.videomasks))
+            self.assertEqual(15, result.videomasks[0]['startframe'])
+            self.assertEqual(44, result.videomasks[0]['endframe'])
+            self.assertEqual(30, result.videomasks[0]['frames'])
+            self.assertEqual(1400, result.videomasks[0]['starttime'])
+            self.assertEqual(4300.0, result.videomasks[0]['endtime'])
+
+
+    def test_copy_paste_frames_insert(self):
+        # copy into same spot
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other',
+                               'Dest Paste Time':15,
+                               'add type': 'insert',
+                               'Number of Frames':11,
+                               'Start Time':15,
+                               'End Time':25},
+                u'op': u'CopyPaste'}
+        mask =  dict()
+        mask['starttime'] = 1400
+        mask['startframe'] = 15
+        mask['endtime'] = 2400
+        mask['endframe'] = 25
+        mask['frames'] = 11
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a','b','video', [mask])
+        graph = Mock()
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge=edge
+            mock_composite.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(1,len(result.videomasks))
+            self.assertEqual(26,result.videomasks[0]['startframe'])
+            self.assertEqual(36, result.videomasks[0]['endframe'])
+            self.assertEqual(11, result.videomasks[0]['frames'])
+            self.assertEqual(2500, result.videomasks[0]['starttime'])
+            self.assertEqual(3500.0, result.videomasks[0]['endtime'])
+
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge=edge
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_donor)
+            self.assertEqual(0,len(result.videomasks))
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'Dest Paste Time': 100,
+                               'add type': 'insert',
+                               'Number of Frames': 11,
+                               'Start Time': 15,
+                               'End Time': 25},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(115, result.videomasks[1]['startframe'])
+            self.assertEqual(166, result.videomasks[1]['endframe'])
+            self.assertEqual(52, result.videomasks[1]['frames'])
+            self.assertEqual(11400, result.videomasks[1]['starttime'])
+            self.assertEqual(16500.0, result.videomasks[1]['endtime'])
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value =  [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(100, result.videomasks[1]['startframe'])
+            self.assertEqual(136, result.videomasks[1]['endframe'])
+            self.assertEqual(37, result.videomasks[1]['frames'])
+            self.assertEqual(9900, result.videomasks[1]['starttime'])
+            self.assertEqual(13500.0, result.videomasks[1]['endtime'])
+
+
+    def test_copy_paste_frames_replace(self):
+        # copy into same spot
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other',
+                               'Dest Paste Time':15,
+                               'add type': 'replace',
+                               'Number of Frames':11,
+                               'Select Start Time':15},
+                u'op': u'CopyPaste'}
+        mask =  dict()
+        mask['starttime'] = 1400
+        mask['startframe'] = 15
+        mask['endtime'] = 2400
+        mask['endframe'] = 25
+        mask['frames'] = 31
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a','b','video', [mask])
+        graph = Mock()
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge=edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(0,len(result.videomasks))
+
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge=edge
+            mock_donor.isComposite = False
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_donor)
+            self.assertEqual(1,len(result.videomasks))
+            self.assertEqual({'endframe': 25, 'rate': 10, 'starttime': 1400, 'frames': 11, 'startframe': 15, 'endtime': 2400, 'type': 'video'},
+                             result.videomasks[0])
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'Dest Paste Time': 100,
+                               'add type': 'insert',
+                               'Number of Frames': 11,
+                               'Select Start Time': 15},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(115, result.videomasks[1]['startframe'])
+            self.assertEqual(166, result.videomasks[1]['endframe'])
+            self.assertEqual(52, result.videomasks[1]['frames'])
+            self.assertEqual(11400, result.videomasks[1]['starttime'])
+            self.assertEqual(16500.0, result.videomasks[1]['endtime'])
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value =  [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(100, result.videomasks[1]['startframe'])
+            self.assertEqual(136, result.videomasks[1]['endframe'])
+            self.assertEqual(37, result.videomasks[1]['frames'])
+            self.assertEqual(9900, result.videomasks[1]['starttime'])
+            self.assertEqual(13500.0, result.videomasks[1]['endtime'])
+
+        #REPLACE
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'Dest Paste Time': 100,
+                               'add type': 'replace',
+                               'Number of Frames': 11,
+                               'Select Start Time': 15},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual([{'endframe': 99, 'rate': 10, 'starttime': 9000, 'error': 0, 'frames': 9, 'startframe': 91,
+                        'endtime': 9800.0, 'type': 'video'},
+                       {'endframe': 151, 'rate': 10, 'starttime': 11400, 'error': 0, 'frames': 37, 'startframe': 115,
+                        'endtime': 15000, 'type': 'video'}],
+                             result.videomasks
+            )
+
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value = [{
+                'starttime': 1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames': 11,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual([{'endframe': 25, 'rate': 10, 'starttime': 1400, 'frames': 11, 'startframe': 15, 'endtime': 2400, 'type': 'video'},
+                              {'endframe': 151, 'rate': 10, 'starttime': 9000, 'error': 0, 'frames': 61, 'startframe': 91, 'endtime': 15000, 'type': 'video'}],
+            result.videomasks)
+
+
+    def test_paste_add_frames(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other',
+                               'add type': 'insert',
+                               'Number of Frames':11,
+                               'Start Time':15,
+                               'End Time':25},
+                u'op': u'PasteAddFrames'}
+        mask =  dict()
+        mask['starttime'] = 1400
+        mask['startframe'] = 15
+        mask['endtime'] = 2400
+        mask['endframe'] = 25
+        mask['frames'] = 11
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a','b','video', [mask])
+        graph = Mock()
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge=edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = paste_add_frames(mock_composite)
+            self.assertEqual(1,len(result.videomasks))
+            self.assertEqual(26,result.videomasks[0]['startframe'])
+            self.assertEqual(36, result.videomasks[0]['endframe'])
+            self.assertEqual(11, result.videomasks[0]['frames'])
+            self.assertEqual(2500, result.videomasks[0]['starttime'])
+            self.assertEqual(3500.0, result.videomasks[0]['endtime'])
+
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge=edge
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = paste_add_frames(mock_donor)
+            self.assertEqual(0,len(result.videomasks))
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'add type': 'insert',
+                               'Number of Frames': 91,
+                               'Start Time': 151,
+                               'End Time': 61},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = paste_add_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(115, result.videomasks[1]['startframe'])
+            self.assertEqual(166, result.videomasks[1]['endframe'])
+            self.assertEqual(52, result.videomasks[1]['frames'])
+            self.assertEqual(11400, result.videomasks[1]['starttime'])
+            self.assertEqual(16500.0, result.videomasks[1]['endtime'])
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.isComposite = False
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.getMasksFromEdge.return_value =  [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = paste_add_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(100, result.videomasks[1]['startframe'])
+            self.assertEqual(136, result.videomasks[1]['endframe'])
+            self.assertEqual(37, result.videomasks[1]['frames'])
+            self.assertEqual(9900, result.videomasks[1]['starttime'])
+            self.assertEqual(13500.0, result.videomasks[1]['endtime'])
+
+
+    def test_copy_paste_frames_replace(self):
+        # copy into same spot
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation':'other',
+                               'Dest Paste Time':15,
+                               'add type': 'replace',
+                               'Number of Frames':11,
+                               'Select Start Time':15},
+                u'op': u'CopyPaste'}
+        mask =  dict()
+        mask['starttime'] = 1400
+        mask['startframe'] = 15
+        mask['endtime'] = 2400
+        mask['endframe'] = 25
+        mask['frames'] = 31
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a','b','video', [mask])
+        graph = Mock()
+
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3),dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3),dtype=np.uint8),
+                                np.zeros((3984, 2988),dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge=edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(0,len(result.videomasks))
+
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge=edge
+            mock_donor.isComposite = False
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.getMasksFromEdge.return_value= [{
+                'starttime':1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames':11,
+                'type':'video',
+                'rate':10
+            }]
+            result = copy_paste_frames(mock_donor)
+            self.assertEqual(1,len(result.videomasks))
+            self.assertEqual({'endframe': 25, 'rate': 10, 'starttime': 1400, 'frames': 11, 'startframe': 15, 'endtime': 2400, 'type': 'video'},
+                             result.videomasks[0])
+
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'Dest Paste Time': 100,
+                               'add type': 'insert',
+                               'Number of Frames': 11,
+                               'Select Start Time': 15},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(115, result.videomasks[1]['startframe'])
+            self.assertEqual(166, result.videomasks[1]['endframe'])
+            self.assertEqual(52, result.videomasks[1]['frames'])
+            self.assertEqual(11400, result.videomasks[1]['starttime'])
+            self.assertEqual(16500.0, result.videomasks[1]['endtime'])
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value =  [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(91, result.videomasks[0]['startframe'])
+            self.assertEqual(99, result.videomasks[0]['endframe'])
+            self.assertEqual(9, result.videomasks[0]['frames'])
+            self.assertEqual(9000, result.videomasks[0]['starttime'])
+            self.assertEqual(9800.0, result.videomasks[0]['endtime'])
+            self.assertEqual(100, result.videomasks[1]['startframe'])
+            self.assertEqual(136, result.videomasks[1]['endframe'])
+            self.assertEqual(37, result.videomasks[1]['frames'])
+            self.assertEqual(9900, result.videomasks[1]['starttime'])
+            self.assertEqual(13500.0, result.videomasks[1]['endtime'])
+
+        #REPLACE
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'interpolation': 'other',
+                               'Dest Paste Time': 100,
+                               'add type': 'replace',
+                               'Number of Frames': 11,
+                               'Select Start Time': 15},
+                u'op': u'CopyPaste'}
+        mask = dict()
+        mask['starttime'] = 9000
+        mask['startframe'] = 91
+        mask['endtime'] = 15000
+        mask['endframe'] = 151
+        mask['frames'] = 61
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+
+        # more complex, insert
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 9900,
+                'startframe': 100,
+                'endtime': 11300,
+                'endframe': 114,
+                'frames': 15,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual([{'endframe': 99, 'rate': 10, 'starttime': 9000, 'error': 0, 'frames': 9, 'startframe': 91,
+                        'endtime': 9800.0, 'type': 'video'},
+                       {'endframe': 151, 'rate': 10, 'starttime': 11400, 'error': 0, 'frames': 37, 'startframe': 115,
+                        'endtime': 15000, 'type': 'video'}],
+                             result.videomasks
+            )
+
+
+        # more complex, drop
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_donor:
+            mock_donor.donorMask = cm
+            mock_donor.edge = edge
+            mock_donor.arguments.return_value = edge['arguments']
+            mock_donor.isComposite = False
+            mock_donor.getMasksFromEdge.return_value = [{
+                'starttime': 1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames': 11,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = copy_paste_frames(mock_donor)
+            # two because one was moved down...could combine them
+            # but it matters little for our purposes.
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual([{'endframe': 25, 'rate': 10, 'starttime': 1400, 'frames': 11, 'startframe': 15, 'endtime': 2400, 'type': 'video'},
+                              {'endframe': 151, 'rate': 10, 'starttime': 9000, 'error': 0, 'frames': 61, 'startframe': 91, 'endtime': 15000, 'type': 'video'}],
+            result.videomasks)
+
 
 
     def test_compositeIdAssigner(self):

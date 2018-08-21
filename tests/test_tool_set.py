@@ -18,7 +18,6 @@ class TestToolSet(TestSupport):
             with self.assertRaises(ValueError):
                 tool_set.fileType(self.locateFile('test.log'))
         else:
-
             self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
         self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
 
@@ -117,7 +116,7 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1000)
         self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1001)
-        self.assertFalse(time_manager.isBeforeTime())
+        self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1002)
         self.assertFalse(time_manager.isBeforeTime())
         self.assertFalse(time_manager.isPastTime())
@@ -134,9 +133,9 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1008)
         self.assertTrue(time_manager.isPastTime())
         self.assertEqual(9,time_manager.getEndFrame() )
-        self.assertEqual(3, time_manager.getStartFrame())
+        self.assertEqual(4, time_manager.getStartFrame())
 
-        time_manager = tool_set.VidTimeManager(startTimeandFrame=(1000, 2), stopTimeandFrame=None)
+        time_manager = tool_set.VidTimeManager(startTimeandFrame=(999, 2), stopTimeandFrame=None)
         time_manager.updateToNow(999)
         self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1000)

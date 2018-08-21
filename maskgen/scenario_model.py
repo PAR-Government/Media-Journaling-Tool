@@ -619,14 +619,17 @@ class VideoVideoLinkTool(LinkTool):
         for pred in predecessors:
             edge = scModel.G.get_edge(pred, destination)
             op = scModel.gopLoader.getOperationWithGroups(edge['op'])
-            if op is not None and 'checkSIFT' in op.rules:
-                return video_tools.interpolateMask(
-                    os.path.join(scModel.G.dir, shortenName(start + '_' + destination, '_mask')),
-                    scModel.G.dir,
-                    edge['videomasks'],
-                    startFileName,
-                    destFileName,
-                    arguments=arguments)
+            if op is not None:
+                if'checkSIFT' in op.rules:
+                    return video_tools.interpolateMask(
+                        os.path.join(scModel.G.dir, shortenName(start + '_' + destination, '_mask')),
+                        scModel.G.dir,
+                        edge['videomasks'],
+                        startFileName,
+                        destFileName,
+                        arguments=arguments)
+                else:
+                    edge['videomasks'],[]
         return [], errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
@@ -656,7 +659,7 @@ class VideoVideoLinkTool(LinkTool):
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         if op != 'Donor' and operation.generateMask not in ['audio', 'all']:
-            maskSet = video_tools.getMaskSetForEntireVideo(destFileName)
+            maskSet = video_tools.getMaskSetForEntireVideo(startFileName)
             if maskSet is None:
                 maskSet = list()
             errors = list()
@@ -738,6 +741,12 @@ class AudioVideoLinkTool(LinkTool):
         analysis['metadatadiff'] = metaDataDiff
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         errors = []
+        if op == 'Donor':
+            for pred in scModel.G.predecessors(destination):
+                edge = scModel.G.get_edge(pred, destination)
+                op = scModel.gopLoader.getOperationWithGroups(edge['op'])
+                if op is not None:
+                    edge['videomasks'], []
 
         if op != 'Donor' and operation.generateMask in ['audio','all']:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,

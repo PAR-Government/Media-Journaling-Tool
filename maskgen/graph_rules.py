@@ -20,7 +20,7 @@ import os
 import exif
 import logging
 from ffmpeg_api import getFrameRate, getDuration
-from video_tools import getMeta, getMaskSetForEntireVideo, getFrameCount
+from video_tools import getMeta, getMaskSetForEntireVideo, getFrameCount,getMasksFromEdge
 import numpy as np
 from maskgen.validation.core import Severity
 
@@ -306,9 +306,9 @@ def checkFrameRateChange(op, graph, frm, to):
     """
     frm_file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     to_file = os.path.join(graph.dir, graph.get_node(to)['file'])
-    from_rate = getFrameRate(frm_file)
-    to_rate = getFrameRate(to_file)
-    if from_rate != to_rate:
+    from_rate = getFrameRate(frm_file, audio=op.category == 'Audio')
+    to_rate = getFrameRate(to_file,audio=op.category == 'Audio')
+    if abs(from_rate - to_rate) > 0.001:
         return True
     return False
 
@@ -346,16 +346,15 @@ def checkCropLength(op, graph, frm, to):
         givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
         duration_to = getDuration(file, audio=True)
         if abs(duration_to - givenDifference) > 100:
-            return (Severity.ERROR, 'Actual amount of cropped frames in milliseconds is '.format(duration_to))
+            return (Severity.ERROR, 'Actual amount of cropped frames in milliseconds is {} '.format(duration_to))
         return None
     else:
         rate = getFrameRate(file, default=29.97)
         givenDifference = differenceBetweenFrame(et, st, rate)
         duration = getFrameCount(file)['frames']
         if abs(duration - givenDifference) > 1:
-            return (Severity.ERROR,'Actual amount of frames of cropped video is '.format(duration))
+            return (Severity.ERROR,'Actual amount of frames of cropped video is {}'.format(duration))
     return None
-
 
 def checkCutFrames(op, graph, frm, to):
     """
@@ -370,37 +369,21 @@ def checkCutFrames(op, graph, frm, to):
     @type to: str
     """
     edge = graph.get_edge(frm, to)
-    args = edge['arguments'] if 'arguments' in edge  else {}
-    st = None
-    et = None
-    for k, v in args.iteritems():
-        if k.endswith('Start Time'):
-            st = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
-        elif k.endswith('End Time'):
-            et = getMilliSecondsAndFrameCount(v, defaultValue=(0,0))
-    if st is None and et is None:
-        return None
-    st = st if st is not None else (0, 0)
-    et = et if et is not None else (0, 0)
-    if 'metadatadiff' not in edge:
-        return (Severity.ERROR,'Edge missing change data.  Recompute Mask.')
-    file = os.path.join(graph.dir, graph.get_node(frm)['file'])
-    if fileType(file) == 'audio':
-        rate = getFrameRate(file, default=44000,audio=True)
-        givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
-        duration_frm = getDuration(file,audio=True)
-        duration_to = getDuration(os.path.join(graph.dir, graph.get_node(to)['file']),audio=True)
-        if abs((duration_frm - duration_to) - givenDifference) > 100:
-            return (Severity.ERROR, 'Actual amount of cut time in milliseconds is '.format(duration_frm - duration_to))
-        return None
-    else:
-        rate = getFrameRate(file, default=29.97)
-        givenDifference = differenceBetweenFrame(et, st, rate)
-        duration_frm = getFrameCount(file)['frames']
-        duration_to = getFrameCount(os.path.join(graph.dir, graph.get_node(to)['file']))['frames']
-        if abs((duration_frm-duration_to) - givenDifference) > 1:
-            return (Severity.ERROR,'Actual amount of frames of cut video is '.format(duration_frm-duration_to))
-        return None
+    dir = graph.dir
+    frm_name = os.path.join(dir, graph.get_node(frm)['file'])
+    to_name = os.path.join(dir, graph.get_node(to)['file'])
+    for media_type in ['video','audio']:
+        to_masks = getMaskSetForEntireVideo(to_name, media_types=[media_type])
+        frm_masks = getMaskSetForEntireVideo(frm_name, media_types=[media_type])
+        recordedMasks = getMasksFromEdge(frm_name, edge, [media_type])
+        recorded_change = sum([i['frames'] for i in recordedMasks if i['type'] == media_type])
+        diff = frm_masks[0]['frames'] - to_masks[0]['frames']
+        if diff != recorded_change:
+            if media_type == 'video':
+                return (Severity.ERROR, 'Actual amount of frames of cut video is {}'.format(diff))
+            elif abs(diff - recorded_change) > frm_masks[0]['rate']*0.1:
+                millis = diff * 1000.0/frm_masks[0]['rate']
+                return (Severity.ERROR, 'Actual amount of cut time in milliseconds is {} '.format(millis))
 
 def checkCropSize(op, graph, frm, to):
     """
@@ -863,6 +846,12 @@ def checkAudioOnly(op, graph, frm, to):
     if len(changes) > 1:
         return  (Severity.ERROR,"Length of video has changed")
 
+def checkAudioAdd(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    if getValue(edge,'arguments.add type','insert') == 'insert':
+        if checkDurationAudio(op, graph, frm, to) is None:
+            return (Severity.ERROR, "Length of video did not change even though insert is appled")
+
 def checkLengthSame(op, graph, frm, to):
     """
      the length of video should not change
@@ -1064,7 +1053,6 @@ def checkForAudio(op, graph, frm, to):
             return (Severity.ERROR,'Video is missing from audio sample')
     return None
 
-
 def checkPasteFrameLength(op, graph, frm, to):
     """
          :param op:
@@ -1079,29 +1067,19 @@ def checkPasteFrameLength(op, graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type')
-    from_node = graph.get_node(frm)
-    to_node = graph.get_node(to)
-    diff = 0
-    duration = 0
-    if 'duration' in from_node and 'duration' in to_node:
-        from_duration = getMilliSeconds(from_node['duration'])
-        to_duration = getMilliSeconds(to_node['duration'])
-        donor_tuple = getDonor(graph, to)
-        if donor_tuple is None:
-            return (Severity.ERROR,"Missing donor")
-        else:
-            donor_node = graph.get_node(donor_tuple[0])
-            if donor_node is not None and 'duration' in donor_node:
-                duration = getMilliSeconds(donor_node['duration'])
-                diff = (to_duration - from_duration) - duration
-            else:
-                return (Severity.ERROR,"Missing duration in donor node's meta-data")
-    # if addType == 'replace' and  diff < 0:
-    #    return "Replacement should maintain or increase the size"
-    if addType == 'replace' and diff > duration:
+    dir = graph.dir
+    frm_name = os.path.join(dir, graph.get_node(frm)['file'])
+    to_name = os.path.join(dir, graph.get_node(to)['file'])
+    to_masks = getMaskSetForEntireVideo(to_name,  media_types=['video'])
+    frm_masks = getMaskSetForEntireVideo(frm_name, media_types=['video'])
+    recordedMasks = getMasksFromEdge(frm_name, edge, ['video'])
+    recorded_change = sum([i['frames'] for i in recordedMasks if i['type'] == 'video'])
+    diff = to_masks[0]['frames'] - frm_masks[0]['frames']
+
+    if addType == 'replace' and diff > 0:
         return (Severity.ERROR,"Replacement contain not increase the size of video beyond the size of the donor")
-    if addType != 'replace':
-        return checkLengthBigger(op, graph, frm, to)
+    elif addType != 'replace' and diff != recorded_change:
+        return (Severity.ERROR, "Pasted Frames did not equate to the amount of increased frames.  {} frames added".format(diff))
 
 
 def checkLengthBigger(op, graph, frm, to):

@@ -4,7 +4,7 @@ from maskgen.scenario_model import loadProject
 from test_support import TestSupport
 from mock import MagicMock, Mock
 from maskgen.validation.core import Severity
-
+from maskgen import video_tools
 class TestToolSet(TestSupport):
 
     def test_aproject(self):
@@ -35,6 +35,42 @@ class TestToolSet(TestSupport):
         self.assertIsNotNone(
             graph_rules.checkFileTypeChange('op',graph,'a','c'))
         graph.get_image.assert_called_with('c')
+
+    def test_checkCutFrames(self):
+        def edge(a,b):
+            pass
+        def get_node(a):
+            return {'file':a}
+        mock = Mock()
+        mock.get_edge = Mock(spec=edge,return_value={
+         'videomasks': [{'startframe': 20,'endframe':30,'rate':10,'type':'audio','frames':11,
+                         'starttime':1900,'endtime':2900},
+                        {'startframe': 20, 'endframe': 30, 'rate': 10, 'type': 'video', 'frames': 11,
+                         'starttime': 1900, 'endtime': 2900}
+                        ]
+        })
+        mock.get_node =get_node
+        mock.dir = '.'
+        video_tools.meta_cache[video_tools.meta_key('./a', start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+                                 channel=0)] = [{'startframe': 1,'endframe':300,'rate':10,'type':'audio','frames':300,
+                         'starttime':0,'endtime':29900}]
+        video_tools.meta_cache[video_tools.meta_key('./b', start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+                                 channel=0)] = [{'startframe': 1,'endframe':289,'rate':10,'type':'audio','frames':289,
+                         'starttime':0,'endtime':28800}]
+        video_tools.meta_cache[
+            video_tools.meta_key('./a', start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+                                 channel=0)] = [
+            {'startframe': 1, 'endframe': 300, 'rate': 10, 'type': 'video', 'frames': 300,
+             'starttime': 0, 'endtime': 29900}]
+        video_tools.meta_cache[
+            video_tools.meta_key('./b', start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+                                 channel=0)] = [
+            {'startframe': 1, 'endframe': 270, 'rate': 10, 'type': 'video', 'frames': 270,
+             'starttime': 0, 'endtime': 26900}]
+        r = graph_rules.checkCutFrames('op',mock,'a','b')
+        self.assertEqual(2, len(r))
+        self.assertTrue('3000' in r[1])
+
 
     def test_checkForSelectFrames(self):
         def preds(a):
@@ -70,7 +106,7 @@ class TestToolSet(TestSupport):
         r = graph_rules.checkAudioOutputType(op_mock, graph_mock, 'a', 'b')
         self.assertIsNone(r)
 
-    def test_ccheckFileTypeUnchanged(self):
+    def test_checkFileTypeUnchanged(self):
         op_mock = Mock()
         op_mock.name = 'OutputCopy'
         graph_mock = Mock()

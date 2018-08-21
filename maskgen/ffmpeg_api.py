@@ -168,8 +168,7 @@ def processMeta(stream,errorstream):
             addToMeta(meta, prefix, line, split=False)
     return meta
 
-
-def getMeta(file, with_frames=False, show_streams=False,media_types=['video','audio'],extras=None):
+def getMeta(file, with_frames=False, show_streams=False, media_types=['video','audio'], extras=None):
 
     def realignMeta(metas):
         result = []
@@ -319,9 +318,10 @@ def isVFRVideo(meta):
     :return: based on meta data for video, is the stream variable frame rate
     @rtype: bool
     """
+    nb = getValue(meta,'nb_frames','N/A')
     avg = getValue(meta,'avg_frame_rate','N/A')
     r = getValue(meta,'r_frame_rate','N/A')
-    if (r[0] != 'N' and r != avg) or r[0] == 'N':
+    if (r[0] != 'N' and r != avg) or r[0] in ['N','0']  or nb[0] in ['N','0']:
         return True
     # approach requires frames which is more expensive to gather but more efficient
     #first_frame_duration = 0

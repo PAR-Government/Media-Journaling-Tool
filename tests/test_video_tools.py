@@ -410,6 +410,89 @@ class TestVideoTools(TestSupport):
         self.assertEqual(176400, result[0]['endframe'])
         self.assertEqual(176400 - 88641 + 1, result[0]['frames'])
 
+    def test_remove_intersection(self):
+        setOne = []
+        maskitem= {}
+        maskitem['starttime'] = 900
+        maskitem['startframe'] = 10
+        maskitem['endtime'] = 2900
+        maskitem['endframe'] = 30
+        maskitem['frames'] = 21
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setOne.append(maskitem)
+        maskitem = dict()
+        maskitem['starttime'] = 4900
+        maskitem['startframe'] = 50
+        maskitem['endtime'] = 6900
+        maskitem['endframe'] = 70
+        maskitem['frames'] = 21
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setOne.append(maskitem)
+
+        setTwo = []
+        maskitem = {}
+        maskitem['starttime'] = 0
+        maskitem['startframe'] = 1
+        maskitem['endtime'] = 500
+        maskitem['endframe'] = 6
+        maskitem['frames'] = 6
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setTwo.append(maskitem)
+        maskitem = dict()
+        maskitem['starttime'] = 800
+        maskitem['startframe'] = 9
+        maskitem['endtime'] = 1400
+        maskitem['endframe'] = 15
+        maskitem['frames'] = 7
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setTwo.append(maskitem)
+        maskitem = dict()
+        maskitem['starttime'] = 2400
+        maskitem['startframe'] = 25
+        maskitem['endtime'] = 3400
+        maskitem['endframe'] = 35
+        maskitem['frames'] =11
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setTwo.append(maskitem)
+        maskitem = dict()
+        maskitem['starttime'] = 3200
+        maskitem['startframe'] = 44
+        maskitem['endtime'] = 4600
+        maskitem['endframe'] = 47
+        maskitem['frames'] = 4
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setTwo.append(maskitem)
+        maskitem = dict()
+        maskitem['starttime'] = 8900
+        maskitem['startframe'] = 90
+        maskitem['endtime'] = 9400
+        maskitem['endframe'] = 95
+        maskitem['frames'] = 6
+        maskitem['rate'] = 10
+        maskitem['type'] = 'video'
+        setTwo.append(maskitem)
+
+        finalsets = video_tools.removeIntersectionOfMaskSets(setOne,setTwo)
+        self.assertEquals(6,len(finalsets))
+        self.assertEqual([
+            {'endframe': 6, 'rate': 10, 'starttime': 0, 'frames': 6, 'startframe': 1, 'endtime': 500, 'type': 'video'},
+            {'endframe': 9, 'rate': 10, 'starttime': 800, 'frames': 1, 'startframe': 9, 'endtime': 800.0,
+             'type': 'video'},
+            {'endframe': 30, 'rate': 10, 'starttime': 900, 'frames': 21, 'startframe': 10, 'endtime': 2900,
+             'type': 'video'},
+            {'endframe': 47, 'rate': 10, 'starttime': 3200, 'frames': 4, 'startframe': 44, 'endtime': 4600,
+             'type': 'video'},
+            {'endframe': 70, 'rate': 10, 'starttime': 4900, 'frames': 21, 'startframe': 50, 'endtime': 6900,
+             'type': 'video'},
+            {'endframe': 95, 'rate': 10, 'starttime': 8900, 'frames': 6, 'startframe': 90, 'endtime': 9400,
+             'type': 'video'}],finalsets)
+
     def test_before_dropping(self):
         amount = 30
         fileOne = self._init_write_file('test_ts_bd1',2500,75,30,30)
@@ -813,15 +896,15 @@ class TestVideoTools(TestSupport):
         print(audioSet[0])
         self.assertEqual(1, len(audioSet))
         self.assertEqual(87053, audioSet[0]['frames'])
-        self.assertEqual(436590, audioSet[0]['startframe'])
-        self.assertEqual(436590+87053-1, audioSet[0]['endframe'])
+        self.assertEqual(441001, audioSet[0]['startframe'])
+        self.assertEqual(441001+87053-1, audioSet[0]['endframe'])
         self.assertEquals(audioSet[0]['starttime'], maskSet[0]['starttime'])
-        self.assertAlmostEqual(0.126, abs(audioSet[0]['endtime'] / 1000.0 - maskSet[0]['endtime'] / 1000.0), places=2)
+        self.assertTrue(0.2 > abs(audioSet[0]['endtime'] / 1000.0 - maskSet[0]['endtime'] / 1000.0))
         self.assertEqual(44100.0, audioSet[0]['rate'])
         videoSet = [mask for mask in maskSet if mask['type'] == 'video']
-        self.assertEqual(22, videoSet[0]['frames'])
-        self.assertEqual(100, videoSet[0]['startframe'])
-        self.assertEqual(121, videoSet[0]['endframe'])
+        self.assertEqual(20, videoSet[0]['frames'])
+        self.assertEqual(101, videoSet[0]['startframe'])
+        self.assertEqual(120, videoSet[0]['endframe'])
 
         source = self.locateFile('tests/videos/sample1.mov')
         video_tools.runffmpeg(['-y','-i',source,'-ss','00:00:00.00', '-t','10','part1.mov'])
@@ -839,10 +922,10 @@ class TestVideoTools(TestSupport):
         print(audioSet[0])
         self.assertEqual(1, len(audioSet))
         self.assertEqual(85526, audioSet[0]['frames'])
-        self.assertEqual(440338, audioSet[0]['startframe'])
-        self.assertEqual(525863, audioSet[0]['endframe'])
+        self.assertEqual(440339, audioSet[0]['startframe'])
+        self.assertEqual(440339+85526-1, audioSet[0]['endframe'])
         self.assertEquals(audioSet[0]['starttime'],maskSet[0]['starttime'])
-        #self.assertAlmostEqual(0.11,abs(audioSet[0]['endtime']/1000.0-maskSet[0]['endtime']/1000.0),places=2)
+        self.assertTrue(0.2 > abs(audioSet[0]['endtime']/1000.0-maskSet[0]['endtime']/1000.0))
         self.assertEqual(44100.0, audioSet[0]['rate'])
 
 
@@ -869,8 +952,11 @@ class TestVideoTools(TestSupport):
         change['frames'] = 5
         change['rate'] = 30
         change['type'] = 'video'
-        result = video_tools.insertFramesWithoutMask([change], sets)
+        result = video_tools.insertFrames([change], sets)
         self.assertEqual(100, result[0]['startframe'])
+        self.assertEqual(101, result[0]['endframe'])
+        self.assertAlmostEqual(3296.73, result[0]['starttime'],places=2)
+        self.assertAlmostEqual(3330.03, result[0]['endtime'],places=2)
         sets = []
         change = dict()
         change['starttime'] = 3078.1
@@ -882,15 +968,58 @@ class TestVideoTools(TestSupport):
         change['type'] = 'video'
         sets.append(change)
         change = dict()
-        change['starttime'] = 3111.3
-        change['startframe'] = 95
+        change['starttime'] = 3296.7
+        change['startframe'] = 96
         change['endtime'] = 3296.7
-        change['endframe'] = 100
-        change['frames'] = 5
+        change['endframe'] = 96
+        change['frames'] = 2
         change['rate'] = 30
         change['type'] = 'video'
-        result = video_tools.insertFramesWithoutMask([change], sets)
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 3111.4
+        change['startframe'] = 95
+        change['endtime'] = 3111.4
+        change['endframe'] = 95
+        change['frames'] = 1
+        change['rate'] = 30
+        change['type'] = 'video'
+        result = video_tools.insertFrames([change], sets)
         self.assertEqual(94, result[0]['startframe'])
+        self.assertEqual(94, result[0]['endframe'])
+        self.assertEqual(96, result[1]['startframe'])
+        self.assertEqual(96, result[1]['endframe'])
+        self.assertEqual(97, result[2]['startframe'])
+        self.assertEqual(97, result[2]['endframe'])
+        self.assertAlmostEqual(3144.73, result[1]['starttime'], places=2)
+        self.assertAlmostEqual(3144.73, result[1]['endtime'], places=2)
+        self.assertAlmostEqual(3330.03, result[2]['starttime'],places=2)
+        self.assertAlmostEqual(3330.03, result[2]['endtime'], places=2)
+
+
+        sets = []
+        change = dict()
+        change['starttime'] = 0
+        change['startframe'] = 1
+        change['endtime'] = 3111.4
+        change['endframe'] = 95
+        change['frames'] = 2
+        change['rate'] = 30
+        change['type'] = 'video'
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 0
+        change['startframe'] = 1
+        change['endtime'] = -33.333
+        change['endframe'] = 0
+        change['frames'] = 0
+        change['rate'] = 30
+        change['type'] = 'video'
+        result = video_tools.insertFrames([change], sets)
+        self.assertEqual(1, result[0]['startframe'])
+        self.assertEqual(95, result[0]['endframe'])
+        self.assertAlmostEqual(3111.40, result[0]['endtime'],places=2)
+        self.assertAlmostEqual(0, result[0]['starttime'],places=2)
 
     def test_after_dropping(self):
         amount = 30
@@ -919,8 +1048,7 @@ class TestVideoTools(TestSupport):
         change['type'] = 'video'
         change['videosegment'] = fileTwo
         sets.append(change)
-        self.after_general_all(sets,video_tools.insertFramesToMask)
-        self.after_general_all(sets, video_tools.insertFramesWithoutMask)
+        self.after_general_all(sets,video_tools.insertFrames)
 
     def test_resize(self):
         fileOne = self._init_write_file('test_td_rs', 0,1, 30, 30)
@@ -1203,6 +1331,14 @@ class TestVideoTools(TestSupport):
         self.assertEqual(20, result_noise1[0]['startframe'])
 
 
+    def testMaseSet(self):
+        source = self.locateFile('tests/videos/sample1.mov')
+        source_set1 = video_tools.getMaskSetForEntireVideo(source,
+                                                      start_time='29',end_time='55')
+        source_set2 = video_tools.getMaskSetForEntireVideo(source,
+                                                          start_time='29', end_time='55')
+        self.assertEquals(source_set1,source_set2)
+
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr.mov'
@@ -1282,11 +1418,13 @@ class TestVideoTools(TestSupport):
         result, errors = video_tools.audioInsert('test_ta.0.0.wav', 'test_ta6.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
         self.assertEqual(29, result[0]['startframe'])
+        self.assertEqual(48, result[0]['endframe'])
         self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result,errors = video_tools.audioCompare('test_ta.0.0.wav','test_ta2.0.0.wav','test_ta_c',VidTimeManager())
         self.assertEqual(1,len(result))
         self.assertEqual(7,result[0]['startframe'])
+        self.assertEqual(256, result[0]['endframe'])
         self.assertEqual(result[0]['endframe'], result[0]['startframe'] + result[0]['frames']-1)
 
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1', VidTimeManager())
