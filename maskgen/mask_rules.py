@@ -236,6 +236,9 @@ class BuildState:
         self.pred_edges = pred_edges
         self.graph = graph
 
+    def isImage(self):
+        return self.compositeMask is not None and type(self.compositeMask)  == np.ndarray or \
+               self.donorMask is not None and type(self.donorMask) == np.ndarray
 
     def getName(self):
         return '{} to {}'.format(self.source,self.target)
@@ -411,6 +414,8 @@ def _prepare_video_masks(graph,
 
 
 def frame_rate_check(buildState):
+    if buildState.isImage():
+        return
     if buildState.isComposite:
         buildState.compositeMask = CompositeImage(buildState.compositeMask.source,
                                                   buildState.compositeMask.target,
