@@ -45,7 +45,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
 
-textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log","*.log")]
+textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log","*.log file")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
             ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
@@ -459,12 +459,11 @@ def getSecondDurationStringFromMilliseconds(millis):
 
 def getDurationStringFromMilliseconds(millis):
     sec = int(millis / 1000)
-    ms = int(millis - (sec * 1000))
+    ms = int((millis - (sec * 1000)) * 1000.0)
     hr = sec / 3600
     mi = sec / 60 - (hr * 60)
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}.{:=06d}'.format(hr, mi, ss, ms)
-
 
 def addTwo(num_string):
     return int(num_string) + 2
@@ -511,6 +510,8 @@ def getMilliSeconds(v):
     if coloncount == 0:
         return int(float(v) * 1000.0)
     try:
+        if '.' in v and len(v) > 15:
+            v = v[:15]
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
@@ -537,6 +538,8 @@ def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
     elif coloncount == 0:
         return (float(v) / rate * 1000.0, 0) if rate is not None else (0, 1 if v == 0 else int(v))
     try:
+        if '.' in v and len(v) > 15:
+            v = v[:15]
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
@@ -551,7 +554,7 @@ def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
 
 
 def validateTimeString(v):
-    if v.count(':') > 3:
+    if v.count(':') > 2:
         return False
 
     if v.count(':') == 0:
@@ -560,13 +563,6 @@ def validateTimeString(v):
         except:
             return False
         return True
-
-    if v.count(':') > 2:
-        try:
-            int(v[v.rfind(':') + 1:])
-            v = v[0:v.rfind(':')]
-        except:
-            return False
     try:
         datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -2948,7 +2944,7 @@ def selfVideoTest():
     if not os.path.exists(vidfn):
         return 'Video Writing Failed'
     try:
-        size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01:2')).size
+        size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01')).size
         if size != (1920, 1090):
             return 'Video Writing Failed: Frame Size inconsistent'
     except:

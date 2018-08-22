@@ -306,7 +306,6 @@ class QAProjectDialog(Toplevel):
              probe.edgeId[1] in self.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId in
              self.lookup[
                  self.edgeTuple[1]]][0]
-        edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
         if probe.targetVideoSegments is not None:
             self.maskBox = MaskSetTable(self.displayFrame,
                                         scenario_model.VideoMaskSetInfo(compositeMaskSetFromVideoSegment(probe.targetVideoSegments)),
@@ -712,7 +711,7 @@ class QAProjectDialog(Toplevel):
         for pred in self.scModel.G.predecessors(node):
             edge = self.scModel.G.get_edge(pred, node)
             if edge['op'] != 'Donor':
-                return self.scModel.getModificationForEdge(pred, node, edge)
+                return self.scModel.getModificationForEdge(pred, node)
         return None
 
     def check_ok(self, event=None):

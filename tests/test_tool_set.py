@@ -88,6 +88,10 @@ class TestToolSet(TestSupport):
             result =tool_set._remap(img1,mask,src_pts,dst_pts)
             self.assertTrue(np.all(result[55:65,15:25] == img1[20:30,50:60]))
 
+    def test_time_format(self):
+        t = tool_set.getDurationStringFromMilliseconds(100001.111)
+        self.assertEqual('00:01:40.001111',t)
+
     def test_timeparse(self):
         t, f = tool_set.getMilliSecondsAndFrameCount('00:00:00')
         self.assertEqual(1, f)
@@ -99,12 +103,8 @@ class TestToolSet(TestSupport):
         t,f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434')
         self.assertEqual(0, f)
         self.assertEqual(1690434, t)
-        t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434:23')
-        self.assertTrue(tool_set.validateTimeString('03:10:10.434:23'))
-        self.assertEqual(23, f)
-        self.assertEqual(1690434, t)
         t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10:23')
-        self.assertTrue(tool_set.validateTimeString('03:10:10:23'))
+        self.assertFalse(tool_set.validateTimeString('03:10:10:23'))
         self.assertEqual(23,f)
         self.assertEqual(1690000, t)
         t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10:A', defaultValue=(0,0))
@@ -186,7 +186,7 @@ class TestToolSet(TestSupport):
         self.assertEquals('test_ts_gw_mask_33.3666666667.' + suffix,tool_set.convertToVideo(fn))
         self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.' + suffix))
 
-        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01:2')).size
+        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01')).size
         self.assertTrue(size == (1920,1090))
         os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
         os.remove('test_ts_gw_mask_33.3666666667.hdf5')

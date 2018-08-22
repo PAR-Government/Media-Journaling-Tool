@@ -191,7 +191,7 @@ def recompressAsVideo(scModel):
             scModel.selectImage(edge[1])
             scModel.remove()
             scModel.selectImage(edge[0])
-            scModel.imageFromPlugin('CompressAsVideo',donor=donor)
+            scModel.mediaFromPlugin('CompressAsVideo', donor=donor)
 
 
 def perform_update(project, args):

@@ -363,6 +363,12 @@ class Modification:
 
 
 class LinkTool:
+    """
+    LinkTools are used to handle the comparison and analysis of each each in the graph.
+    The link tools are organizaed by transitions of
+    media type: video->image, video->video, audio->video, etc.
+    """
+
     def __init__(self):
         return
 
@@ -1130,7 +1136,7 @@ class ImageProjectModel:
         :return:
         @type mod: Modification
         """
-        mod_old = self.getModificationForEdge(self.start, self.end, self.G.get_edge(self.start, self.end))
+        mod_old = self.getModificationForEdge(self.start, self.end)
 
         self.G.update_edge(self.start, self.end,
                            op=mod.operationName,
@@ -2039,16 +2045,13 @@ class ImageProjectModel:
         for pred in self.G.predecessors(node):
             edge = self.G.get_edge(pred, node)
             if edge['op'] != 'Donor':
-                return self.getModificationForEdge(pred, node, edge)
+                return self.getModificationForEdge(pred, node)
         return None
 
     def getDescription(self):
         if self.start is None or self.end is None:
             return None
-        edge = self.G.get_edge(self.start, self.end)
-        if edge is not None:
-            return self.getModificationForEdge(self.start, self.end, edge)
-        return None
+        return self.getModificationForEdge(self.start, self.end)
 
     def findPaths(self,node, condition):
         """
@@ -2359,6 +2362,14 @@ class ImageProjectModel:
                 final.append(name)
         return final
 
+    def baseNodes(self):
+        bases = []
+        for name in self.getNodeNames():
+            node = self.G.get_node(name)
+            if node['nodetype'] == 'base':
+                bases.append(name)
+        return bases
+
     def _findTerminalNodes(self, node, excludeDonor=False, includeOps=None):
         terminalsWithOps = self._findTerminalNodesWithCycleDetection(node, visitSet=list(), excludeDonor=excludeDonor)
         return [terminalWithOps[0] for terminalWithOps in terminalsWithOps if
@@ -2447,22 +2458,22 @@ class ImageProjectModel:
         resultmsgs = []
         kwargs_copy = copy.copy(kwargs)
         for filter in grp.filters:
-            msg, pairs = self.imageFromPlugin(filter, software=software,
+            msg, pairs = self.mediaFromPlugin(filter, software=software,
                                               **kwargs_copy)
             if msg is not None:
                 resultmsgs.extend(msg)
             if len(pairs) == 0:
                 break
-            mod = self.getModificationForEdge(self.start,self.end,self.G.get_edge(self.start,self.end))
+            mod = self.getModificationForEdge(self.start,self.end)
             for key,value in mod.arguments.iteritems():
                 if key in kwargs_copy:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
-    def imageFromPlugin(self, filter, software=None, passthru=False, **kwargs):
+    def mediaFromPlugin(self, filter, software=None, passthru=False, **kwargs):
         """
-          Create a new image from a plugin filter.
+          Use a plugin to create a new media item and link.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
           required by the plugin (name/value pairs).
           The name of the resulting image contains the prefix of the input image file name plus an additional numeric index.
@@ -2689,7 +2700,7 @@ class ImageProjectModel:
         :return: descriptions for all edges
          @rtype list of Modification
         """
-        return [self.getModificationForEdge(edge[0], edge[1], self.G.get_edge(edge[0], edge[1])) for edge in
+        return [self.getModificationForEdge(edge[0], edge[1]) for edge in
                 self.G.get_edges()]
 
     def openImage(self, nfile):
@@ -2763,7 +2774,7 @@ class ImageProjectModel:
                 (startNode['ypos'] if startNode.has_key('ypos') else 50) + augment[1])
 
 
-    def getModificationForEdge(self, start, end, edge):
+    def getModificationForEdge(self, start, end):
         """
         :param start:
         :param end:
@@ -2774,6 +2785,9 @@ class ImageProjectModel:
         @rtype: Modification
         """
         end_node = self.G.get_node(end)
+        edge = self.G.get_edge(start, end)
+        if edge is None:
+            return None
         default_ctime = end_node['ctime'] if 'ctime' in end_node else None
         op = self.gopLoader.getOperationWithGroups(edge['op'], warning=True,fake=True)
         return Modification(edge['op'],

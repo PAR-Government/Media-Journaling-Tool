@@ -55,7 +55,9 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure, _fixRawFilter])])
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
+         ('0.5.0619.80bff21269', [_fixTimeStrings, _fixRawFilter])
+         ])
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -114,6 +116,34 @@ def _fixPNGS(scModel,gopLoader):
     for png_file in glob.glob(os.path.join(os.path.abspath(scModel.get_dir()) , '*.png')):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
+
+def _fixTimeStrings(scModel, gopLoader):
+    """
+    USed to correct the use of the third ':' which indicated frames since time.
+    This caused confusion.  Users often used the the third ':' for milliseconds.
+    The journals are of course incorrect.  Cannot fix that here.
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    from tool_set import getMilliSecondsAndFrameCount,getDurationStringFromMilliseconds
+    from ffmpeg_api import getFrameRate
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        args = getValue(edge,'arguments',{})
+        try:
+            for k,v in args.iteritems():
+                if 'Time' in k and  v.count(':') == 3:
+                    m,f = getMilliSecondsAndFrameCount(v)
+                    node = scModel.G.get_node(frm)
+                    input_file = os.path.join(scModel.get_dir(), node['file'])
+                    rate = getFrameRate(input_file)
+                    if rate is not None:
+                        m += int(f*1000.0/rate)
+                    v = getDurationStringFromMilliseconds(m)
+                    setPathValue(edge,'arguments.{}'.format(k),v)
+        except:
+            pass
 
 def _fixErasure(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
@@ -538,7 +568,7 @@ def _pasteSpliceBlend(scModel,gopLoader):
             if len(donors) > 0:
                 args['donor'] = donors[0]
             args['sendNotifications'] = False
-            mod = scModel.getModificationForEdge(frm, to, edge)
+            mod = scModel.getModificationForEdge(frm, to)
             scModel.imageFromGroup(grp, software=mod.software, **args)
 
 def _fixColors(scModel,gopLoader):

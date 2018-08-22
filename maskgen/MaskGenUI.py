@@ -641,7 +641,7 @@ class MakeGenUI(Frame):
             end = None
             ok = False
             for filter in self.gfl.getGroup(d.getGroup()).filters:
-                msgs, pairs = self.scModel.imageFromPlugin(filter)
+                msgs, pairs = self.scModel.mediaFromPlugin(filter)
                 self._addPairs(pairs)
                 if msgs is not None:
                     ValidationListDialog(self, msgs, "Plugin Errors")
@@ -931,7 +931,7 @@ class MakeGenUI(Frame):
         self.setSelectState('normal')
 
     def changeEvent(self, recipient, eventType, **kwargs):
-        # UI not setup yet.  Occurs when imagedir is used at command line
+        # UI not setup yet.  Occurs when project directory is used at command line
         if self.canvas is None:
             return
         if eventType == 'label' and self.canvas is not None:
@@ -1069,7 +1069,7 @@ class MakeGenUI(Frame):
         filemenu.add_separator()
         filemenu.add_cascade(label="Settings", menu=settingsmenu)
         filemenu.add_cascade(label="Properties", command=self.getproperties)
-        filemenu.add_cascade(label="Rename to Base Image", command=self.renametobase)
+        filemenu.add_cascade(label="Rename to Base", command=self.renametobase)
         filemenu.add_cascade(label="System Check", command=self.systemcheck)
         filemenu.add_cascade(label="Reload Plugins", command=self.reloadplugins)
         #filemenu.add_cascade(label="Last Updates", command=self.updates)
@@ -1080,7 +1080,7 @@ class MakeGenUI(Frame):
         menubar.add_cascade(label="File", menu=filemenu)
 
         self.processmenu = Menu(menubar, tearoff=0)
-        self.processmenu.add_command(label="Add " + self.uiProfile.name, command=self.add, accelerator="Ctrl+A")
+        self.processmenu.add_command(label="Add Media", command=self.add, accelerator="Ctrl+A")
         self.processmenu.add_command(label="Add CGI", command=self.addcgi)
         self.processmenu.add_command(label="Next w/Auto Pick", command=self.nextauto, accelerator="Ctrl+P",
                                      state='disabled')
@@ -1091,7 +1091,7 @@ class MakeGenUI(Frame):
                                      state='disabled')
         self.processmenu.add_separator()
         self.uiProfile.addProcessCommand(self.processmenu, self)
-        self.processmenu.add_command(label="Rename Final Images", command=self.renamefinal)
+        self.processmenu.add_command(label="Rename Final Media", command=self.renamefinal)
         self.processmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z", state='disabled')
         self.menuindices['undo'] = self.processmenu.index(END)
         menubar.add_cascade(label="Process", menu=self.processmenu)
@@ -1357,7 +1357,7 @@ def main(argv=None):
         argv = sys.argv
 
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--imagedir', help='image directory', required=False)
+    parser.add_argument('--project', help='project directory', required=False)
     parser.add_argument('--test',action='store_true', help='For testing')
     parser.add_argument('--base', help='base image or video',  required=False)
     parser.add_argument('--s3', help="s3 bucket/directory ", nargs='+')
@@ -1369,8 +1369,8 @@ def main(argv=None):
     uiProfile = UIProfile()
     args = parser.parse_args(argv)
 
-    if args.imagedir is not None:
-        imgdir = args.imagedir
+    if args.project is not None:
+        imgdir = args.project
     if args.http is not None:
         loadHTTP(args.http)
     elif args.s3 is not None:

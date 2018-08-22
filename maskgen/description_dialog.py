@@ -106,7 +106,7 @@ def checkValue(name, value_type, value):
                     vals[1])
         elif value_type == 'time':
             if not validateTimeString(value):
-                return None, 'Invalid time value for ' + name + '; not in format 00:00:00.000 or 00:00:00:00'
+                return None, 'Invalid time value for ' + name + '; not in format 00:00:00.000000 for time or 0 for frame number'
         elif value_type == 'coordinates':
             if not validateCoordinates(value):
                 return None, 'Invalid coordinate value for ' + name + '; not (0,0) format'

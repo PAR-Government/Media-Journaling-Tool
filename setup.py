@@ -2,7 +2,7 @@ from setuptools import setup,find_packages
 import os
 
 setup(name='maskgen',
-      version_format='0.5.0515.{gitsha}',
+      version_format='0.5.0619.{gitsha}',
       setup_requires=['setuptools_maskgen_version'],
       description='JT',
       url='http://github.com/rwgdrummer/maskgen',
@@ -21,6 +21,7 @@ setup(name='maskgen',
         ],
         'console_scripts': [
                'jtproject = maskgen.batch.batch_project:main',
+               'jtbatch = maskgen.batch.batch_processes:main',
                'jtui = maskgen.MaskGenUI:main',
                'jtprocess = maskgen.batch.batch_process:main'
         ]

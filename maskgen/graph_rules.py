@@ -7,6 +7,11 @@
 #==============================================================================
 
 
+"""
+MAINTAIN RULES FOR VALIDATION (as referened in the operation.json's rules definition).
+MAINTAIN RULES FOR PROJECT PROPERTIES and FINAL NODE PROPERTIES
+(as referenced in the property defintion if project_properties.json)
+"""
 from software_loader import  getProjectProperties, getRule,getOperations
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \

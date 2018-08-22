@@ -40,7 +40,7 @@ class VideoSegment:
       USED FOR AUDIO.
       Filename is ONLY present if there are localization tasks.
 
-      rate = in milliseconds
+      rate = frames per second
       starttime = in milliseconds
       startframe = integer number
       endtime = in milliseconds
@@ -60,10 +60,10 @@ class VideoSegment:
     def __init__(self,rate, starttime, startframe, endtime,endframe, frames, filename, media_type, error):
         """
 
-        :param rate:
-        :param starttime:
+        :param rate: seconds
+        :param starttime: milliseconds
         :param startframe:
-        :param endtime:
+        :param endtime:milliseconds
         :param endframe:
         :param frames: number frames affected by manipulation in this segment
         :param filename: may not be present without mask, otherwise this is an HDF5 file
@@ -89,6 +89,17 @@ class VideoSegment:
         self.error = error
 
 class Probe:
+    """
+    donorBaseNodeId = the donor base media node id
+    donorVideoSegments = the list video and audio donor segments
+    targetMaskImage = the ImageWrapper target mask image (aligned to target final node)
+    donorMaskImage= the ImageWrapper donor mask image (aligned to donor)
+    targetMaskFileName = the file name of the target mask image (aligned to target final node)
+    donorMaskFileName = the file name of the  donor mask image (aligned to donor)
+    targetVideoSegments = the list video and audio final node segments
+    targetChangeSizeInPixels = (0,0)
+    level = 0
+    """
     edgeId = None
     targetBaseNodeId = None
     finalNodeId = None
