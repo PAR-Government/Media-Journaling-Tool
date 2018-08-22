@@ -468,7 +468,7 @@ def checkSameChannels(op, graph, frm, to):
     if fileType(vidAfter) == 'image' or fileType(vidBefore) == 'image':
         return
     metaAfter = getFileMeta(vidAfter)
-    if fileType(vidBefore)=='zip' and len(metaAfter) != 1:
+    if fileType(vidBefore).startswith('zip') and len(metaAfter) != 1:
         return (Severity.WARNING,'change in the number of streams occurred')
     metaBefore = getFileMeta(vidBefore)
     if len(metaBefore) != len(metaAfter):

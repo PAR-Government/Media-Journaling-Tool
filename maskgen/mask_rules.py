@@ -294,6 +294,26 @@ def _compositeImageToVideoSegment(compositeImage):
                          getValue(item,'type','video'),
                          getValue(item,'error',0)) for item in compositeImage.videomasks]
 
+def compositeMaskSetFromVideoSegment(videoSegments):
+    """
+    Convert Segments back to masks
+    :param videoSegments:
+    :return:
+    @type videoSegments: list of VideoSegment
+    """
+    mask_set = []
+    for seg in videoSegments:
+        ms = {}
+        ms['rate'] = seg.rate
+        ms['endtime'] = seg.endtime
+        ms['endframe'] = seg.endframe
+        ms['starttime'] = seg.starttime
+        ms['startframe'] = seg.startframe
+        ms['type'] = seg.media_type
+        ms['frames'] = seg.frames
+        ms['videosegment'] = seg.filename
+        mask_set.append(ms)
+    return mask_set
 
 def _is_empty_composite(composite):
     if (type(composite) == CompositeImage and len(composite.videomasks) == 0) or \
@@ -336,10 +356,10 @@ def _prepare_video_masks(graph,
     """
     import copy
 
-    def preprocess(func, edge, video_masks):
-        return [func(mask,edge) for mask in video_masks]
+    def preprocess(func, edge, target_size, video_masks):
+        return [func(mask,edge,target_size) for mask in video_masks]
 
-    def donothing(mask, edge):
+    def donothing(mask, edge, targetsize):
         return mask
 
     def replace_with_dir(directory, video_masks):
@@ -366,6 +386,7 @@ def _prepare_video_masks(graph,
                                                  end_time = getValue(edge,'arguments.End Time'),
                                                  media_types=[media_type])
     preprocess_func = donothing
+    target_size = getNodeSize(graph, target)
     if operation is not None:
         preprocess_func_id = media_type + '_preprocess'
         if operation.maskTransformFunction is not None and preprocess_func_id in operation.maskTransformFunction:
@@ -374,6 +395,7 @@ def _prepare_video_masks(graph,
          CompositeImage(source, target, media_type, [item for item in
                                                      preprocess(preprocess_func,
                                                                 edge,
+                                                                target_size,
                                                                 replace_with_dir(graph.dir, video_masks))])
 
 
@@ -586,6 +608,17 @@ def video_resize_transform(buildState):
         return buildState.donorMask
     return None
 
+def median_stacking(buildState):
+    if buildState.isComposite:
+        return video_tools.extractMask(buildState.compositeMask.videomasks,
+                                       getValue(buildState.edge, 'arguments.Frame Time',
+                                                                 defaultValue='00:00:00.000'))
+    else:
+        return CompositeImage(buildState.source,
+                       buildState.target,
+                       getNodeFileType(buildState.source),
+                              video_tools.inverse_intersection_for_mask(buildState.compositeMask,
+                                                                        getValue(buildState.edge, 'videomasks', [])))
 
 def rotate_transform(buildState):
     """
@@ -684,7 +717,10 @@ def video_rotate_transform(buildState):
     return None
 
 
-def image_selection_preprocess(mask, edge):
+def median_stacking_preprocess(mask, edge, target_size):
+    return video_tools.resizeMask([mask], target_size)[0]
+
+def image_selection_preprocess(mask, edge,target_size ):
     """
        :param mask:
        :param edge
@@ -693,7 +729,7 @@ def image_selection_preprocess(mask, edge):
        """
     return mask
 
-def select_cut_frames_preprocess(mask, edge):
+def select_cut_frames_preprocess(mask, edge,target_size):
     """
     :param mask:
     :param edge
@@ -1703,7 +1739,8 @@ def image_selection(buildState):
        @rtype: np.ndarray
        """
     if buildState.isComposite:
-        return buildState.compositeMask
+        return video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
+                                                                 defaultValue='00:00:00.000'))
     else:
         masks = video_tools.getMaskSetForEntireVideo(getNodeFile(buildState.graph, buildState.source),
                                              start_time=getValue(buildState.edge, 'arguments.Frame Time',
@@ -2017,7 +2054,7 @@ def _getUnresolvedSelectMasksForEdge(edge):
     return sms
 
 def isEdgeNotDonorAndNotEmpty(edge_id, edge, operation):
-    return edge['op'] != 'Donor' and edge['empty mask'] == 'no'
+    return edge['op'] != 'Donor' and getValue(edge,'empty mask','no') == 'no'
 
 def isEdgeNotDonor(edge_id, edge, operation):
     return edge['op'] != 'Donor'
@@ -2148,7 +2185,7 @@ def alterComposite(graph,
 
     nodefiletype =  getNodeFileType(graph,source)
 
-    if 'videomasks' in edge or nodefiletype in ['video','audio']:
+    if 'videomasks' in edge or nodefiletype in ['zip','video','audio']:
         compositeMask = composite
             # what to do if videomasks are not in edge?
 

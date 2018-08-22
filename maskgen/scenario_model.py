@@ -582,6 +582,78 @@ class VideoImageLinkTool(ImageImageLinkTool):
                               start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
 
+class ZipImageLinkTool(VideoImageLinkTool):
+    """
+    Supports mask construction and meta-data comparison when linking zip to image.
+    """
+    def __init__(self):
+        VideoImageLinkTool.__init__(self)
+
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(end)
+        mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
+                                                    arguments=arguments, analysis_params={})
+        if 'videomasks' in analysis:
+            analysis['videomasks'] = VideoMaskSetInfo(analysis['videomasks'])
+        if 'errors' in analysis:
+            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+        return startIm, destIm, mask, analysis
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+
+        """
+
+        :param start:
+        :param destination:
+        :param scModel:
+        :param op:
+        :param invert:
+        :param arguments:
+        :param skipDonorAnalysis:
+        :param analysis_params:
+        :return:
+        @type start: str
+        @type destination: str
+        @type scModel: ImageProjectModel
+        @type op: str
+        @type invert: bool
+        @type arguments: dict
+        """
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask, analysis = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
+        operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
+        maskSet = video_tools.formMaskDiffForImage(startFileName, destIm,
+                                                       os.path.join(scModel.G.dir, start + '_' + destination),
+                                                       op,
+                                                       startSegment=getMilliSecondsAndFrameCount(arguments[
+                                                                                                     'Start Time']) if 'Start Time' in arguments else None,
+                                                       endSegment=getMilliSecondsAndFrameCount(arguments[
+                                                                                                   'End Time']) if 'End Time' in arguments else None,
+                                                       analysis=analysis,
+                                                       alternateFunction=operation.getVideoCompareFunction(),
+                                                       arguments=consolidate(arguments, analysis_params))
+        # for now, just save the first mask
+        if len(maskSet) > 0 and 'mask' in maskSet[0]:
+            mask = ImageWrapper(maskSet[0]['mask'])
+            for item in maskSet:
+                item.pop('mask')
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        metaDataDiff = None
+        analysis = analysis if analysis is not None else {}
+        analysis['metadatadiff'] = metaDataDiff
+        analysis['shape change'] = sizeDiff(startIm, destIm)
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
+        return mask, analysis, []
 
 class VideoVideoLinkTool(LinkTool):
     """
@@ -902,7 +974,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
-             'zip.audio': ImageZipAudioLinkTool()}
+             'zip.image':   ZipImageLinkTool(),   'zip.audio': ImageZipAudioLinkTool()}
 
 
 def true__notify(object, message):
@@ -1087,7 +1159,7 @@ class ImageProjectModel:
         e = self.G.get_edge(self.start, self.end)
         if e is None:
             return None
-        videodiff = VideoMetaDiff(e['metadatadiff']) if 'metadatadiff' in e else None
+        videodiff = VideoMetaDiff(e['metadatadiff']) if getValue(e,'metadatadiff',None) is not None else None
         imagediff = MetaDiff(e['exifdiff']) if 'exifdiff' in e and len(e['exifdiff']) > 0 else None
         return imagediff if imagediff is not None else videodiff
 
@@ -1535,7 +1607,10 @@ class ImageProjectModel:
         :return:
         @rtype : AddTool
         """
-        return addTools[fileType(media)]
+        ft = fileType(media)
+        if ft.startswith('zip'):
+            ft = 'zip'
+        return addTools[ft]
 
     def hasSkippedEdges(self):
         return len(self.G.getDataItem('skipped_edges', [])) > 0

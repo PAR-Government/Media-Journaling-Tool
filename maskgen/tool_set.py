@@ -684,6 +684,93 @@ def outputVideoFrame(filename, outputName=None, videoFrameTime=None, isMask=Fals
         raise e
     return openImage(outfilename, isMask=isMask)
 
+class ZipWriter:
+
+    def __init__(self, filename,fps=30):
+        from zipfile import ZipFile
+        self.filename = filename
+        self.myzip = ZipFile(filename, 'w')
+        self.count = 0
+        self.fps = fps
+        self.prefix = os.path.basename(os.path.splitext(filename)[0])
+        #self.names = []
+
+    def isOpened(self):
+        #TODO: check names, what else
+        return True
+
+    def get(self,prop):
+        if prop == cv2api.cv2api_delegate.prop_fps:
+            return self.fps
+        if prop == cv2api.cv2api_delegate.prop_frame_count:
+            return self.count
+        if prop == cv2api.cv2api_delegate.prop_pos_msec:
+            return self.count * self.fps
+
+    def write(self, frame):
+        fname = "{}_{}.png".format(self.prefix, self.count)
+        ImageWrapper(frame,filename=fname).save(fname)
+        self.myzip.write(fname,fname)
+        self.count+=1
+        os.remove(fname)
+
+    def release(self):
+        self.myzip.close()
+
+class ZipCapture:
+
+    def __init__(self, filename, fps=30, filetypes=imagefiletypes):
+        from zipfile import ZipFile
+        import uuid
+        self.filename = filename
+        self.myzip = ZipFile(filename, 'r')
+        file_type_matcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+        self.fps = fps
+        self.count = 0
+        self.dir = os.path.join(os.path.dirname(os.path.abspath(self.filename)) ,  uuid.uuid4().__str__())
+        os.mkdir(self.dir)
+        self.names = [name for name in self.myzip.namelist() if len(file_type_matcher.findall(name.lower())) > 0 and  \
+                      os.path.basename(name) == name]
+
+    def isOpened(self):
+        #TODO: check names, what else
+        return True
+
+    def get(self,prop):
+        if prop == cv2api.cv2api_delegate.prop_fps:
+            return self.fps
+        if prop == cv2api.cv2api_delegate.prop_frame_count:
+            return self.count
+        if prop == cv2api.cv2api_delegate.prop_pos_msec:
+            return self.count* self.fps
+
+    def grab(self):
+        self.count+=1
+        return self.count <= len(self.names)
+
+    def get_exif(self):
+        name = self.names[self.count - 1]
+        extracted_file = os.path.join(self.dir,name)
+        if not os.path.exists(extracted_file):
+            extracted_file = self.myzip.extract(name, self.dir)
+        return exif.getexif(extracted_file)
+
+    def retrieve(self):
+        if self.count > len(self.names):
+            return False, None
+        name = self.names[self.count-1]
+        extracted_file = self.myzip.extract(name, self.dir)
+        return True, openImage(extracted_file, isMask=False).to_array()
+
+    def read(self):
+        self.grab()
+        return self.retrieve()
+
+    def release(self):
+        import shutil
+        shutil.rmtree(self.dir)
+        self.myzip.close()
+
 
 def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
     from zipfile import ZipFile
@@ -1720,6 +1807,8 @@ def isHomographyOk(transform_matrix, h, w):
     ul = np.array([0, w, 1])
     lr = np.array([h, 0, 1])
     ur = np.array([h, w, 1])
+    if transform_matrix.shape == (2,3):
+        transform_matrix = np.vstack([transform_matrix,[0,0,1.0]])
 
     a_ll = np.matmul(transform_matrix, ll)
     a_ul = np.matmul(transform_matrix, ul)

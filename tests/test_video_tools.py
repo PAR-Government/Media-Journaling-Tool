@@ -149,13 +149,26 @@ class TestVideoTools(TestSupport):
         os.system('ffmpeg -y -i "{}"  -r 8/1  "{}"'.format(source, target))
         self.addFileToRemove(target)
 
-    def _init_write_file(self, name, start_time, start_position, amount, fps,mask_set=None):
+    def _init_write_zip_file(self, name,  amount, fps):
+        writer = tool_set.ZipWriter(name, fps)
+        amount = int(amount)
+        for i in range(amount):
+            mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
+            writer.write(mask)
+        writer.release()
+        self.filesToKill.append(writer.filename)
+        return writer.filename
+
+    def _init_write_file(self, name, start_time, start_position, amount, fps,mask_set=None, maskonly=False):
         writer = tool_set.GrayBlockWriter(name, fps)
         amount = int(amount)
         increment = 1000 / float(fps)
         count = start_position
         for i in range(amount):
-            mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
+            if maskonly:
+                mask = np.random.randint(2, size=(1090, 1920)).astype('uint8') * 255
+            else:
+                mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
             if mask_set is not None:
                 mask_set.append(mask)
             writer.write(mask, start_time, count)
@@ -409,6 +422,91 @@ class TestVideoTools(TestSupport):
         self.assertEqual(4000.0, round(result[0]['endtime']))
         self.assertEqual(176400, result[0]['endframe'])
         self.assertEqual(176400 - 88641 + 1, result[0]['frames'])
+
+    def test_extract_mask(self):
+        amount = 30
+        fileOne = self._init_write_file('test_ts_em1', 2500, 75, 30, 30,maskonly=True)
+        fileTwo = self._init_write_file('test_ts_em2', 4100, 123, 27, 30,maskonly=True)
+        sets = []
+        change = dict()
+        change['starttime'] = 2500
+        change['startframe'] = 75
+        change['endtime'] = 3500
+        change['endframe'] = change['startframe'] + amount - 1
+        change['frames'] = amount
+        change['rate'] = 30
+        change['videosegment'] = fileOne
+        change['type'] = 'video'
+        sets.append(change)
+        change = dict()
+        change['starttime'] = 4100
+        change['startframe'] = 123
+        change['endtime'] = 5000
+        change['endframe'] = change['startframe'] + 27 - 1
+        change['frames'] = int(27)
+        change['rate'] = 30
+        change['videosegment'] = fileTwo
+        change['type'] = 'video'
+        sets.append(change)
+
+        reader = tool_set.GrayBlockReader(fileTwo)
+        c = 0
+        while c < 3:
+            expect_mask = reader.read()
+            c+=1
+        reader.close()
+
+        mask = video_tools.extractMask(sets,125)
+
+        self.assertTrue(np.all(mask==expect_mask))
+
+    def test_formMaskDiffForImage(self):
+        from maskgen.image_wrap import ImageWrapper
+        fileOne = self._init_write_zip_file('test_ts_fmdfi.png.zip',20,30)
+        test_image = np.random.randint(255, size=(1090, 1920)).astype('uint8')
+        masks = video_tools.formMaskDiffForImage(fileOne,ImageWrapper(test_image),'test_ts_fmdfi','op')
+        self.assertEqual(1,len(masks))
+        mask = masks[0]
+        self.assertEquals(20,mask['frames'])
+        self.assertEquals(1, mask['startframe'])
+        self.assertEquals(20, mask['endframe'])
+        self.assertEquals(0, mask['starttime'])
+        self.assertEquals(600, mask['endtime'])
+        reader = tool_set.GrayBlockReader(mask['videosegment'])
+        count = 0
+        while True:
+            diff_mask = reader.read()
+            if diff_mask is None:
+                break
+            self.assertTrue(np.sum(diff_mask) > 0)
+            count+=1
+        self.assertEqual(20,count)
+
+    def test_inverse_intersection_for_mask(self):
+        amount = 30
+        fileOne = self._init_write_file('test_ts_em1', 2500, 75, 30, 30,maskonly=True)
+        sets = []
+        change = dict()
+        change['starttime'] = 2500
+        change['startframe'] = 75
+        change['endtime'] = 3500
+        change['endframe'] = change['startframe'] + amount - 1
+        change['frames'] = amount
+        change['rate'] = 30
+        change['videosegment'] = fileOne
+        change['type'] = 'video'
+        sets.append(change)
+
+        test_mask = np.random.randint(2, size=(1090, 1920)).astype('uint8') * 255
+
+        new_sets = video_tools.inverse_intersection_for_mask(test_mask,sets)
+
+        reader = tool_set.GrayBlockReader(new_sets[0]['videosegment'])
+        while True:
+            expect_mask = reader.read()
+            if expect_mask is None:
+                break
+            self.assertTrue(np.all((test_mask.astype('int')-expect_mask.astype('int')>=0)))
 
     def test_remove_intersection(self):
         setOne = []

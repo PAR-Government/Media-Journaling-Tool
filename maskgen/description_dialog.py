@@ -17,6 +17,7 @@ from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon
 from scenario_model import Modification,ImageProjectModel
+from support import getValue
 import numpy as np
 from tkintertable import TableCanvas, TableModel
 from image_wrap import ImageWrapper
@@ -1648,8 +1649,10 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
             self.bd.grid(row=row, column=1)
             row += 1
         self.includeInMaskVar = StringVar()
+        op = getOperation(self.modification.operationName)
         self.includeInMaskVar.set(self.modification.recordMaskInComposite)
-        if  self.modification.category not in ['Output','AntiForensic','Laundering']:
+        if  self.modification.category not in ['Output','AntiForensic','Laundering']  or \
+            op is not None and getValue(op.includeInMask, self.start_type, getValue(op.includeInMask,'default',False)):
             self.cbIncludeInComposite = Checkbutton(master, text="Included in Composite", variable=self.includeInMaskVar, \
                                                     onvalue="yes", offvalue="no")
             self.cbIncludeInComposite.grid(row=row, column=0, columnspan=2, sticky=W)

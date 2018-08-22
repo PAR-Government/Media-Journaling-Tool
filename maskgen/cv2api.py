@@ -13,7 +13,6 @@ import ffmpeg_api
 Wrapper class around CV2 to support different API versions (opencv 2 and 3)
 """
 
-
 class CAPReader:
 
     def __init__(self, cap):

@@ -159,7 +159,8 @@ def openTiff(filename, isMask=False, args=None):
         try:
             nonRaw = ImageWrapper(_openCV2(filename),
                                   info=info,
-                                  to_mask=isMask)
+                                  to_mask=isMask,
+                                  filename=filename)
             if raw is not None and raw.size[0] > nonRaw.size[0] and raw.size[1] > nonRaw.size[1]:
                 return raw
             return nonRaw
@@ -173,7 +174,9 @@ def wand_image_extractor(filename, isMask=False):
     im = pgmagick.Image(filename)
     myPilImage = Image.new('RGB', (im.GetWidth(), im.GetHeight()))
     myPilImage.fromstring(im.GetData())
-    return ImageWrapper(np.asarray(myPilImage), mode=myPilImage.mode, info=myPilImage.info, to_mask=isMask)
+    return ImageWrapper(np.asarray(myPilImage), mode=myPilImage.mode, info=myPilImage.info,
+                        to_mask=isMask,
+                        filename=filename)
 
 
 def pdf2_image_extractor(filename, isMask=False):
@@ -198,7 +201,7 @@ def pdf2_image_extractor(filename, isMask=False):
                                                  generic.ArrayObject([x for x in xObject[obj]['/Filter']
                                                                       if x not in ['/DCTDecode', '/JBIG2Decode']])})
                     im = Image.open(io.BytesIO(bytearray(xObject[obj].getData())))
-                    return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
+                    return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
     return None
 
 
@@ -212,7 +215,7 @@ def convertToPDF(filename, isMask=False):
     with open(newname, 'rb') as f:
         im = Image.open(f)
         im.load()
-        return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
+        return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
 
 
 def getProxy(filename):
@@ -229,7 +232,7 @@ def defaultOpen(filename, isMask=False, args=None):
             raw = openTiff(filename, isMask=isMask, args=args)
             if raw is not None and raw.size[0] > im.size[0] and raw.size[1] > im.size[1]:
                 return raw
-    result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask)
+    result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
     return None if result.size == (0, 0) else result
 
 def readPNG(filename, isMask=False):
@@ -243,12 +246,12 @@ def readPNG(filename, isMask=False):
             if shape > 1:
                 image_3d = np.reshape(image_2d,
                                       (pngdata[1], pngdata[0], image_2d.shape[1] / pngdata[0]))
-                return ImageWrapper(image_3d, to_mask=isMask)
+                return ImageWrapper(image_3d, to_mask=isMask,filename=filename)
             else:
-                return ImageWrapper(image_2d)
+                return ImageWrapper(image_2d,filename=filename)
     else:
         result = _openCV2(filename)
-    return ImageWrapper(result)
+    return ImageWrapper(result,filename=filename)
 
 
 def proxyOpen(filename, isMask=False):
@@ -288,7 +291,7 @@ def openFromRegistry(filename, isMask=False, args=None):
                     else:
                         result = func(filename, isMask=isMask)
                     if result is not None and result.__class__ is not ImageWrapper:
-                        result = ImageWrapper(result[0], mode=result[1])
+                        result = ImageWrapper(result[0], mode=result[1],filename=filename)
                     if result is not None and result.size != (0, 0):
                         logger = logging.getLogger('maskgen')
                         if logger.isEnabledFor(logging.DEBUG):
@@ -497,6 +500,11 @@ class ImageWrapper:
         elif self.image_array.dtype == 'float':
             img_array = self.image_array * 256
             self.image_array = img_array.astype('uint8')
+
+    def get_exif(self):
+        if self.filename is not None:
+            return exif.getexif(self.filename)
+        return None
 
     def save(self, filename, **kwargs):
         """

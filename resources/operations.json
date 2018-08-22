@@ -4751,6 +4751,47 @@
     },
     {
       "category": "Output",
+      "name": "MediaStacking",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
+      "rules": [
+        "rotationCheck"
+      ],
+      "optionalparameters": {
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file provided when exporting from a raw image."
+        },
+        "Start Time": {
+          "type": "time",
+          "source": "video",
+          "description": "Start frame"
+        },
+        "End Time": {
+          "type": "time",
+          "source": "video",
+          "description": "End frame"
+        }
+      },
+      "description": "Produce a single image from stacking frames or images in a zip.",
+      "includeInMask": {
+        "default": true
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.median_stacking",
+        "video_preprocess": "maskgen.mask_rules.median_stacking_preprocess"
+      },
+      "transitions": [
+        "video.image",
+        "zip.image"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputMosaic",
       "mandatoryparameters": {
         "Start Time": {

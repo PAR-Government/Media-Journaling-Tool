@@ -7,7 +7,6 @@ from maskgen.description_dialog import SelectDialog
 
 matplotlib.use("TkAgg")
 import logging
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 from Tkinter import *
 import matplotlib.patches as mpatches
@@ -28,7 +27,7 @@ from maskgen.description_dialog import MaskSetTable
 from software_loader import ProjectProperty, getSemanticGroups
 import sys
 import webbrowser
-
+from maskgen.mask_rules import compositeMaskSetFromVideoSegment
 
 class QAProjectDialog(Toplevel):
 
@@ -38,9 +37,7 @@ class QAProjectDialog(Toplevel):
         self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
-        #print('Stalled?')
         self.probes = None
-        #print("Done")
         Toplevel.__init__(self, parent)
         self.type = self.parent.scModel.getEndType()
         self.checkboxvars = {}
@@ -55,25 +52,17 @@ class QAProjectDialog(Toplevel):
         self.pathboxes = {}
         self.qaData = qa_logic.ValidationData(self.scModel)
         self.resizable(width=False, height=False)
-        #self.grid()
+
         self.progressBars = []
-        #This actually stores failed or success icons
         self.narnia = {}
         self.pageDisplays = {}
-        #print(self)
-        #threading.stack_size(0x2000000)
 
-        #t = threading.Thread(target=self.createWidgets)
-        #t.start()
-        #t = threading._start_new_thread(self.createWidgets, () )
         self.createWidgets()
 
 
     def getProbes(self):
         try:
-            #cur = time.time()
             self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
-            #print(time.time()-cur)
         except Exception as e:
             logging.getLogger('maskgen').error(str(e))
             self.probes = None
@@ -115,7 +104,6 @@ class QAProjectDialog(Toplevel):
         filename = tool_set.get_icon('Manny_icon_color.jpg')
         filenamecol = tool_set.get_icon('Manny_icon_mask.jpg')
         manFrame = Frame(page1)
-        #manFrame.bind("<Button-1>", self.help)
         manFrame.grid(column=0,row=2,columnspan=2)
         c = Canvas(manFrame, width=510, height=510)
         c.pack()
@@ -165,7 +153,6 @@ class QAProjectDialog(Toplevel):
                     n = next.start
                     self.backs[end].append(next)
                     next = self.getPredNode(n)
-                #print(len(self.backs[end]))
                 self.backs[end].reverse()
 
             donors = ['<-'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.donorBaseNodeId)]) for p in
@@ -174,26 +161,13 @@ class QAProjectDialog(Toplevel):
             self.crit_links.extend([x for x in donors])
             count = 0.0
             for k in self.qaData.keys():
-                #print(self.qaData.get_qalink_status(k))
                 count += 1 if self.qaData.get_qalink_status(k) == 'yes' else 0
             self.progress = count / len(self.crit_links) if len(self.crit_links) != 0 else 0.99999
-            #print(self.progress)
-            #print(self.crit_links)
             count= 1
-            #page1.grid_forget()
             for link in self.crit_links:
-                #page.grid_forget()
                 page = Frame(self)
-                #print('setting page ' + str(count))
                 self.cur = page
-                #print('making page ' + str(count))
-                #threa = threading.Thread(args = tuple([link,page]), target = self.createImagePage)
-                #threa.start()
-                #threa.join()
                 self.createImagePage(link,page)
-                #threading._start_new_thread(self.createImagePage, tuple([link,page]))
-                #print('appending page ' + str(count))
-                #print(self.cur)
                 self.pages.append(page)
                 count += 1
 
@@ -209,12 +183,11 @@ class QAProjectDialog(Toplevel):
             row += 1
             self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
             row += 1
-            #print('creating qa checklists')
             qa_list = [
                 'Base and terminal node images should be the same format. -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
                 'All relevant semantic groups are identified.']
             checkboxes = []
-            #self.checkboxvars = []
+
             self.checkboxvars[self.cur] = []
             for q in qa_list:
                 var = BooleanVar()
@@ -224,9 +197,8 @@ class QAProjectDialog(Toplevel):
                 checkboxes.append(ck)
                 self.checkboxvars[self.cur].append(var)
                 Label(lastpage, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
-                                                                       sticky='W')  # , columnspan=4)
+                                                                       sticky='W')
                 row += 1
-            #print('done with checklisrt')
             Label(lastpage, text='QA Signoff: ').grid(row=row, column=col)
             col += 1
             self.reporterStr = StringVar()
@@ -243,9 +215,6 @@ class QAProjectDialog(Toplevel):
             self.previButton.grid(row=row, column=col, columnspan=2, sticky='W')
 
             row += 1
-            # self.descriptionLabel.grid(row=row, column=col - 1)
-
-            row += 1
             self.commentsLabel = Label(lastpage, text='Comments: ')
             self.commentsLabel.grid(row=row, column=col, columnspan=3)
             row += 1
@@ -260,28 +229,16 @@ class QAProjectDialog(Toplevel):
             pb = ttk.Progressbar(lastpage, orient='horizontal', mode='determinate', maximum=100.001)
             pb.grid(row=row, column=0, sticky=EW, columnspan=8)
             pb.step(self.progress*100)
-            # pb.start(100)
             self.progressBars.append(pb)
-            #print('done with final page')
             self.check_ok()
             self.pages.append(lastpage)
             self.cur=page1
-            if len(self.crit_links) != 0:
-                statusLabelText.set('Preview Pages Complete. Press Next to Continue.')
-                wnext.config(state=NORMAL)
-            else:
-                statusLabelText.set('\nPlease Note That This Journal Contains No Probes Perhaps You Forgot to '
-                                    '\nInclude Someting in the Composite? Anyway You aren\'t Allowed to QA a '
-                                    '\nJournal With No Probes Sorry. :(')
+            statusLabelText.set('Preview Pages Complete. Press Next to Continue.')
+            wnext.config(state=NORMAL)
 
-            #self.cur.grid()
-            #print(len(self.pages))
-            #print(len(self.photos))
-            #print(len(self.crit_links))
 
     def validategoodtimes(self):
         v = self.scModel.validate()
-        #print(v)
         if validation.core.hasErrorMessages(v,lambda x: True):
             self.valid = False
             tkMessageBox.showerror("Validation Errors!","It seems this journal has unresolved validation errors. "
@@ -289,8 +246,6 @@ class QAProjectDialog(Toplevel):
         else:
             self.valid = True
         self.check_ok()
-        #self.wm_attributes("-top", 1)
-        #self.focus_force()
 
     def createVideoPage(self, t, p):
         self.edgeTuple = tuple(t.split("<-"))
@@ -329,9 +284,9 @@ class QAProjectDialog(Toplevel):
         self.setUpMask(t)
         self.frameMove(0)
         nextButton = Button(self.cImgFrame, text='Next', command=self.frameNext, width=15)
-        nextButton.grid(row=1, column=2, columnspan=2, sticky='E')# padx=(20, 20))
+        nextButton.grid(row=1, column=2, columnspan=2, sticky='E')
         prevButton = Button(self.cImgFrame, text='Previous', command=self.framePrev, width=15)
-        prevButton.grid(row=1, column=0, columnspan=2, sticky='W') #padx=(20, 20))
+        prevButton.grid(row=1, column=0, columnspan=2, sticky='W')
 
     def frameNext(self):
         self.frameMove(1)
@@ -352,10 +307,11 @@ class QAProjectDialog(Toplevel):
              self.lookup[
                  self.edgeTuple[1]]][0]
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
-        description = self.scModel.getModificationForEdge(probe.edgeId[0], probe.edgeId[1], edge)
-        if description.maskSet is not None:
-            self.maskBox = MaskSetTable(self.displayFrame, description.maskSet, openColumn=3,
-                                        dir=self.scModel.get_dir(),boxheight=389,boxwidth=452)#,rowwidth=120)
+        if probe.targetVideoSegments is not None:
+            self.maskBox = MaskSetTable(self.displayFrame,
+                                        scenario_model.VideoMaskSetInfo(compositeMaskSetFromVideoSegment(probe.targetVideoSegments)),
+                                        openColumn=3,
+                                        dir=self.scModel.get_dir(),boxheight=389,boxwidth=452)
             self.maskBox.grid()
             self.pageDisplays[self.cur][1].append(self.displayFrame)
 
@@ -378,11 +334,6 @@ class QAProjectDialog(Toplevel):
         except Exception:
             logging.getLogger("maskgen").warn("{} Duration could not be found the length displayed in the graph is incorrect".format(self.edgeTuple[1]))
             tsec = 120.0
-        #ts = (self.scModel.G.get_node(self.lookup[self.edgeTuple[1]])['duration'])
-        #ftr = [3600, 60, 1]
-
-        #tsec = sum([a * b for a, b in zip(ftr, map(float, ts.split(':')))])
-        #tsec = video_tools.getDuration(self.edgeTuple[1])
         ytics = []
         ytic_lbl = []
         count = 0
@@ -445,7 +396,6 @@ class QAProjectDialog(Toplevel):
         imscroll.grid(row =1,column=0,sticky=EW)
         imscroll.config(command=self.scrollplt)
         fcanvas = FigureCanvasTkAgg(f, master=canvas)
-        #toolbar = NavigationToolbar2TkAgg(fcanvas, self)
         fcanvas.show()
         fcanvas.get_tk_widget().grid(row=0,column=0)
         fcanvas._tkcanvas.grid(row=0, column=0)
@@ -468,25 +418,17 @@ class QAProjectDialog(Toplevel):
             end = na[-1]
             total = end[3]-end[2] + 20000
             curframe = self.subplots[self.cur].get_children()[1].xaxis.get_view_interval()
-            # print(curframe)
             space = curframe[1]-curframe[0]
-            # print(space)
             total *= float(args[1])
-            # print(total,total+space)
             self.subplots[self.cur].get_children()[1].xaxis.set_view_interval(total, total+space,ignore=True)
-            # self.subplots[self.cur].get_children()[1].xaxis.pan(int())
             self.subplots[self.cur].canvas.draw()
         elif (args[0] == 'scroll'):
-            # na = self.pltdata[self.cur]
             self.subplots[self.cur].get_children()[1].xaxis.pan(int(args[1]))
             self.subplots[self.cur].canvas.draw()
 
 
-        #print('done')
-
     def createImagePage(self, t, p):
 
-        #print('creating page for ' + str(t))
         self.edgeTuple = tuple(t.split("<-"))
         if len(self.edgeTuple) < 2:
             self.finalNodeName = t.split("->")[1]
@@ -504,10 +446,10 @@ class QAProjectDialog(Toplevel):
                  self.edgeTuple[1]]][0]
         success = tool_set.get_icon('RedX.png') if probe.failure else tool_set.get_icon('check.png')
         iFrame = Frame(p)
-        # manFrame.bind("<Button-1>", self.help)
+
 
         c = Canvas(iFrame, width=35, height=35)
-        #c.configure(background='white')
+
         c.pack()
         img = openImage(success)
         self.narnia[t] = ImageTk.PhotoImage(imageResizeRelative(img, (30, 30), img.size).toPIL())
@@ -526,7 +468,6 @@ class QAProjectDialog(Toplevel):
         self.semanticFrame.grid(row=row+1, column=0, columnspan=2, sticky=N+W, rowspan=1, pady=10)
         row += 2
         self.cImgFrame = Frame(p)
-        # self.load_overlay(initialize= True)
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionVar = StringVar()
         self.descriptionLabel = Label(p, textvariable=self.operationVar, justify=LEFT)
@@ -544,17 +485,13 @@ class QAProjectDialog(Toplevel):
         row = 0
         scroll = Scrollbar(p)
         scroll.grid(row=row, column=col + 2, rowspan=5, columnspan=1,sticky=NS)
-        # self.scrollh = Scrollbar(self, orient=HORIZONTAL)
-        # self.scrollh.grid(row=row + 5, column=col,sticky= EW)
+
         self.pathList = Listbox(p, width=30, yscrollcommand=scroll.set,selectmode=EXTENDED,exportselection=0)
         self.pathList.grid(row=row, column=col-1, rowspan=5, columnspan=3, padx=(30,10), pady=(20,20))
         self.pathboxes[p] = self.semanticFrame.getListbox()
         scroll.config(command=self.pathList.yview)
         self.transitionVar = StringVar()
-        # self.pathText = Text(self, width=100, height=100,yscrollcommand=self.scroll.set)
-        # self.pathText.setvar(self, self.transitionVar)
-        # self.pathText.grid(row = row, column = col, rowspan = 5)
-        #self.checkVars = []
+
 
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
         self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
@@ -562,16 +499,12 @@ class QAProjectDialog(Toplevel):
         for sg in edge['semanticGroups'] if 'semanticGroups' in edge else []:
             self.semanticFrame.insertListbox(ANCHOR, sg)
         operation = self.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
-        #print(self.type)
-        #print(operation)
+
         if probe.targetVideoSegments is None:
             self.loadt(t)
-            #print('loaded image')
         else:
             self.transitionString(None)
             self.setUpFrames(t)
-                #print('Video loaded')
-        #thread.start_new_thread(self.loadt, ())
         if operation.qaList is not None:
             args = getValue(edge, 'arguments', {})
             self.curOpList = [x for x in operation.qaList]
@@ -597,9 +530,9 @@ class QAProjectDialog(Toplevel):
             checkboxes.append(ck)
             self.checkboxvars[self.cur].append(var)
             Label(p, text=q, wraplength=250, justify=LEFT).grid(row=row, column=col, columnspan=4,
-                                                                   sticky='W')  # , columnspan=4)
+                                                                   sticky='W')
             row += 1
-        #print('generated checks')
+
         currentComment = self.qaData.get_qalink_caption(t)
         self.commentBox.delete(1.0,END)
         self.commentBox.insert(END, currentComment if currentComment is not None else '')
@@ -607,7 +540,7 @@ class QAProjectDialog(Toplevel):
         self.acceptButton.grid(row=12, column=col+2, columnspan=2, sticky='E',padx=(20,20))
         self.prevButton = Button(p, text='Previous', command=self.pre, width=15)
         self.prevButton.grid(row=12, column=col-1, columnspan=2, sticky='W',padx=(20,20))
-        #self.pagetext =
+
         self.acceptnButton = Button(p, text='Next Unchecked', command=self.nexCheck, width=15)
         self.acceptnButton.grid(row=13, column=col + 2, columnspan=2, sticky='E',padx=(20,20))
         self.prevnButton = Button(p, text='Previous Unchecked', command=self.preCheck, width=15)
@@ -616,28 +549,8 @@ class QAProjectDialog(Toplevel):
         pb = ttk.Progressbar(p,orient='horizontal', mode='determinate',maximum=100.0001)
         pb.grid(row = row, column = 0, sticky=EW,columnspan=8)
         pb.step(self.progress*100)
-        #pb.start(100)
+
         self.progressBars.append(pb)
-
-
-
-    def displayX(self,t):
-        success = tool_set.get_icon('RedX.png')
-        iFrame = self.cImgFrame
-        # manFrame.bind("<Button-1>", self.help)
-
-        c = Canvas(iFrame, width=510, height=510)
-        c.pack()
-        img = openImage(success)
-        self.photos[t] = ImageTk.PhotoImage(imageResizeRelative(img, (500, 500), img.size).toPIL())
-        self.image_on_canvas = c.create_image(255, 255, image=self.photos[t], anchor=CENTER, tag='things')
-
-    #def getProgress(self):
-    #   count = 0.0
-    #    for k in self.qaData.keys():
-    #        print(self.qaData.get_qalink_status(k))
-    #        count += 1 if self.qaData.get_qalink_status(k)=='yes' else 0
-    #    return count/len(self.crit_links)
 
     def moveto(self, i):
         pass
@@ -654,9 +567,7 @@ class QAProjectDialog(Toplevel):
             self.pathList.insert(END, 2*tab + "V")
             self._add_to_listBox(self.pathList, self.edgeTuple[0])
             self.pathList.select_set(6)
-            return self.edgeTuple[0] + "\n|\nPasteSplice\n|\nV\n" + self.edgeTuple[1]
-        #self.pathList.insert(END,self.getFileNameForNode( self.backs[self.finalNodeName][0].start)[0:15]+"...")
-        #self.pathList.insert(END, tab + self.getFileNameForNode(self.backs[self.finalNodeName][0].start)[-10:])
+            return self.edgeTuple[0] + "\n|Donor|\nV\n" + self.edgeTuple[1]
         self._add_to_listBox(self.pathList,self.backs[self.finalNodeName][0].start)
         for p in self.backs[self.finalNodeName]:
             edge = self.scModel.getGraph().get_edge(p.start, p.end)
@@ -668,8 +579,7 @@ class QAProjectDialog(Toplevel):
             c += self._add_to_listBox(self.pathList, self.getFileNameForNode(p.end))
             if self.getFileNameForNode(p.end) == self.edgeTuple[0]:
                 current = c
-            #str = ""
-        #print(str(self.edgeTuple) + ":" + str(current))
+
         self.pathList.selection_set(current)
         self.pathList.see(max(0,current-5))
         return ""
@@ -721,10 +631,9 @@ class QAProjectDialog(Toplevel):
             finalResized = imageResizeRelative(final, (500, 500), final.size)
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
                                         probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
-        #print('Beginning image things completed')
+
         edge = self.scModel.getGraph().get_edge(probe.edgeId[0],probe.edgeId[1])
-        #print('edge aquired')
-        #self.operationVar.set(self.operationVar.get() + self._compose_label(edge))
+
         if initialize is True:
             self.c = Canvas(self.cImgFrame, width=510, height=510)
             self.c.pack()
@@ -735,9 +644,9 @@ class QAProjectDialog(Toplevel):
             tex = self.c.create_text(250,250,width=400,font=("Courier", 20))
             self.c.itemconfig(tex, text="The mask of link {} did not match the size of the {}.".format(t, message))
             return
-        #print('resized image')
+
         self.photos[t] = ImageTk.PhotoImage(finalResized.toPIL())
-        #print('stored image')
+
         self.image_on_canvas = self.c.create_image(255, 255, image=self.photos[t], anchor=CENTER, tag='imgc')
 
     def nexCheck(self):
@@ -747,8 +656,7 @@ class QAProjectDialog(Toplevel):
         self.move(-1,True)
 
     def move(self, dir, checked):
-        #print(len(self.pages))
-        #print(self.cur)
+
         if self.cur in self.edges.keys():
             self.edges[self.cur][0]['semanticGroups'] = self.edges[self.cur][1].get(0, END)
         finish = True
@@ -761,20 +669,17 @@ class QAProjectDialog(Toplevel):
         step = 0
         if 0<=ind-1<len(self.crit_links):
             if finish and self.crit_links[ind-1] in self.qaData.keys():
-                #print(self.crit_links[ind-1])
                 if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'no':
                     step += 1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
                 self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END).strip())
 
             if not finish:
-                #print(self.crit_links[ind-1])
                 if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'yes':
                     step += -1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
                 self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
         for p in self.progressBars:
-            #print("stepping {}".format(step))
             p.step(step)
         i = self.pages.index(self.cur) + dir
 
@@ -794,7 +699,6 @@ class QAProjectDialog(Toplevel):
             if not finish:
                 break
             i += dir
-        #print(i)
         self.cur.grid_forget()
         self.cur = self.pages[i]
         self.cur.grid()
@@ -812,7 +716,7 @@ class QAProjectDialog(Toplevel):
         return None
 
     def check_ok(self, event=None):
-        turn_on_ok = True
+        turn_on_ok = len(self.crit_links) > 0
         for l in self.checkboxvars:
             if l is not None:
                 for b in self.checkboxvars[l]:

@@ -13,6 +13,8 @@ import time
 from datetime import datetime
 from subprocess import Popen, PIPE
 from threading import RLock
+from maskgen import exif
+
 
 import cv2
 import ffmpeg_api
@@ -1553,6 +1555,42 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         edge['videomasks'] = video_masks
 
 
+def formMaskDiffForImage(vidFile,
+                 image_wrapper,
+                 name_prefix,
+                 opName,
+                 startSegment=None,
+                 endSegment=None,
+                 analysis=None,
+                 alternateFunction=None,
+                 arguments= {}):
+    """
+    compare the image to each frame of the select region of the video or zip file.
+
+    :param vidFile: the zip or video file to compare to the image
+    :param image_wrapper:  the imae
+    :param name_prefix: the name of the mask file
+    :param opName: the operation name
+    :param startSegment:  the start of frames to compare
+    :param endSegment:  then end of frames to compare
+    :param analysis:
+    :param alternateFunction: alternate comparison
+    :param arguments:
+    :return:videomask with the GrayMask container
+    @type image_wrapper: ImageWrapper
+    """
+    time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
+    if alternateFunction is not None:
+        return alternateFunction(vidFile, image_wrapper, name_prefix, time_manager, arguments=arguments, analysis=analysis)
+    result,analysis_result,exifdiff = __runImageDiff(vidFile, image_wrapper, name_prefix,time_manager)
+    if analysis is not None:
+        analysis['startframe'] = time_manager.getStartFrame()
+        analysis['stopframe'] = time_manager.getEndFrame()
+        if exifdiff is not None:
+            analysis['exifdiff'] = exifdiff
+        analysis.update(analysis_result)
+    return result
+
 def formMaskDiff(fileOne,
                  fileTwo,
                  name_prefix,
@@ -1971,6 +2009,67 @@ def audioDelete(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
     finally:
         fone.close()
 
+
+def buildCaptureTool(vidFile):
+    if os.path.splitext(vidFile)[1].lower() == '.zip':
+        return tool_set.ZipCapture(vidFile)
+    else:
+        return cv2api_delegate.videoCapture(vidFile)
+
+def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}):
+    """
+      compare frame to frame of each video
+     :param vidFile:
+     :param img_wrapper:
+     :param name_prefix:
+     :param time_manager:
+     :return:
+     @type time_manager: VidTimeManager
+     @type img_wrapper: ImageWrapper
+     """
+    vid_cap = buildCaptureTool(vidFile)
+    fps = vid_cap.get(cv2api_delegate.prop_fps)
+    writer = tool_set.GrayBlockWriter(name_prefix, fps)
+    mask_set = {'rate': fps,'type':'video','startframe':1,'starttime':0}
+    exifdiff = None
+    try:
+        last_time = 0
+        while vid_cap.isOpened():
+            ret_one = vid_cap.grab()
+            elapsed_time = vid_cap.get(cv2api_delegate.prop_pos_msec)
+            if not ret_one:
+                break
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isBeforeTime():
+                mask_set['startframe'] = time_manager.frameSinceBeginning
+                mask_set['starttime'] = elapsed_time - fps
+                continue
+            if time_manager.isPastTime():
+                break
+            ret, frame =vid_cap.retrieve()
+            if exifdiff is None:
+                exifforvid = vid_cap.get_exif()
+                exifdiff = exif.comparexif_dict(exifforvid, img_wrapper.get_exif())
+            args = {'tolerance':0.1}
+            args.update(arguments)
+            mask,analysis,error = tool_set.createMask(ImageWrapper(frame),img_wrapper,
+                                invert=True,
+                                arguments=args,
+                                alternativeFunction=tool_set.convertCompare)
+            if 'mask' not in mask_set:
+                mask_set['mask'] = mask.to_array()
+            writer.write(mask.to_array(),last_time,time_manager.frameSinceBeginning)
+            last_time = elapsed_time
+        mask_set['endframe'] = time_manager.frameSinceBeginning
+        mask_set['frames'] = mask_set['endframe'] - mask_set['startframe'] + 1
+        mask_set['endtime'] = elapsed_time - fps
+        mask_set['videosegment'] = writer.get_file_name()
+        return [mask_set], analysis, exifdiff
+    finally:
+        vid_cap.release()
+        writer.close()
+    return [], analysis, exif.comparexif_dict(exif,img_wrapper.get_exif())
+
 def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={}):
     """
       compare frame to frame of each video
@@ -1984,8 +2083,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
      @type time_manager: VidTimeManager
      """
     analysis_components = VidAnalysisComponents()
-    analysis_components.vid_one = cv2api_delegate.videoCapture(fileOne)
-    analysis_components.vid_two = cv2api_delegate.videoCapture(fileTwo)
+    analysis_components.vid_one = buildCaptureTool(fileOne)
+    analysis_components.vid_two = buildCaptureTool(fileTwo)
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
         np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
@@ -2875,6 +2974,73 @@ def get_video_orientation_change(source, target):
 
     return int(__get_metadata_item(target_channel_data, 'rotation', 0)) - int(__get_metadata_item(source_channel_data, 'rotation', 0))
 
+def inverse_intersection_for_mask(mask, video_masks):
+    """
+    Return the altered video masks that represent the mask as it applies to the unchanged pixels
+    :param mask:
+    :param video_masks:
+    :return:
+    """
+    import copy
+    new_mask_set = []
+    for mask_set in video_masks:
+        change = copy.copy(mask_set)
+        if 'videosegment' in change:
+            mask_file_name = mask_set['videosegment']
+            new_mask_file_name = os.path.splitext(mask_file_name)[0] + str(time.clock())
+            reader = tool_set.GrayBlockReader(mask_file_name)
+            writer = tool_set.GrayBlockWriter(new_mask_file_name,reader.fps)
+            while True:
+                frame_time = reader.current_frame_time()
+                frame_count = reader.current_frame()
+                frame = reader.read()
+                if frame is not None:
+                    # ony those pixels that are unchanged from the original
+                    # TODO Handle orientation change
+                    if frame.shape != mask.shape:
+                        frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
+                    frame = mask * ((255-frame)/255)
+                    writer.write(frame, frame_time, frame_count)
+                else:
+                    break
+            change['videosegment'] = writer.get_file_name()
+        new_mask_set.append(change)
+    return new_mask_set
+
+def extractMask(video_masks, frame_time):
+    """
+    Extract one mask from a group of videomasks given the frame_time
+
+    :param video_masks:
+    :param frame_time: time or frame number
+    :return:
+    """
+    extract_time_tuple = tool_set.getMilliSecondsAndFrameCount(frame_time, defaultValue=(0, 1))
+    timeManager = tool_set.VidTimeManager(extract_time_tuple)
+    if video_masks is None:
+        return None
+    frames = 0
+    mask = None
+    for mask_set in video_masks:
+        timeManager.updateToNow(mask_set['endtime'],mask_set['endframe']-frames)
+        frames = mask_set['endframe']
+        if timeManager.isPastStartTime():
+            if 'videosegment' in mask_set:
+                timeManager = tool_set.VidTimeManager(extract_time_tuple)
+                timeManager.updateToNow(mask_set['starttime'], mask_set['startframe'])
+                reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+                while True:
+                    frame_time = reader.current_frame_time()
+                    mask = reader.read()
+                    if mask is None:
+                        break
+                    timeManager.updateToNow(frame_time,1)
+                    if timeManager.isPastStartTime():
+                        break
+                reader.close()
+                break
+    return mask
+
 def insertMask(video_masks,box, size):
     """
     Insert mask inside larger mask
@@ -2933,6 +3099,7 @@ def resizeMask(video_masks, size):
 
 def xxxreverseMasks(edge_video_masks,composite_video_masks):
     """
+    Commented out since the other implementation works.  This is an attempt to get reverseMasks to work in _maskTransform
     reverse order composite masks within a section of edge_video_masks
     :param directory
     :param video_masks
