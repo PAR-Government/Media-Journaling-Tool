@@ -588,7 +588,14 @@ def getMaskSetForEntireVideo(video_file, start_time='00:00:00.000', end_time=Non
 def meta_key(*args, **kwargs):
     import copy
     newargs  = copy.copy(kwargs)
-    newargs['media_types'] = '.'.join(sorted(kwargs['media_types']))
+    if 'media_types'  in kwargs:
+        newargs['media_types'] = '.'.join(sorted(kwargs['media_types']))
+    else:
+        newargs['media_types'] = 'video'
+    if 'start_time_tuple' not in kwargs:
+        newargs['start_time_tuple'] = (0,1)
+    if 'channel' not in kwargs:
+        newargs['channel'] = 0
     return hashkey(*args, **newargs)
 
 @cached(meta_cache,lock=meta_lock,key=meta_key)
@@ -1206,6 +1213,8 @@ class VidAnalysisComponents:
         self.grabbed_two = False
         self.frame_one = None
         self.frame_two = None
+        self.file_one = None
+        self.file_two = None
 
     def grabOne(self):
         res = self.vid_one.grab()
@@ -1242,6 +1251,10 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     :param ranges: collection of meta-data describing then range of cut frames
     :return:
     """
+    orig_vid = getMaskSetForEntireVideo(vidAnalysisComponents.file_one)
+    cut_vid = getMaskSetForEntireVideo(vidAnalysisComponents.file_two)
+    diff_in_frames = orig_vid[0]['frames'] - cut_vid[0]['frames']
+    vidAnalysisComponents.time_manager.setStopFrame (vidAnalysisComponents.time_manager.frameSinceBeginning + diff_in_frames - 1)
     if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
         cut = {}
         cut['starttime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
@@ -1262,14 +1275,11 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
                 break
             vidAnalysisComponents.time_manager.updateToNow(
                 vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec))
+            end_time = vidAnalysisComponents.time_manager.milliNow
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-            end_time = vidAnalysisComponents.time_manager.milliNow
         cut['endtime'] = end_time
-        if vidAnalysisComponents.time_manager.isPastTime():
-            cut['endframe'] = vidAnalysisComponents.time_manager.frameCountWhenStopped
-        else:
-            cut['endframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
+        cut['endframe'] = vidAnalysisComponents.time_manager.getEndFrame()
         cut['frames'] = cut['endframe'] - cut['startframe'] + 1
         ranges.append(cut)
         return False
@@ -2083,6 +2093,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
      @type time_manager: VidTimeManager
      """
     analysis_components = VidAnalysisComponents()
+    analysis_components.file_one = fileOne
+    analysis_components.file_two = fileTwo
     analysis_components.vid_one = buildCaptureTool(fileOne)
     analysis_components.vid_two = buildCaptureTool(fileTwo)
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)

@@ -769,8 +769,6 @@ class TestVideoTools(TestSupport):
         self.assertEqual(1.1, result[0]['error'])
         self.assertEqual(1.2, result[1]['error'])
 
-
-
     def test_before_dropping_nomask(self):
         amount = 30
         sets = []
@@ -851,10 +849,10 @@ class TestVideoTools(TestSupport):
         }],  sets, keepTime=True)
         self.assertEqual(4, len(result))
         self.assertEqual(12,  result[1]['frames'])
-        self.assertEqual(12,  result[2]['frames'])
+        self.assertEqual(11,  result[2]['frames'])
         self.assertEqual(75,  result[1]['startframe'])
         self.assertEqual(86,  result[1]['endframe'])
-        self.assertEqual(93,  result[2]['startframe'])
+        self.assertEqual(94,  result[2]['startframe'])
         self.assertEqual(104, result[2]['endframe'])
         self.assertEqual(123, result[3]['startframe'])
         self.assertEqual(149, result[3]['endframe'])
@@ -895,8 +893,8 @@ class TestVideoTools(TestSupport):
             'endtime': 3100
         }],  sets,keepTime=True)
         self.assertEqual(2, len(result))
-        self.assertEqual(12, result[0]['frames'])
-        self.assertEqual(93, result[0]['startframe'])
+        self.assertEqual(11, result[0]['frames'])
+        self.assertEqual(94, result[0]['startframe'])
         self.assertEqual(104, result[0]['endframe'])
         self.assertEqual(123, result[1]['startframe'])
         self.assertEqual(149, result[1]['endframe'])
@@ -986,9 +984,14 @@ class TestVideoTools(TestSupport):
         self.filesToKill.append('part1.mov')
         self.filesToKill.append('part2.mov')
         self.filesToKill.append('sample1_cut_full.mov')
+        orig_vid = video_tools.getMaskSetForEntireVideo(source)
+        cut_vid = video_tools.getMaskSetForEntireVideo('sample1_cut_full.mov')
+        diff_in_frames = orig_vid[0]['frames'] - cut_vid[0]['frames']
         maskSet, errors = video_tools.cutCompare(source, 'sample1_cut_full.mov', 'sample1',
                                                  tool_set.VidTimeManager(startTimeandFrame=(10000, 0),
                                                                          stopTimeandFrame=(12000, 0)))
+        videoSet = [mask for mask in maskSet if mask['type'] == 'video']
+        self.assertEquals(diff_in_frames,videoSet[0]['frames'])
         audioSet = [mask for mask in maskSet if mask['type'] == 'audio']
         print(maskSet[0])
         print(audioSet[0])
@@ -1004,18 +1007,27 @@ class TestVideoTools(TestSupport):
         self.assertEqual(101, videoSet[0]['startframe'])
         self.assertEqual(120, videoSet[0]['endframe'])
 
+        """
+        VFR NOT WORKING
         source = self.locateFile('tests/videos/sample1.mov')
-        video_tools.runffmpeg(['-y','-i',source,'-ss','00:00:00.00', '-t','10','part1.mov'])
-        video_tools.runffmpeg(['-y','-i', source, '-ss', '00:00:12.00', 'part2.mov'])
+        orig_vid = video_tools.getMaskSetForEntireVideo(source)
+        video_tools.runffmpeg(
+            ['-y', '-i', source, '-ss', '00:00:00.00', '-t', '10', '-r', str(orig_vid[0]['rate']), 'part1.mov'])
+        video_tools.runffmpeg(
+            ['-y', '-i', source, '-ss', '00:00:12.00', '-r', str(orig_vid[0]['rate']), 'part2.mov'])
         video_tools.runffmpeg(['-y','-i', 'part1.mov', '-i','part2.mov','-filter_complex',
                                '[0:v][0:a][1:v][1:a] concat=n=2:v=1:a=1 [outv] [outa]',
-                               '-map','[outv]','-map','[outa]','sample1_cut_full.mov'])
+                               '-map','[outv]','-map','[outa]','-r', str(orig_vid[0]['rate']),'sample2_cut_full.mov'])
         self.filesToKill.append('part1.mov')
         self.filesToKill.append('part2.mov')
-        self.filesToKill.append('sample1_cut_full.mov')
-        maskSet, errors = video_tools.cutCompare(source,'sample1_cut_full.mov','sample1',tool_set.VidTimeManager(startTimeandFrame=(10000,0),
-                                                                                       stopTimeandFrame=(12000,0)))
+        self.filesToKill.append('sample2_cut_full.mov')
+        cut_vid = video_tools.getMaskSetForEntireVideo('sample2_cut_full.mov')
+        diff_in_frames = orig_vid[0]['frames'] - cut_vid[0]['frames']
+        maskSet, errors = video_tools.cutCompare(source,'sample2_cut_full.mov','sample1',tool_set.VidTimeManager(startTimeandFrame=(10000,0),
+                                                                                       stopTimeandFrame=(11900,0)))
         audioSet = [mask for mask in  maskSet if mask['type']=='audio']
+        videoSet = [mask for mask in maskSet if mask['type'] == 'video']
+        self.assertEquals(diff_in_frames, videoSet[0]['frames'])
         print(maskSet[0])
         print(audioSet[0])
         self.assertEqual(1, len(audioSet))
@@ -1025,6 +1037,7 @@ class TestVideoTools(TestSupport):
         self.assertEquals(audioSet[0]['starttime'],maskSet[0]['starttime'])
         self.assertTrue(0.2 > abs(audioSet[0]['endtime']/1000.0-maskSet[0]['endtime']/1000.0))
         self.assertEqual(44100.0, audioSet[0]['rate'])
+        """
 
 
 

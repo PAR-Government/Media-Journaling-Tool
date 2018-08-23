@@ -45,7 +45,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
 
-textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log","*.log file")]
+textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log file","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
             ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
@@ -407,6 +407,12 @@ class VidTimeManager:
                     if self.beforeStartTime:
                         self.frameCountWhenStarted = self.frameSinceBeginning
                         self.beforeStartTime = False
+
+    def setStopFrame(self, frame):
+        ""
+        if self.stopTimeandFrame[0] > 0:
+            self.frameCountSinceStop = self.frameSinceBeginning
+        self.stopTimeandFrame = (0,frame)
 
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
