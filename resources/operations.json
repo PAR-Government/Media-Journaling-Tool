@@ -4019,6 +4019,11 @@
           "type": "yesno",
           "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
         },
+        "donor flipped": {
+          "type": "yesno",
+          "description": "Enter yes if the donor is flipped the paste operation.",
+          "defaultvalue": "no"
+        },
         "purpose": {
           "type": "list",
           "values": [

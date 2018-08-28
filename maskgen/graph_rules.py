@@ -311,8 +311,8 @@ def checkFrameRateChange(op, graph, frm, to):
     """
     frm_file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     to_file = os.path.join(graph.dir, graph.get_node(to)['file'])
-    from_rate = getFrameRate(frm_file, audio=op.category == 'Audio')
-    to_rate = getFrameRate(to_file,audio=op.category == 'Audio')
+    from_rate = getFrameRate(frm_file, audio=op.category == 'Audio',default=0)
+    to_rate = getFrameRate(to_file,audio=op.category == 'Audio',default=0)
     if abs(from_rate - to_rate) > 0.001:
         return True
     return False
