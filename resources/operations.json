@@ -3938,7 +3938,7 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSameChannels",
-        "checkOutputType"
+        "checkOutputTypeM4"
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",

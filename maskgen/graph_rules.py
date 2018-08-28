@@ -1006,6 +1006,9 @@ def checkOutputType(op, graph, frm, to):
     expected_extension = extension.lower()
     return _checkOutputType(graph,to,[expected_extension])
 
+def checkOutputTypeM4(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['m4a','m4v'])
+
 def checkJpgOutputType(op, graph, frm, to):
     return _checkOutputType(graph, to, ['jpg','jpeg'])
 

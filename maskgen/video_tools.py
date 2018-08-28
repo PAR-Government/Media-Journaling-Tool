@@ -2813,8 +2813,12 @@ def _warpMask(video_masks, edge, inputFile, outputFile, expectedType='video',inv
     """
     meta_i, frames_i = getMeta(inputFile,show_streams=True,media_types=[expectedType])
     meta_o, frames_o = getMeta(outputFile, show_streams=True, media_types=[expectedType])
-    index_i = ffmpeg_api.getStreamindexesOfType(meta_i, expectedType)[0]
-    index_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)[0]
+    indices_i = ffmpeg_api.getStreamindexesOfType(meta_i, expectedType)
+    indices_o = ffmpeg_api.getStreamindexesOfType(meta_o, expectedType)
+    if not indices_i or not indices_o:
+        return video_masks
+    index_i = indices_i[0]
+    index_o = indices_o[0]
     isVFR = ffmpeg_api.isVFRVideo(meta_i[int(index_i)]) or ffmpeg_api.isVFRVideo(meta_o[int(index_o)])
 
     result =  getChangeInFrames(edge,
