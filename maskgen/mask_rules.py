@@ -122,14 +122,14 @@ class Probe:
     #type targetChangeSizeInPixels: size
     @type targetMaskImage: ImageWrapper
     @type finalNodeId: str
-    @type composites: dict of str:{}
+    @type composites: dict[str,dict]
     @type donorBaseNodeId: str
     @type donorMaskFileName: str
     @type finalImageFileName: str
     @type donorMaskImage: ImageWrapper
-    @type donorVideoSegments: list (VideoSegment)
+    @type donorVideoSegments: list[VideoSegment]
     @type level: int
-    @type targetVideoSegments: list (VideoSegment)
+    @type targetVideoSegments: list[ VideoSegment]
 
     The target is the node edgeId's target node (edgeId[1])--the image after the manipulation.
     The targetBaseNodeId is the id of the base node that supplies the base image for the target.
@@ -2785,7 +2785,7 @@ class CompositeDelegate:
         :param media_type: audio,video,image
         :param donors:
         :return:
-        @type donors : list(DonorImage)
+        @type donors : list[DonorImage]
         """
         donormasks = [donor for donor in donors if donor[0] == edge_id[1]]
         if len(donormasks) > 0:
@@ -3082,6 +3082,6 @@ def prepareComposite(edge_id, graph, gopLoader, memory=None):
     :return: CompositeDelegate
     @type graph: ImageGraph
     @type edge_id: (str, str)
-    @type edge: dict
+    @type edge: dict[str,dict]
     """
     return CompositeDelegate(edge_id, graph, gopLoader, memory)

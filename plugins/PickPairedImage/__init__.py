@@ -18,7 +18,7 @@ def transform(img, source, target, **kwargs):
     filename = os.path.basename(source) if pairingid is None else pairingid
     with open(pair_file) as fp:
         reader = csv.reader(fp)
-        pairs = [row[1] for row in reader if row[0] == filename[:len(row[0])]]
+        pairs = [row[1] for row in reader if len(row) > 0 and row[0] == filename[:len(row[0])]]
     if len(pairs) == 0:
         raise ValueError('Pairing not found for {}'.format(filename))
     if not os.path.exists(os.path.join(dir, pairs[0])):

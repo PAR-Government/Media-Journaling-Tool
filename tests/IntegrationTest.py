@@ -7,34 +7,44 @@ import json
 import shutil
 import sys
 import copy
-from maskgen.image_wrap import openImageFile, ImageWrapper
+from maskgen.image_wrap import ImageWrapper
+from maskgen.tool_set import openImage
 from maskgen.image_graph import extract_archive
 from maskgen.batch import bulk_export
 import unittest
 import numpy as np
 import logging
 from maskgen.loghandling import set_logging
-
+from maskgen.serialization.probes import deserialize_probe,serialize_probe, match_video_segments, compare_mask_images
 
 """
-A test system that will produce expected results if missing and checking expected results if available
+A test system that will produce expected results if missing and checking expected results if available.
+
 """
 
 class TestMethod:
 
-    def __init__(self,dir):
-        self.resultsDir = dir
-        self.probesData = dict()
+    """
+    @type probes_data: dict of (str,Probe)
+    """
+    def __init__(self, results_dir='.'):
+        self.results_dir = results_dir
+        self.probes_data = dict()
 
     def loadProbesData(self):
-        logging.getLogger('maskgen').info('Loading {}'.format(self.resultsDir))
-        with open(os.path.join(self.resultsDir, 'probes.txt'), 'r') as f:
-            self.probesData = json.load(f)
+        logging.getLogger('maskgen').info('Loading {}'.format(self.results_dir))
+        with open(os.path.join(self.results_dir, 'probes.json'), 'r') as f:
+            probesDict = json.load(f)
+            for id, probe_data in probesDict.iteritems():
+                self.probes_data[id] = deserialize_probe(probe_data, fileDirectory=self.results_dir)
 
     def saveProbesData(self):
-        logging.getLogger('maskgen').info('Saving {}'.format(self.resultsDir))
-        with open(os.path.join(self.resultsDir, 'probes.txt'), 'w') as f:
-            json.dump(self.probesData, f, indent=2, encoding='utf-8')
+        logging.getLogger('maskgen').info('Saving {}'.format(self.results_dir))
+        with open(os.path.join(self.results_dir, 'probes.json'), 'w') as f:
+            probesDict = dict()
+            for id, probe in self.probes_data.iteritems():
+                probesDict[id] = serialize_probe(probe, self.results_dir)
+            json.dump(probesDict, f, indent=2, encoding='utf-8')
 
     def processProbe(self,probe):
         return []
@@ -43,6 +53,9 @@ class TestMethod:
         return []
 
 class SeedTestMethod(TestMethod):
+    """
+       Save expected results
+    """
 
     def __init__(self, dir):
         TestMethod.__init__(self,dir)
@@ -57,42 +70,14 @@ class SeedTestMethod(TestMethod):
         @type probe: Probe
         """
         itemid = probe.targetBaseNodeId + '_' +  str(probe.edgeId) + '_' + probe.finalNodeId + '_' + str(probe.donorBaseNodeId)
-        item = {}
-        item['targetBaseNodeId'] = probe.targetBaseNodeId
-        item['edgeId'] = probe.edgeId
-        item['finalNodeId'] = probe.finalNodeId
-        item['donorBaseNodeId'] = probe.donorBaseNodeId
-        if probe.targetMaskFileName is not None:
-            item['targetMaskFileName'] = os.path.split(probe.targetMaskFileName)[1]
-            shutil.copy(probe.targetMaskFileName, os.path.join(self.resultsDir, os.path.split(probe.targetMaskFileName)[1]))
-        if probe.donorMaskFileName is not None:
-            shutil.copy(probe.donorMaskFileName, os.path.join(self.resultsDir, os.path.split(probe.donorMaskFileName)[1]))
-            item['donorMaskFileName'] = os.path.split(probe.donorMaskFileName)[1]
-        self.probesData[itemid] = item
+        self.probes_data[itemid] = probe
         return []
 
 
-def loadImage(filename):
-    return openImageFile(filename)
-
-def compareMask(got, expected):
-    """
-
-    :param got:
-    :param expected:
-    :return:
-    @type got: ImageWrapper
-    @type expected: ImageWrapper
-    """
-    if got is not None and expected is not None:
-        diff = abs(got.image_array.astype('float')-expected.image_array.astype('float'))
-        diffsize = np.sum(diff>0)
-        masksize = np.sum(expected.image_array>0)
-        if diffsize/masksize <= 0.05:
-            return True
-    return False
-
 class RunTestMethod(TestMethod):
+    """
+    Run the test and compare results against expected
+    """
 
 
     def __init__(self, dir):
@@ -100,7 +85,7 @@ class RunTestMethod(TestMethod):
 
     def loadProbesData(self):
         TestMethod.loadProbesData(self)
-        self.notprocessed = copy.deepcopy(self.probesData)
+        self.notprocessed = copy.deepcopy(self.probes_data)
 
     def saveProbesData(self):
         pass
@@ -111,91 +96,114 @@ class RunTestMethod(TestMethod):
         :return:
         @type probe: Probe
         """
-        itemid = probe.targetBaseNodeId + '_' + str(probe.edgeId) + '_' + probe.finalNodeId + '_' + str(probe.donorBaseNodeId)
-        if itemid not in self.probesData:
+        expected_probe_id = probe.targetBaseNodeId + '_' + str(probe.edgeId) + '_' + probe.finalNodeId + '_' + str(probe.donorBaseNodeId)
+        if expected_probe_id not in self.probes_data:
             return ['Missing Probe']
-        item =self.probesData[itemid]
-        self.notprocessed.pop(itemid)
+        expected_probe = self.probes_data[expected_probe_id]
+        self.notprocessed.pop(expected_probe_id)
         errors = []
-        if probe.targetMaskFileName is None and 'targetMaskFileName' in item:
-            errors.append('Expected targetMaskFileName {}'.format(item['targetMaskFileName']))
-        if probe.donorMaskFileName  is None and 'donorMaskFileName' in item:
-            errors.append('Expected donorMaskFileName {}'.format(item['donorMaskFileName']))
-        if probe.targetMaskFileName is not None and 'targetMaskFileName' not in item:
-            errors.append('Got unexpected targetMaskFileName {}'.format(item['targetMaskFileName']))
-        if probe.donorMaskFileName is not None and 'donorMaskFileName' not in item:
-            errors.append('Got unexpected donorMaskFileName {}'.format(item['donorMaskFileName']))
-        if probe.targetMaskFileName is not None and 'targetMaskFileName' in item:
-            if not compareMask(probe.targetMaskImage, loadImage(os.path.join(self.resultsDir,item['targetMaskFileName']))):
-                errors.append('Mask mismatch targetMaskFileName {}'.format(item['targetMaskFileName']))
-        if probe.donorMaskFileName is not None and 'donorMaskFileName' in item:
-            if not compareMask(probe.donorMaskImage, loadImage(os.path.join(self.resultsDir, item['donorMaskFileName']))):
-                errors.append('Mask mismatch donorMaskFileName {}'.format(item['donorMaskFileName']))
+
+        if probe.targetMaskFileName is None:
+            if expected_probe.targetMaskFileName is not None:
+                errors.append('Expected targetMaskFileName {}'.format(expected_probe.targetMaskFileName))
+        elif probe.targetMaskFileName is not None and expected_probe.targetMaskFileName  is None:
+            errors.append('Got unexpected targetMaskFileName {}'.format(probe.targetMaskFileName))
+        else:
+            if not compare_mask_images(probe.targetMaskImage, openImage(os.path.join(self.results_dir, expected_probe.targetMaskFileName))):
+                errors.append('Mask mismatch targetMaskFileName {}'.format(expected_probe.targetMaskFileName))
+
+        if probe.donorMaskFileName is None:
+            if expected_probe.donorMaskFileName is not None:
+                errors.append('Expected donorMaskFileName {}'.format(expected_probe.donorMaskFileName))
+        elif probe.donorMaskFileName is not None and expected_probe.donorMaskFileName is None:
+            errors.append('Got unexpected donorMaskFileName {}'.format(probe.donorMaskFileName))
+        else:
+            if not compare_mask_images(probe.donorMaskImage, openImage(os.path.join(self.results_dir, expected_probe.donorMaskFileName))):
+                errors.append('Mask mismatch donorMaskFileName {}'.format(expected_probe.donorMaskFileName))
+
+        if not probe.targetVideoSegments and expected_probe.targetVideoSegments:
+                errors.append('Missing target segments')
+        elif expected_probe.targetVideoSegments and probe.targetVideoSegments:
+            errors.extend(match_video_segments(expected_probe.targetVideoSegments, probe.targetVideoSegments))
+
+        if not probe.donorVideoSegments and expected_probe.donorVideoSegments:
+                errors.append('Missing donor segments')
+        elif expected_probe.donorVideoSegments and probe.donorVideoSegments:
+            errors.extend(match_video_segments(expected_probe.donorVideoSegments, probe.donorVideoSegments))
+
         return errors
 
     def probesMissed(self):
-        return [Probe(self.probesData[item]['edgeId'],
-                      self.probesData[item]['finalNodeId'],
-                      self.probesData[item]['targetBaseNodeId'],'','','',
-                      self.probesData[item]['donorBaseNodeId'],None,None) for item in self.notprocessed]
+        return [Probe(self.probes_data[item].edgeId,
+                      self.probes_data[item].finalNodeId,
+                      self.probes_data[item].targetBaseNodeId, '', '', '',
+                      self.probes_data[item].donorBaseNodeId, None, None) for item in self.notprocessed]
 
-def runIT(tmpFolder=None):
-
-    if not os.path.exists('projects'):
+def run_it(temp_folder=None, expected_probes_directory='.', project_dir='projects'):
+    """
+    Store results in ErrorReport CSV file.
+    If a new project is found in project_dir that has not been processed (not in expected_probes_directory), the results are stored in expected_probes_directory.
+    If a project is found in expected_probes_directory, then the project is rerun to compoare to the expected results.
+    :param temp_folder:  place to put exploded journals.  Removed upon completion
+    :param expected_probes_directory: Expected probes store
+    :param project_dir: projects to test
+    :return:
+    """
+    from time import strftime
+    if not os.path.exists(project_dir):
         return
 
     files_to_process = []
-    for item in os.listdir('projects'):
+    for item in os.listdir(project_dir):
         if item.endswith('tgz'):
-            files_to_process.append(os.path.abspath(os.path.join('projects',item)))
+            files_to_process.append(os.path.abspath(os.path.join(project_dir,item)))
 
-    doneFile = 'testsDone'
+    done_file_name = os.path.join(expected_probes_directory, 'it_tests_done.txt')
     skips = []
-    if os.path.exists(doneFile):
-        with open(doneFile, 'r') as skip:
+    if os.path.exists(done_file_name):
+        with open(done_file_name, 'r') as skip:
             skips = skip.readlines()
         skips = [x.strip() for x in skips]
 
     count = 0
     errorCount = 0
-    with open(doneFile, 'a') as done_file:
-        with open(os.path.join('ErrorReport_' + str(os.getpid()) + '.csv'), 'w') as csvfile:
-            error_writer = csv.writer(csvfile, delimiter = ' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    with open(done_file_name, 'a') as done_file:
+        with open(os.path.join(expected_probes_directory, 'ErrorReport_' + strftime('%b_%d_%Y_%H_%M_%S') + '.csv'), 'w') as csvfile:
+            error_writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for file_to_process in files_to_process:
-                hasError = False
+                is_error_found = False
                 if file_to_process in skips:
                     count += 1
                     continue
                 logging.getLogger('maskgen').info(file_to_process)
-                dir = tempfile.mkdtemp(dir=tmpFolder) if tmpFolder else tempfile.mkdtemp()
+                process_dir = tempfile.mkdtemp(dir=temp_folder) if temp_folder else tempfile.mkdtemp()
                 try:
-                    extract_archive(file_to_process, dir)
-                    for project in bulk_export.pick_projects(dir):
+                    extract_archive(file_to_process, process_dir)
+                    for project in bulk_export.pick_projects(process_dir):
                         scModel = loadProject(project)
                         logging.getLogger('maskgen').info('Processing {} '.format(scModel.getName()))
-                        resultsDir = os.path.abspath(os.path.join('expected', scModel.getName()))
-                        method = None
-                        if not os.path.exists(resultsDir):
-                            os.mkdir(resultsDir)
-                            method = SeedTestMethod(resultsDir)
+                        expected_results_directory = os.path.abspath(os.path.join(expected_probes_directory, 'expected', scModel.getName()))
+                        if not os.path.exists(expected_results_directory):
+                            os.mkdir(expected_results_directory)
+                            method = SeedTestMethod(expected_results_directory)
                         else:
-                            method = RunTestMethod(resultsDir)
+                            method = RunTestMethod(expected_results_directory)
                         method.loadProbesData()
-                        probes = scModel.getProbeSet()
+                        probes = scModel.getProbeSetWithoutComposites()
                         logging.getLogger('maskgen').info('Processing {} probes'.format(len(probes)))
                         for probe in probes:
                             for error in method.processProbe(probe):
                                 errorCount+=1
-                                hasError=True
+                                is_error_found=True
                                 error_writer.writerow((scModel.getName(), probe.targetBaseNodeId, probe.finalNodeId,
                                                       probe.edgeId, error))
                         method.saveProbesData()
                         for probe in method.probesMissed():
                             errorCount += 1
-                            hasError=True
+                            is_error_found=True
                             error_writer.writerow((scModel.getName(), probe.targetBaseNodeId, probe.finalNodeId,
                                                   probe.edgeId, "Missing"))
-                        if not hasError:
+                        if not is_error_found:
                             done_file.write(file_to_process + '\n')
                             done_file.flush()
                         csvfile.flush()
@@ -204,23 +212,24 @@ def runIT(tmpFolder=None):
                     errorCount += 1
                 sys.stdout.flush()
                 count += 1
-                shutil.rmtree(dir)
+                shutil.rmtree(process_dir)
         if errorCount == 0:
-            if os.path.exists(doneFile):
-                os.remove(doneFile)
-        return errorCount
+            if os.path.exists(done_file_name):
 
+                os.remove(done_file_name)
+        return errorCount
 
 
 class MaskGenITTest(unittest.TestCase):
 
     def setUp(self):
-        set_logging()
-        if not os.path.exists('expected'):
-            os.mkdir('expected')
+        from time import strftime
+        set_logging(filename='maskgen_it'+ strftime('%b_%d_%Y_%H_%M_%S') + '.log')
+        if not os.path.exists('it/expected'):
+            os.makedirs('it/expected')
 
     def test_it(self):
-        self.assertTrue(runIT() == 0)
+        self.assertTrue(run_it(expected_probes_directory='it', project_dir='../projects') == 0)
 
 
 if __name__ == '__main__':
