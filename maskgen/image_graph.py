@@ -316,6 +316,9 @@ class ImageGraph:
     def get_pathname(self, name):
         return os.path.join(self.dir, self.G.node[name]['file'])
 
+    def get_filename(self, name):
+        return self.G.node[name]['file']
+
     def get_edges(self):
         return self.G.edges()
 

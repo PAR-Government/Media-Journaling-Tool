@@ -13,11 +13,6 @@ from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 
 
 class TestToolSet(TestSupport):
-    def test_aproject(self):
-        self.addFileToRemove('test_graph_output.png')
-        scModel = ImageProjectModel(self.locateFile('images/sample.json'))
-        graph_output.ImageGraphPainter(scModel.getGraph()).outputToFile('test_graph_output.png')
-        self.assertTrue(os.path.exists('test_graph_output.png'))
 
     def test_composite(self):
         scModel = ImageProjectModel(self.locateFile('images/sample.json'))
