@@ -312,13 +312,14 @@ class MakeGenUI(Frame):
             tkMessageBox.showerror('Recompute Mask Error','\n'.join(errors[(max(0,len(errors)-5)):]))
 
     def recomputedonormask(self):
-
-        d = ItemDescriptionCaptureDialog(self,
-                                         {
+        skipDonorAnalysis = False
+        params = {}
+        if self.scModel.donorRequireInterpolate():
+            values =  {
                                             'homography': self.scModel.getEdgeItem('homography',default='RANSAC-4'),
                                             'homography max matches': self.scModel.getEdgeItem('homography max matches', default=10000)
-                                         },
-                                         {
+                                         }
+            args = {
                                              "homography": {
                                                  "type": "list",
                                                  "source": "image",
@@ -337,12 +338,13 @@ class MakeGenUI(Frame):
                                                  "type": "int[20:10000]",
                                                  "description": "Maximum number of matched feature points used to compute the homography."
                                              }
-                                         },
-                                         'Mask Reconstruct')
-        if d.argvalues is None:
-            return
-        skipDonorAnalysis =  'homography' in d.argvalues and d.argvalues['homography'] == 'None'
-        errors = self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=d.argvalues)
+                                         }
+            d = ItemDescriptionCaptureDialog(self,values,args, 'Mask Reconstruct')
+            if d.argvalues is None:
+                return
+            params = d.argvalues
+            skipDonorAnalysis = 'homography' in d.argvalues and d.argvalues['homography'] == 'None'
+        errors = self.scModel.reproduceMask(skipDonorAnalysis=skipDonorAnalysis,analysis_params=params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
@@ -839,7 +841,7 @@ class MakeGenUI(Frame):
 
     def systemcheck(self):
         errors = [self.validator.test(),
-                  video_tools.ffmpegToolTest(),
+                  ffmpeg_api.ffmpeg_tool_check(),
                   exif.toolCheck(),
                   selfVideoTest(),
                   check_graph_status(),
@@ -1341,7 +1343,7 @@ def headless_systemcheck(prefLoader):
     notifiers = getNotifier(prefLoader)
     validator = ValidationAPIComposite(prefLoader,external=True)
     errors = [validator.test(),
-              video_tools.ffmpegToolTest(), exif.toolCheck(), selfVideoTest(),
+              ffmpeg_api.ffmpeg_tool_check(), exif.toolCheck(), selfVideoTest(),
               check_graph_status(),
               notifiers.check_status()]
     error_count = 0

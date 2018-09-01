@@ -32,6 +32,13 @@ class TestScenarioModel(TestSupport):
       self.assertTrue(foundPasteSplice)
 
 
+   def test_video_add_tool(self):
+      from maskgen.scenario_model import VideoAddTool
+      tool = VideoAddTool()
+      meta = tool.getAdditionalMetaData(self.locateFile('tests/videos/sample1.mov'))
+      self.assertEqual((640,480),meta['shape'])
+      self.assertEqual('yuv420p',meta['media'][0]['pix_fmt'])
+      self.assertEqual('fltp', meta['media'][1]['sample_fmt'])
 
 
 if __name__ == '__main__':

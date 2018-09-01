@@ -1,7 +1,12 @@
 import numpy as np
 from maskgen import cv2api, tool_set, image_wrap
 import cv2
-import numba
+try:
+    from numba import jit
+except:
+    def jit(original_function):
+        return original_function
+
 
 maxdisplacementvalue = np.iinfo(np.uint16).max
 
@@ -72,7 +77,7 @@ def _accumulate_energy_old(base_energy, energy_function=base_energy_function):
                     min_energy[i - 1, j + 1] + energy_function(base_energy,i,j,'R'))
     return min_energy
 
-@numba.jit()
+@jit()
 def _accumulate_energy(energy,energy_function=base_energy_function):
     """
     https://en.wikipedia.org/wiki/Seam_carving#Dynamic_programming

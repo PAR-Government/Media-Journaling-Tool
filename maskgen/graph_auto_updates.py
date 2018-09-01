@@ -8,6 +8,8 @@
 
 import logging
 from image_wrap import openImageFile,ImageWrapper
+from video_tools import get_frame_rate
+from graph_meta_tools import MetaDataExtractor
 import numpy as np
 from support import setPathValue ,getValue
 import tool_set
@@ -28,6 +30,20 @@ def updateJournal(scModel):
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
     gopLoader = scModel.gopLoader
+
+    def apply_fix(fix, scModel, gopLoader):
+        try:
+            fix(scModel, gopLoader)
+            return True
+        except Exception as ex:
+            logging.getLogger('maskgen').error('Failed to apply fix {} for version {}:{}'.format(
+                fix.__name__, id, str(ex)
+            ))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logging.getLogger('maskgen').error(
+                ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+            return False
+
     fixes = OrderedDict(
         [("0.3.1115", [_replace_oldops]),
          ("0.3.1213", [_fixQT]),
@@ -56,8 +72,9 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0619.80bff21269', [_fixTimeStrings, _fixRawFilter])
+         ('0.5.0822.b3f4049a83', [_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask])
          ])
+
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -71,20 +88,13 @@ def updateJournal(scModel):
         else:
             fixes_needed = - len(versions)
     ok = True
+
     if fixes_needed < 0:
         for id in fixes.keys()[fixes_needed:]:
             logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
             for fix in fixes[id]:
-                try:
-                    fix(scModel, gopLoader)
-                except Exception as ex:
-                    logging.getLogger('maskgen').error('Failed to apply fix {} for version {}:{}'.format(
-                        fix.__name__,id, str(ex)
-                    ))
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    logging.getLogger('maskgen').error(
-                        ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-                    ok = False
+                ok &= apply_fix(fix, scModel, gopLoader)
+    apply_fix(_fixMandatory,scModel, gopLoader)
     #update to the max
     upgrades = fixes.keys()[-1:]
     if scModel.getGraph().getVersion() not in upgrades:
@@ -94,11 +104,96 @@ def updateJournal(scModel):
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
 
+def _fixDonorVideoMask(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'Donor' and \
+            scModel.getNodeFileType(frm) == 'video' and \
+            scModel.getNodeFileType(to) == 'video':
+            scModel.select((frm,to))
+            scModel.reproduceMask()
+
+def _fixMandatory(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        frm_file = scModel.G.get_pathname(frm)
+        frm_file_type = tool_set.fileType(frm_file)
+        args = getValue(edge,'arguments',{})
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
+        missing = [param for param in op.mandatoryparameters.keys() if
+                   (param not in args or len(str(args[param])) == 0) and \
+                   ('source' not in op.mandatoryparameters[param] or op.mandatoryparameters[param][
+                       'source'] == frm_file_type)]
+        for missing_name in missing:
+            dv =  getValue(op.mandatoryparameters[missing_name],'defaultvalue',None)
+            if dv is not None:
+                args[missing_name] = dv
+        if len(args) > 0:
+            edge['arguments'] = args
+
 def _fixRawFilter(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if getValue(edge,'op','') == 'CameraRawFilter':
             edge['op'] = 'CreativeFilter'
+
+def _fixMetaStreamReferences(scModel, gopLoader):
+    from re import search
+
+    def videoStreamDoesExist(nodeMeta):
+        from ffmpeg_api import get_stream_indices_of_type, get_meta_from_video
+        filepath = os.path.abspath(os.path.join(scModel.G.dir, nodeMeta['file']))
+        if os.path.exists(filepath):
+            meta, frames = get_meta_from_video(filepath, show_streams=True, with_frames=False, media_types=['audio', 'video'])
+            videoIndexes = get_stream_indices_of_type(meta, 'video')
+            return (videoIndexes != None)
+        else:
+            if 'codec_type' in nodeMeta:
+                return nodeMeta['codec_type'] == 'video'
+            else:
+                return getValue(nodeMeta,'filetype','video') == 'video'
+
+    def remap(stream, hasvideo = True):
+        index_map = {'0':'video', '1':'mono'} if hasvideo else {'0':'mono'}
+        for meta_key in stream.keys():
+            #safety if we already did this one from before.
+            if not 'video:' in meta_key or not 'mono:' in meta_key:
+                lookup = replace = ''
+                if meta_key[0].isdigit():  # handle first character being the lookup key
+                    lookup = replace = meta_key[0]
+                else:
+                    match = search(r"(#\d:\d)", meta_key)  #handle #0:0 pattern
+                    if match != None:
+                        lookup = match.group(0)[-1]
+                        replace = match.group(0) + '.' if match.start() == 0 else meta_key #replace #0:0. or whole key
+
+                if lookup in index_map:
+                    id = index_map[lookup]
+                elif lookup != '':  #add unknown lookup keys, assume audio.
+                    id = 'mono'
+                    tally = len([mapping for mapping in index_map.values() if id in mapping])
+                    if tally > 0:
+                        id = id + str(tally)
+                    index_map[lookup] = id
+                else:
+                    id = index_map['0'] #if no lookup key present, assume 0
+
+                if replace == meta_key or '.' in replace: #add colon separator if need be
+                    id = id + ':'
+
+                new_meta_key = meta_key.replace(replace, id) if replace != '' else id + ':' + meta_key
+                stream[new_meta_key] = stream.pop(meta_key)
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        frm_node = scModel.G.get_node(frm)
+        to_node = scModel.G.get_node(to)
+        metadiff = getValue(edge,'metadatadiff')
+        if metadiff is not None:
+            hasvideo = [videoStreamDoesExist(frm_node), videoStreamDoesExist(to_node)]
+            for diff in metadiff:
+                remap(diff, hasvideo=hasvideo[1])
+        
 
 def _fixInputMasks(scModel,gopLoader):
     scModel.fixInputMasks()
@@ -117,6 +212,76 @@ def _fixPNGS(scModel,gopLoader):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
 
+def _repairNodeVideoStats(scModel,gopLoader):
+    """
+      USed to correct the use of the third ':' which indicated frames since time.
+      This caused confusion.  Users often used the the third ':' for milliseconds.
+      The journals are of course incorrect.  Cannot fix that here.
+      :param scModel:
+      :param gopLoader:
+      :return:
+      @type scModel: ImageProjectModel
+      """
+    import re
+    cross_attributes = ['codec_name','codec_tag','codec_long_name','codec_type',
+                        'codec_tag_string','profile','duration_ts','duration'
+                        'nb_frames']
+    video_attributes = ['avg_frame_rate','r_frame_rate','codec_time_base',
+                        'coded_width','coded_height','has_b_frames','sample_aspect_ratio',
+                        'display_aspect_ratio','color_space','timecode','is_avc',
+                        'start_pts','start_time','duration','duration_ts','pix_fmt',
+                        'width','height','nal_length_size','time_base','chroma_location']
+    audio_attributes = ['sample_rate','channels','channel_layout',
+                        'sample_fmt']
+    attributes_to_drop = ['index','id',
+                          'start_time',
+                          'bit_rate',
+                          'max_bit_rate',
+                          'bits_per_sample',
+                          'bits_per_raw_sample',
+                          'nb_read_frames',
+                          'nb_read_packets',
+                          re.compile('DISPOSITION:.*'),
+                          re.compile('TAG:.*'),
+                          'level',
+                          'color_range',
+                          'color_transfer',
+                          'color_primaries',
+                          'refs',
+                          'field_order',
+                          re.compile('.*SIDE_DATA.*'),
+                          re.compile('000.*:.*'),
+                          'displaymatrix']
+
+    def match_name_or_key(att_name_or_re,item_key):
+        is_not_re = type(att_name_or_re) in [str, unicode]
+        return (is_not_re and att_name_or_re == item_key) or \
+               (not is_not_re and att_name_or_re.match(item_key) is not None)
+
+    for node_id in scModel.getGraph().get_nodes():
+        node = scModel.getGraph().get_node(node_id)
+        codec_type = getValue(node, 'codec_type','video')
+        media = {}
+        for item_key in node.keys():
+            for att_name_or_re in attributes_to_drop:
+                if match_name_or_key(att_name_or_re,item_key):
+                        node.pop(item_key)
+            if 'audio' in media:
+                for att_name_or_re in audio_attributes:
+                    if match_name_or_key(att_name_or_re, item_key):
+                        media['audio'][item_key] = node.pop(item_key)
+            if 'video' in media:
+                for att_name_or_re in video_attributes:
+                    if match_name_or_key(att_name_or_re, item_key):
+                        media['video'][item_key] = node.pop(item_key)
+            for att_name_or_re in cross_attributes:
+                if match_name_or_key(att_name_or_re, item_key):
+                    if codec_type in media:
+                        media[codec_type][item_key] = node.pop(item_key)
+        if len(media) > 0:
+            node['media'] = media
+
+
 def _fixTimeStrings(scModel, gopLoader):
     """
     USed to correct the use of the third ':' which indicated frames since time.
@@ -127,7 +292,7 @@ def _fixTimeStrings(scModel, gopLoader):
     :return:
     """
     from tool_set import getMilliSecondsAndFrameCount,getDurationStringFromMilliseconds
-    from ffmpeg_api import getFrameRate
+    extractor = MetaDataExtractor(scModel.getGraph())
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         args = getValue(edge,'arguments',{})
@@ -135,9 +300,7 @@ def _fixTimeStrings(scModel, gopLoader):
             for k,v in args.iteritems():
                 if 'Time' in k and  v.count(':') == 3:
                     m,f = getMilliSecondsAndFrameCount(v)
-                    node = scModel.G.get_node(frm)
-                    input_file = os.path.join(scModel.get_dir(), node['file'])
-                    rate = getFrameRate(input_file)
+                    rate = get_frame_rate(extractor.getMetaDataLocator(frm))
                     if rate is not None:
                         m += int(f*1000.0/rate)
                     v = getDurationStringFromMilliseconds(m)
@@ -266,8 +429,8 @@ def _fixVideoMasksEndFrame(scModel, gopLoader):
         end_time = getValue(edge, 'arguments.End Time')
         for mask in masks:
             if end_time is None and mask['type'] == 'video':
-                result = video_tools.getFrameCount(scModel.G.get_pathname(frm))
-                if 'endframe' not in result:
+                result = video_tools.get_frame_count(scModel.G.get_pathname(frm))
+                if result is None or 'endframe' not in result:
                     continue
                 diff = result['endframe'] - mask['endframe']
                 if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
@@ -295,17 +458,17 @@ def _fixFrameRate(scModel,gopLoader):
                 elif mask['rate']<0:
                     mask['rate'] = float(mask['rate'])*1000.0
             else:
-                mask['rate'] = video_tools.getRateFromSegment(mask)
+                mask['rate'] = video_tools.get_rate_from_segment(mask)
             if 'startframe' not in mask:
-                mask['startframe'] = video_tools.getStartFrameFromSegment(mask)
+                mask['startframe'] = video_tools.get_start_frame_from_segment(mask)
             if 'endframe' not in mask:
-                mask['endframe'] = video_tools.getEndFrameFromSegment(mask)
+                mask['endframe'] = video_tools.get_end_frame_from_segment(mask)
             if 'starttime' not in mask:
-                mask['starttime'] = video_tools.getStartTimeFromSegment(mask)
+                mask['starttime'] = video_tools.get_start_time_from_segment(mask)
             if 'endtime' not in mask:
-                mask['endtime'] = video_tools.getEndTimeFromSegment(mask)
+                mask['endtime'] = video_tools.get_end_time_from_segment(mask)
             if 'frames' not in mask:
-                mask['frames'] = video_tools.getFramesFromSegment(mask)
+                mask['frames'] = video_tools.get_frames_from_segment(mask)
             if 'type' not in mask:
                 mask['type'] = 'audio' if 'Audio' in edge['op'] else 'video'
 

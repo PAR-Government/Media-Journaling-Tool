@@ -844,48 +844,61 @@ def check_masks(edge, op, graph, frm, to):
     @type to: str
      @rtype:  list of (Severity, str)
     """
-    if not op.generateMask and graph.getNodeFileType(frm) != 'image':
-        return []
-    if 'maskname' not in edge or edge['maskname'] is None or \
-                    len(edge['maskname']) == 0 or not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
-        return [ValidationMessage(Severity.ERROR,
-                                  frm,
-                                  to,
-                                  'Link mask is missing. Recompute the link mask.',
-                                  'Change Mask',
-                                  None)]
-    inputmaskname = edge['inputmaskname'] if 'inputmaskname' in edge  else None
-    if inputmaskname is not None and len(inputmaskname) > 0 and \
-            not os.path.exists(os.path.join(graph.dir, inputmaskname)):
-        return [ValidationMessage(Severity.ERROR,
-                                  frm,
-                                  to,
-                                  "Input mask file {} is missing".format(inputmaskname),
-                                  'Input Mask',
-                                  repairMask)]
-    if inputmaskname is not None and len(inputmaskname) > 0 and \
-            os.path.exists(os.path.join(graph.dir, inputmaskname)):
-        ft = fileType(os.path.join(graph.dir, inputmaskname))
-        if ft == 'audio':
+    def check_compare_mask(edge, op, graph, frm, to):
+        if op.generateMask in ['audio','meta','frames'] or \
+                (graph.getNodeFileType(frm) not in ['video','image'] and \
+                graph.getNodeFileType(to) not in ['video', 'image']):
             return []
-        inputmask = openImage(os.path.join(graph.dir, inputmaskname))
-        if inputmask is None:
+        if len(getValue(edge,'videomasks',[])) > 0:
+            return []
+
+        if getValue(edge,'maskname') is None or \
+           getValue(edge,'maskname','') == '' or \
+              not os.path.exists(os.path.join(graph.dir, edge['maskname'])):
+            return [ValidationMessage(Severity.ERROR,
+                                      frm,
+                                      to,
+                                      'Link mask is missing. Recompute the link mask.',
+                                      'Change Mask',
+                                      None)]
+        return []
+
+    def check_input_mask(edge, op, graph, frm, to):
+        inputmaskname = edge['inputmaskname'] if 'inputmaskname' in edge  else None
+
+        if inputmaskname is not None and len(inputmaskname) > 0 and \
+                not os.path.exists(os.path.join(graph.dir, inputmaskname)):
             return [ValidationMessage(Severity.ERROR,
                                       frm,
                                       to,
                                       "Input mask file {} is missing".format(inputmaskname),
                                       'Input Mask',
-                                      repairMask if ft == 'image' else None)]
-        inputmask = inputmask.to_mask().to_array()
-        mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
-        if inputmask.shape != mask.shape:
-            return [ValidationMessage(Severity.ERROR,
-                                      frm,
-                                      to,
-                                      'input mask name parameter has an invalid size',
-                                      'Input Mask',
-                                      repairMask if ft == 'image' else None)]
-    return []
+                                      repairMask)]
+        if inputmaskname is not None and len(inputmaskname) > 0 and \
+                os.path.exists(os.path.join(graph.dir, inputmaskname)):
+            ft = fileType(os.path.join(graph.dir, inputmaskname))
+            if ft == 'audio':
+                return []
+            inputmask = openImage(os.path.join(graph.dir, inputmaskname))
+            if inputmask is None:
+                return [ValidationMessage(Severity.ERROR,
+                                          frm,
+                                          to,
+                                          "Input mask file {} is missing".format(inputmaskname),
+                                          'Input Mask',
+                                          repairMask if ft == 'image' else None)]
+            inputmask = inputmask.to_mask().to_array()
+            mask = openImageFile(os.path.join(graph.dir, edge['maskname'])).invert().to_array()
+            if inputmask.shape != mask.shape:
+                return [ValidationMessage(Severity.ERROR,
+                                          frm,
+                                          to,
+                                          'input mask name parameter has an invalid size',
+                                          'Input Mask',
+                                          repairMask if ft == 'image' else None)]
+        return []
+
+    return check_compare_mask(edge, op, graph, frm, to) + check_input_mask(edge, op, graph, frm, to)
 
 
 def check_mandatory(edge, opInfo, graph, frm, to):

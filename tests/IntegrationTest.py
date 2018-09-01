@@ -189,7 +189,7 @@ def run_it(temp_folder=None, expected_probes_directory='.', project_dir='project
                         else:
                             method = RunTestMethod(expected_results_directory)
                         method.loadProbesData()
-                        probes = scModel.getProbeSetWithoutComposites()
+                        probes = scModel.getProbeSetWithoutComposites(keepFailures=True)
                         logging.getLogger('maskgen').info('Processing {} probes'.format(len(probes)))
                         for probe in probes:
                             for error in method.processProbe(probe):

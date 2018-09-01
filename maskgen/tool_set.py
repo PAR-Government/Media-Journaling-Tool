@@ -20,8 +20,8 @@ from subprocess import Popen, PIPE
 import threading
 import loghandling
 import cv2api
-import ffmpeg_api
-from maskgen.support import removeValue,getValue
+from ffmpeg_api import get_ffprobe_tool
+from maskgen.support import removeValue, getValue
 import os
 from maskgen.userinfo import get_username
 
@@ -189,23 +189,14 @@ def runCommand(command,outputCollector=None):
             errors.append(str(e))
     return errors
 
-def getFFmpegTool():
-    return ffmpeg_api.getFFmpegTool();
-
-
-def getFFprobeTool():
-    return ffmpeg_api.getFFprobeTool();
-
-
 def isVideo(filename):
-    ffmpegcommand = [getFFprobeTool(), filename]
+    ffmpegcommand = [get_ffprobe_tool(), filename]
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
         return stderr.find('Invalid data') < 0
     except:
         return False
-
 
 def getMimeType(filename):
     import subprocess
@@ -560,6 +551,9 @@ def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
 
 
 def validateTimeString(v):
+    if type(v) == int:
+        return True
+
     if v.count(':') > 2:
         return False
 
@@ -2703,6 +2697,8 @@ def getSingleFrameFromMask(video_masks, directory=None):
     :return: new set of video masks
     """
     mask = None
+    if video_masks is None:
+        return None
     for mask_set in video_masks:
         if 'videosegment' not in mask_set:
             continue
@@ -2739,7 +2735,8 @@ class GrayBlockReader:
 
     def create_writer(self):
         import time
-        prefix = self.h_file.attrs['prefix'] if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
+        dir = os.path.dirname(self.filename)
+        prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
         return GrayBlockWriter(prefix + str(time.clock()), self.fps)
 
     def current_frame_time(self):
@@ -2800,7 +2797,7 @@ class GrayBlockWriter:
                 os.remove(self.filename)
             self.h_file = h5py.File(self.filename, 'w')
             self.h_file.attrs['fps'] = self.fps
-            self.h_file.attrs['prefix'] = self.mask_prefix
+            self.h_file.attrs['prefix'] = os.path.basename(self.mask_prefix)
             self.h_file.attrs['start_time'] = mask_time
             self.h_file.attrs['start_frame'] = frame_number
             self.grp = self.h_file.create_group('masks')

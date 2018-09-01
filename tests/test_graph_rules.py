@@ -22,6 +22,17 @@ class TestToolSet(TestSupport):
         self.assertEqual('yes', result['imagecompression'])
 
 
+    def test_checkCropLength(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time':1,'End Time':2},
+                                            'metadatadiff':{}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value= {'file':self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkCropLength('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        self.assertTrue('803' in result[1])
+
     def test_fileTypeChanged(self):
         graph = Mock()
         values= {'a': self.locateFile('images/hat.jpg'),
@@ -38,9 +49,11 @@ class TestToolSet(TestSupport):
 
     def test_checkCutFrames(self):
         def edge(a,b):
-            pass
+            return {}
         def get_node(a):
             return {'file':a}
+        def get_image_path(a):
+            return a
         mock = Mock()
         mock.get_edge = Mock(spec=edge,return_value={
          'videomasks': [{'startframe': 20,'endframe':30,'rate':10,'type':'audio','frames':11,
@@ -50,20 +63,21 @@ class TestToolSet(TestSupport):
                         ]
         })
         mock.get_node =get_node
+        mock.get_image_path = get_image_path
         mock.dir = '.'
-        video_tools.meta_cache[video_tools.meta_key('./a', start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+        video_tools.meta_cache[video_tools.meta_key(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
                                  channel=0)] = [{'startframe': 1,'endframe':300,'rate':10,'type':'audio','frames':300,
                          'starttime':0,'endtime':29900}]
-        video_tools.meta_cache[video_tools.meta_key('./b', start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+        video_tools.meta_cache[video_tools.meta_key(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
                                  channel=0)] = [{'startframe': 1,'endframe':289,'rate':10,'type':'audio','frames':289,
                          'starttime':0,'endtime':28800}]
         video_tools.meta_cache[
-            video_tools.meta_key('./a', start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+            video_tools.meta_key(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
                                  channel=0)] = [
             {'startframe': 1, 'endframe': 300, 'rate': 10, 'type': 'video', 'frames': 300,
              'starttime': 0, 'endtime': 29900}]
         video_tools.meta_cache[
-            video_tools.meta_key('./b', start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+            video_tools.meta_key(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
                                  channel=0)] = [
             {'startframe': 1, 'endframe': 270, 'rate': 10, 'type': 'video', 'frames': 270,
              'starttime': 0, 'endtime': 26900}]

@@ -3,14 +3,12 @@ import argparse
 import os
 import maskgen.scenario_model
 from maskgen.tool_set import *
-from maskgen.userinfo import get_username, CustomPwdX, setPwdX
-from maskgen import video_tools
+from maskgen import ffmpeg_api
 import tempfile
 from maskgen.scenario_model import ImageProjectModel
 from maskgen import maskGenPreferences
 from maskgen.validation import code_name_s3_api
 from maskgen.image_graph import extract_archive
-from maskgen.graph_rules import processProjectProperties
 from maskgen.batch import BatchProcessor, pick_projects
 import hashlib
 import shutil
@@ -148,8 +146,8 @@ def missingVideo(scModel):
         if currentLink['op'] == 'AddAudioSample':
             sourceim, source = scModel.getGraph().get_image(edge[0])
             im, dest = scModel.getGraph().get_image(edge[1])
-            sourcemetadata = video_tools.getMeta(source,show_streams=True)[0]
-            destmetadata = video_tools.getMeta(dest,show_streams=True)[0]
+            sourcemetadata = ffmpeg_api.get_meta_from_video(source, show_streams=True)[0]
+            destmetadata = ffmpeg_api.get_meta_from_video(dest, show_streams=True)[0]
             if len(sourcemetadata) > 0:
                 sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
             if len(destmetadata) > 0:

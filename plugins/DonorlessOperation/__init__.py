@@ -15,7 +15,7 @@ def transform(img, source, target, **kwargs):
     for f in os.listdir(kwargs['Directory']):
         if os.path.splitext(f)[1] == '.json':
             data = json.load(open(os.path.join(kwargs['Directory'],f)))
-        elif video_tools.getShape(os.path.join(kwargs['Directory'],f)) == video_tools.getShape(source):
+        elif video_tools.get_shape_of_video(os.path.join(kwargs['Directory'], f)) == video_tools.get_shape_of_video(source):
             possible.append(os.path.join(kwargs['Directory'],f))
 
     for d in possible:

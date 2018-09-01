@@ -843,7 +843,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         },
         "Camera Effect": {
           "type": "list",
@@ -899,7 +900,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -946,7 +948,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         },
         "Vertical Block Number": {
           "type": "int[1:400000]",
@@ -1001,7 +1004,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -1106,7 +1110,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         },
         "Blur Type": {
           "type": "list",
@@ -1327,7 +1332,7 @@
         }
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [
@@ -1366,7 +1371,7 @@
       "optionalparameters": {
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [
@@ -1464,7 +1469,7 @@
       ],
       "optionalparameters": {},
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "description": "Alter Image to be compliant with another images quantization and EXIF",
@@ -2229,7 +2234,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -2484,7 +2490,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -2540,7 +2547,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -2686,7 +2694,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3034,7 +3043,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3092,7 +3102,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3137,7 +3148,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3192,7 +3204,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3235,7 +3248,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip ( frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3284,7 +3298,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -3809,10 +3824,6 @@
       "category": "Output",
       "name": "OutputXVID",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3825,8 +3836,10 @@
             "Anamorphic 2:1 (2.0)",
             "HD Anamorphic 1080 (1.333)",
             "DVCPRO HD (1.5)",
-            "Custom"
+            "Custom",
+            "Unchanged"
           ],
+          "defaultvalue": "Unchanged",
           "description": "."
         }
       },
@@ -3916,7 +3929,8 @@
       },
       "rules": [
         "checkSameChannels",
-        "checkMp4OutputType"
+        "checkMp4OutputType",
+        "checkResolution"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
@@ -4774,7 +4788,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start frame"
+          "description": "Start frame",
+          "defaultvalue":1
         },
         "End Time": {
           "type": "time",
@@ -4802,7 +4817,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -4886,7 +4902,8 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         },
         "End Time": {
           "type": "time",
@@ -4939,7 +4956,8 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         },
         "End Time": {
           "type": "time",
@@ -5242,7 +5260,8 @@
         "checkCropSize",
         "check_eight_bit",
         "checkSameChannels",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "check_dirty_mask"
       ],
       "optionalparameters": {
         "location": {
@@ -5515,7 +5534,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -5645,7 +5665,8 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue":1
         }
       },
       "rules": [
@@ -6013,7 +6034,7 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue": "00:00:00",
+          "defaultvalue": 1,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {

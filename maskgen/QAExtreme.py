@@ -28,6 +28,7 @@ from software_loader import ProjectProperty, getSemanticGroups
 import sys
 import webbrowser
 from maskgen.mask_rules import compositeMaskSetFromVideoSegment
+from maskgen.graph_meta_tools import MetaDataExtractor
 
 class QAProjectDialog(Toplevel):
 
@@ -37,6 +38,7 @@ class QAProjectDialog(Toplevel):
         self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
+        self.meta_extractor = MetaDataExtractor(parent.scModel.getGraph())
         self.probes = None
         Toplevel.__init__(self, parent)
         self.type = self.parent.scModel.getEndType()
@@ -72,7 +74,8 @@ class QAProjectDialog(Toplevel):
             fn = self.scModel.getFileName(nodeid)
             if fn not in self.lookup:
                 self.lookup[fn] = []
-            self.lookup[fn].append(nodeid)
+            if nodeid not in  self.lookup[fn]:
+                self.lookup[fn].append(nodeid)
         except TypeError:
             fn = None
             logging.getLogger('maskgen').warn("Unable to locate File for node with Id {}".format(nodeid))
@@ -123,7 +126,11 @@ class QAProjectDialog(Toplevel):
             statusLabelText.set('Probe Generation failed.  Please consult logs for more details.')
             self.parent.update()
         else:
-            statusLabelText.set('Probes Complete. Generating Preview Pages.')
+            self.errors = [p for p in self.probes if p.failure]
+            if len(self.errors) > 0:
+                statusLabelText.set('Probes Complete with errors. Generating Preview Pages.')
+            else:
+                statusLabelText.set('Probes Complete. Generating Preview Pages.')
             self.pages = []
             self.pages.append(page1)
             self.crit_links = ['->'.join([self.getFileNameForNode(p.edgeId[1]), self.getFileNameForNode(p.finalNodeId)]) for
@@ -329,9 +336,11 @@ class QAProjectDialog(Toplevel):
                 if (self.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
                     prolist.append(p)
         try:
-            tsec = video_tools.getMaskSetForEntireVideo(os.path.join(self.scModel.get_dir(), self.edgeTuple[1]))[0]['endtime'] /1000.0
-        except Exception:
-            logging.getLogger("maskgen").warn("{} Duration could not be found the length displayed in the graph is incorrect".format(self.edgeTuple[1]))
+            tsec = video_tools.getMaskSetForEntireVideo(
+                self.meta_extractor.getMetaDataLocator(self.lookup[self.edgeTuple[1]][0]))[0]['endtime'] /1000.0
+        except Exception as ex:
+            logging.getLogger("maskgen").error(ex.message)
+            logging.getLogger("maskgen").error("{} Duration could not be found the length displayed in the graph is incorrect".format(self.edgeTuple[1]))
             tsec = 120.0
         ytics = []
         ytic_lbl = []
@@ -715,13 +724,13 @@ class QAProjectDialog(Toplevel):
         return None
 
     def check_ok(self, event=None):
-        turn_on_ok = len(self.crit_links) > 0
-        for l in self.checkboxvars:
-            if l is not None:
-                for b in self.checkboxvars[l]:
-                    if b.get() is False or turn_on_ok is False:
-                        turn_on_ok = False
-
+        turn_on_ok = len(self.crit_links) > 0 and len(self.errors) == 0
+        if not turn_on_ok:
+            for l in self.checkboxvars:
+                if l is not None:
+                    for b in self.checkboxvars[l]:
+                        if b.get() is False or turn_on_ok is False:
+                            turn_on_ok = False
         if turn_on_ok is True and self.valid is True:
             self.acceptButton.config(state=NORMAL)
         else:

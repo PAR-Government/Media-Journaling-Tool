@@ -1762,7 +1762,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
     def _newComposite(self):
         from PIL import Image
         if self.prior_composite is None:
-            self.prior_probes = self.scModel.constructPathProbes(start=self.scModel.start)
+            self.prior_probes = self.scModel.constructPathProbes(start=self.scModel.start,constructDonors=False)
             self.prior_composite = composite = self.prior_probes[-1].composites['color']['image']
         override_args={
             'op' : self.op,
@@ -1775,10 +1775,12 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
                                     self.getStringConfiguration()}
         new_probes =  self.scModel.extendCompositeByOne(self.prior_probes,
                                                        override_args=override_args)
-        composite = new_probes[-1].composites['color']['image']
-        if composite.size != self.nextIM.size:
-            composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
-        return composite
+        if len(new_probes) > 0:
+            composite = new_probes[-1].composites['color']['image']
+            if composite.size != self.nextIM.size:
+                composite = composite.resize(self.nextIM.size,Image.ANTIALIAS)
+            return composite
+        return
 
     def instructionsFrame(self,master):
         f = Frame(master)

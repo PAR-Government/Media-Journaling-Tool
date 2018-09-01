@@ -8,14 +8,30 @@ import itertools
 from support import getValue
 
 
-def getFFmpegTool():
+
+def get_ffmpeg_tool():
     return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
 
-
-def getFFprobeTool():
+def get_ffprobe_tool():
     return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
 
-def runffmpeg(args, noOutput=True,tool=getFFmpegTool()):
+def ffmpeg_tool_check():
+    ffmpegcommand = [get_ffprobe_tool(), '-L']
+    try:
+        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+    except:
+        return ffmpegcommand[0]+ ' not installed properly'
+
+    ffmpegcommand = [get_ffmpeg_tool(), '-L']
+    try:
+        p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+    except:
+        return ffmpegcommand[0] + ' not installed properly'
+    return None
+
+def run_ffmpeg(args, noOutput=True, tool=get_ffmpeg_tool()):
     command = [tool] if tool is not None else []
     command.extend(args)
     try:
@@ -32,9 +48,9 @@ def runffmpeg(args, noOutput=True,tool=getFFmpegTool()):
         logging.getLogger('maskgen').error(str(e))
         raise e
 
-def _runCommand(command,outputCollector=None):
+def _run_command(command,outputCollector=None):
     try:
-        stdout = runffmpeg(command, noOutput=False, tool=None)
+        stdout = run_ffmpeg(command, noOutput=False, tool=None)
         if outputCollector is not None:
             for line in stdout.splitlines():
                 outputCollector.append(line)
@@ -42,42 +58,61 @@ def _runCommand(command,outputCollector=None):
         return [e.message]
     return []
 
+def __get_channel_data(source_data, codec_type):
+    for data in source_data:
+        if getValue(data,'codec_type','na') == codec_type:
+            return data
+
 def get_ffmpeg_version():
     try:
-        stdout = runffmpeg(['-version'],noOutput=False)
+        stdout = run_ffmpeg(['-version'], noOutput=False)
         return  stdout.split()[2][0:3]
     except:
         pass
     return "?"
 
-def __addMetaToFrames(frames, meta):
-    if len(meta) > 0 and 'stream_index' in meta:
-        index = meta['stream_index']
-        if index not in frames:
-            frames[index] = []
-        frames[index].append(meta)
-        meta.pop('stream_index')
+def __add_meta_to_frames(frames, meta, index_id='stream_index'):
+    if len(meta) > 0 and index_id in meta:
+        index = int(meta[index_id])
+        while index >= len(frames):
+            frames.append([])
+        frames[index].append( meta )
+        meta.pop(index_id)
+        return index
 
-def processFrames(stream, errorstream):
-    frames = {}
+def __add_meta_to_list(frames, meta, index_id='index'):
+    if len(meta) > 0 and index_id in meta:
+        index = int(meta[index_id])
+        while index >= len(frames):
+            frames.append({})
+        frames[index] = meta
+        meta.pop(index_id)
+        return index
+
+def sort_frames(frames):
+    for k, v in frames.iteritems():
+        frames[k] = sorted(v, key=lambda meta: meta['pkt_pts_time'])
+
+def process_frames_from_stream(stream, errorstream):
+    frames = []
     meta = {}
     while True:
         line = stream.readline()
         if line is None or len(line) == 0:
             break
         if '[/FRAME]' in line:
-            __addMetaToFrames(frames, meta)
+            __add_meta_to_frames(frames, meta)
             meta = {}
         else:
             parts = line.split('=')
             if len(parts) > 1:
                 meta[parts[0].strip()] = parts[1].strip()
-    __addMetaToFrames(frames, meta)
+    __add_meta_to_frames(frames, meta)
     return frames
 
-def processMetaStreams(stream,errorstream):
+def process_meta_from_streams(stream, errorstream):
     streams = []
-    temp = {}
+    meta = {}
     bit_rate = None
     video_stream = None
     try:
@@ -101,15 +136,23 @@ def processMetaStreams(stream,errorstream):
         if '[STREAM]' in line or '[FORMAT]' in line:
             while True:
                 line = stream.readline()
-                if '[/STREAM]' in line or '[/FORMAT]' in line:
-                    streams.append(temp)
-                    temp = {}
+                if '[/STREAM]' in line:
+                    index = __add_meta_to_list(streams, meta, index_id ='index')
+                    if getValue(meta,'codec_type','na') == 'video' and video_stream is None:
+                        video_stream = index
+                    meta = {}
                     break
+                elif '=' not in line:
+                    continue
                 else:
                     setting = line.split('=')
-                    temp[setting[0]] = '='.join(setting[1:]).strip()
-                    if setting[0] == 'codec_type' and temp[setting[0]] == 'video':
-                        video_stream = len(streams)
+                    if len(setting) < 2 or len(setting[1]) == 0:
+                        continue
+                    meta[setting[0]] = '='.join(setting[1:]).strip()
+    if len(meta) > 0:
+        index = __add_meta_to_list(streams, meta, index_id='index')
+        if getValue(meta, 'codec_type', 'na') == 'video' and video_stream is None:
+            video_stream = index
     if bit_rate is not None and video_stream is not None and \
             ('bit_rate' is not streams[video_stream]  or \
                      streams[video_stream]['bit_rate'] == 'N/A'):
@@ -117,7 +160,7 @@ def processMetaStreams(stream,errorstream):
     return streams
 
 
-def addToMeta(meta, prefix, line, split=True):
+def add_to_meta_data(meta, prefix, line, split=True):
     parts = line.split(',') if split else [line]
     for part in parts:
         pair = [x.strip().lower() for x in part.split(': ')]
@@ -128,7 +171,7 @@ def addToMeta(meta, prefix, line, split=True):
                 meta[pair[0]] = pair[1]
 
 
-def getStreamId(line):
+def get_stream_id_from_line(line):
     start = line.find('#')
     if start > 0:
         end = line.find('(', start)
@@ -136,7 +179,7 @@ def getStreamId(line):
         return line[start:end]
     return ''
 
-def getStreamindexesOfType(stream_data, stream_type):
+def get_stream_indices_of_type(stream_data, stream_type):
     """
     Get indexes of the streams that are of a given type
     :param stream_data: metadata with stream information.
@@ -145,12 +188,12 @@ def getStreamindexesOfType(stream_data, stream_type):
     @rtype: list of str
     """
     indicies = []
-    for data in stream_data:
-        if data['codec_type'] == stream_type:
-            indicies.append(data['index'])
+    for pos in range(len(stream_data)):
+        if getValue(stream_data[pos],'codec_type','na') == stream_type:
+            indicies.append(pos)
     return indicies if len(indicies) > 0 else None
 
-def processMeta(stream,errorstream):
+def process_stream_meta(stream, errorstream):
     meta = {}
     prefix = ''
     while True:
@@ -158,36 +201,28 @@ def processMeta(stream,errorstream):
         if line is None or len(line) == 0:
             break
         if 'Stream' in line:
-            prefix = getStreamId(line)
+            prefix = get_stream_id_from_line(line)
             splitPos = line.find(': ')
             meta[line[0:splitPos].strip()] = line[splitPos + 2:].strip()
             continue
         if 'Duration' in line:
-            addToMeta(meta, prefix, line)
+            add_to_meta_data(meta, prefix, line)
         else:
-            addToMeta(meta, prefix, line, split=False)
+            add_to_meta_data(meta, prefix, line, split=False)
     return meta
 
-def getMeta(file, with_frames=False, show_streams=False, media_types=['video','audio'], extras=None):
+def get_meta_from_video(file, with_frames=False, show_streams=False, media_types=['video', 'audio'], extras=None):
 
-    def realignMeta(metas):
-        result = []
-        matches = [int(getValue(meta, 'index', 0)) for meta in metas]
-        if len(matches) == 0:
-            return result
-        max_position = max(matches)
-        for i in range(max_position+1):
-            matches = [meta for meta in metas if int(getValue(meta, 'index', 0)) == i]
-            if len(matches) == 0:
-                result.append({'codec_type':'na','index':str(i)})
-            else:
-                result.append(matches[0])
-        return result
+    def strip(meta,frames,media_types):
+        return [item for item in meta if getValue(item,'codec_type','na') in media_types],\
+               [frames[pos] for pos in range(len(frames)) if getValue(meta[pos],'codec_type','na') in media_types] \
+                   if len(frames) > 0 else frames
+
     def runProbeWithFrames(func, args=None):
         if len(media_types) == 1:
-            ffmpegcommand = [getFFprobeTool(),'-select_streams',media_types[0][0]]
+            ffmpegcommand = [get_ffprobe_tool(), '-select_streams', media_types[0][0]]
         else:
-            ffmpegcommand = [getFFprobeTool()]
+            ffmpegcommand = [get_ffprobe_tool()]
        # if extras is not None:
        #     ffmpegcommand.append('-show_entries')
        #     ffmpegcommand.append('-packet:' + ','.join(extras))
@@ -229,29 +264,30 @@ def getMeta(file, with_frames=False, show_streams=False, media_types=['video','a
             logging.getLogger('maskgen').warn("Failed to remove file {}".format(path))
 
     def runProbe(func, args=None):
-        ffmpegcommand = [getFFprobeTool(), file]
+        ffmpegcommand = [get_ffprobe_tool(), file]
         if args != None:
             ffmpegcommand.extend(args.split())
         stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
         return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
-    if with_frames:
-        frames = runProbeWithFrames(processFrames,args='-show_frames')
-    else:
-        frames = {}
-    if show_streams:
+    if show_streams or with_frames:
         args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
-        meta = realignMeta(runProbe(processMetaStreams, args=args))
+        meta = runProbe(process_meta_from_streams, args=args)
     else:
-        meta = runProbe(processMeta, args='')
+        meta = runProbe(process_stream_meta, args='')
 
-    return meta, frames
+    if with_frames:
+        frames = runProbeWithFrames(process_frames_from_stream, args='-show_frames')
+    else:
+        # insure match of frames to meta
+        frames = []
 
+    return strip(meta, frames, media_types)
 
-def getFrameAttribute(fileOne, attribute, default=None, audio=False):
-    ffmpegcommand = getFFprobeTool()
+def get_frame_attribute(fileOne, attribute, default=None, audio=False):
+    ffmpegcommand = get_ffprobe_tool()
     results = []
-    errors = _runCommand([ffmpegcommand,
+    errors = _run_command([ffmpegcommand,
                           '-show_entries', 'stream={},codec_type'.format(attribute),
                           fileOne],
                          outputCollector=results)
@@ -266,52 +302,25 @@ def getFrameAttribute(fileOne, attribute, default=None, audio=False):
                 continue
             streams[-1][parts[0]] = parts[1]
         for stream in streams:
-            if (audio and stream['codec_type'] == 'audio') or \
-                    (not audio and stream['codec_type'] != 'audio'):
+            if (audio and getValue(stream,'codec_type','na') == 'audio') or \
+                    (not audio and getValue(stream,'codec_type','na') != 'audio'):
                 return stream[attribute]
 
     return default
 
-def getFrameRate(fileOne, default=None, audio=False):
-    rate = getFrameAttribute(fileOne, 'sample_rate' if audio else 'r_frame_rate', default=None, audio=audio)
-    if not audio and rate is None:
-        rate = getFrameAttribute(fileOne, 'avg_frame_rate', default=rate, audio=audio)
-    if rate is None:
-        duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
-        frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
-        if frames is not None and duration is not None:
-            rate = frames + '/' + duration
-    if rate is None:
-        return default
-    parts = rate.split('/')
-    if len(parts) == 1 and float(rate) > 0:
-        return float(rate)
-    if len(parts) == 2 and float(parts[1]) > 0:
-        return float(parts[0]) / float(parts[1])
-    return default
-
-def getDuration(fileOne, default=None, audio=False):
-    duration = getFrameAttribute(fileOne, 'duration', default=None, audio=audio)
-    if duration is None or duration[0]== 'N':
-        frames = getFrameAttribute(fileOne, 'nb_frames', default=None, audio=audio)
-        rate = getFrameAttribute(fileOne, 'sample_rate', default=None, audio=audio)
-        if rate is not None and frames is not None and frames[0] != 'N' and rate[0] != 'N':
-            return 1000.0 * int(frames) / float(rate)
-        return default
-    return float(duration) *1000.0
-
-def getVideoFrameRate(meta, frames):
-    index = getStreamindexesOfType(meta, 'video')[0]
-    r = getValue(meta[int(index)],'r_frame_rate','30/1')
-    avg = getValue(meta[int(index)],'avg_frame_rate',r)
+def get_video_frame_rate_from_meta(meta, frames):
+    index = get_stream_indices_of_type(meta, 'video')[0]
+    r = getValue(meta[index],'r_frame_rate','30/1')
+    avg = getValue(meta[index],'avg_frame_rate',r)
     parts = avg.split('/')
     if parts[0] == 'N':
         parts = r.split('/')
     if parts[0] != 'N':
         return float(parts[0]) / int(parts[1]) if len(parts) > 0 and int(parts[1]) != 0 else float(parts[0])
-    return len(frames[index])/float(getValue(meta[int(index)],'duration',1)) if index in frames else 30
+    return len(frames[index])/float(getValue(meta[index],'duration',1)) if len(index) < len(frames) else \
+        float(getValue(meta[index], 'nb_frames', 30))/float(getValue(meta[index],'duration',1))
 
-def isVFRVideo(meta):
+def is_vfr(meta):
     """
 
     :param meta:

@@ -112,13 +112,13 @@ class CV2Api:
         pass
 
     def videoCapture(self, filename, preference=None, useFFMPEGForTime=True):
-        meta, frames = ffmpeg_api.getMeta(filename,show_streams=True,media_types=['video'])
-        index = ffmpeg_api.getStreamindexesOfType(meta,'video')[0]
+        meta, frames = ffmpeg_api.get_meta_from_video(filename, show_streams=True, media_types=['video'])
+        index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
         cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
         # is FIXED RATE (with some confidence)
-        if not ffmpeg_api.isVFRVideo(meta[int(index)]):
+        if not ffmpeg_api.is_vfr(meta[index]):
             return CAPReader(cap)
-        meta, frames = ffmpeg_api.getMeta(filename, show_streams=True, with_frames=True, media_types=['video'])
+        meta, frames = ffmpeg_api.get_meta_from_video(filename, show_streams=True, with_frames=True, media_types=['video'])
         return CAPReaderWithFFMPEG(frames[index], cap)
 
     def computeSIFT(self, img):
