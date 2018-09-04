@@ -748,7 +748,7 @@ class MakeGenUI(Frame):
         ValidationListDialog(self, errorList, "Validation Errors")
 
     def getsystemproperties(self):
-        d = SystemPropertyDialog(self,self.getSystemPreferences(),self.prefLoader,
+        d = SystemPropertyDialog(self,self.getSystemPreferences(), self.prefLoader,
                                  property_change_actions={'username': UserPropertyChange(self.scModel)})
 
     def getproperties(self):
