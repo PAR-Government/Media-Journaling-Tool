@@ -278,7 +278,7 @@
         "default": true
       },
       "generateMask": "audio",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.add_audio",
         "audio": "maskgen.mask_rules.add_audio"
       },
@@ -503,7 +503,7 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.echo",
         "audio": "maskgen.mask_rules.echo"
       },
@@ -588,7 +588,7 @@
         "audio.audio",
         "video.video"
       ],
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.echo",
         "audio": "maskgen.mask_rules.echo"
       },
@@ -678,7 +678,7 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.echo",
         "audio": "maskgen.mask_rules.echo"
       },
@@ -747,7 +747,7 @@
         "default": true
       },
       "generateMask": "audio",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.echo",
         "audio": "maskgen.mask_rules.echo"
       },
@@ -820,7 +820,7 @@
       "includeInMask": {
         "default": true
       },
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.echo",
         "audio": "maskgen.mask_rules.echo"
       },
@@ -844,7 +844,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "Camera Effect": {
           "type": "list",
@@ -860,7 +860,7 @@
             "Crop",
             "Other"
           ],
-          "description":"Cropping for Drone Shake or Other"
+          "description": "Cropping for Drone Shake or Other"
         }
       },
       "rules": [
@@ -901,7 +901,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -914,7 +914,6 @@
         "checkUncompressed",
         "checkEmpty",
         "checkFrameRateChange_Strict"
-
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -949,7 +948,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "Vertical Block Number": {
           "type": "int[1:400000]",
@@ -1005,7 +1004,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -1111,7 +1110,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "Blur Type": {
           "type": "list",
@@ -1910,66 +1909,78 @@
       "optionalparameters": {
         "Trainer": {
           "type": "list",
-          "values":["GAN","GAN128","Original","IAE"],
+          "values": [
+            "GAN",
+            "GAN128",
+            "Original",
+            "IAE"
+          ],
           "description": "Trainer used.",
-          "defaultvalue":"Original"
+          "defaultvalue": "Original"
         },
-         "Detector": {
+        "Detector": {
           "type": "list",
-          "values":["all","hog","cnn"],
+          "values": [
+            "all",
+            "hog",
+            "cnn"
+          ],
           "description": "Face Detector used.",
-           "defaultvalue":"all"
+          "defaultvalue": "all"
         },
         "Batch Size": {
           "type": "int[1:100000000]",
           "description": "micro batches.",
-          "defaultvalue":32
+          "defaultvalue": 32
         },
         "Epochs": {
           "type": "int[1:100000000]",
           "description": "Training epochs.",
-          "defaultvalue":10000
+          "defaultvalue": 10000
         },
-         "Converter": {
+        "Converter": {
           "type": "list",
-          "values":["Masked","Adjust"],
+          "values": [
+            "Masked",
+            "Adjust"
+          ],
           "description": "Trainer used.",
-           "defaultvalue":"Masked"
+          "defaultvalue": "Masked"
         },
         "Mask Blur": {
-           "type": "yesno",
-           "description": "Trainer used.",
-           "defaultvalue" : "no"
+          "type": "yesno",
+          "description": "Trainer used.",
+          "defaultvalue": "no"
         },
         "Mask Seamless": {
-           "type": "yesno",
-           "description": "Algorithm to erase seams.",
-           "defaultvalue" : "no"
+          "type": "yesno",
+          "description": "Algorithm to erase seams.",
+          "defaultvalue": "no"
         },
         "Mask Erode": {
-           "type": "yesno",
-           "description": "Erode edges (may reduce the fit).",
-           "defaultvalue" : "no"
+          "type": "yesno",
+          "description": "Erode edges (may reduce the fit).",
+          "defaultvalue": "no"
         },
         "Adjust Smooth": {
-           "type": "yesno",
-           "description": "Smooth edges.",
-           "defaultvalue" : "no"
+          "type": "yesno",
+          "description": "Smooth edges.",
+          "defaultvalue": "no"
         },
         "Adjust Color": {
-           "type": "yesno",
-           "description": "Match color intensity.",
-           "defaultvalue" : "no"
+          "type": "yesno",
+          "description": "Match color intensity.",
+          "defaultvalue": "no"
         },
         "Histogram Color Match": {
-           "type": "yesno",
-           "description": "Match color with histogram (may be the same as adjust color).",
-           "defaultvalue" : "yes"
+          "type": "yesno",
+          "description": "Match color with histogram (may be the same as adjust color).",
+          "defaultvalue": "yes"
         },
         "Blur Size": {
-           "type": "int[1:1000]",
-           "description": "Blur Kernel Size.",
-           "defaultvalue" : "40"
+          "type": "int[1:1000]",
+          "description": "Blur Kernel Size.",
+          "defaultvalue": "40"
         },
         "End Time": {
           "type": "time",
@@ -2235,7 +2246,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2387,47 +2398,49 @@
       ]
     },
     {
-      "category":"CGI",
-      "name":"SynthesizeGAN",
-      "description" : "Synthesize an image using a trained GAN model and provided input",
-      "mandatoryparameters":{
+      "category": "CGI",
+      "name": "SynthesizeGAN",
+      "description": "Synthesize an image using a trained GAN model and provided input",
+      "mandatoryparameters": {
         "urls": {
           "type": "urls",
-          "description" : "URL of GAN"
+          "description": "URL of GAN"
         },
-        "Name" : {
-          "type" : "text",
-          "description" : "Name of GAN"
+        "Name": {
+          "type": "text",
+          "description": "Name of GAN"
         }
       },
-      "optionalparameters":{
+      "optionalparameters": {
         "Random seed value": {
-          "type" : "float",
-          "description" : "The random fed to the GAN to produce the output"
+          "type": "float",
+          "description": "The random fed to the GAN to produce the output"
         }
       },
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
       ],
-      "rules" : [
+      "rules": [
         "checkSize",
         "checkFileTypeChange"
       ],
-       "qaList": [
+      "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
-      "category":"CGI",
-      "name":"SynthesizeVideo",
-      "description" : "Synthesize an video scene using a trained GAN model and provided input",
-      "mandatoryparameters":{
+      "category": "CGI",
+      "name": "SynthesizeVideo",
+      "description": "Synthesize an video scene using a trained GAN model and provided input",
+      "mandatoryparameters": {
         "urls": {
           "type": "urls",
-          "description" : "URL used to create the flight path simulate"
+          "description": "URL used to create the flight path simulate"
         },
         "Recording Software": {
           "type": "text",
@@ -2438,24 +2451,33 @@
           "description": "Name of KML File"
         },
         "Rendering Software": {
-          "type" : "text",
-          "description" : "Name of software used to render the video"
+          "type": "text",
+          "description": "Name of software used to render the video"
         }
       },
-      "optionalparameters":{
+      "optionalparameters": {
         "Time Settings": {
-          "type" : "list",
-          "values" : ["Default time", "Morning","Evening","Night","Early Morning","Late Morning", "Late Evening", "Early Evening"],
-          "description" : "The time setting used if changed",
-          "defaultvalue" : "Default time"
+          "type": "list",
+          "values": [
+            "Default time",
+            "Morning",
+            "Evening",
+            "Night",
+            "Early Morning",
+            "Late Morning",
+            "Late Evening",
+            "Early Evening"
+          ],
+          "description": "The time setting used if changed",
+          "defaultvalue": "Default time"
         },
         "Video Location": {
-          "type" : "text",
+          "type": "text",
           "description": "Where the video is supposed to take place"
         },
         "Time of Sun": {
-          "type" : "text",
-          "description" : "Time of day video was taken if unknown leave blank"
+          "type": "text",
+          "description": "Time of day video was taken if unknown leave blank"
         }
       },
       "includeInMask": {
@@ -2465,7 +2487,7 @@
         "image.image",
         "video.video"
       ],
-      "rules" : [
+      "rules": [
         "checkSize",
         "checkFileTypeChange"
       ],
@@ -2491,7 +2513,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2548,7 +2570,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2695,7 +2717,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2747,7 +2769,6 @@
       "category": "Paste",
       "name": "GANFill",
       "mandatoryparameters": {
-
       },
       "rules": [
         "checkLengthSame",
@@ -2861,9 +2882,10 @@
           "values": [
             "remove",
             "clone",
-            "heal"
+            "heal",
+            "stacking"
           ],
-          "description": "Purpose: remove an object, clone (combination of add and remove), or healing using sampled pixels."
+          "description": "Purpose: remove an object, clone (combination of add and remove), healing using sampled pixels, layer stacking to create new paste"
         },
         "Start Time": {
           "type": "time",
@@ -2890,7 +2912,25 @@
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule": {
-            "purpose": "clone"
+            "purpose": [
+              "clone",
+              "stacking"
+            ]
+          }
+        },
+        "Blend Mode": {
+          "type": "list",
+          "values": [
+            "Minimum",
+            "Maximum",
+            "Mean",
+            "Maximum",
+            "Other"
+          ],
+          "rule": {
+            "purpose": [
+              "stacking"
+            ]
           }
         },
         "End Time": {
@@ -3044,7 +3084,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3103,7 +3143,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3149,7 +3189,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3205,7 +3245,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3249,7 +3289,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip ( frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3299,7 +3339,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3592,7 +3632,6 @@
         "Confirm that no other manipulation was done other than creating a duplicate of the previous file"
       ]
     },
-
     {
       "category": "Output",
       "name": "OutputBmp",
@@ -3727,7 +3766,7 @@
       "category": "Output",
       "name": "OutputJp2",
       "mandatoryparameters": {},
-      "optionalparameters":{},
+      "optionalparameters": {},
       "rules": [
         "checkSize",
         "checkOutputType"
@@ -3747,7 +3786,7 @@
       "category": "Output",
       "name": "OutputNITF",
       "mandatoryparameters": {},
-      "optionalparameters":{},
+      "optionalparameters": {},
       "rules": [
         "checkSize",
         "checkOutputType"
@@ -3763,7 +3802,6 @@
         "image.image"
       ]
     },
-
     {
       "category": "Output",
       "name": "OutputPDF",
@@ -3853,7 +3891,7 @@
         "default": false
       },
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -3895,7 +3933,7 @@
         "default": false
       },
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -3958,7 +3996,7 @@
       "description": "Export the image to lossless format.",
       "includeInMask": false,
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -4109,7 +4147,9 @@
           ],
           "description": "Blend Mode",
           "rule": {
-            "purpose": "blend"
+            "purpose": [
+              "blend"
+            ]
           }
         }
       },
@@ -4487,7 +4527,7 @@
         "subject": {
           "type": "list",
           "values": [
-          "people",
+            "people",
             "face",
             "gan-face",
             "natural object",
@@ -4789,7 +4829,7 @@
           "type": "time",
           "source": "video",
           "description": "Start frame",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
@@ -4818,7 +4858,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -4903,7 +4943,7 @@
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
@@ -4957,7 +4997,7 @@
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
@@ -5290,7 +5330,6 @@
         "video.video"
       ]
     },
-
     {
       "category": "Steganography",
       "name": "EncodeMessage",
@@ -5322,8 +5361,6 @@
         "image.image"
       ]
     },
-
-
     {
       "category": "Transform",
       "name": "TransformDistort",
@@ -5535,7 +5572,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -5666,7 +5703,7 @@
           "type": "time",
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
-          "defaultvalue":1
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -6104,7 +6141,6 @@
         "audio.audio"
       ]
     }
-
   ],
   "filtergroups": {
     "PasteSpliceBlend": [
@@ -6175,19 +6211,19 @@
       }
     },
     "image": {
-       "subject": {
-          "type": "list",
-          "values": [
-            "people",
-            "face",
-            "natural object",
-            "man-made object",
-            "large man-made object",
-            "landscape",
-            "other"
-          ],
-          "description": "Primary subject of image"
-       },
+      "subject": {
+        "type": "list",
+        "values": [
+          "people",
+          "face",
+          "natural object",
+          "man-made object",
+          "large man-made object",
+          "landscape",
+          "other"
+        ],
+        "description": "Primary subject of image"
+      },
       "cgi": {
         "type": "yesno",
         "description": "Is CGI?"

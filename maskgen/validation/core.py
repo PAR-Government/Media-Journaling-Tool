@@ -938,8 +938,9 @@ def check_mandatory(edge, opInfo, graph, frm, to):
     for param_name, param_definition in opInfo.optionalparameters.iteritems():
         if 'rule' in param_definition:
             if param_name not in args:
-                for dep_param_name, dep_param_value in param_definition['rule'].iteritems():
-                    if getValue(args, dep_param_name, defaultValue=dep_param_value) == dep_param_value:
+                for dep_param_name, dep_param_values in param_definition['rule'].iteritems():
+                    if len(dep_param_values) > 0 and \
+                         getValue(args, dep_param_name, defaultValue=dep_param_values[0]) in dep_param_values:
                         missing.append(param_name)
     missing = set(missing)
     inputmaskrequired = 'inputmaskname' in missing
