@@ -1397,9 +1397,8 @@ class ImageProjectModel:
                 edge = self.G.get_edge(probe.edgeId[0], probe.edgeId[1])
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
-        if replacement_probes is None:
-            for compositeBuilder in localCompositeBuilders:
-                compositeBuilder.finalize(probes)
+        for compositeBuilder in localCompositeBuilders:
+            compositeBuilder.finalize(probes, save=replacement_probes is None)
 
         return probes
 

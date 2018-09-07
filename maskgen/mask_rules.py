@@ -11,6 +11,7 @@ import os
 import sys
 import traceback
 from collections import namedtuple
+import time
 
 import cv2
 import exif
@@ -174,6 +175,20 @@ class Probe:
         self.finalImageFileName = finalImageFileName
         self.composites = dict()
 
+    def max_time(self):
+        mt = 0
+        if self.targetVideoSegments is not None:
+            mt = max(max([segment.endtime for segment in self.targetVideoSegments]), mt)
+        if self.donorVideoSegments is not None:
+            mt = max(max([segment.endtime for segment in self.donorVideoSegments]), mt)
+        return mt
+
+    def media_types(self):
+        if self.targetVideoSegments  is not None:
+            return list(set([segment.media_type for segment in self.targetVideoSegments]))
+        elif self.donorVideoSegments  is not None:
+            return list(set([segment.media_type for segment in self.donorVideoSegments]))
+
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'])
 
 class CompositeImage:
@@ -182,7 +197,7 @@ class CompositeImage:
         self.source = source
         self.target = target
         self.media_type = media_type
-        self.videomasks = mask if media_type != 'video' else None
+        self.videomasks = mask if media_type != 'image' else None
         self.mask = mask if media_type == 'image' else None
 
     def __getitem__(self, item):
@@ -2142,7 +2157,6 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
     @type op: Operation
     """
 
-
     edgeMask = graph.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)
 
     edgeMask = edgeMask.to_array() if edgeMask is not None else None
@@ -2156,7 +2170,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
                             source_shape,
                             target_shape,
                             directory=directory,
-                            donorMask=donorMask if donorMask is not None else None,
+                            donorMask=donorMask if donorMask is not None and not donorMask.isEmpty() else None,
                             pred_edges=pred_edges,
                             graph=graph,
                             check_empties=check_empty_mask)
@@ -2296,6 +2310,7 @@ def mAlterComposite(graph,
     if remember is not None:
         # print("memoize")
         return remember
+    t = time.clock()
     result = alterComposite(graph,
                             edge,
                             op,
@@ -2305,6 +2320,9 @@ def mAlterComposite(graph,
                             directory,
                             replacementEdgeMask,
                             check_empty_mask=check_empty_mask)
+    logger = logging.getLogger('maskgen')
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("{} edge {} to {}: {}".format(base_id, source, target, time.clock() - t))
     if maskMemory is not None:
         maskMemory[('composite', base_id, (source, target))] = result
     return result
@@ -2464,7 +2482,7 @@ class CompositeBuilder:
     def initialize(self, graph, probes):
         pass
 
-    def finalize(self, probes):
+    def finalize(self, probes, save=True):
         pass
 
     def build(self, passcount, probe, edge):
@@ -2547,7 +2565,7 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
                 print ex
 
 
-    def finalize(self, probes):
+    def finalize(self, probes, save=True):
         results = {}
         if len(probes) == 0:
             return
@@ -2570,7 +2588,8 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
                                                                      globalAnalysis=True)
             img = ImageWrapper(result, mode='JP2')
             results[groupid] = (img, globalchange, changeCategory, ratio)
-            img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
+            if save:
+                img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
 
         for probe in probes:
             groupid = probe.composites[self.composite_type]['groupid']
@@ -2634,7 +2653,7 @@ class ColorCompositeBuilder(CompositeBuilder):
         #  only contains visible color in the composite
         result[matches] = color
 
-    def finalize(self, probes):
+    def finalize(self, probes, save=True):
         results = {}
         for finalNodeId, compositeMask in self.composites.iteritems():
             result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
@@ -2654,8 +2673,9 @@ class ColorCompositeBuilder(CompositeBuilder):
                     'image': finalResult[0],
                     'color': self.colors[probe.edgeId]
                 }
-                finalResult[0].save(targetColorMaskImageName)
-                assert os.path.exists(targetColorMaskImageName)
+                if save:
+                    finalResult[0].save(targetColorMaskImageName)
+                    assert os.path.exists(targetColorMaskImageName)
             else:
                 probe.composites[self.composite_type] = {
                     'image': finalResult[0],
@@ -2846,14 +2866,19 @@ class CompositeDelegate:
         result_probes = []
         for probe in probes:
             new_probe = copy.deepcopy(probe)
-            compositeMask = probe.targetMaskImage.invert().image_array
+            if probe.targetVideoSegments is not None:
+                media_type = 'video'
+                compositeMask = compositeMaskSetFromVideoSegment(probe.targetVideoSegments)
+            else:
+                media_type = 'image'
+                compositeMask = probe.targetMaskImage.invert().image_array
             edge = self.graph.get_edge(source, target)
             if len(override_args) > 0 and edge is not None:
                 edge = copy.deepcopy(edge)
                 edge.update(override_args)
             elif len(override_args) > 0:
                 edge = override_args
-            altered_composite = compositeMask
+            altered_composite = CompositeImage(source, target, media_type, compositeMask)
             for innerop in self.gopLoader.getOperationsWithinGroup(edge['op'], fake=True):
                 altered_composite = mAlterComposite(self.graph,
                                                    edge,

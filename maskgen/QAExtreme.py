@@ -328,7 +328,9 @@ class QAProjectDialog(Toplevel):
         subplot = f.add_subplot(111)
         subplot.legend(handles=ps,loc=8)
         prolist = []
+        maxtsec =0
         for p in self.probes:
+            maxtsec = max(maxtsec, p.max_time())
             if (self.finalNodeName == None):
                 if p.donorBaseNodeId is not None and self.getFileNameForNode(p.donorBaseNodeId) == self.edgeTuple[1]:
                     prolist.append(p)
@@ -337,11 +339,12 @@ class QAProjectDialog(Toplevel):
                     prolist.append(p)
         try:
             tsec = video_tools.getMaskSetForEntireVideo(
-                self.meta_extractor.getMetaDataLocator(self.lookup[self.edgeTuple[1]][0]))[0]['endtime'] /1000.0
+                self.meta_extractor.getMetaDataLocator(self.lookup[self.edgeTuple[1]][0]),
+                 media_types=p.media_types())[0]['endtime'] /1000.0
         except Exception as ex:
             logging.getLogger("maskgen").error(ex.message)
             logging.getLogger("maskgen").error("{} Duration could not be found the length displayed in the graph is incorrect".format(self.edgeTuple[1]))
-            tsec = 120.0
+            tsec = maxtsec
         ytics = []
         ytic_lbl = []
         count = 0
