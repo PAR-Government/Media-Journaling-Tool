@@ -175,7 +175,35 @@ class Probe:
         self.composites = dict()
 
 DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_file_name', 'media_type'])
-CompositeImage = namedtuple('CompositeImage', ['source', 'target', 'media_type', 'videomasks'])
+
+class CompositeImage:
+
+    def __init__(self,source, target, media_type, mask):
+        self.source = source
+        self.target = target
+        self.media_type = media_type
+        self.videomasks = mask if media_type != 'video' else None
+        self.mask = mask if media_type == 'image' else None
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.source
+        elif item == 1:
+            return self.target
+        elif item == 2:
+            return self.media_type
+        elif item == 3:
+            return self.videomasks
+        else:
+            return self.mask
+
+    def isEmpty(self):
+        if self.mask is not None:
+            return np.sum(self.mask) == 0
+        return self.videomasks is None or len(self.videomasks) == 0
+
+    def isImage(self):
+        return self.media_type == 'image'
 
 def getOrientationForEdge(edge):
     if ('arguments' in edge and \
@@ -221,8 +249,8 @@ class BuildState:
         @type edge: dict
         @type source: str
         @type target: str
-        @type compositeMask: np.ndarray or OverlayObject
-        @type donorMask:np.ndarray or DonorImage
+        @type compositeMask: CompositeImage
+        @type donorMask: CompositeImage
         @type pred_edges: list
         @type graph: ImageGraph
         @targetShape: (int,int)
@@ -243,8 +271,8 @@ class BuildState:
         self.check_empties = check_empties
 
     def isImage(self):
-        return self.compositeMask is not None and type(self.compositeMask)  == np.ndarray or \
-               self.donorMask is not None and type(self.donorMask) == np.ndarray
+        return self.compositeMask is not None and self.compsiteMask.isImage() or \
+               self.donorMask is not None and self.donorMask.isImage()
 
     def getName(self):
         return '{} to {}'.format(self.source,self.target)
@@ -259,10 +287,10 @@ class BuildState:
         return (self.targetShape[0]-self.sourceShape[0], self.targetShape[1]-self.sourceShape[1])
 
     def compositeChange(self):
-        return (self.targetShape[0]-self.compositeMask.shape[0], self.targetShape[1]-self.compositeMask.shape[1])
+        return (self.targetShape[0]-self.compositeMask.mask.shape[0], self.targetShape[1]-self.compositeMask.mask.shape[1])
 
     def donorChange(self):
-        return (self.sourceShape[0]-self.donorMask.shape[0], self.sourceShape[1]-self.donorMask.shape[1])
+        return (self.sourceShape[0]-self.donorMask.mask.shape[0], self.sourceShape[1]-self.donorMask.mask.shape[1])
 
     def location(self):
         location = getValue(self.edge,'location',getValue(self.edge,'arguments.location',None))
@@ -286,10 +314,14 @@ class BuildState:
     def getVideoMetaExtractor(self):
         return self.meta_extractor
 
-    def check_empty_mask(self, mask):
-        if np.sum(mask) == 0 and self.check_empties:
-            return None
-        return mask
+    def check_empty_mask(self, composite):
+        """
+
+        :param composite:
+        :return:
+        @type composite: CompositeImage
+        """
+        return None if composite.isEmpty() and self.check_empties else composite
 
     def getNodeFile(self):
         return self.meta_extractor.getNodeFile(self.source)
@@ -382,12 +414,6 @@ def compositeMaskSetFromVideoSegment(videoSegments):
         mask_set.append(ms)
     return mask_set
 
-def _is_empty_composite(composite):
-    if (type(composite) == CompositeImage and len(composite.videomasks) == 0) or \
-        composite is None:
-        return True
-    return False
-
 
 def _guess_type(edge):
     """
@@ -473,7 +499,7 @@ def _apply_recapture_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     tm = buildState.transformMatrix()
     args = buildState.arguments()
@@ -493,28 +519,30 @@ def _apply_recapture_transform(buildState):
                         buildState.edge['maskname']))
             left_box = (left_box[0], left_box[1], buildState.sourceShape[1], buildState.sourceShape[0])
         if buildState.isComposite:
-            res = buildState.compositeMask
+            mask = buildState.compositeMask.mask
             expectedShape= buildState.targetShape
             newMask = np.zeros(expectedShape)
-            clippedMask = res[left_box[1]:left_box[3], left_box[0]:left_box[2]]
+            clippedMask = mask[left_box[1]:left_box[3], left_box[0]:left_box[2]]
             angleFactor = round(float(angle) / 90.0)
             if abs(angleFactor) > 0:
-                res = np.rot90(clippedMask, int(angleFactor)).astype('uint8')
+                mask = np.rot90(clippedMask, int(angleFactor)).astype('uint8')
                 angle = angle - int(angleFactor * 90)
             else:
-                res = clippedMask
+                mask = clippedMask
             expectedPasteSize = ((right_box[3] - right_box[1]), (right_box[2] - right_box[0]))
-            res = tool_set.applyResizeComposite(res, (expectedPasteSize[0], expectedPasteSize[1]))
-            newMask[right_box[1]:right_box[3], right_box[0]:right_box[2]] = res
+            mask = tool_set.applyResizeComposite(mask, (expectedPasteSize[0], expectedPasteSize[1]))
+            newMask[right_box[1]:right_box[3], right_box[0]:right_box[2]] = mask
             if angle != 0:
                 center = (
                     right_box[1] + (right_box[3] - right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
-                res = tool_set.applyRotateToCompositeImage(newMask, angle, center)
+                mask = tool_set.applyRotateToCompositeImage(newMask, angle, center)
             else:
-                res = newMask.astype('uint8')
-            return res
+                mask = newMask.astype('uint8')
+            return CompositeImage(buildState.compositeMask.source,
+                                  buildState.compositeMask.target,
+                                  buildState.compositeMask.media_type, mask)
         elif buildState.donorMask is not None:
-            donorMask = buildState.donorMask
+            mask = buildState.donorMask.mask
             expectedShape = buildState.sourceShape
             expectedPasteShape = ((left_box[3] - left_box[1]), (left_box[2] - left_box[0]))
             newMask = np.zeros(expectedShape)
@@ -526,37 +554,49 @@ def _apply_recapture_transform(buildState):
             if angle != 0:
                 center = (
                     right_box[1] + (right_box[3] - right_box[1]) / 2, right_box[0] + (right_box[2] - right_box[0]) / 2)
-                donorMask = tool_set.applyRotateToCompositeImage(donorMask, -angle, center)
-            clippedMask = donorMask[right_box[1]:right_box[3], right_box[0]:right_box[2]]
+                mask = tool_set.applyRotateToCompositeImage(mask, -angle, center)
+            clippedMask = mask[right_box[1]:right_box[3], right_box[0]:right_box[2]]
             if ninetyRotate != 0:
                 clippedMask = np.rot90(clippedMask, -ninetyRotate).astype('uint8')
             newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = tool_set.applyResizeComposite(clippedMask, (expectedPasteShape[0], expectedPasteShape[1]))
-            return newMask
+            return CompositeImage(buildState.donorMask.source,
+                                  buildState.donorMask.target,
+                                  buildState.donorMask.media_type,
+                                  newMask)
 
     if buildState.isComposite:
-        res = buildState.compositeMask
+        mask = buildState.compositeMask.mask
         if tm is not None:
-            res = tool_set.applyTransformToComposite(res,
+            mask = tool_set.applyTransformToComposite(mask,
                                                      buildState.edgeMask,
                                                      tm,
                                                      shape=buildState.targetShape,
                                                      returnRaw=True)
-        elif buildState.targetShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.targetShape)
-        return res
+        elif buildState.targetShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     elif buildState.donorMask is not None:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         if tm is not None:
-            res = tool_set.applyTransform(res,
+            mask = tool_set.applyTransform(mask,
                                           mask=buildState.edgeMask,
                                           transform_matrix=tm,
                                           invert=True,
                                           shape=buildState.sourceShape,
                                           returnRaw=True)
-        elif buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
-    return buildState.edgeMask
+        elif buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                                  buildState.donorMask.target,
+                                  buildState.donorMask.media_type,
+                                  mask)
+    return CompositeImage(buildState.source,
+                          buildState.target,
+                          'image',
+                          buildState.edgeMask)
 
 
 def recapture_transform(buildState):
@@ -584,7 +624,7 @@ def resize_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     import os
     shapeChange = buildState.shapeChange()
@@ -597,47 +637,55 @@ def resize_transform(buildState):
     if location != (0, 0):
         shapeChange = (-location[0], -location[1]) if shapeChange == (0, 0) else shapeChange
     if buildState.isComposite:
-        res = buildState.compositeMask
-        expectedShape = (res.shape[0] + shapeChange[0], res.shape[1] + shapeChange[1])
+        mask = buildState.compositeMask.mask
+        expectedShape = (mask.shape[0] + shapeChange[0], mask.shape[1] + shapeChange[1])
         if canvas_change:
             newRes = np.zeros(expectedShape).astype('uint8')
-            upperBound = (min(res.shape[0] + location[0], newRes.shape[0]),
-                          min(res.shape[1] + location[1], newRes.shape[1]))
-            newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
+            upperBound = (min(mask.shape[0] + location[0], newRes.shape[0]),
+                          min(mask.shape[1] + location[1], newRes.shape[1]))
+            newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = mask[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
-            res = newRes
+            mask = newRes
         else:
             if tm is not None:
-                res = tool_set.applyTransformToComposite(res, buildState.edgeMask, tm,
+                mask = tool_set.applyTransformToComposite(mask, buildState.edgeMask, tm,
                                                          shape= buildState.targetShape, returnRaw=shapeChange != (0, 0))
             elif getValue(buildState.edge,'inputmaskname') is not None and shapeChange == (0, 0):
                 inputmask = openImageFile(os.path.join(buildState.directory, buildState.edge['inputmaskname']))
                 if inputmask is not None:
-                    mask = inputmask.to_mask().to_array()
-                    res = move_pixels(mask, 255 - buildState.edgeMask, res, isComposite=True)
-        if buildState.targetShape != res.shape:
-            res = tool_set.applyResizeComposite(res,  buildState.targetShape)
-        return res
+                    inputmaskarray = inputmask.to_mask().to_array()
+                    mask = move_pixels(inputmaskarray, 255 - buildState.edgeMask, mask, isComposite=True)
+        if buildState.targetShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask,  buildState.targetShape)
+        return CompositeImage(buildState.compositeMask.source,
+                                  buildState.compositeMask.target,
+                                  buildState.compositeMask.media_type,
+                                  mask)
     elif buildState.donorMask is not None:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         if canvas_change:
             upperBound = (
-                min(buildState.sourceShape[0] + location[0], res.shape[0]), min(buildState.sourceShape[1] + location[1], res.shape[1]))
-            res = res[location[0]:upperBound[0], location[1]:upperBound[1]]
+                min(buildState.sourceShape[0] + location[0], mask.shape[0]), min(buildState.sourceShape[1] + location[1], mask.shape[1]))
+            mask = mask[location[0]:upperBound[0], location[1]:upperBound[1]]
         else:
             if tm is not None:
-                res = tool_set.applyTransform(res, mask=buildState.edgeMask, transform_matrix=tm,
+                mask = tool_set.applyTransform(mask, mask=buildState.edgeMask, transform_matrix=tm,
                                               invert=True,  shape=buildState.sourceShape, returnRaw=shapeChange != (0, 0))
             elif getValue(buildState.edge,'inputmaskname') is not None and shapeChange == (0, 0):
                 inputmask = openImageFile(os.path.join(buildState.directory, buildState.edge['inputmaskname']))
                 if inputmask is not None:
-                    mask = inputmask.to_mask().to_array()
-                    res = move_pixels(255 - buildState.edgeMask, mask, res)
-        if buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
-    return buildState.edgeMask
-
+                    inputmaskarray = inputmask.to_mask().to_array()
+                    mask = move_pixels(255 - buildState.edgeMask, inputmaskarray, mask)
+        if buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
+    return CompositeImage(buildState.source,
+                          buildState.target,
+                          'image',
+                          buildState.edgeMask)
 
 def video_resize_transform(buildState):
     """
@@ -685,7 +733,7 @@ def rotate_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     shapeChange = buildState.shapeChange()
     args = buildState.arguments()
@@ -695,29 +743,35 @@ def rotate_transform(buildState):
     local = (args['local'] == 'yes') if 'local' in args else False
     if not local and shapeChange != (0, 0) and abs(int(round(rotation))) % 90 == 0:
         tm = None
-    res = None
     if buildState.donorMask is not None:
         if tm is not None:
-            res = tool_set.applyTransform(buildState.donorMask,
+            mask = tool_set.applyTransform(buildState.donorMask.mask,
                                           mask=buildState.edgeMask,
                                           transform_matrix=tm,
                                           invert=True,
                                           returnRaw=False)
         else:
-            res = tool_set.__rotateImage(-rotation, buildState.donorMask,
+            mask = tool_set.__rotateImage(-rotation, buildState.donorMask.mask,
                                          expectedDims=buildState.sourceShape, cval=0)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
     elif buildState.isComposite:
         if tm is not None:
-            res = tool_set.applyTransformToComposite(buildState.compositeMask,
+            mask = tool_set.applyTransformToComposite(buildState.compositeMask.mask,
                                                      buildState.edgeMask,
                                                      tm)
         else:
-            res = tool_set.applyRotateToComposite(rotation,
-                                                  buildState.compositeMask,
+            mask = tool_set.applyRotateToComposite(rotation,
+                                                  buildState.compositeMask.mask,
                                                   buildState.edgeMask,
                                                   buildState.targetShape,
                                                   local=local)
-    return res
+    return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
 
 
 def video_copy_exif(buildState):
@@ -1206,22 +1260,28 @@ def select_remove(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
-        res = tool_set.applyMask(buildState.compositeMask, buildState.edgeMask)
-        if buildState.targetShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.targetShape)
-        return res
+        mask = tool_set.applyMask(buildState.compositeMask.mask, buildState.edgeMask)
+        if buildState.targetShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     else:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         # res is the donor mask
         # edgeMask may be the overriding mask from a PasteSplice, thus in the same shape
         # The transfrom will convert to the target mask size of the donor path.
         # res = tool_set.applyMask(donorMask, edgeMask)
-        if res is not None and  buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
+        if mask is not None and  buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
 
 
 def crop_transform(buildState):
@@ -1229,25 +1289,34 @@ def crop_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     location = buildState.location()
     if buildState.isComposite:
-        res = buildState.compositeMask
-        res = res[location[0]:buildState.targetShape[0]+location[0], location[1]:buildState.targetShape[1]+location[1]]
-        return res
+        mask = buildState.compositeMask.mask
+        mask = mask[location[0]:buildState.targetShape[0]+location[0], location[1]:buildState.targetShape[1]+location[1]]
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     elif buildState.donorMask is not None:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         expectedShape = buildState.sourceShape
         newRes = np.zeros(expectedShape).astype('uint8')
-        upperBound = (res.shape[0] + location[0], res.shape[1] + location[1])
-        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
+        upperBound = (mask.shape[0] + location[0], mask.shape[1] + location[1])
+        newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = mask[0:(upperBound[0] - location[0]),
                                                                        0:(upperBound[1] - location[1])]
-        res = newRes
-        if expectedShape != res.shape:
-            res = tool_set.applyResizeComposite(res, expectedShape)
-        return res
-    return buildState.edgeMask
+        mask = newRes
+        if expectedShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, expectedShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
+    return CompositeImage(buildState.source,
+                              buildState.target,
+                              'image',
+                              buildState.edgeMask)
 
 
 def video_crop_transform(buildState):
@@ -1255,7 +1324,7 @@ def video_crop_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     buildState.frame_rate_check()
     targetSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.target)
@@ -1286,7 +1355,7 @@ def seam_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     from functools import partial
     openImageFunc = partial(openImageMaskFile,buildState.directory)
@@ -1303,10 +1372,16 @@ def seam_transform(buildState):
         mask_tracker = MaskTracker((targetImage.size[1], targetImage.size[0]))
         mask_tracker.read_adjusters(os.path.join(buildState.directory,row_adjust),os.path.join(buildState.directory,col_adjust))
         if buildState.isComposite:
-            return mask_tracker.move_pixels(buildState.compositeMask)
+            return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                               mask_tracker.move_pixels(buildState.compositeMask.mask))
         else:
             mask_tracker.set_dropped_mask(diffMask)
-            return mask_tracker.invert_move_pixels(buildState.donorMask)
+            return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask_tracker.invert_move_pixels(buildState.donorMask.mask))
 
     # if 'skip'
     matchx = sizeChange[0] == 0
@@ -1316,12 +1391,12 @@ def seam_transform(buildState):
     if (matchx and not matchy) or (not matchx and matchy):
         if buildState.isComposite:
             # left over from the prior algorithms.  to be removed.
-            res = tool_set.carveMask(buildState.compositeMask, diffMask, buildState.targetShape)
+            res = tool_set.carveMask(buildState.compositeMask.mask, diffMask, buildState.targetShape)
         elif buildState.donorMask is not None:
             # Need to think through this some more.
             # Seam carving essential puts pixels back.
             # perhaps this is ok, since the resize happens first and then the cut of the removed pixels
-            res = tool_set.applyMask(buildState.donorMask, diffMask)
+            res = tool_set.applyMask(buildState.donorMask.mask, diffMask)
             if transformMatrix is not None:
                 res = cv2.warpPerspective(res, transformMatrix,
                                           (buildState.sourceShape[1], buildState.sourceShape[0]),
@@ -1332,7 +1407,7 @@ def seam_transform(buildState):
                 res =tool_set.applyResizeComposite(res, buildState.sourceShape)
 
     elif buildState.donorMask is not None or buildState.compositeMask is not None:
-        res = buildState.compositeMask if buildState.compositeMask is not None else buildState.donorMask
+        res = buildState.compositeMask.mask if buildState.compositeMask is not None else buildState.donorMask.mask
         res = tool_set.applyInterpolateToCompositeImage(res,
                                                         buildState.graph.get_image(buildState.source)[0],
                                                         targetImage,
@@ -1342,7 +1417,12 @@ def seam_transform(buildState):
                                                         defaultTransform=transformMatrix)
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
-    return res
+    return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type, res) if buildState.isComposite else \
+           CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type, res)
 
 
 def warp_transform(buildState):
@@ -1350,7 +1430,7 @@ def warp_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return composite_transform(buildState, withMask = True)
 
@@ -1359,11 +1439,10 @@ def composite_transform(buildState, withMask = False):
         :param buildState:
         :return: updated composite mask
         @type buildState: BuildState
-        @rtype: np.ndarray
+        @rtype: CompositeImage
         """
-    res = None
     tm = buildState.transformMatrix()
-    masktowarp = buildState.compositeMask if buildState.isComposite else buildState.donorMask
+    masktowarp = buildState.compositeMask.mask if buildState.isComposite else buildState.donorMask.mask
     res = tool_set.applyInterpolateToCompositeImage(masktowarp,
                                                     ImageWrapper(buildState.source) if type(buildState.source) not in [
                                                         str, unicode] else
@@ -1378,7 +1457,12 @@ def composite_transform(buildState, withMask = False):
                                                     withMask=withMask)
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
-    return res
+    return CompositeImage(buildState.compositeMask.source,
+                          buildState.compositeMask.target,
+                          buildState.compositeMask.media_type, res) if buildState.isComposite else \
+        CompositeImage(buildState.donorMask.source,
+                       buildState.donorMask.target,
+                       buildState.donorMask.media_type, res)
 
 def cas_transform(buildState):
     return composite_transform(buildState,withMask=True)
@@ -1388,7 +1472,7 @@ def video_flip_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     buildState.frame_rate_check()
     args = buildState.arguments()
@@ -1457,7 +1541,7 @@ def move_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     import os
     returnRaw = False
@@ -1479,25 +1563,28 @@ def move_transform(buildState):
 
     tm = buildState.transformMatrix()
     if buildState.isComposite:
-        res = buildState.compositeMask
+        mask = buildState.compositeMask.mask
         expectedShape = buildState.targetShape
-        if inputmask.shape != res.shape:
-            inputmask = cv2.resize(inputmask, (res.shape[1], res.shape[0]))
+        if inputmask.shape != mask.shape:
+            inputmask = cv2.resize(inputmask, (mask.shape[1], mask.shape[0]))
         if tm is not None:
-            res = tool_set.applyTransformToComposite(res, inputmask, tm,
+            mask = tool_set.applyTransformToComposite(mask, inputmask, tm,
                                                      returnRaw=returnRaw)
         else:
             inputmask = 255 - inputmask
             differencemask = (255 - buildState.edgeMask) - inputmask
             differencemask[differencemask < 0] = 0
-            res = move_pixels(inputmask, differencemask, res, isComposite=True)
-        if expectedShape != res.shape:
-            res = tool_set.applyResizeComposite(res, expectedShape)
-        return res
+            mask = move_pixels(inputmask, differencemask, mask, isComposite=True)
+        if expectedShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, expectedShape)
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     elif buildState.donorMask is not None:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         if tm is not None:
-            res = tool_set.applyTransform(res,
+            mask = tool_set.applyTransform(mask,
                                           mask=inputmask,
                                           transform_matrix=tm,
                                           invert=True,
@@ -1509,28 +1596,34 @@ def move_transform(buildState):
             inputmask = 255 - inputmask
             differencemask = (255 - buildState.edgeMask) - inputmask
             differencemask[differencemask < 0] = 0
-            res = move_pixels(differencemask, inputmask, res)
-        if buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
-    return buildState.edgeMask
+            mask = move_pixels(differencemask, inputmask, mask)
+        if buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
+    return CompositeImage(buildState.source,
+                          buildState.target,
+                          'image',
+                          buildState.edgeMask)
 
 def ca_fill(buildState):
     """
        :param buildState:
        :return: updated composite mask
        @type buildState: BuildState
-       @rtype: np.ndarray
+       @rtype: CompositeImage
        """
     if buildState.isComposite:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] == 'remove':
-            buildState.compositeMask[buildState.edgeMask == 0] = 0
+            buildState.compositeMask.mask[buildState.edgeMask == 0] = 0
         return buildState.compositeMask
     else:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] in ['remove']:
-            buildState.donorMask[buildState.edgeMask == 0] = 0
+            buildState.donorMask.mask[buildState.edgeMask == 0] = 0
         return buildState.donorMask
 
 def paste_sampled(buildState):
@@ -1538,17 +1631,17 @@ def paste_sampled(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype:CompositeImage
     """
     if buildState.isComposite:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] == 'remove':
-            buildState.compositeMask[buildState.edgeMask==0] = 0
+            buildState.compositeMask.mask[buildState.edgeMask==0] = 0
         return buildState.compositeMask
     else:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] in ['remove']:
-            buildState.donorMask[buildState.edgeMask == 0] = 0
+            buildState.donorMask.mask[buildState.edgeMask == 0] = 0
         return buildState.donorMask
 
 def paste_splice(buildState):
@@ -1556,21 +1649,24 @@ def paste_splice(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] != 'blend':
-            buildState.compositeMask[buildState.edgeMask==0] = 0
+            buildState.compositeMask.mask[buildState.edgeMask==0] = 0
         return buildState.compositeMask
     elif buildState.donorMask is not None:
         # during a paste splice, the edge mask can split up the donor.
         # although I am wondering if the edgemask needs to be inverted.
         # this effectively sets the donorMask pixels to 0 where the edge mask is 0 (which is 'changed')
-        donorMask = tool_set.applyMask(buildState.donorMask, buildState.edgeMask)
+        donorMask = tool_set.applyMask(buildState.donorMask.mask, buildState.edgeMask)
     else:
         donorMask = np.zeros(buildState.sourceShape, dtype=np.uint8)
-    return donorMask
+    return CompositeImage( buildState.donorMask.source if buildState.donorMask is not None else buildState.source,
+                           buildState.donorMask.target if buildState.donorMask is not None else buildState.target,
+                           'image',
+                           donorMask)
 
 
 def select_region_frames(buildState):
@@ -1578,7 +1674,7 @@ def select_region_frames(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
@@ -1598,20 +1694,23 @@ def select_region(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
     elif buildState.donorMask is not None:
         return buildState.donorMask
-    return buildState.edgeMask
+    return CompositeImage(buildState.source,
+                        buildState.target,
+                        'image',
+                        buildState.edgeMask)
 
 def donor(buildState):
     """
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
@@ -1627,7 +1726,7 @@ def donor(buildState):
             tm = buildState.transformMatrix()
             targetShape = buildState.sourceShape
             if tm is not None:
-                donorMask = cv2.warpPerspective(buildState.donorMask, tm,
+                donorMask = cv2.warpPerspective(buildState.donorMask.mask, tm,
                                                 (targetShape[1], targetShape[0]),
                                                 flags=cv2.WARP_INVERSE_MAP,
                                                 borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype('uint8')
@@ -1635,7 +1734,10 @@ def donor(buildState):
                 donorMask = ImageWrapper(buildState.edgeMask).invert().to_array()
         else:
             donorMask = np.zeros(buildState.donorMask.shape, dtype=np.uint8)
-    return donorMask
+    return CompositeImage( buildState.donorMask.source if buildState.donorMask is not None else buildState.source,
+                           buildState.donorMask.target if buildState.donorMask is not None else buildState.target,
+                           'image',
+                           donorMask)
 
 
 def image_to_video(buildState):
@@ -1643,7 +1745,7 @@ def image_to_video(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return _prepare_video_masks(buildState.meta_extractor,
@@ -1656,7 +1758,10 @@ def image_to_video(buildState):
                                     fillWithUserBoundaries=True)
     else:
         wrapper, name = buildState.graph.get_image(buildState.source)
-        return np.ones(wrapper.to_array().size, dtype=np.uint8) * 255
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              'image',
+                              np.ones(wrapper.to_array().size, dtype=np.uint8) * 255)
 
 
 def video_donor(buildState):
@@ -1664,7 +1769,7 @@ def video_donor(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
@@ -1685,21 +1790,27 @@ def flip_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     flip = buildState.flip()
     if buildState.isComposite:
-        res = buildState.compositeMask
+        mask = buildState.compositeMask.mask
         if flip is not None:
-            res = applyFlipComposite(buildState.compositeMask, buildState.edgeMask, flip)
-        if buildState.targetShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.targetShape)
-        return res
+            mask = applyFlipComposite(buildState.compositeMask.mask, buildState.edgeMask, flip)
+        if buildState.targetShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     else:
-        res = applyFlipComposite(buildState.donorMask, buildState.edgeMask, flip)
-        if buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
+        mask = applyFlipComposite(buildState.donorMask.mask, buildState.edgeMask, flip)
+        if buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
 
 
 def scale_transform(buildState):
@@ -1707,32 +1818,38 @@ def scale_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     tm = buildState.transformMatrix()
     if buildState.isComposite:
-        res = buildState.compositeMask
+        mask = buildState.compositeMask.mask
         if tm is not None:
-            res = tool_set.applyTransformToComposite(res,
+            mask = tool_set.applyTransformToComposite(mask,
                                                      buildState.edgeMask,
                                                      tm,
                                                      shape=buildState.targetShape,
                                                      returnRaw=False)
-        elif buildState.targetShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.targetShape)
-        return res
+        elif buildState.targetShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     elif buildState.donorMask is not None:
-        res = buildState.donorMask
+        mask = buildState.donorMask.mask
         if tm is not None:
-            res = tool_set.applyTransform(res,
+            mask = tool_set.applyTransform(mask,
                                           mask=buildState.edgeMask,
                                           transform_matrix=tm,
                                           invert=True,
                                           shape=buildState.sourceShape,
                                           returnRaw=False)
-        elif buildState.sourceShape != res.shape:
-            res = tool_set.applyResizeComposite(res, buildState.sourceShape)
-        return res
+        elif buildState.sourceShape != mask.shape:
+            mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
 
 
 def distort_transform(buildState):
@@ -1740,7 +1857,7 @@ def distort_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return scale_transform(buildState)
 
@@ -1749,7 +1866,7 @@ def affine_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return scale_transform(buildState)
 
@@ -1758,7 +1875,7 @@ def shear_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return scale_transform(buildState)
 
@@ -1768,7 +1885,7 @@ def skew_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return scale_transform(buildState)
 
@@ -1778,7 +1895,7 @@ def image_selection(buildState):
        :param buildState:
        :return: updated composite mask
        @type buildState: BuildState
-       @rtype: np.ndarray
+       @rtype: CompositeImage
        """
     if buildState.isComposite:
         return video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
@@ -1806,7 +1923,7 @@ def echo(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
@@ -1818,7 +1935,7 @@ def output_video_change(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return buildState.warpMask()
 
@@ -1827,7 +1944,7 @@ def audio_donor(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.isComposite:
         return buildState.compositeMask
@@ -1856,27 +1973,34 @@ def exif_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     orientflip, orientrotate = buildState.getExifOrientation()
     args = buildState.arguments()
     interpolation = args['interpolation'] if 'interpolation' in args and len(
         args['interpolation']) > 0 else 'nearest'
     if buildState.isComposite:
-        compositeMask = alterMask(buildState.compositeMask,
+        mask = alterMask(buildState.compositeMask.mask,
                                   buildState.edgeMask,
                                   rotation=orientrotate,
                                   targetShape=buildState.targetShape,
                                   interpolation=interpolation,
                                   flip=orientflip)
-        return compositeMask
+        return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
     else:
         orientrotate = -orientrotate if orientrotate is not None else None
-        return alterReverseMask(buildState.donorMask,
+        mask= alterReverseMask(buildState.donorMask.mask,
                                 buildState.edgeMask,
                                 rotation=orientrotate,
                                 flip=orientflip,
                                 targetShape=buildState.sourceShape)
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
 
 def copy_transform(buildState):
     if buildState.isComposite:
@@ -1888,7 +2012,7 @@ def output_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return exif_transform(buildState)
 
@@ -1897,7 +2021,7 @@ def defaultAlterComposite(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     # change the mask to reflect the output image
     # considering the crop again, the high-lighted change is not dropped
@@ -1907,14 +2031,17 @@ def defaultAlterComposite(buildState):
     interpolation = args['interpolation'] if 'interpolation' in args and len(
         args['interpolation']) > 0 else 'nearest'
     orientflip, orientrotate = buildState.getExifOrientation()
-    compositeMask = alterMask(buildState.compositeMask,
+    mask = alterMask(buildState.compositeMask.mask,
                               buildState.edgeMask,
                               rotation=orientrotate,
                               targetShape=buildState.targetShape,
                               interpolation=interpolation,
                               flip=orientflip,
                               location=location)
-    return compositeMask
+    return CompositeImage(buildState.compositeMask.source,
+                              buildState.compositeMask.target,
+                              buildState.compositeMask.media_type,
+                              mask)
 
 
 def defaultAlterDonor(buildState):
@@ -1922,7 +2049,7 @@ def defaultAlterDonor(buildState):
     :param buildState:
     :return: updated/tranformed donor mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     if buildState.donorMask is None:
         return None
@@ -1936,7 +2063,7 @@ def defaultAlterDonor(buildState):
     orientrotate = -orientrotate if orientrotate is not None else None
     tm = None if (getValue(buildState.edge,'global','no') == 'yes' and orientrotate is not None) else tm
     tm = None if orientflip else tm
-    return alterReverseMask(buildState.donorMask,
+    mask =  alterReverseMask(buildState.donorMask.mask,
                             buildState.edgeMask,
                             rotation=orientrotate,
                             sizeChange=sizeChange,
@@ -1944,6 +2071,10 @@ def defaultAlterDonor(buildState):
                             flip=orientflip,
                             transformMatrix=tm,
                             targetShape=buildState.sourceShape)
+    return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              mask)
 
 class GroupTransformFunction:
 
@@ -2025,7 +2156,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
                             source_shape,
                             target_shape,
                             directory=directory,
-                            donorMask=donorMask if donorMask is not None and len(donorMask) > 0 else None,
+                            donorMask=donorMask if donorMask is not None else None,
                             pred_edges=pred_edges,
                             graph=graph,
                             check_empties=check_empty_mask)
@@ -2199,7 +2330,7 @@ def alterComposite(graph,
     :param directory:
     :param replacementEdgeMask:
     :return:
-    @type composite: np.ndarray
+    @type composite: CompositeImage
     """
     edgeMask = graph.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)\
         if replacementEdgeMask is None else ImageWrapper(replacementEdgeMask)
@@ -2603,7 +2734,7 @@ class CompositeDelegate:
                     break
             if mask.shape != expectedShape:
                 mask = tool_set.applyResizeComposite(mask, expectedShape)
-            return [mask]
+            return [CompositeImage(self.edge_id[0], self.edge_id[1], 'image', mask)]
 
     def find_donor_edges(self):
         donors = [(pred, self.edge_id[1]) for pred in self.graph.predecessors(self.edge_id[1])
@@ -2620,7 +2751,27 @@ class CompositeDelegate:
     def get_dir(self):
         return self.graph.dir
 
-    def constructTransformedMask(self, edge_id, compositeMask,
+    def _checkEmpty(self, mask, source, target, op):
+        """
+
+        :param mask:
+        :param source:
+        :param target:
+        :param op:
+        :return:
+        @type mask: CompositeImage
+        """
+        if mask is None:
+            return
+
+        if mask.isEmpty():
+            logging.getLogger('maskgen').warn(
+                "Mask is empty for {} due to edge ({},{}) using operation {}.".format(
+                    str(self.edge_id), source, target, op.name
+                ))
+
+    def constructTransformedMask(self, edge_id,
+                                 compositeMask,
                                  saveTargets=False,
                                  keepFailures=False,
                                  check_empty_mask=True):
@@ -2650,12 +2801,14 @@ class CompositeDelegate:
                                              self.get_dir(),
                                              maskMemory=self.maskMemory,
                                              base_id=self.edge_id,
-                                            check_empty_mask=check_empty_mask)
+                                             check_empty_mask=check_empty_mask)
                     if newMask is None:
                         logging.getLogger('maskgen').warn("Mask is empty for {} due to edge ({},{}) using operation {}.".format(
                             str(edge_id),source,target,op.name
                         ))
                         break
+                    self._checkEmpty(newMask, source, target, op)
+
                 if newMask is not None:
                     results.extend(self.constructTransformedMask((source, target),
                                                                  newMask,
@@ -2759,7 +2912,6 @@ class CompositeDelegate:
             try:
                 # if video, then the media type is in the composite tuple.
                 # images still use an ImageWrapper for the target_mask type
-                # TODO: Big change will be to make all composites using a CompositeImage type.
                 donors = self.constructDonors(saveImage=saveTargets,
                                               inclusionFunction=inclusionFunction,
                                               exclusions=exclusions,
@@ -2790,32 +2942,32 @@ class CompositeDelegate:
                                                )
         return probes
 
-    def _finalizeCompositeMask(self, mask, finalNodeId, saveTargets=False, failure=False):
+    def _finalizeCompositeMask(self, image, finalNodeId, saveTargets=False, failure=False):
         """
         :param mask:
         :param finalNodeId:
         :return:  mask, file name and final node id
+        @type image: CompositeImage
         """
         # None in the case of empty bit plane.
         # next refactor, we fix this
-        if mask is None:
+        if image is None:
             target_mask_filename = os.path.join(self.get_dir(),
                                                shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,
                                                            '_ps.png',
                                                            identifier=self.graph.nextId()))
-            return mask, target_mask_filename, finalNodeId, 'image',failure
-        if type(mask) == np.ndarray:
+            return image, target_mask_filename, finalNodeId, 'image',failure
+        if image.isImage():
             target_mask_filename = os.path.join(self.get_dir(),
                                                 shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,
                                                             '_ps.png',
                                                             identifier=self.graph.nextId()))
-            target_mask = ImageWrapper(mask).invert()
+            target_mask = ImageWrapper(image.mask).invert()
             if saveTargets:
                 target_mask.save(target_mask_filename, format='PNG')
             return target_mask, target_mask_filename, finalNodeId, 'image', failure
 
-
-        return mask, None, finalNodeId, 'video', failure
+        return image, None, finalNodeId, 'video', failure
 
     def ___add_final_node_with_donors(self,
                                       probes,
@@ -2938,8 +3090,8 @@ class CompositeDelegate:
         if startMask is None:
             raise EdgeMaskError('Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
         if op.category == 'Select':
-            return startMask.to_array()
-        return startMask.invert().to_array()
+            return CompositeImage(edge_id[0], edge_id[1],'image', startMask.to_array())
+        return CompositeImage(edge_id[0], edge_id[1],'image', startMask.invert().to_array())
 
     def __processImageDonor(self, donor_masks):
         """
@@ -2949,9 +3101,9 @@ class CompositeDelegate:
         """
         imageDonorToNodes = {}
         for donor_mask_tuple in donor_masks:
-            if type(donor_mask_tuple[1]) != np.ndarray:
+            if not donor_mask_tuple[1].isImage():
                 continue
-            donor_mask = donor_mask_tuple[1].astype('uint8')
+            donor_mask = donor_mask_tuple[1].mask.astype('uint8')
             if np.sum(donor_mask > 1) == 0:
                 continue
             baseNode = donor_mask_tuple[0]
@@ -2981,7 +3133,7 @@ class CompositeDelegate:
         """
         videoDonorToNodes = {}
         for donor_mask_tuple in donor_masks:
-            if type(donor_mask_tuple[1]) == np.ndarray:
+            if donor_mask_tuple[1].isImage():
                 continue
             baseNode = donor_mask_tuple[0]
             if baseNode in videoDonorToNodes:
@@ -3105,16 +3257,18 @@ class CompositeDelegate:
                                                      operation=self.gopLoader.getOperationWithGroups(edge['op']))
                 else:
                     startMask = self.graph.openImage(fullpath, mask=False).to_mask().to_array()
-                    if startMask is not None and type(edgeMask) == type(startMask) and \
-                                    edgeMask.shape != startMask.shape and \
+                    if startMask is not None and edgeMask.isImage() and \
+                                    edgeMask.mask.shape != startMask.shape and \
                             getValue(exclusions, 'global.inputmaskname', False):
                         errorNotifier('constructDonors',
                                       'Skipping invalid sized mask for ' + edge_id[0] + ' to ' + edge_id[1], edge_id)
                         startMask = None
+                    else:
+                        startMask = CompositeImage(edge_id[0],edge_id[1],'image',startMask)
                 if startMask is None and getValue(exclusions,'global.inputmaskname',False):
                     errorNotifier('constructDonors','Missing donor mask for ' + edge_id[0] + ' to ' + edge_id[1],edge_id)
             if startMask is not None:
-                if _is_empty_composite(startMask):
+                if startMask.isEmpty():
                     startMask = None
                 try:
                     if getValue(exclusions, 'global.videodonors', False) and \
