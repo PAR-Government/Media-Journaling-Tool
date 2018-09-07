@@ -572,6 +572,7 @@ class TestToolSet(unittest.TestCase):
         length_of_tables = 6
         tables= generateTableSet(number_of_tables=4, length_of_tables=length_of_tables)
         wh = WH(gen_wh(8))
+        # np.random.seed(3)
         codes= {}
         patch = np.random.randint(0, 128, (8, 8))
         print "test uniqueness within table set"

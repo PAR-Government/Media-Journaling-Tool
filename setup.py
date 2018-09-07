@@ -15,6 +15,7 @@ setup(name='maskgen',
                   ('plugins/Custom',
                    [os.path.join('plugins/Custom',x) for x in os.listdir('plugins/Custom') if os.path.splitext(x)[1] in ['.json']])],
       install_requires=['networkx==1.11','pillow>=3.4.2','scikit-image>=0.12.3,<0.14','tkintertable==1.2','bitstring', 'awscli>=1.10.66', 'boto3>=1.3.1','numpy>=1.13.1','h5py>=2.6.0','pydot>=1.2.3','graphviz==0.8','pygraphviz>=1.3.1','rawpy>=0.10.1','cachetools','requests','matplotlib>=2.0.0,<=2.3','pandas>=0.19.2,<0.21.0','wave','pypng','numpngw','shapely'], #temp removed pyssl require
+      test_requires=['python-pptx'],
       entry_points=
        {'gui_scripts': [
             'jtuiw = maskgen.MaskGenUI:main',
