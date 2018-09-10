@@ -962,7 +962,7 @@ class VideoAddTool(AddTool):
             if 'height' in item:
                 height = int(item['height'])
             if 'rotation' in item:
-                rotation = int(item(rotation))
+                rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
         return parent
