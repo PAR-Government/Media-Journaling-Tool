@@ -72,7 +72,7 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0822.b3f4049a83', [_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask])
+         ('0.5.0822.b3f4049a83', [_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks])
          ])
 
     versions= list(fixes.keys())
@@ -480,6 +480,18 @@ def _fixRANSAC(scModel,gopLoader):
         _updateEdgeHomography(args)
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
+
+def _fixVideoMasks(scModel, gopLoader):
+    def contains_files(edge):
+        return len([m for m in getValue(edge, 'videomasks', []) if getValue(m,'videosegment','') != '']) > 0
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'videomasks' in edge and contains_files(edge):
+            try:
+                scModel.select((frm, to))
+                scModel.reproduceMask()
+            except Exception as e:
+                logging.getLogger('maskgen').warning('Could not correct video masks {}->{}: {}'.format(frm,to,e.message))
 
 def _fixRaws(scModel,gopLoader):
     if scModel.G.get_project_type()!= 'image':

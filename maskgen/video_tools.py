@@ -1102,6 +1102,11 @@ class VidAnalysisComponents:
         self.file_one = None
         self.file_two = None
 
+    def write(self, mask, frame_time, frame):
+        m = 255-mask
+        self.writer.write(m, frame_time, frame)
+        return m
+
     def grabOne(self):
         res = self.vid_one.grab()
         self.grabbed_one = res
@@ -1224,12 +1229,12 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
        :return:
        """
     if __changeCount(vidAnalysisComponents.mask) > 0:
-        vidAnalysisComponents.writer.write(255-vidAnalysisComponents.mask,
+        mask = vidAnalysisComponents.write(vidAnalysisComponents.mask,
                                            vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                                            vidAnalysisComponents.time_manager.frameSinceBeginning)
         if len(ranges) == 0 or 'endtime' in ranges[-1]:
             change = dict()
-            change['mask'] = vidAnalysisComponents.mask
+            change['mask'] = mask
             change['starttime'] = vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one
             change['rate'] = vidAnalysisComponents.fps_one
             change['startframe'] = vidAnalysisComponents.time_manager.frameSinceBeginning
@@ -2019,7 +2024,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             analysis_components.mask = tool_set.__diffMask(ImageWrapper(frame_one).to_16BitGray().to_array(),
                                        ImageWrapper(frame_two).to_16BitGray().to_array(),
                                        True,
-                                       {'tolerance':0.1})[0]
+                                       {'tolerance':0.01})[0]
             #opening = cv2.erode(analysis_components.mask, kernel,1)
             #analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             if not opFunc(analysis_components,ranges,arguments):
