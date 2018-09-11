@@ -2924,7 +2924,7 @@
             "Minimum",
             "Maximum",
             "Mean",
-            "Maximum",
+            "Median",
             "Other"
           ],
           "rule": {
