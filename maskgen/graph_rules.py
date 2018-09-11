@@ -720,8 +720,8 @@ def sampledInputMask(op,graph, frm, to):
     """
     edge = graph.get_edge(frm, to)
     if 'arguments' in edge and \
-            ('purpose' not in edge['arguments'] or \
-                         edge['arguments']['purpose'] != 'clone') and \
+            ('purpose' not in edge['arguments'] or
+             edge['arguments']['purpose'] not in ['clone', 'stacking']) and \
                     'inputmaskname' in edge and \
                     edge['inputmaskname'] is not None:
         edge.pop('inputmaskname')
