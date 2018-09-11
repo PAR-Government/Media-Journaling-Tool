@@ -226,6 +226,52 @@ class MetaDataExtractor:
                maskTarget[0]['frames'], maskTarget[0]['endtime'], \
                maskSource[0]['rate'], maskTarget[0]['rate']
 
+    def create_video_for_audio(self, filename, masks):
+        """
+        make a mask in video time for each audio mask in masks.
+        in VFR case, uses ffmpeg frames to get nearest frame to timestamp.
+        :param filename: video file
+        :param masks:
+        :return: new set of masks
+        """
+        from math import floor
+
+        def _get_frame_time(frame):
+            if 'pkt_pts_time' in frame.keys() and frame['pkt_pts_time'] != 'N/A':
+                return float(frame['pkt_pts_time']) * 1000
+            else:
+                return float(frame['pkt_dts_time']) * 1000
+
+        def _frame_distance(time_a, time_b):
+            dist = time_a - time_b
+            return abs(dist) if dist <= 0 else float('inf')
+
+        meta, frames = self.getVideoMeta(filename, show_streams=True, with_frames=True, media_types=['video'])
+        video_frames = frames[0]
+        isVFR = ffmpeg_api.is_vfr(meta[0])
+        video_masks = [mask for mask in masks if mask['type'] == 'video']
+        audio_masks = [mask for mask in masks if mask['type'] == 'audio']
+        if len(video_masks) == 0:
+            new_masks = list(audio_masks)
+            for mask in audio_masks:
+                new_mask = mask.copy()
+                new_mask['type'] = 'video'
+                rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, video_frames)
+                if not isVFR:
+                    start_frame = int(floor(mask['starttime']*rate/1000.0))
+                    end_frame = int(floor(mask['endtime']*rate/1000.0))
+                else:
+                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime']*1000)))
+                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['endtime']*1000)))
+                new_mask['startframe'] = start_frame
+                new_mask['endframe'] = end_frame
+                new_mask['tag'] = 'video-associate' #tag so that we know this is a representation of the audio mask in video-frames, not a manipulation of the video stream.
+                new_masks.append(new_mask)
+            return new_masks
+        else:
+            return masks
+
+
     def warpMask(self, video_masks, source, target, expectedType='video', inverse=False, useFFMPEG=False):
         """
         Tranform masks when the frame rate has changed.

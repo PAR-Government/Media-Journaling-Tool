@@ -2794,7 +2794,8 @@ class CompositeDelegate:
                                  compositeMask,
                                  saveTargets=False,
                                  keepFailures=False,
-                                 check_empty_mask=True):
+                                 check_empty_mask=True,
+                                 audio_to_video=False):
         """
         walks up down the tree from base nodes, assemblying composite masks
         return: list of tuples (transformed mask, final image id)
@@ -2834,7 +2835,8 @@ class CompositeDelegate:
                                                                  newMask,
                                                                  saveTargets=saveTargets,
                                                                  keepFailures=keepFailures,
-                                                                 check_empty_mask=check_empty_mask))
+                                                                 check_empty_mask=check_empty_mask,
+                                                                 audio_to_video=audio_to_video))
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.getLogger('maskgen').info('Failed composite generation: {} to {} for edge {} with operation {}'.format(
@@ -2844,7 +2846,7 @@ class CompositeDelegate:
                     ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 if keepFailures:
                     logging.getLogger('maskgen').error('{} for edge {}'.format(ex, edge_id))
-                    return [self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, failure=True)]
+                    return [self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, failure=True, audio_to_video=audio_to_video)]
                 raise ex
 #        if len(successors) == 0 and self.edge_id == edge_id:
 #            edge = self.graph.get_edge(edge_id[0], edge_id[1])
@@ -2859,7 +2861,7 @@ class CompositeDelegate:
 #                                maskMemory=self.maskMemory,
 #                                base_id=self.edge_id)
         return results if len(successors) > 0 else [
-            self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets)]
+            self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, audio_to_video=audio_to_video)]
 
     def extendByOne(self, probes, source, target, override_args={},check_empty_mask=False):
         import copy
@@ -2905,7 +2907,8 @@ class CompositeDelegate:
                         constructDonors=True,
                         keepFailures=False,
                         exclusions={},
-                        check_empty_mask=True):
+                        check_empty_mask=True,
+                        audio_to_video=False):
         """
 
         :param saveTargets:
@@ -2919,7 +2922,8 @@ class CompositeDelegate:
                                                                  composite,
                                                                  saveTargets=saveTargets,
                                                                  keepFailures=keepFailures,
-                                                                 check_empty_mask=check_empty_mask))
+                                                                 check_empty_mask=check_empty_mask,
+                                                                 audio_to_video=audio_to_video))
         probes = []
         for target_mask, target_mask_filename, finalNodeId, media_type, failure in finaNodeIdMasks:
             donorFailure = False
@@ -2967,7 +2971,7 @@ class CompositeDelegate:
                                                )
         return probes
 
-    def _finalizeCompositeMask(self, image, finalNodeId, saveTargets=False, failure=False):
+    def _finalizeCompositeMask(self, image, finalNodeId, saveTargets=False, failure=False, audio_to_video=False):
         """
         :param mask:
         :param finalNodeId:
@@ -2976,6 +2980,8 @@ class CompositeDelegate:
         """
         # None in the case of empty bit plane.
         # next refactor, we fix this
+        if audio_to_video:
+            image = MetaDataExtractor.create_video_for_audio(self.graph.get_image_path(finalNodeId), image)
         if image is None:
             target_mask_filename = os.path.join(self.get_dir(),
                                                shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,
