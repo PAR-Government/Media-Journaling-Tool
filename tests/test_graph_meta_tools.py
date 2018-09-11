@@ -49,16 +49,16 @@ class TestMetaExtractor(TestSupport):
     def test_Audio_to_Video(self):
         source = self.locateFile('tests/videos/sample1.mov')
         extractor = MetaDataExtractor(GraphProxy(source, 'b'))
-        masks = [{'startframe':30, 'endframe':100, 'starttime': 5, 'endtime':7, 'type':'audio'}]
+        masks = [{'startframe':30, 'endframe':100, 'starttime': 5000, 'endtime': 7000, 'type':'audio'}]
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['startframe'] != masks[0]['startframe'])
-        self.assertTrue(newMasks[1]['endframe'] != masks[0]['endframe'])
+        self.assertTrue(newMasks[1]['startframe'] == 60)
+        self.assertTrue(newMasks[1]['endframe'] == 87)
         source = self.locateFile('tests/videos/Sample1_slow.mov')
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['startframe'] != masks[0]['startframe'])
-        self.assertTrue(newMasks[1]['endframe'] != masks[0]['endframe'])
+        self.assertTrue(newMasks[1]['startframe'] == 50)
+        self.assertTrue(newMasks[1]['endframe'] == 70)
 
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')

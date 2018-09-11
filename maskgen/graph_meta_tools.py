@@ -263,8 +263,8 @@ class MetaDataExtractor:
                     end_frame = int(floor(mask['endtime']*rate/1000.0))
                 else:
                     video_frames = self.getVideoMeta(source, show_streams=True, with_frames=True, media_types=['video'])[1][0]
-                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime']*1000)))
-                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['endtime']*1000)))
+                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime'])))
+                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['endtime'])))
                 new_mask['startframe'] = start_frame
                 new_mask['endframe'] = end_frame
                 new_masks.append(new_mask)
