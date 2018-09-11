@@ -286,7 +286,7 @@ class BuildState:
         self.check_empties = check_empties
 
     def isImage(self):
-        return self.compositeMask is not None and self.compsiteMask.isImage() or \
+        return self.compositeMask is not None and self.compositeMask.isImage() or \
                self.donorMask is not None and self.donorMask.isImage()
 
     def getName(self):
@@ -733,9 +733,12 @@ def video_resize_transform(buildState):
 
 def median_stacking(buildState):
     if buildState.isComposite:
-        return video_tools.extractMask(buildState.compositeMask.videomasks,
+        return CompositeImage(buildState.source,
+                             buildState.target,
+                              'image',
+                              video_tools.extractMask(buildState.compositeMask.videomasks,
                                        getValue(buildState.edge, 'arguments.Frame Time',
-                                                                 defaultValue='00:00:00.000'))
+                                                                 defaultValue='00:00:00.000')))
     else:
         return CompositeImage(buildState.source,
                             buildState.target,
