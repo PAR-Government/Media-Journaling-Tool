@@ -2980,8 +2980,8 @@ class CompositeDelegate:
         """
         # None in the case of empty bit plane.
         # next refactor, we fix this
-        if audio_to_video:
-            image = MetaDataExtractor.create_video_for_audio(self.graph.get_image_path(finalNodeId), image)
+        if audio_to_video and not image.isImage():
+            image.mask = MetaDataExtractor.create_video_for_audio(self.graph.get_image_path(finalNodeId), image.mask)
         if image is None:
             target_mask_filename = os.path.join(self.get_dir(),
                                                shortenName(self.edge_id[0] + '_' + self.edge_id[1] + '_' + finalNodeId,

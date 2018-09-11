@@ -60,8 +60,6 @@ class TestMetaExtractor(TestSupport):
         self.assertTrue(newMasks[1]['startframe'] != masks[0]['startframe'])
         self.assertTrue(newMasks[1]['endframe'] != masks[0]['endframe'])
 
-
-
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr_ex.mov'
