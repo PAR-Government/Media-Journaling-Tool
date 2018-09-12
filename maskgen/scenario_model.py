@@ -1297,7 +1297,8 @@ class ImageProjectModel:
                                      constructDonors=True,
                                      keepFailures=False,
                                      exclusions={},
-                                     check_empty_mask=True):
+                                     check_empty_mask=True,
+                                     audio_to_video=False):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
@@ -1307,6 +1308,7 @@ class ImageProjectModel:
         The agreed set of rules will evolve and is particular to the function.
         Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
         global.inputmaskname.
+        :param audio_to_video: If true, create video masks for audio masks, providing there are no audio masks.
         :return: The set of probes
         @rtype: list [Probe]
         """
@@ -1324,7 +1326,8 @@ class ImageProjectModel:
                     'constructDonors':constructDonors,
                     'keepFailures':keepFailures,
                     'exclusions':exclusions,
-                    'check_empty_mask':check_empty_mask
+                    'check_empty_mask':check_empty_mask,
+                    'audio_to_video':audio_to_video
                 }))
         probes = list()
         for future in futures:
@@ -1340,7 +1343,8 @@ class ImageProjectModel:
                     keepFailures=False,
                     constructDonors=True,
                     exclusions={},
-                    check_empty_mask=True):
+                    check_empty_mask=True,
+                    audio_to_video=True):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
@@ -1351,6 +1355,7 @@ class ImageProjectModel:
         Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
         global.inputmaskname.
         :param keepFailures: If true, keep probe and mark as failure.
+        :param audio_to_video: If true, create video masks for audio masks, providing there are no audio masks.
         :return: list if Probe
         @type operationTypes: list of str
         @type inclusionFunction: (tuple, dict) -> bool
@@ -1380,7 +1385,8 @@ class ImageProjectModel:
                                               exclusions=exclusions,
                                               keepFailures=keepFailures,
                                               constructDonors=constructDonors,
-                                              check_empty_mask=check_empty_mask
+                                              check_empty_mask=check_empty_mask,
+                                              audio_to_video=audio_to_video
         )
 
         probes = sorted(probes, cmp=probeCompare)

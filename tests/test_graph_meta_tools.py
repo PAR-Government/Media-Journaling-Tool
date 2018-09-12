@@ -46,6 +46,27 @@ class TestMetaExtractor(TestSupport):
         meta = extractor.getVideoMeta(target, show_streams=True)
         self.assertEqual(1000, meta[0][0]['height'])
 
+    def test_Audio_to_Video(self):
+        source = self.locateFile('tests/videos/sample1.mov')
+        extractor = MetaDataExtractor(GraphProxy(source, 'b'))
+        masks = [{'endframe': 2618367, 'rate': 44100, 'starttime': 0.0, 'frames': 2618367,
+                  'startframe': 1, 'endtime': 59373.424, 'type': 'audio'}]
+        newMasks = extractor.create_video_for_audio(source, masks=masks)
+        self.assertTrue(len(newMasks) > len(masks))
+        self.assertTrue(newMasks[1]['startframe'] == 1)
+        self.assertTrue(newMasks[1]['endframe'] == 803)
+        self.assertTrue(newMasks[1]['rate'] == 28.25)
+        self.assertTrue(newMasks[1]['endtime'] == 59348.333)
+        source = self.locateFile('tests/videos/Sample1_slow.mov')
+        masks = [{'endframe': 441000, 'rate': 44100, 'starttime': 1000.0, 'frames': 396901,
+                  'startframe': 44100, 'endtime': 10000.0, 'type': 'audio'}]
+        newMasks = extractor.create_video_for_audio(source, masks=masks)
+        self.assertTrue(len(newMasks) > len(masks))
+        self.assertTrue(newMasks[1]['rate'] == 10.0)
+        self.assertTrue(newMasks[1]['startframe'] == 11)
+        self.assertTrue(newMasks[1]['endframe'] == 100)
+
+
     def testWarp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr_ex.mov'
