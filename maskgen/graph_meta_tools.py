@@ -248,25 +248,32 @@ class MetaDataExtractor:
             return abs(dist) if dist <= 0 else float('inf')
 
         meta_and_frames = self.getVideoMeta(source, show_streams=True, with_frames=False, media_types=['video'])
+        hasVideo = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video') is not None
         meta = meta_and_frames[0][0]
         isVFR = ffmpeg_api.is_vfr(meta)
         video_masks = [mask for mask in masks if mask['type'] == 'video']
         audio_masks = [mask for mask in masks if mask['type'] == 'audio']
-        if len(video_masks) == 0:
+        if len(video_masks) == 0 and hasVideo:
+            entire_mask = getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source), media_types=['video'])[0]
+            upper_bounds = (entire_mask['endframe'], entire_mask['endtime'])
             new_masks = list(audio_masks)
             for mask in audio_masks:
+                end_time = min(mask['endtime'], upper_bounds[1])
                 new_mask = mask.copy()
                 new_mask['type'] = 'video-associate'
                 rate = get_frame_rate(self.getMetaDataLocator(source))
+                new_mask['rate'] = rate
                 if not isVFR:
-                    start_frame = int(floor(mask['starttime']*rate/1000.0))
-                    end_frame = int(floor(mask['endtime']*rate/1000.0))
+                    start_frame = int(mask['starttime']*rate/1000.0) + 1
+                    end_frame = int(end_time*rate/1000.0)
                 else:
                     video_frames = self.getVideoMeta(source, show_streams=True, with_frames=True, media_types=['video'])[1][0]
-                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime'])))
-                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['endtime'])))
+                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime']))) + 1
+                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), end_time))) + 1
+                end_frame = min(end_frame, upper_bounds[0])
                 new_mask['startframe'] = start_frame
                 new_mask['endframe'] = end_frame
+                new_mask['frames'] = (end_frame - start_frame) + 1
                 new_masks.append(new_mask)
             return new_masks
         else:

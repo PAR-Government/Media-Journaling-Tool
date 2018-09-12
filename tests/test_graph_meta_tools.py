@@ -52,12 +52,12 @@ class TestMetaExtractor(TestSupport):
         masks = [{'startframe':30, 'endframe':100, 'starttime': 5000, 'endtime': 7000, 'type':'audio'}]
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['startframe'] == 60)
-        self.assertTrue(newMasks[1]['endframe'] == 87)
+        self.assertTrue(newMasks[1]['startframe'] == 61)
+        self.assertTrue(newMasks[1]['endframe'] == 88)
         source = self.locateFile('tests/videos/Sample1_slow.mov')
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['startframe'] == 50)
+        self.assertTrue(newMasks[1]['startframe'] == 51)
         self.assertTrue(newMasks[1]['endframe'] == 70)
 
     def testWarp(self):
