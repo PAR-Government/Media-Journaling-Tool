@@ -1261,7 +1261,8 @@ class TestVideoTools(TestSupport):
             'starttime': 0,
             'endframe': 130,
             'error':1.1,
-            'endtime': 4333
+            'endtime': 4333,
+            'type': 'video'
         }], [{'starttime':0,
               'startframe': 0,
               'endframe': 130,
@@ -1304,7 +1305,8 @@ class TestVideoTools(TestSupport):
             'startframe': 90,
             'starttime': 3000,
             'endframe': 130,
-            'endtime': 4333
+            'endtime': 4333,
+            'type':'video'
         }], sets)
         self.assertEqual(4, len(result))
         self.assertEqual(15, result[0]['frames'])
@@ -1351,7 +1353,8 @@ class TestVideoTools(TestSupport):
             'startframe': 90,
             'starttime': 3000,
             'endframe': 130,
-            'endtime': 4333
+            'endtime': 4333,
+            'type': 'video'
         }], sets)
         self.assertEqual(4, len(result))
         self.assertEqual(15, result[0]['frames'])
