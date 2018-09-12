@@ -702,17 +702,15 @@ def resize_transform(buildState):
                           'image',
                           buildState.edgeMask)
 
-def video_resize_transform(buildState):
+def video_resize_helper(buildState, criteria_function):
     """
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
     @rtype: CompositeImage
     """
-    shapeChange = buildState.shapeChange()
-    args = buildState.arguments()
-    canvas_change = (shapeChange != (0, 0) and 'interpolation' in args and
-                     args['interpolation'].lower().find('none')>=0)
+
+    canvas_change = criteria_function(buildState)
     if buildState.isComposite:
         expectedSize = buildState.getVideoMetaExtractor().getNodeSize( buildState.target)
         if canvas_change:
@@ -730,6 +728,21 @@ def video_resize_transform(buildState):
                                   video_tools.resizeMask(buildState.donorMask.videomasks, expectedSize))
         return buildState.donorMask
     return None
+
+def video_resize_transform(buildState):
+    """
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    def vrt_criteria(buildState):
+        shapeChange = buildState.shapeChange()
+        args = buildState.arguments()
+        return (shapeChange != (0, 0) and 'interpolation' in args and
+                     args['interpolation'].lower().find('none')>=0)
+    return video_resize_helper(buildState, vrt_criteria)
+
 
 def median_stacking(buildState):
     if buildState.isComposite:
@@ -1948,6 +1961,15 @@ def echo(buildState):
     else:
         return buildState.donorMask
 
+def framerate_change(buildState):
+    """
+        :param buildState:
+        :return: updated composite mask
+        @type buildState: BuildState
+        @rtype: CompositeImage
+        """
+    return buildState.warpMask()
+
 def output_video_change(buildState):
     """
     :param buildState:
@@ -1955,7 +1977,14 @@ def output_video_change(buildState):
     @type buildState: BuildState
     @rtype: CompositeImage
     """
-    return buildState.warpMask()
+
+    composite_image = buildState.warpMask()
+    shapeChange = buildState.shapeChange()
+    if shapeChange != (0, 0):
+        buildState.compositeMask = composite_image if buildState.isComposite else None
+        buildState.donorMask = composite_image if not buildState.isComposite else None
+        composite_image= video_resize_helper(buildState, lambda x : True)
+    return composite_image
 
 def audio_donor(buildState):
     """
