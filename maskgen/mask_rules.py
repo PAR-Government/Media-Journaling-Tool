@@ -1948,6 +1948,15 @@ def echo(buildState):
     else:
         return buildState.donorMask
 
+def framerate_change(buildState):
+    """
+        :param buildState:
+        :return: updated composite mask
+        @type buildState: BuildState
+        @rtype: CompositeImage
+        """
+    return buildState.warpMask()
+
 def output_video_change(buildState):
     """
     :param buildState:
@@ -1955,7 +1964,7 @@ def output_video_change(buildState):
     @type buildState: BuildState
     @rtype: CompositeImage
     """
-    return buildState.warpMask()
+    return framerate_change(buildState)
 
 def audio_donor(buildState):
     """

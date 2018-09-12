@@ -4927,7 +4927,7 @@
     },
     {
       "category": "TimeAlteration",
-      "name": "TimeAlterationPosterizeTime",
+      "name": "TimeAlterationFrameRate",
       "mandatoryparameters": {
         "Frame Rate": {
           "type": "float[0:1000000]",
@@ -4939,6 +4939,9 @@
         "checkFrameTimes",
         "checkSameChannels"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.framerate_change"
+      },
       "optionalparameters": {
         "Start Time": {
           "type": "time",
@@ -4950,7 +4953,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Lock a layer to a specific frame rate.",
+      "description": "Lock a layer to a specific frame rate. May change the number of frames in the video, but not necessarily the length of the video",
       "includeInMask": {
         "default": false
       },
