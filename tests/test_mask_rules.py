@@ -31,6 +31,66 @@ class ImageGraphB:
 
 class TestMaskRules(TestSupport):
 
+    def test_output(self):
+        edge = {u'maskname': u'output_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(-100, -100)',
+                'empty mask': 'no',
+                u'op': u'OutputMOV'}
+        mask = dict()
+        mask['starttime'] = 1400
+        mask['startframe'] = 15
+        mask['endtime'] = 2400
+        mask['endframe'] = 25
+        mask['frames'] = 11
+        mask['rate'] = 10
+        mask['error'] = 0
+        mask['type'] = 'video'
+        cm = CompositeImage('a', 'b', 'video', [mask])
+        graph = Mock()
+        graph.get_node = Mock(return_value={ 'shape':'(3984, 2988)'})
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3784, 2788, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3784, 2788),
+                                directory='.',
+                                donorMask=None,
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.shapeChange = buildState.shapeChange
+            mock_composite.getVideoMetaExtractor = buildState.getVideoMetaExtractor
+            mock_composite.warpMask.return_value = CompositeImage('a','b','video',[{
+                'starttime': 1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames': 11,
+                'type': 'video',
+                'rate': 10
+            }])
+            mock_composite.compositeMask = cm
+            mock_composite.isComposite = True
+            mock_composite.getMasksFromEdge.return_value = [{
+                'starttime': 1400,
+                'startframe': 15,
+                'endtime': 2400,
+                'endframe': 25,
+                'frames': 11,
+                'type': 'video',
+                'rate': 10
+            }]
+            result = output_video_change(mock_composite)
+            self.assertEqual(1, len(result.videomasks))
+            self.assertEqual(15, result.videomasks[0]['startframe'])
+            self.assertEqual(25, result.videomasks[0]['endframe'])
+            self.assertEqual(11, result.videomasks[0]['frames'])
+            self.assertEqual(1400, result.videomasks[0]['starttime'])
+            self.assertEqual(2400.0, result.videomasks[0]['endtime'])
+
     def test_recapture_transform(self):
         edge = { u'maskname': u'Rotate_mask.png',
                   u'inputmaskname': None,
@@ -50,11 +110,11 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (5320, 7968),
                                 directory='.',
-                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                compositeMask=CompositeImage('a','b','image',openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array),
                                 pred_edges=None,
                                 graph=None)
         result = recapture_transform(buildState)
-        self.assertEquals((5320, 7968), result.shape)
+        self.assertEquals((5320, 7968), result.mask.shape)
 
         buildState = BuildState(edge,
                                 self.locateFile('images/PostRotate.png'),
@@ -67,7 +127,7 @@ class TestMaskRules(TestSupport):
                                 pred_edges=None,
                                 graph=None)
         result= recapture_transform(buildState)
-        self.assertEquals((3984, 2988), result.shape)
+        self.assertEquals((3984, 2988), result.mask.shape)
 
         edge = {u'maskname': u'Rotate_mask.png',
                 u'inputmaskname': None,
@@ -87,12 +147,12 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (5320, 7968),
                                 directory='.',
-                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'),
-                                                            isMask=True).image_array,
+                                compositeMask=CompositeImage('a','b','image',openImageFile(self.locateFile('images/Rotate_mask.png'),
+                                                            isMask=True).image_array),
                                 pred_edges=None,
                                 graph=None)
         result = recapture_transform(buildState)
-        self.assertEquals((5320, 7968),result.shape)
+        self.assertEquals((5320, 7968),result.mask.shape)
 
         buildState = BuildState(edge,
                                 self.locateFile('images/PostRotate.png'),
@@ -105,7 +165,7 @@ class TestMaskRules(TestSupport):
                                 pred_edges=None,
                                 graph=None)
         result =recapture_transform(buildState)
-        self.assertEquals((3984, 2988), result.shape)
+        self.assertEquals((3984, 2988), result.mask.shape)
 
 
     def test_rotate_transform(self):
@@ -127,11 +187,11 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3984, 2988),
                                 directory='.',
-                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array,
+                                compositeMask=CompositeImage('a','b','image',openImageFile(self.locateFile('images/Rotate_mask.png'), isMask=True).image_array),
                                 pred_edges=None,
                                 graph=None)
         result = rotate_transform(buildState)
-        self.assertEqual((3984, 2988), result.shape)
+        self.assertEqual((3984, 2988), result.mask.shape)
 
         buildState = BuildState(edge,
                                 self.locateFile('images/PreRotate.png'),
@@ -144,7 +204,7 @@ class TestMaskRules(TestSupport):
                                 pred_edges=None,
                                 graph=None)
         result = rotate_transform(buildState)
-        self.assertEqual((3984, 2988),result.shape)
+        self.assertEqual((3984, 2988),result.mask.shape)
 
         edge = {u'maskname': u'Rotate_mask.png',
                 u'inputmaskname': None,
@@ -159,12 +219,12 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (2988, 3984),
                                 directory='.',
-                                compositeMask=openImageFile(self.locateFile('images/Rotate_mask.png'),
-                                                            isMask=True).image_array,
+                                compositeMask=CompositeImage('a','b','image',openImageFile(self.locateFile('images/Rotate_mask.png'),
+                                                            isMask=True).image_array),
                                 pred_edges=None,
                                 graph=None)
         result = rotate_transform(buildState)
-        self.assertEqual((2988,3984), result.shape)
+        self.assertEqual((2988,3984), result.mask.shape)
 
         buildState = BuildState(edge,
                                 self.locateFile('images/PreRotate.png'),
@@ -177,7 +237,7 @@ class TestMaskRules(TestSupport):
                                 pred_edges=None,
                                 graph=None)
         result = rotate_transform(buildState)
-        self.assertEqual((3984, 2988), result.shape)
+        self.assertEqual((3984, 2988), result.mask.shape)
 
     def test_resize_transform(self):
         edge = {u'maskname': u'Rotate_mask.png',
@@ -193,12 +253,12 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3884, 2888),
                                 directory='.',
-                                compositeMask=np.ones((3984, 2988),dtype=np.uint8),
+                                compositeMask=CompositeImage('a','b','image',np.ones((3984, 2988),dtype=np.uint8)),
                                 pred_edges=None,
                                 graph=None)
         result = resize_transform(buildState)
-        self.assertEqual((3884, 2888), result.shape)
-        self.assertEqual(1, result[11, 11])
+        self.assertEqual((3884, 2888), result.mask.shape)
+        self.assertEqual(1, result.mask[11, 11])
 
         edge = {u'maskname': u'Rotate_mask.png',
                 u'inputmaskname': None,
@@ -223,10 +283,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3884, 2888),
                                 directory='.',
-                                compositeMask=mask,
+                                compositeMask=CompositeImage('a','b','image',mask),
                                 pred_edges=None,
                                 graph=None)
-        result = resize_transform(buildState)
+        result = resize_transform(buildState).mask
         self.assertEqual((3884, 2888), result.shape)
         self.assertEqual(0, result[201,201])
         self.assertEqual(1, result[212, 212])
@@ -237,10 +297,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3884, 2888),
                                 directory='.',
-                                donorMask=result*255,
+                                donorMask=CompositeImage('a','b','image',result*255),
                                 pred_edges=None,
                                 graph=None)
-        result = resize_transform(buildState)
+        result = resize_transform(buildState).mask
         self.assertEqual((3984, 2988), result.shape)
         ImageWrapper(result).save('foo.png')
         self.assertEqual(255, result[205, 206])
@@ -267,10 +327,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3984, 2988),
                                 directory='.',
-                                compositeMask=cm,
+                                compositeMask=CompositeImage('a','b','image',cm),
                                 pred_edges=None,
                                 graph=None)
-        result = cas_transform(buildState)
+        result = cas_transform(buildState).mask
         self.assertEqual((3984, 2988), result.shape)
         self.assertEqual(0, result[201,201])
         self.assertEqual(1, result[330, 50])
@@ -281,10 +341,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3984, 2988),
                                 directory='.',
-                                donorMask=result*255,
+                                donorMask=CompositeImage('a','b','image',result*255),
                                 pred_edges=None,
                                 graph=None)
-        result = resize_transform(buildState)
+        result = resize_transform(buildState).mask
         self.assertEqual((3984, 2988), result.shape)
         self.assertEqual(255, result[201,201])
         self.assertEqual(0, result[330, 50])
@@ -306,10 +366,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3884, 2888),
                                 directory='.',
-                                compositeMask=cm,
+                                compositeMask=CompositeImage('a','b','image',cm),
                                 pred_edges=None,
                                 graph=None)
-        result = crop_transform(buildState)
+        result = crop_transform(buildState).mask
         self.assertEqual((3884, 2888), result.shape)
         self.assertEqual(1, result[0, 0])
         self.assertEqual(0, result[26, 26])
@@ -321,10 +381,10 @@ class TestMaskRules(TestSupport):
                                 (3984, 2988),
                                 (3884, 2888),
                                 directory='.',
-                                donorMask=result,
+                                donorMask=CompositeImage('a','b','image',result),
                                 pred_edges=None,
                                 graph=None)
-        result = crop_transform(buildState)
+        result = crop_transform(buildState).mask
         self.assertEqual((3984, 2988), result.shape)
         self.assertEqual(0, result[0, 0])
         self.assertEqual(0, result[26, 26])

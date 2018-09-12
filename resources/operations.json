@@ -3902,10 +3902,6 @@
       "category": "Output",
       "name": "OutputMOV",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3944,10 +3940,6 @@
       "category": "Output",
       "name": "OutputMP4",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight: 1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -4019,10 +4011,6 @@
         "checkOutputType"
       ],
       "optionalparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
