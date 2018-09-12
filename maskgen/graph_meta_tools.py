@@ -263,6 +263,7 @@ class MetaDataExtractor:
                 new_mask['type'] = 'video-associate'
                 rate = get_frame_rate(self.getMetaDataLocator(source))
                 new_mask['rate'] = rate
+                new_mask['endtime'] = end_time
                 if not isVFR:
                     start_frame = int(mask['starttime']*rate/1000.0) + 1
                     end_frame = int(end_time*rate/1000.0)
