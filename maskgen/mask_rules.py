@@ -619,7 +619,7 @@ def recapture_transform(buildState):
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
-    @rtype: np.ndarray
+    @rtype: CompositeImage
     """
     return buildState.check_empty_mask(_apply_recapture_transform(buildState))
 
@@ -2555,7 +2555,7 @@ class Jpeg2000CompositeBuilder(CompositeBuilder):
         imarray = np.asarray(probe.targetMaskImage)
         sums = np.sum(255-imarray)
         if sums == 0:
-            logging.getLogger('maskgen').warn('Empty bit plane for edge {} to {}:{}'.format(
+            logging.getLogger('maskgen').error('Empty bit plane for edge {} to {}:{}'.format(
                 str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
             ))
         # check to see if the bits are in fact the same for a group

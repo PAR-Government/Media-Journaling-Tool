@@ -4656,10 +4656,6 @@
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -4669,6 +4665,10 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+         "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "description": "An interpolation that changes a selection of frames without changing the total number of frames",
       "includeInMask": {
