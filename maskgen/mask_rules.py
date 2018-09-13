@@ -359,15 +359,15 @@ class BuildState:
                                   self.compositeMask.target,
                                   self.compositeMask.media_type,
                                   self.meta_extractor.warpMask(self.compositeMask.videomasks,
-                                                               self.compositeMask.source,
-                                                               self.compositeMask.target))
+                                                               self.source,
+                                                               self.target))
         elif self.donorMask is not None:
             return CompositeImage(self.donorMask.source,
                                   self.donorMask.target,
                                   self.donorMask.media_type,
                                   self.meta_extractor.warpMask(self.donorMask.videomasks,
-                                                               self.donorMask.source,
-                                                               self.donorMask.target,
+                                                               self.source,
+                                                               self.target,
                                                                inverse=True))
 
     def frame_rate_check(self):
@@ -378,15 +378,15 @@ class BuildState:
                                                 self.compositeMask.target,
                                                 self.compositeMask.media_type,
                                                 self.meta_extractor.warpMask(self.compositeMask.videomasks,
-                                                                             self.compositeMask.source,
-                                                                             self.compositeMask.target))
+                                                                             self.source,
+                                                                             self.target))
         elif self.donorMask is not None:
             self.donorMask = CompositeImage(self.donorMask.source,
                                             self.donorMask.target,
                                             self.donorMask.media_type,
                                             self.meta_extractor.warpMask(self.donorMask.videomasks,
-                                                                         self.donorMask.source,
-                                                                         self.donorMask.target,
+                                                                         self.source,
+                                                                         self.target,
                                                                          inverse=True))
 
 def _compositeImageToVideoSegment(compositeImage):
