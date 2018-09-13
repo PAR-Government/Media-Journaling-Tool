@@ -435,8 +435,11 @@ def _fixVideoMasksEndFrame(scModel, gopLoader):
         end_time = getValue(edge, 'arguments.End Time')
         for mask in masks:
             if end_time is None and mask['type'] == 'video':
-                result = video_tools.get_frame_count(scModel.G.get_pathname(frm))
+                result = video_tools.get_frame_count(scModel.G.get_pathname(frm)) \
+                        if os.path.exists(scModel.G.get_pathname(frm)) else None
                 if result is None or 'endframe' not in result:
+                    rate = float(video_tools.get_rate_from_segment(mask))
+                    mask['error'] = getValue(mask,'error',0) + 2*float(1000.0/rate)
                     continue
                 diff = result['endframe'] - mask['endframe']
                 if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
@@ -552,7 +555,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
     op_mapping = {
         'AudioPan':'AudioAmplify',
         'SelectFromFrames':'SelectRegionFromFrames',
-        'ColorInterpolation':'ColorLUT'
+        'ColorInterpolation':'ColorLUT',
+        'SelectRemoveFromFrames':'ContentAwareFill'
     }
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -571,6 +575,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
                     args['Left Pan'] = args.pop('Left')
                 if 'Right' in args:
                     args['Right Pan'] = args.pop('Right')
+                if edge['op'] == 'ContentAwareFill':
+                    args['purpose'] = 'remove'
     newgroups = {}
     for k, v in groups.iteritems():
         newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]

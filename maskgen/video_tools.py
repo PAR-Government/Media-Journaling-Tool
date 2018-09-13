@@ -241,11 +241,11 @@ def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=T
     return ranges
 
 
-def __invert_mask_from_segment(segmentFileName, prefix):
+def __invert_mask_from_segment(segmentFileName, prefix,start_frame=1,start_time=0):
     """
      Invert a single video file (gray scale)
      """
-    capIn = tool_set.GrayBlockReader(segmentFileName)
+    capIn = tool_set.GrayBlockReader(segmentFileName,start_frame=start_frame,start_time=start_time)
     capOut = tool_set.GrayBlockWriter(prefix,capIn.fps)
     try:
         while True:
@@ -274,7 +274,9 @@ def invertVideoMasks(videomasks, start, end):
     result = []
     for maskdata in videomasks:
         maskdata = maskdata.copy()
-        maskdata['videosegment'] = __invert_mask_from_segment(maskdata['videosegment'], prefix)
+        maskdata['videosegment'] = __invert_mask_from_segment(maskdata['videosegment'], prefix,
+                                              start_frame=getValue(maskdata,'startframe',1),
+                                              start_time=getValue(maskdata,'starttime',0))
         result.append(maskdata)
     return result
 
@@ -2081,7 +2083,10 @@ def interpolateMask(mask_file_name_prefix,
             change = dict()
             destination_video = cv2api_delegate.videoCapture(dest_file_name)
             reader = tool_set.GrayBlockReader(os.path.join(directory,
-                                                                    mask_set['videosegment']))
+                                                                    mask_set['videosegment'],
+                                                           ),
+                                              start_frame=getValue(mask_set,'startframe',1),
+                                              start_time=getValue(mask_set,'starttime',0))
             try:
                 writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
                                                   reader.fps)
@@ -2181,7 +2186,9 @@ def dropFramesFromMask(bounds,
                 new_mask_set.extend(dropFramesWithoutMask([bound],[mask_set],keepTime=keepTime))
                 continue
             mask_file_name = mask_set['videosegment']
-            reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+            reader = tool_set.GrayBlockReader(mask_set['videosegment'],
+                                              start_frame=getValue(mask_set,'startframe',1),
+                                              start_time=getValue(mask_set,'starttime',0))
             writer = reader.create_writer()
             if keepTime:
                 elapsed_count = 0
@@ -2459,8 +2466,10 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                 if 'videosegment' not in mask_set:
                     new_mask_set.extend(reverseNonVideoMasks(mask_set,edge_video_mask))
                     continue
-                mask_file_name = mask_set['videosegment']
-                reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+                reader = tool_set.GrayBlockReader(mask_set['videosegment'],
+                                                  start_frame=getValue(mask_set, 'startframe', 1),
+                                                  start_time=getValue(mask_set, 'starttime', 0)
+                                                  )
                 try:
                     frame_count = mask_set['startframe']
                     if  frame_count < edge_video_mask['startframe']:
@@ -2582,7 +2591,7 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
         change['error'] = getValue(mask_set, 'error', 0)
         change['videosegment'] = mask_set['videosegment']
         mask_file_name = mask_set['videosegment']
-        reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+        reader = tool_set.GrayBlockReader(mask_set['videosegment'],start_time=change['startframe'], start_frame=mask_set['startframe'])
         try:
             writer = reader.create_writer()
             while True:
@@ -2624,7 +2633,10 @@ def inverse_intersection_for_mask(mask, video_masks):
         if 'videosegment' in change:
             mask_file_name = mask_set['videosegment']
             new_mask_file_name = os.path.splitext(mask_file_name)[0] + str(time.clock())
-            reader = tool_set.GrayBlockReader(mask_file_name)
+            reader = tool_set.GrayBlockReader(mask_file_name,
+                                              start_frame=getValue(mask_set, 'startframe', 1),
+                                              start_time=getValue(mask_set, 'starttime', 0)
+                                              )
             writer = tool_set.GrayBlockWriter(new_mask_file_name,reader.fps)
             while True:
                 frame_time = reader.current_frame_time()
@@ -2664,7 +2676,9 @@ def extractMask(video_masks, frame_time):
             if 'videosegment' in mask_set:
                 timeManager = tool_set.VidTimeManager(extract_time_tuple)
                 timeManager.updateToNow(mask_set['starttime'], mask_set['startframe'])
-                reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+                reader = tool_set.GrayBlockReader(mask_set['videosegment'],
+                                              start_frame=getValue(mask_set,'startframe',1),
+                                              start_time=getValue(mask_set,'starttime',0))
                 while True:
                     frame_time = reader.current_frame_time()
                     mask = reader.read()
@@ -2907,7 +2921,9 @@ def insertFrames(bounds,
                 change['error'] = getValue(mask_set,'error',0)
                 change['rate'] = rate
                 if 'videosegment' in mask_set:
-                    reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+                    reader = tool_set.GrayBlockReader(mask_set['videosegment'],
+                                              start_frame=getValue(mask_set,'startframe',1),
+                                              start_time=getValue(mask_set,'starttime',0))
                     writer = reader.create_writer()
                     transfer(reader, writer, 0, 0, change['frames'])
                     change['videosegment'] = writer.filename
@@ -2941,7 +2957,9 @@ def insertFrames(bounds,
                 change['rate'] = rate
                 change['type'] = mask_set['type']
                 if 'videosegment' in mask_set:
-                    reader = tool_set.GrayBlockReader(mask_set['videosegment'])
+                    reader = tool_set.GrayBlockReader(mask_set['videosegment'],
+                                              start_frame=getValue(mask_set,'startframe',1),
+                                              start_time=getValue(mask_set,'starttime',0))
                     writer = reader.create_writer()
                     transfer(reader, writer, end_adjust_time, end_adjust_count, change['frames'])
                     change['videosegment'] = writer.filename

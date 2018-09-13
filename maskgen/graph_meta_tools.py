@@ -11,7 +11,7 @@ import logging
 from maskgen import ffmpeg_api
 from maskgen.cv2api import cv2api_delegate
 from maskgen.support import getValue
-from maskgen.tool_set import GrayBlockReader
+from maskgen.tool_set import GrayBlockReader, fileType
 from maskgen.video_tools import get_shape_of_video, get_frame_time, getMaskSetForEntireVideo, \
     getMaskSetForEntireVideoForTuples, MetaDataLocator
 
@@ -124,6 +124,8 @@ class MetaDataExtractor:
         if matched_value is not None:
             return matched_value
         source_file = self.graph.get_image_path(source)
+        if fileType(source_file) not in ['audio','video']:
+            return default
         return ffmpeg_api.get_frame_attribute(source_file, attribute, default=default, audio=audio)
 
 
@@ -435,7 +437,9 @@ class MetaDataExtractor:
             pos += 1
             if 'videosegment' in mask_set:
                 change['videosegment'] = mask_set['videosegment']
-                reader = GrayBlockReader(mask_set['videosegment'])
+                reader = GrayBlockReader(mask_set['videosegment'],
+                                         start_frame=change['startframe'],
+                                         start_time=change['starttime'])
                 writer = None
                 try:
                     writer = reader.create_writer()
