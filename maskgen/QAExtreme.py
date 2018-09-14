@@ -635,10 +635,7 @@ class QAProjectDialog(Toplevel):
             message = 'donor'
             probe = \
         [probe for probe in self.probes if probe.edgeId[1] in self.lookup[edgeTuple[0]] and probe.donorBaseNodeId in self.lookup[edgeTuple[1]]][0]
-            n = self.scModel.G.get_node(probe.donorBaseNodeId)
-            finalFile = os.path.join(self.scModel.G.dir,
-                                 self.scModel.G.get_node(probe.donorBaseNodeId)['file'])
-            final = openImage(finalFile)
+            final, final_file = self.scModel.G.get_image(probe.donorBaseNodeId)
             finalResized = imageResizeRelative(final, (500, 500), final.size)
             imResized = imageResizeRelative(probe.donorMaskImage, (500, 500),
                                         probe.donorMaskImage.size if probe.donorMaskImage is not None else finalResized.size)
