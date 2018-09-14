@@ -43,6 +43,11 @@ def missing_donor_inputmask(edge, dir):
             edge['op'] == 'TransformMove')
 
 def eligible_donor_inputmask(edge):
+    """
+    Is the edge eligible to provide a donor
+    :param edge:
+    :return:
+    """
     return ('inputmaskname' in edge and \
             edge['inputmaskname'] is not None and \
             len(edge['inputmaskname']) > 0 and \
@@ -725,7 +730,7 @@ def sampledInputMask(op,graph, frm, to):
                     'inputmaskname' in edge and \
                     edge['inputmaskname'] is not None:
         edge.pop('inputmaskname')
-        return (Severity.ERROR,'Un-needed input mask. Auto-removal executed.')
+        return (Severity.WARNING,'Un-needed input mask. Auto-removal executed.')
     return None
 
 

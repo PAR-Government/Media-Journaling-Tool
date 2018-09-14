@@ -72,7 +72,7 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0822.b3f4049a83', [_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask])
+         ('0.5.0822.b3f4049a83', [_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks,_fix_PosterizeTime_Op])
          ])
 
     versions= list(fixes.keys())
@@ -103,6 +103,12 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fix_PosterizeTime_Op(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'TimeAlterationPosterizeTime':
+            edge['op'] = 'TimeAlterationFrameRate'
 
 def _fixDonorVideoMask(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
@@ -429,8 +435,11 @@ def _fixVideoMasksEndFrame(scModel, gopLoader):
         end_time = getValue(edge, 'arguments.End Time')
         for mask in masks:
             if end_time is None and mask['type'] == 'video':
-                result = video_tools.get_frame_count(scModel.G.get_pathname(frm))
+                result = video_tools.get_frame_count(scModel.G.get_pathname(frm)) \
+                        if os.path.exists(scModel.G.get_pathname(frm)) else None
                 if result is None or 'endframe' not in result:
+                    rate = float(video_tools.get_rate_from_segment(mask))
+                    mask['error'] = getValue(mask,'error',0) + 2*float(1000.0/rate)
                     continue
                 diff = result['endframe'] - mask['endframe']
                 if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
@@ -480,6 +489,18 @@ def _fixRANSAC(scModel,gopLoader):
         _updateEdgeHomography(args)
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
+
+def _fixVideoMasks(scModel, gopLoader):
+    def contains_files(edge):
+        return len([m for m in getValue(edge, 'videomasks', []) if getValue(m,'videosegment','') != '']) > 0
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'videomasks' in edge and contains_files(edge):
+            try:
+                scModel.select((frm, to))
+                scModel.reproduceMask()
+            except Exception as e:
+                logging.getLogger('maskgen').warning('Could not correct video masks {}->{}: {}'.format(frm,to,e.message))
 
 def _fixRaws(scModel,gopLoader):
     if scModel.G.get_project_type()!= 'image':
@@ -534,7 +555,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
     op_mapping = {
         'AudioPan':'AudioAmplify',
         'SelectFromFrames':'SelectRegionFromFrames',
-        'ColorInterpolation':'ColorLUT'
+        'ColorInterpolation':'ColorLUT',
+        'SelectRemoveFromFrames':'ContentAwareFill'
     }
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -553,6 +575,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
                     args['Left Pan'] = args.pop('Left')
                 if 'Right' in args:
                     args['Right Pan'] = args.pop('Right')
+                if edge['op'] == 'ContentAwareFill':
+                    args['purpose'] = 'remove'
     newgroups = {}
     for k, v in groups.iteritems():
         newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]

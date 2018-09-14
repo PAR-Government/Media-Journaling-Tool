@@ -11,7 +11,7 @@ import logging
 from maskgen import ffmpeg_api
 from maskgen.cv2api import cv2api_delegate
 from maskgen.support import getValue
-from maskgen.tool_set import GrayBlockReader
+from maskgen.tool_set import GrayBlockReader, fileType
 from maskgen.video_tools import get_shape_of_video, get_frame_time, getMaskSetForEntireVideo, \
     getMaskSetForEntireVideoForTuples, MetaDataLocator
 
@@ -124,6 +124,8 @@ class MetaDataExtractor:
         if matched_value is not None:
             return matched_value
         source_file = self.graph.get_image_path(source)
+        if fileType(source_file) not in ['audio','video']:
+            return default
         return ffmpeg_api.get_frame_attribute(source_file, attribute, default=default, audio=audio)
 
 
@@ -225,6 +227,61 @@ class MetaDataExtractor:
         return maskSource[0]['frames'], maskSource[0]['endtime'], \
                maskTarget[0]['frames'], maskTarget[0]['endtime'], \
                maskSource[0]['rate'], maskTarget[0]['rate']
+
+    def create_video_for_audio(self, source, masks):
+        """
+        make a mask in video time for each audio mask in masks.
+        in VFR case, uses ffmpeg frames to get nearest frame to timestamp.
+        :param source: video file
+        :param masks:
+        :return: new set of masks
+        """
+        from math import floor
+        from video_tools import get_frame_rate
+
+        def _get_frame_time(frame):
+            if 'pkt_pts_time' in frame.keys() and frame['pkt_pts_time'] != 'N/A':
+                return float(frame['pkt_pts_time']) * 1000
+            else:
+                return float(frame['pkt_dts_time']) * 1000
+
+        def _frame_distance(time_a, time_b):
+            dist = time_a - time_b
+            return abs(dist) if dist <= 0 else float('inf')
+
+        meta_and_frames = self.getVideoMeta(source, show_streams=True, with_frames=False, media_types=['video'])
+        hasVideo = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video') is not None
+        meta = meta_and_frames[0][0]
+        isVFR = ffmpeg_api.is_vfr(meta)
+        video_masks = [mask for mask in masks if mask['type'] == 'video']
+        audio_masks = [mask for mask in masks if mask['type'] == 'audio']
+        if len(video_masks) == 0 and hasVideo:
+            entire_mask = getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source), media_types=['video'])[0]
+            upper_bounds = (entire_mask['endframe'], entire_mask['endtime'])
+            new_masks = list(audio_masks)
+            for mask in audio_masks:
+                end_time = min(mask['endtime'], upper_bounds[1])
+                new_mask = mask.copy()
+                new_mask['type'] = 'video-associate'
+                rate = get_frame_rate(self.getMetaDataLocator(source))
+                new_mask['rate'] = rate
+                new_mask['endtime'] = end_time
+                if not isVFR:
+                    start_frame = int(mask['starttime']*rate/1000.0) + 1
+                    end_frame = int(end_time*rate/1000.0)
+                else:
+                    video_frames = self.getVideoMeta(source, show_streams=True, with_frames=True, media_types=['video'])[1][0]
+                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime']))) + 1
+                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), end_time))) + 1
+                end_frame = min(end_frame, upper_bounds[0])
+                new_mask['startframe'] = start_frame
+                new_mask['endframe'] = end_frame
+                new_mask['frames'] = (end_frame - start_frame) + 1
+                new_masks.append(new_mask)
+            return new_masks
+        else:
+            return masks
+
 
     def warpMask(self, video_masks, source, target, expectedType='video', inverse=False, useFFMPEG=False):
         """
@@ -380,7 +437,9 @@ class MetaDataExtractor:
             pos += 1
             if 'videosegment' in mask_set:
                 change['videosegment'] = mask_set['videosegment']
-                reader = GrayBlockReader(mask_set['videosegment'])
+                reader = GrayBlockReader(mask_set['videosegment'],
+                                         start_frame=change['startframe'],
+                                         start_time=change['starttime'])
                 writer = None
                 try:
                     writer = reader.create_writer()

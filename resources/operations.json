@@ -2924,7 +2924,7 @@
             "Minimum",
             "Maximum",
             "Mean",
-            "Maximum",
+            "Median",
             "Other"
           ],
           "rule": {
@@ -3902,10 +3902,6 @@
       "category": "Output",
       "name": "OutputMOV",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3944,10 +3940,6 @@
       "category": "Output",
       "name": "OutputMP4",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight: 1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -4019,10 +4011,6 @@
         "checkOutputType"
       ],
       "optionalparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -4668,10 +4656,6 @@
         "Start Time": {
           "type": "time",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "time",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
@@ -4681,6 +4665,10 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+         "End Time": {
+          "type": "time",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
       },
       "description": "An interpolation that changes a selection of frames without changing the total number of frames",
       "includeInMask": {
@@ -4927,7 +4915,7 @@
     },
     {
       "category": "TimeAlteration",
-      "name": "TimeAlterationPosterizeTime",
+      "name": "TimeAlterationFrameRate",
       "mandatoryparameters": {
         "Frame Rate": {
           "type": "float[0:1000000]",
@@ -4939,6 +4927,9 @@
         "checkFrameTimes",
         "checkSameChannels"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.framerate_change"
+      },
       "optionalparameters": {
         "Start Time": {
           "type": "time",
@@ -4950,7 +4941,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Lock a layer to a specific frame rate.",
+      "description": "Lock a layer to a specific frame rate. May change the number of frames in the video, but not necessarily the length of the video",
       "includeInMask": {
         "default": false
       },

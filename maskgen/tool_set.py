@@ -2598,12 +2598,12 @@ def img_analytics(z1, z2, mask=None):
 
 
 def __diffMask(img1, img2, invert, args=None):
-    dst = np.abs(np.subtract(img1, img2))
+    dst = np.abs(np.subtract(img1.astype('int16'), img2.astype('int16')))
     gray_image = np.zeros(img1.shape).astype('uint8')
     ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
     difference = difference * ii16.max
-    gray_image[dst > difference] = 255
+    gray_image[dst > 0] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis
 
@@ -2704,7 +2704,9 @@ def getSingleFrameFromMask(video_masks, directory=None):
             continue
         reader = GrayBlockReader(os.path.join(directory,
                                               mask_set['videosegment'])
-                                 if directory is not None else mask_set['videosegment'])
+                                 if directory is not None else mask_set['videosegment'],
+                                 start_frame=getValue(mask_set,'startframe',1),
+                                 start_time=getValue(mask_set,'starttime',0))
         try:
             while True:
                 mask = reader.read()
@@ -2718,7 +2720,7 @@ def getSingleFrameFromMask(video_masks, directory=None):
 
 class GrayBlockReader:
 
-    def __init__(self, filename, convert=False, preferences=None):
+    def __init__(self, filename, convert=False, preferences=None, start_time=0, start_frame=1):
         import h5py
         self.pos = 0
         self.writer = None
@@ -2726,8 +2728,8 @@ class GrayBlockReader:
         self.h_file = h5py.File(filename, 'r')
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
-        self.start_time = self.h_file.attrs['start_time']
-        self.start_frame = self.h_file.attrs['start_frame']
+        self.start_time = self.h_file.attrs['start_time'] if 'start_time' in self.h_file.attrs else start_time
+        self.start_frame = self.h_file.attrs['start_frame'] if 'start_frame' in self.h_file.attrs else start_frame
         self.convert = convert
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,

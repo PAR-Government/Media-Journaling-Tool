@@ -614,6 +614,14 @@ def run_node_rules(graph, node, external=False, preferences=None):
     @type to: str
     @type graph: ImageGraph
     """
+    def rename(graph, start, end):
+        node = graph.get_node(start)
+        file = node['file']
+        pattern = re.compile(r'[\|\'\"\(\)\,\$\? ]')
+        new_name = re.sub(pattern,'_',file)
+        os.rename(os.path.join(graph.dir, file),os.path.join(graph.dir, new_name))
+        node['file'] = new_name
+
     errors = []
     nodeData = graph.get_node(node)
     multiplebaseok = graph.getDataItem('provenance', default_value='no') == 'yes'
@@ -624,8 +632,10 @@ def run_node_rules(graph, node, external=False, preferences=None):
         pattern = re.compile(r'[\|\'\"\(\)\,\$\?]')
         foundItems = pattern.findall(nodeData['file'])
         if foundItems:
+            fix = rename if nodeData['nodetype'] == 'interim' else None
             errors.append((Severity.ERROR,
-                           "Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file'])))
+                           "Invalid characters {}  used in file name {}.".format(str(foundItems), nodeData['file']),
+                           fix))
 
     if nodeData['nodetype'] == 'final':
         fname = os.path.join(graph.dir, nodeData['file'])
