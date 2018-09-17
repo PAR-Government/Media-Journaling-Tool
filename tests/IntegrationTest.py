@@ -229,7 +229,13 @@ class MaskGenITTest(unittest.TestCase):
             os.makedirs('it/expected')
 
     def test_it(self):
-        self.assertTrue(run_it(expected_probes_directory='it', project_dir='../projects') == 0)
+        journalDir = "../projects"
+        try:
+            journalDir = os.environ['MASKGEN_TEST_FOLDER']
+        except:
+            journalDir = '../projects'
+
+        self.assertTrue(run_it(expected_probes_directory='it', project_dir=journalDir) == 0)
 
 
 if __name__ == '__main__':
