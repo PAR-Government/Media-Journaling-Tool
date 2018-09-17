@@ -2603,7 +2603,7 @@ def __diffMask(img1, img2, invert, args=None):
     ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
     difference = difference * ii16.max
-    gray_image[dst > 0] = 255
+    gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis
 
