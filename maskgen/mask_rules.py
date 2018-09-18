@@ -2169,7 +2169,7 @@ def mAlterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[
     if remember is not None:
         # print("memoize")
         return remember
-    result = alterDonor(donorMask, op, source, target, edge, directory, pred_edges, graph,check_empty_mask=check_empty_mask)
+    result = alterDonor(donorMask, op, source, target, edge, directory, pred_edges, graph, check_empty_mask=check_empty_mask)
     if maskMemory is not None:
         maskMemory[('donor', baseEdge, (source, target))] = result
     return result
@@ -2202,7 +2202,7 @@ def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[]
                             source_shape,
                             target_shape,
                             directory=directory,
-                            donorMask=donorMask if donorMask is not None and not donorMask.isEmpty() else None,
+                            donorMask=donorMask if donorMask is not None else None,
                             pred_edges=pred_edges,
                             graph=graph,
                             check_empties=check_empty_mask)
@@ -3133,6 +3133,8 @@ class CompositeDelegate:
                                        maskMemory=self.maskMemory,
                                        baseEdge=baseEdge,
                                        check_empty_mask=check_empty_mask)
+            if check_empty_mask and donorMask.isEmpty():
+                continue
             result.extend(fillEmptyMasks(pred, node, self._constructDonor(pred, donorMask, media_type=media_type,
                                                                           baseEdge=baseEdge,
                                                                           check_empty_mask=check_empty_mask)))
