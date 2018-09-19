@@ -187,7 +187,7 @@ class MakeGenUI(Frame):
 
     def _open_project(self, path):
         self.scModel.__wrapped__ = loadProject(path, username=self.get_username(), tool='jtui')
-        self.scModel.set_notifer(self.changeEvent)
+        self.scModel.set_notifier(self.changeEvent)
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
         self._setTitle()
