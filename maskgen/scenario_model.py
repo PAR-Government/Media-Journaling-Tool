@@ -760,6 +760,8 @@ class VideoVideoLinkTool(LinkTool):
             if 'mask' in item:
                 mask = ImageWrapper(item['mask']) if mask is None else mask
                 item.pop('mask')
+        if mask is None:
+            mask = ImageWrapper(np.ones(startIm.image_array.shape[0:2], dtype='uint8')*255)
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         metaDataDiff = video_tools.form_meta_data_diff(startFileName, destFileName,
