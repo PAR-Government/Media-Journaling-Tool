@@ -72,7 +72,8 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks])
+         ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op,_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
+         ('0.5.0918.25f7a6f767', [_fixVideoNode])
          ])
 
     versions= list(fixes.keys())
@@ -110,7 +111,23 @@ def _fix_PosterizeTime_Op(scModel,gopLoader):
         if edge['op'] == 'TimeAlterationPosterizeTime':
             edge['op'] = 'TimeAlterationFrameRate'
 
-def _fixDonorVideoMask(scModel,gopLoader):
+def _fixVideoNode(scModel, gopLoader):
+    from scenario_model import VideoAddTool
+    from ffmpeg_api import get_stream_indices_of_type, is_vfr
+    tool = VideoAddTool()
+    def needs_rerun(meta):
+        indices = get_stream_indices_of_type(meta, 'video')
+        if len(indices) > 0:
+            return getValue(meta[indices[0]],'is_vfr', None) is None
+        return False
+    for node_id in scModel.G.get_nodes():
+        node = scModel.G.get_node(node_id)
+        if getValue(node,'filetype','image') == 'video' and \
+                (getValue(node, 'media', None) is None or
+                  needs_rerun(getValue(node, 'media', []))):
+            node.update(tool.getAdditionalMetaData(scModel.G.get_pathname(node_id)))
+
+def _fixDonorVideoMask(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] == 'Donor' and \
@@ -495,7 +512,7 @@ def _fixVideoMasks(scModel, gopLoader):
         return len([m for m in getValue(edge, 'videomasks', []) if getValue(m,'videosegment','') != '']) > 0
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
-        if 'videomasks' in edge and contains_files(edge):
+        if 'videomasks' in edge and (contains_files(edge) or len(getValue(edge, 'videomasks', [])) == 0):
             try:
                 scModel.select((frm, to))
                 scModel.reproduceMask()

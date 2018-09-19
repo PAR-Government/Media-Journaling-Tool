@@ -2598,11 +2598,11 @@ def img_analytics(z1, z2, mask=None):
 
 
 def __diffMask(img1, img2, invert, args=None):
-    dst = np.abs(np.subtract(img1.astype('int16'), img2.astype('int16')))
+    itype = np.iinfo(img1.dtype)
+    dst = np.abs(np.subtract(img1.astype('int32'), img2.astype('int32')))
     gray_image = np.zeros(img1.shape).astype('uint8')
-    ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
-    difference = difference * ii16.max
+    difference = difference * (itype.max - itype.min)
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis

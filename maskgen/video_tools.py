@@ -833,8 +833,8 @@ def form_meta_data_diff(file_one, file_two, frames=True, media_types=['audio', '
     """
     Obtaining frame and video meta-data, compare the two videos, identify changes, frame additions and frame removals
     """
-    one_meta, one_frames = _align_streams_meta(ffmpeg_api.get_meta_from_video(file_one, show_streams=True, with_frames=frames, media_types=media_types), excludeAudio= not 'audio' in media_types)
-    two_meta, two_frames = _align_streams_meta(ffmpeg_api.get_meta_from_video(file_two, show_streams=True, with_frames=frames, media_types=media_types), excludeAudio= not 'audio' in media_types)
+    one_meta, one_frames = _align_streams_meta(ffmpeg_api.get_meta_from_video(file_one, show_streams=True, with_frames=frames, media_types=media_types, frame_limit=30), excludeAudio= not 'audio' in media_types)
+    two_meta, two_frames = _align_streams_meta(ffmpeg_api.get_meta_from_video(file_two, show_streams=True, with_frames=frames, media_types=media_types, frame_limit=30), excludeAudio= not 'audio' in media_types)
     meta_diff = compare_meta_from_streams(one_meta, two_meta)
     counters= {}
     counters['interlaced_frame'] = [0,0]
@@ -1935,6 +1935,8 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
     writer = tool_set.GrayBlockWriter(name_prefix, fps)
     mask_set = {'rate': fps,'type':'video','startframe':1,'starttime':0}
     exifdiff = None
+    compare_args = {'tolerance': getValue(arguments, 'tolerance', 0.0001)}
+    compare_args.update(arguments)
     try:
         last_time = 0
         while vid_cap.isOpened():
@@ -1953,11 +1955,9 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
             if exifdiff is None:
                 exifforvid = vid_cap.get_exif()
                 exifdiff = exif.comparexif_dict(exifforvid, img_wrapper.get_exif())
-            args = {'tolerance':0.1}
-            args.update(arguments)
             mask,analysis,error = tool_set.createMask(ImageWrapper(frame),img_wrapper,
                                 invert=True,
-                                arguments=args,
+                                arguments=compare_args,
                                 alternativeFunction=tool_set.convertCompare)
             if 'mask' not in mask_set:
                 mask_set['mask'] = mask.to_array()
@@ -2003,6 +2003,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
                                                   analysis_components.vid_one.get(cv2api_delegate.prop_fps))
     analysis_components.time_manager = time_manager
     ranges = list()
+    compare_args = {'tolerance':getValue(arguments,'tolerance',0.0001)}
     try:
         done = False
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
@@ -2026,7 +2027,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             analysis_components.mask = tool_set.__diffMask(ImageWrapper(frame_one).to_16BitGray().to_array(),
                                        ImageWrapper(frame_two).to_16BitGray().to_array(),
                                        True,
-                                       {'tolerance':0.01})[0]
+                                       compare_args)[0]
             #opening = cv2.erode(analysis_components.mask, kernel,1)
             #analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
             if not opFunc(analysis_components,ranges,arguments):

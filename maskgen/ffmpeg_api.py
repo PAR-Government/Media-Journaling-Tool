@@ -211,7 +211,7 @@ def process_stream_meta(stream, errorstream):
             add_to_meta_data(meta, prefix, line, split=False)
     return meta
 
-def get_meta_from_video(file, with_frames=False, show_streams=False, media_types=['video', 'audio'], extras=None):
+def get_meta_from_video(file, with_frames=False, show_streams=False, media_types=['video', 'audio'], extras=None, frame_limit=None):
 
     def strip(meta,frames,media_types):
         return [item for item in meta if getValue(item,'codec_type','na') in media_types],\
@@ -226,9 +226,9 @@ def get_meta_from_video(file, with_frames=False, show_streams=False, media_types
        # if extras is not None:
        #     ffmpegcommand.append('-show_entries')
        #     ffmpegcommand.append('-packet:' + ','.join(extras))
-        ffmpegcommand.append(file)
         if args != None:
-            ffmpegcommand.append(args)
+            ffmpegcommand.extend(args)
+        ffmpegcommand.append(file)
         stdout_fd, stdout_path = tempfile.mkstemp('.txt',
                                                   'stdout_{}_{}'.format(uuid.uuid4(),
                                                                         str(os.getpid())))
@@ -277,7 +277,11 @@ def get_meta_from_video(file, with_frames=False, show_streams=False, media_types
         meta = runProbe(process_stream_meta, args='')
 
     if with_frames:
-        frames = runProbeWithFrames(process_frames_from_stream, args='-show_frames')
+        if frame_limit is not None:
+            args = ['-show_frames', '-read_intervals', '%+#{}'.format(frame_limit)]
+        else:
+            args = ['-show_frames']
+        frames = runProbeWithFrames(process_frames_from_stream, args=args)
     else:
         # insure match of frames to meta
         frames = []
@@ -320,27 +324,30 @@ def get_video_frame_rate_from_meta(meta, frames):
     return len(frames[index])/float(getValue(meta[index],'duration',1)) if len(index) < len(frames) else \
         float(getValue(meta[index], 'nb_frames', 30))/float(getValue(meta[index],'duration',1))
 
-def is_vfr(meta):
+def is_vfr(meta, frames=[]):
     """
 
     :param meta:
     :return: based on meta data for video, is the stream variable frame rate
     @rtype: bool
     """
+    prior_check = getValue(meta,'is_vfr',None)
+    if prior_check is not None:
+        return prior_check
     nb = getValue(meta,'nb_frames','N/A')
     avg = getValue(meta,'avg_frame_rate','N/A')
     r = getValue(meta,'r_frame_rate','N/A')
     if (r[0] != 'N' and r != avg) or r[0] in ['N','0']  or nb[0] in ['N','0']:
         return True
-    # approach requires frames which is more expensive to gather but more efficient
-    #first_frame_duration = 0
-    #idx = 0
-    #for frame in frames:
-    #    if idx > 0:
-    ##        frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
-    #        if first_frame_duration == 0:
-    #            first_frame_duration = frame_duration
-    #        if frame_duration != first_frame_duration:
-    #            return True
-    #    idx += 1
+    # approach requires frames which is more expensive to gather but more accurate
+    first_frame_duration = 0
+    idx = 0
+    for frame in frames:
+        if idx > 0:
+            frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
+            if first_frame_duration == 0:
+                first_frame_duration = frame_duration
+            if frame_duration != first_frame_duration:
+                return True
+        idx += 1
     return False

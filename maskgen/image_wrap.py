@@ -420,6 +420,14 @@ def tiff_masssage_args(**args):
             result[k]= v
     return result
 
+def scale_of_type_change(img,dest_type):
+    itype = np.iinfo(img.dtype)
+    dtype = np.iinfo(dest_type)
+    return float((dtype.max - dtype.min))/(itype.max - itype.min)
+
+def rescale_gray_image(img):
+    return (img.astype('uint16') * scale_of_type_change(img, np.uint16)).astype('uint16')
+
 class ImageWrapper:
     """
     @type image_array: numpy.ndarray
@@ -663,9 +671,10 @@ class ImageWrapper:
         if self.mode == 'F':
             return self.convert('RGB').to_16BitGray()
         if len(s) == 2:
-            return ImageWrapper(self.to_array().astype('uint16'))
+            return ImageWrapper(rescale_gray_image(self.to_array()))
         if self.mode == 'LA':
-            return ImageWrapper(self.image_array[:, :, 0] * tofloat(self.image_array[:, :, 1]).astype('uint16'))
+            return ImageWrapper((rescale_gray_image(self.image_array[:, :, 0]) \
+                                * tofloat(self.image_array[:, :, 1])).astype('uint16'))
         rgbaimg = self.convert('RGBA') if self.mode != 'RGBA' else self
         r, g, b = rgbaimg.image_array[:, :, 0], rgbaimg.image_array[:, :, 1], rgbaimg.image_array[:, :, 2]
         if equalize_colors:

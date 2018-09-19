@@ -953,7 +953,7 @@ class AddTool:
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         parent = {}
-        meta = ffmpeg_api.get_meta_from_video(media, show_streams=True)[0]
+        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30)
         parent['media'] = meta
         width = 0
         height = 0
@@ -967,6 +967,11 @@ class VideoAddTool(AddTool):
                 rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
+        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
+        if len(indices) > 0:
+            meta[indices[0]]['is_vfr'] = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
+            # redundant but requested by NIST
+            parent['is_vfr'] = meta[indices[0]]['is_vfr']
         return parent
 
 class ZipAddTool(AddTool):
@@ -1448,7 +1453,7 @@ class ImageProjectModel:
 
     def getTransformedMask(self):
         """
-        :return: list a mask transfomed to all final image nodes
+        :return: list of CompositeImage
         """
         composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader, self.probeMaskMemory)
         return composite_generator.constructComposites(check_empty_mask=False)

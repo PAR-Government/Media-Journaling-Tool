@@ -4732,9 +4732,11 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+      "generateMask": "all",
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.select_crop_frames"
+        "video": "maskgen.mask_rules.select_crop_frames",
+        "audio_preprocess": "maskgen.mask_rules.select_crop_frames_preprocess",
+        "video_preprocess": "maskgen.mask_rules.select_crop_frames_preprocess"
       },
       "transitions": [
         "video.video"

@@ -1629,6 +1629,10 @@ def ganComponentRule(scModel, edges):
         if edgeTuple.edge['op'] == 'ObjectCGI' and \
             getValue(edgeTuple.edge,'arguments.isGAN','no') == 'yes':
             return 'yes'
+        elif edgeTuple.edge['op'] == 'PasteSplice' and \
+                'gan' in getValue(edgeTuple.edge, 'arguments.subject', 'no'):
+            return 'yes'
+
     return 'no'
 
 def _cleanEdges(scModel, edges):

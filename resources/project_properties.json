@@ -758,7 +758,7 @@
       "readonly": true,
       "node":true,
       "information": "Has a GAN provided the manipulation.",
-      "operations": ["SynthesizeGAN","AddCameraModel"],
+      "operations": ["SynthesizeGAN","AddCameraModel","DeepFakeFaceSwap","ErasureByGAN","GANFill"],
       "rule": "ganComponentRule",
       "includedonors": true
     }

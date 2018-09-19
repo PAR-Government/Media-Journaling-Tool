@@ -833,7 +833,7 @@ class MakeGenUI(Frame):
     def viewtransformed(self):
         transformed = self.scModel.getTransformedMask()
         if len(transformed)> 0:
-            CompositeViewDialog(self, self.scModel.start, transformed[0][0], self.scModel.getImage(transformed[0][1]))
+            CompositeViewDialog(self, self.scModel.start, transformed[0][0].finalMask(), self.scModel.getImage(transformed[0][2]))
 
     def renametobase(self):
         self.scModel.renametobase()
