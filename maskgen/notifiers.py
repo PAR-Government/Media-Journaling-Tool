@@ -78,6 +78,26 @@ class NotifyDelegate:
             ok &= notify(*args,**kwargs)
         return ok
 
+    def get_notifier_by_type(self, notifier_type):
+        return next((notifier for notifier in self.notifiers if isinstance(notifier, notifier_type)), None)
+
+    def replace(self, notifier):
+        try:
+            index = self.notifiers.index(notifier)
+            self.notifiers[index] = notifier
+        except ValueError:
+            self.notifiers.append(notifier)
+
+class ValidationNotifier:
+    def __init__(self, total_errors=None):
+        self.total_errors = total_errors
+
+    def __call__(self, *args, **kwargs):
+        if args[1] in ['label', 'export']:
+            return True
+        else:
+            self.total_errors = None
+            return True
 
 class QaNotifier:
     def __init__(self, scmodel):

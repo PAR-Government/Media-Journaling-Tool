@@ -50,13 +50,13 @@ prefLoader = MaskGenLoader()
 def defaultNotify(edge, message, **kwargs):
     return True
 
-def loadProject(projectFileName, notify=None):
+def loadProject(projectFileName, notify=None, username=None, tool=None):
     """
       Given JSON file name, open then the appropriate type of project
       @rtype: ImageProjectModel
     """
     graph = createGraph(projectFileName)
-    return ImageProjectModel(projectFileName, graph=graph, notify=notify)
+    return ImageProjectModel(projectFileName, graph=graph, notify=notify, username=username, tool=tool)
 
 
 def consolidate(dict1, dict2):
@@ -999,8 +999,6 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
 def true_notify(object, message, **kwargs):
     return True
 
-
-
 class ImageProjectModel:
     """
        A ProjectModel manages a project.  A project is made up of a directed graph of Image nodes and links.
@@ -1033,9 +1031,11 @@ class ImageProjectModel:
     def __init__(self, projectFileName, graph=None, notify=None,
                  baseImageFileName=None, username=None,tool=None):
         self.probeMaskMemory = DummyMemory(None)
-        self.notify = true_notify
         if notify is not None:
-            self.notify = notifiers.NotifyDelegate([notify, notifiers.QaNotifier(self)])
+            self.notify = notifiers.NotifyDelegate(
+                [notify, notifiers.QaNotifier(self), notifiers.ValidationNotifier(total_errors=None)])
+        else:
+            self.notify = notifiers.NotifyDelegate([true_notify])
         if graph is not None:
             graph.arg_checker_callback = self.__scan_args_callback
         # Group Operations are tied to models since
@@ -1046,6 +1046,10 @@ class ImageProjectModel:
         self.username = username if username is not None else get_username()
         self._setup(projectFileName, graph=graph, baseImageFileName=baseImageFileName,tool=tool)
 
+
+    def set_notifier(self, notifier):
+        self.notify = notifiers.NotifyDelegate(
+            [notifier, notifiers.QaNotifier(self), notifiers.ValidationNotifier(total_errors=None)])
 
     def get_dir(self):
         return self.G.dir
@@ -1097,7 +1101,7 @@ class ImageProjectModel:
                     self.end = None
             except Exception as ex:
                 logging.getLogger('maskgen').warn('Failed to add media file {}'.format(filename))
-            self.notify(added, 'add')
+        self.notify(added, 'add')
 
 
     def addImage(self, pathname, cgi=False, prnu=False, **kwargs):
@@ -1991,26 +1995,6 @@ class ImageProjectModel:
         self.end = edge[1]
         return True
 
-    def startNew(self, imgpathname, suffixes=[], organization=None, username=None, tool=None):
-        """ Inititalize the ProjectModel with a new project given the pathname to a base image file in a project directory """
-        projectFile = os.path.splitext(imgpathname)[0] + ".json"
-        projectType = fileType(imgpathname)
-        self.G = self._openProject(projectFile, projectType, username=username,tool=tool)
-        # do it anyway
-        self._autocorrect()
-        if organization is not None:
-            self.G.setDataItem('organization', organization)
-        self.start = None
-        self.end = None
-        self.addImagesFromDir(os.path.split(imgpathname)[0], baseImageFileName=os.path.split(imgpathname)[1],
-                              suffixes=suffixes, \
-                              sortalg=lambda f: os.stat(os.path.join(os.path.split(imgpathname)[0], f)).st_mtime)
-
-    def load(self, pathname, username=None,tool=None):
-        self.username = username if username is not None else self.username
-        """ Load the ProjectModel with a new project/graph given the pathname to a JSON file in a project directory """
-        self._setup(pathname,tool=tool)
-
     def _openProject(self, projectFileName, projecttype, username=None,tool=None):
         return createGraph(projectFileName,
                            projecttype=projecttype,
@@ -2252,6 +2236,7 @@ class ImageProjectModel:
         :param excludeUpdate: True if the update does not change the update time stamp on the journal
         :return:
         """
+        self.notify((item,value),'meta')
         self.G.setDataItem(item, value, excludeUpdate=excludeUpdate)
 
     def getVersion(self):
@@ -2278,6 +2263,11 @@ class ImageProjectModel:
         """ Return the list of errors from all validation rules on the graph.
         @rtype: list of ValidationMessage
         """
+
+        notifier = self.notify.get_notifier_by_type(notifiers.ValidationNotifier)
+        if notifier is not None and not notifier.total_errors == None:
+            return notifier.total_errors
+
         self._executeSkippedComparisons(status_cb=status_cb)
         logging.getLogger('maskgen').info('Begin validation for {}'.format(self.getName()))
         total_errors = self.validator.run_graph_suite(self.getGraph(), external=external, status_cb=status_cb)
@@ -2292,6 +2282,8 @@ class ImageProjectModel:
                                           'Project property ' + prop.description + ' is empty or invalid',
                                           'Mandatory Property',
                                           None))
+        if notifier is not None:
+            self.notify.replace(notifiers.ValidationNotifier(total_errors))
 
         return total_errors
 

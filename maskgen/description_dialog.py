@@ -1889,8 +1889,8 @@ class CommentViewer(tkSimpleDialog.Dialog):
         try:
             comment = self.master.scModel.getProjectData('qacomment')
             if comment == '':
-                raise
-        except:
+                raise ValueError('comments missing')
+        except ValueError:
             comment = 'There are no comments!'
 
         self.commentLabel = Label(self, text=comment, wraplength=400, justify=LEFT)

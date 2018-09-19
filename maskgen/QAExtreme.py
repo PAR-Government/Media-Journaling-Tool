@@ -183,11 +183,6 @@ class QAProjectDialog(Toplevel):
             col = 0
             lastpage = Frame(self)
             self.cur = lastpage
-            validlabel = Label(lastpage, justify=LEFT, text='You must run validation and check all boxes before accepting any journal.').grid(row=row, column=col, columnspan=3)
-            row +=1
-            self.validateButton = Button(lastpage, text='Check Validation', command=self.validategoodtimes, width=50)
-            self.validateButton.grid(row=row, column=col, padx=10, pady=10, columnspan=3, sticky='EW')
-            row += 1
             self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
             row += 1
             qa_list = [

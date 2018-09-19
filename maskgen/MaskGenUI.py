@@ -42,7 +42,7 @@ from software_loader import getMetDataLoader
 from cachetools import LRUCache
 from ui.ui_tools import ProgressBar, AddRemove
 from maskgen.services.probes import archive_probes
-
+import wrapt
 from QAExtreme import QAProjectDialog
 from qa_logic import ValidationData
 
@@ -154,18 +154,20 @@ class MakeGenUI(Frame):
         self.processmenu.entryconfig(5, state=state)
 
     def new(self):
-        val = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
+        file_path = tkFileDialog.askopenfilename(initialdir=self.scModel.get_dir(), title="Select base image file",
                                            filetypes=self.getMergedFileTypes())
-        if val is None or val == '':
+        if file_path is None or file_path == '':
             return
-        dir = os.path.split(val)[0]
+        dir = os.path.split(file_path)[0]
         if (not self._check_dir(dir)):
             tkMessageBox.showinfo("Error", "Directory already associated with a project")
             return
-        self.scModel.startNew(val, suffixes=self.getMergedSuffixes(),
-                              organization=self.prefLoader.get_key('organization'),
-                              username=self.get_username(),
-                              tool='jtui')
+
+        newProject = createProject(dir, base=file_path, suffixes=self.getMergedSuffixes(), tool='jtui',
+                                     organization=self.prefLoader.get_key('organization'), username=self.get_username())
+        if newProject is not None:
+            self.scModel.__wrapped__ = newProject[0]
+        self.scModel.__wrapped__.set_notifier(self.changeEvent)
         self.updateFileTypePrefs()
         self._setTitle()
         self.drawState()
@@ -184,7 +186,8 @@ class MakeGenUI(Frame):
         self.canvas.reformat()
 
     def _open_project(self, path):
-        self.scModel.load(path,username=self.get_username(),tool='jtui')
+        self.scModel.__wrapped__ = loadProject(path, username=self.get_username(), tool='jtui')
+        self.scModel.set_notifer(self.changeEvent)
         if self.scModel.getProjectData('typespref') is None:
             self.scModel.setProjectData('typespref', getFileTypes(), excludeUpdate=True)
         self._setTitle()
@@ -935,7 +938,7 @@ class MakeGenUI(Frame):
     def changeEvent(self, recipient, eventType, **kwargs):
         # UI not setup yet.  Occurs when project directory is used at command line
         if self.canvas is None:
-            return
+            return True
         if eventType == 'label' and self.canvas is not None:
             self.canvas.redrawNode(recipient)
             return True
@@ -1019,10 +1022,18 @@ class MakeGenUI(Frame):
                                                                         probe.donorMaskFileName))
 
     def startQA(self):
+        from validation.core import hasErrorMessages
+        total_errors = self.scModel.validate()
+        if hasErrorMessages(total_errors, lambda x: True):
+            tkMessageBox.showerror("Validation Errors!", "It seems this journal has unresolved validation errors. "
+                                                         "Please address these and try again.")
+            ValidationListDialog(self, total_errors, "Validation Errors")
+            return
         if self.scModel.getProjectData('validation') == 'yes':
             tkMessageBox.showinfo('QA', 'QA validation completed on ' + self.scModel.getProjectData('validationdate') +
                                ' by ' + self.scModel.getProjectData('validatedby') + '.')
         d = QAProjectDialog(self)
+        d.valid = True
 
     def comments(self):
         d = CommentViewer(self)
@@ -1297,17 +1308,19 @@ class MakeGenUI(Frame):
         self.uiProfile = uiProfile
         plugins.loadPlugins()
         self.gfl = GroupFilterLoader()
-        tuple = createProject(dir, notify=self.changeEvent, base=base, suffixes=self.getMergedSuffixes(),
-                              username=self.get_username(),
-                              organization=self.prefLoader.get_key('organization'),
-                              tool='jtui')
-        if tuple is None:
+        newProject = createProject(dir, base=base,
+                                   suffixes=self.getMergedSuffixes(),
+                                   username=self.get_username(),
+                                   organization=self.prefLoader.get_key('organization'),
+                                   tool='jtui')
+        if newProject is None:
             logging.getLogger('maskgen').warning( 'Invalid project director ' + dir)
             sys.exit(-1)
-        self.scModel = tuple[0]
+        self.scModel = wrapt.ObjectProxy(newProject[0])
+        self.scModel.set_notifier(self.changeEvent)
         self.updateFileTypePrefs()
         self.createWidgets()
-        self.startedWithNewProject = tuple[1]
+        self.startedWithNewProject = newProject[1]
 
     def initCheck(self):
         if self.prefLoader.get_key('username',None) is None:

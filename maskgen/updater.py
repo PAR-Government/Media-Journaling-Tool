@@ -17,13 +17,12 @@ Git API used to compare version of the tool with lastest on GitHub master
 
 class UpdaterGitAPI:
 
-    file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/master/VERSION'
-    #file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/VersionScanner/VERSION'
     repos = 'rwgdrummer/maskgen'
     url = 'https://api.github.com/repos'
 
-    def __init__(self):
-        pass
+    def __init__(self, branch='master'):
+        self.branch = branch
+        self.file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/{}/VERSION'.format(branch)
 
     def _get_version_file(self):
         resp = requests.get(self.file, timeout=2)
