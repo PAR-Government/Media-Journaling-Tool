@@ -2967,7 +2967,7 @@ class CompositeDelegate:
             target_mask, target_mask_filename, finalNodeId, nodetype, failure = self._finalizeCompositeMask(altered_composite,target)
             if target_mask is None:
                 continue
-            new_probe.targetMaskImage = target_mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
+            new_probe.targetMaskImage = target_mask.mask if nodetype == 'image' else tool_set.getSingleFrameFromMask(
                 target_mask.videomasks)
             new_probe.failure = failure
             result_probes.append(new_probe)
