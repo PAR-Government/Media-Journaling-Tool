@@ -73,7 +73,8 @@ def updateJournal(scModel):
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
          ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op,_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
-         ('0.5.0918.25f7a6f767', [_fixVideoNode])
+         ('0.5.0918.25f7a6f767', [_fixVideoNode]),
+         ('0.5.0918.b370476d40', [])
          ])
 
     versions= list(fixes.keys())
