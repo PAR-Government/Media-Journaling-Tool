@@ -341,13 +341,15 @@ def is_vfr(meta, frames=[]):
         return True
     # approach requires frames which is more expensive to gather but more accurate
     first_frame_duration = 0
-    idx = 0
-    for frame in frames:
-        if idx > 0:
-            frame_duration = round(float(frame['pkt_pts_time']) - float(frames[idx-1]['pkt_pts_time']), 10)
+    def to_float(v):
+        try:
+            return float(v)
+        except:
+            return 0
+    for idx in range(1, min(100, len(frames))):
+            frame_duration = round(to_float(getValue(frames[idx],'pkt_pts_time',0)) - to_float(getValue(frames[idx-1],'pkt_pts_time',0)), 10)
             if first_frame_duration == 0:
                 first_frame_duration = frame_duration
             if frame_duration != first_frame_duration:
                 return True
-        idx += 1
     return False

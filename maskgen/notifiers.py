@@ -92,6 +92,9 @@ class ValidationNotifier:
     def __init__(self, total_errors=None):
         self.total_errors = total_errors
 
+    def __eq__(self, other):
+        return other.__class__ == self.__class__
+
     def __call__(self, *args, **kwargs):
         if args[1] in ['label', 'export']:
             return True
