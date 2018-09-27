@@ -261,7 +261,8 @@
         "checkAudioTimeFormat",
         "checkOverlay",
         "checkAudioOnly",
-        "checkAudioAdd"
+        "checkAudioAdd",
+        "checkAudioSameorLonger"
       ],
       "optionalparameters": {
         "End Time": {
@@ -319,7 +320,8 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkAudioTimeFormat",
-        "checkDurationAudio"
+        "checkDurationAudio",
+        "checkAudioLength"
       ],
       "parameter_dependencies": {
         "Effects Type": {
@@ -445,7 +447,8 @@
         "checkAudioTimeFormat",
         "checkDurationAudio",
         "checkAudioOnly",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "parameter_dependencies": {
         "Filter Type": {
@@ -557,7 +560,8 @@
         "checkDurationAudio",
         "checkAudioTimeFormat",
         "checkAudioOnly",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -649,6 +653,7 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
+        "checkAudioLength",
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
@@ -724,6 +729,7 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
+        "checkAudioLength",
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
@@ -803,7 +809,8 @@
         "checkDurationAudio",
         "checkAudioTimeFormat",
         "checkAudioOnly",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "End Time": {
@@ -3672,7 +3679,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkAudioOutputType"
+        "checkAudioOutputType",
+        "checkAudioLength"
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
@@ -3982,7 +3990,8 @@
       "mandatoryparameters": {},
       "rules": [
         "checkSameChannels",
-        "checkOutputTypeM4"
+        "checkOutputTypeM4",
+        "checkAudioLength"
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
@@ -6099,7 +6108,8 @@
       "rules": [
         "checkSameChannels",
         "checkHomography",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "Homography": {

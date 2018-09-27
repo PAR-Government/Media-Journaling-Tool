@@ -20,6 +20,7 @@ from tool_set import  openImageFile, fileTypeChanged, fileType, \
 from support import getValue,setPathValue
 from graph_meta_tools import MetaDataExtractor
 from maskgen.video_tools import get_frame_rate
+from maskgen import graph_meta_tools
 
 import numpy
 from image_graph import ImageGraph
@@ -522,6 +523,60 @@ def checkAudioChannels(op,graph, frm, to):
     meta = getFileMeta(vid)
     if 'audio' not in meta:
         return (Severity.ERROR,'audio channel not present')
+
+def checkAudioSameorLonger(op, graph,frm, to):
+    edge = graph.get_edge(frm, to)
+    if edge['arguments']['add type'] == 'insert':
+        return checkAudioLengthBigger(op, graph, frm, to)
+    return checkAudioLength(op, graph, frm, to)
+
+
+def checkAudioLengthBigger(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    nStreams = ["video", "unknown", "data"]
+    try:
+        streams = getValue(edge, 'metadatadiff[0]').keys()
+        for s in streams:
+            streamOption, change = s.split(":")[0], s.split(":")[1]
+            if streamOption not in nStreams and change == "duration":
+                change = getValue(edge, 'metadatadiff[0]')[s]
+                if int(change[1]) < int(change[2]):
+                    return None
+        return (Severity.ERROR, "Audio is not longer in duration")
+    except:
+        return (Severity.ERROR, "Audio is not longer in duration")
+
+def checkAudioLengthSmaller(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    nStreams = ["video", "unknown", "data"]
+
+    try:
+        streams = getValue(edge, 'metadatadiff[0]').keys()
+        for s in streams:
+            streamOption, change = s.split(":")[0], s.split(":")[1]
+            if streamOption not in nStreams and change == "duration":
+                change = getValue(edge, 'metadatadiff[0]')[s]
+                if int(change[1]) > int(change[2]):
+                    return None
+        return (Severity.ERROR, "Audio is not shorter in duration")
+    except:
+        return (Severity.ERROR, "Audio is not shorter in duration")
+
+
+
+def checkAudioLength(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    nStreams = ["video", "unknown", "data"]
+
+    try:
+        streams = getValue(edge, 'metadatadiff[0]').keys()
+        for s in streams:
+            streamOption, change = s.split(":")[0], s.split(":")[1]
+            if streamOption not in nStreams and change == "duration":
+               return (Severity.ERROR, "Audio duration does not match")
+        return None
+    except:
+        return None
 
 
 def checkFileTypeChangeForDonor(op, graph, frm, to):
