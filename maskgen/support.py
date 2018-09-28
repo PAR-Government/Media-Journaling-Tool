@@ -79,6 +79,15 @@ def setPathValue(d, path, value):
             d[path[0:pos]] = {}
         setPathValue(d[path[0:pos]], nextpath, value)
 
+def getPathValuesFunc(path):
+    from functools import partial
+
+    def getValuePath(path, d, **kwargs):
+        return getPathValues(d, path)
+
+    return partial(getValuePath, path)
+
+
 def getPathValues(d, path):
     """
     Given a nest structure,

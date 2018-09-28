@@ -1,6 +1,7 @@
 from maskgen import scenario_model
 import unittest
 from test_support import TestSupport
+from maskgen.support import getPathValuesFunc
 import csv
 
 from maskgen.plugins import loadPlugins
@@ -16,7 +17,7 @@ class TestScenarioModel(TestSupport):
       self.assertTrue(len(errors) == 0)
       self.assertTrue('exifdiff' in analysis)
       self.addFileToRemove('test_sm.csv')
-      model.toCSV('test_sm.csv',['arguments.purpose','arguments.subject'])
+      model.toCSV('test_sm.csv',[getPathValuesFunc('arguments.purpose'),getPathValuesFunc('arguments.subject')])
       foundPasteSplice = False
       with open('test_sm.csv', 'rb') as fp:
          reader = csv.reader(fp)

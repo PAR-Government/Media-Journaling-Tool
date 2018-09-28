@@ -4,6 +4,7 @@ from maskgen import graph_output
 import os
 import csv
 from test_support import TestSupport
+from maskgen.support import getPathValuesFunc
 import numpy as np
 
 from maskgen.scenario_model import  ImageProjectModel
@@ -21,7 +22,7 @@ class TestToolSet(TestSupport):
         probeSet = scModel.getProbeSet(compositeBuilders=[Jpeg2000CompositeBuilder,ColorCompositeBuilder])
         self.assertTrue(len(probeSet) == 2)
         self.assertTrue(len([x for x in probeSet if x.edgeId == ('input_mod_2','input_mod_2_3')]) == 1)
-        scModel.toCSV('test_composite.csv',additionalpaths=['linkcolor', 'basenode'])
+        scModel.toCSV('test_composite.csv',additionalpaths=[getPathValuesFunc('linkcolor'), 'basenode'])
         self.addFileToRemove('test_composite.csv')
         with open('test_composite.csv','rb') as fp:
             reader = csv.reader(fp)

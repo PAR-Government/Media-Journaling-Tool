@@ -12,7 +12,7 @@ MAINTAIN RULES FOR VALIDATION (as referened in the operation.json's rules defini
 MAINTAIN RULES FOR PROJECT PROPERTIES and FINAL NODE PROPERTIES
 (as referenced in the property defintion if project_properties.json)
 """
-from software_loader import  getProjectProperties, getRule,getOperations
+from software_loader import  getProjectProperties, getRule, getMetDataLoader
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, getMilliSeconds,isCompressed,\
@@ -1678,6 +1678,14 @@ def _filterEdgesByOperatioName(edges, opName):
 def _filterEdgesByNodeType(scModel, edges, nodetype):
     return [edgeTuple for edgeTuple in edges if scModel.getNodeFileType(edgeTuple.start) == nodetype]
 
+def isGAN(edge, edge_id, op):
+    if edge['op'] in ["SynthesizeGAN","AddCameraModel","DeepFakeFaceSwap","ErasureByGAN","GANFill"]\
+            or edge['softwareName'] in getMetDataLoader().software_category_set['gan']:
+        return 'yes'
+    if edge['op'] == 'ObjectCGI' and \
+            getValue(edge, 'arguments.isGAN', 'no') == 'yes':
+        return 'yes'
+    return 'no'
 
 def ganComponentRule(scModel, edges):
     for edgeTuple in edges:

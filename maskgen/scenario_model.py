@@ -35,7 +35,7 @@ import copy
 from maskgen.userinfo import get_username
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 import traceback
-from support import MaskgenThreadPool, StatusTracker
+from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc
 import notifiers
 
 def formatStat(val):
@@ -1309,7 +1309,8 @@ class ImageProjectModel:
                                      keepFailures=False,
                                      exclusions={},
                                      check_empty_mask=True,
-                                     audio_to_video=False):
+                                     audio_to_video=False,
+                                     notifier=None):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
         :param saveTargets: save the result images as files
@@ -1330,7 +1331,7 @@ class ImageProjectModel:
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
             if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
-                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader, self.probeMaskMemory)
+                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader, self.probeMaskMemory,notifier=notifier)
                 futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
                     'saveTargets':saveTargets,
                     'inclusionFunction':inclusionFunction,
@@ -1338,7 +1339,7 @@ class ImageProjectModel:
                     'keepFailures':keepFailures,
                     'exclusions':exclusions,
                     'check_empty_mask':check_empty_mask,
-                    'audio_to_video':audio_to_video
+                    'audio_to_video':audio_to_video,
                 }))
         probes = list()
         for future in futures:
@@ -1355,7 +1356,9 @@ class ImageProjectModel:
                     constructDonors=True,
                     exclusions={},
                     check_empty_mask=True,
-                    audio_to_video=True):
+                    audio_to_video=True,
+                    notifier=None
+                    ):
         """
         Builds composites and donors.
         :param skipComputation: skip donor and composite construction, updating graph
@@ -1397,7 +1400,8 @@ class ImageProjectModel:
                                               keepFailures=keepFailures,
                                               constructDonors=constructDonors,
                                               check_empty_mask=check_empty_mask,
-                                              audio_to_video=audio_to_video
+                                              audio_to_video=audio_to_video,
+                                              notifier=notifier
         )
 
         probes = sorted(probes, cmp=probeCompare)
@@ -1925,6 +1929,7 @@ class ImageProjectModel:
                 prefix = startNode['seriesname']
         return prefix
 
+
     def toCSV(self, filename, additionalpaths=list(), edgeFilter=None):
         """
         Create a CSV containing all the edges of the graph.
@@ -1954,7 +1959,7 @@ class ImageProjectModel:
                     if path == 'basenode':
                         row.append(baseNodes[0])
                         continue
-                    values = getPathValues(edge, path)
+                    values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
                     if len(values) > 0:
                         row.append(values[0])
                     else:

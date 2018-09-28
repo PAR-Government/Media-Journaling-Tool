@@ -204,6 +204,7 @@ class CompositeImage:
         self.media_type = media_type
         self.videomasks = mask if media_type != 'image' else None
         self.mask = mask if media_type == 'image' else None
+        self.ok = True
 
     def __getitem__(self, item):
         if item == 0:
@@ -345,14 +346,18 @@ class BuildState:
     def getVideoMetaExtractor(self):
         return self.meta_extractor
 
-    def check_empty_mask(self, composite):
+    def check_empty_mask(self, composite, force=True):
         """
 
         :param composite:
+        :param force:  ok empty
         :return:
         @type composite: CompositeImage
         """
-        return None if composite.isEmpty() and self.check_empties else composite
+        allowed_empties = [x.split(':') for x in getValue(self.edge, 'allowed_empties', [])]
+        found = len([x for x in allowed_empties if allowed_empties[0] == composite.source and allowed_empties[1] == composite.target]) > 0
+        composite.ok = not composite.isEmpty() or not self.check_empties or force or found
+        return composite
 
     def getNodeFile(self):
         return self.meta_extractor.getNodeFile(self.source)
@@ -1336,10 +1341,10 @@ def select_remove(buildState):
         mask = tool_set.applyMask(buildState.compositeMask.mask, buildState.edgeMask)
         if buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
-        return CompositeImage(buildState.compositeMask.source,
+        return buildState.check_empty_mask(CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              mask)
+                              mask),force=False)
     else:
         mask = buildState.donorMask.mask
         # res is the donor mask
@@ -1365,10 +1370,10 @@ def crop_transform(buildState):
     if buildState.isComposite:
         mask = buildState.compositeMask.mask
         mask = mask[location[0]:buildState.targetShape[0]+location[0], location[1]:buildState.targetShape[1]+location[1]]
-        return CompositeImage(buildState.compositeMask.source,
+        return buildState.check_empty_mask(CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              mask)
+                              mask), force=True)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         expectedShape = buildState.sourceShape
@@ -1707,7 +1712,7 @@ def paste_sampled(buildState):
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] == 'remove':
             buildState.compositeMask.mask[buildState.edgeMask==0] = 0
-        return buildState.compositeMask
+        return buildState.check_empty_mask(buildState.compositeMask)
     else:
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] in ['remove']:
@@ -1725,7 +1730,7 @@ def paste_splice(buildState):
         args = buildState.arguments()
         if 'purpose' in args and args['purpose'] != 'blend':
             buildState.compositeMask.mask[buildState.edgeMask==0] = 0
-        return buildState.compositeMask
+        return buildState.check_empty_mask(buildState.compositeMask)
     elif buildState.donorMask is not None:
         # during a paste splice, the edge mask can split up the donor.
         # although I am wondering if the edgemask needs to be inverted.
@@ -2759,7 +2764,7 @@ class ColorCompositeBuilder(CompositeBuilder):
 class CompositeDelegate:
     composite = None
 
-    def __init__(self, edge_id, graph, gopLoader, maskMemory):
+    def __init__(self, edge_id, graph, gopLoader, maskMemory, notifier=None):
         """
         :param edge_id
         :param graph:
@@ -2784,6 +2789,7 @@ class CompositeDelegate:
         baseNodeIdsAndLevels = findBaseNodesWithCycleDetection(self.graph, edge_id[0])
         self.baseNodeId, self.level, self.path = baseNodeIdsAndLevels[0] if len(baseNodeIdsAndLevels) > 0 else (
         None, None)
+        self.notifier=notifier
 
     def _getComposites(self, keepFailures=False):
         """
@@ -2843,9 +2849,9 @@ class CompositeDelegate:
     def get_dir(self):
         return self.graph.dir
 
-    def _checkEmpty(self, mask, source, target, op):
+    def _continueIfEmpty(self, mask, source, target, op):
         """
-
+        We will let ok masks be dropped
         :param mask:
         :param source:
         :param target:
@@ -2854,13 +2860,17 @@ class CompositeDelegate:
         @type mask: CompositeImage
         """
         if mask is None:
-            return
+            return False
 
         if mask.isEmpty():
             logging.getLogger('maskgen').warn(
                 "Mask is empty for {} due to edge ({},{}) using operation {}.".format(
                     str(self.edge_id), source, target, op.name
                 ))
+            if self.notify is not None and not mask.ok:
+                self.notify(('empty',self.edge_id, (source,target)))
+            return not mask.ok
+        return True
 
     def constructTransformedMask(self, edge_id,
                                  compositeMask,
@@ -2900,15 +2910,17 @@ class CompositeDelegate:
                             str(edge_id),source,target,op.name
                         ))
                         break
-                    self._checkEmpty(newMask, source, target, op)
 
-                if newMask is not None:
+                isOkToGoOn = self._continueIfEmpty(newMask, source, target, op)
+
+                if isOkToGoOn:
                     results.extend(self.constructTransformedMask((source, target),
                                                                  newMask,
                                                                  saveTargets=saveTargets,
                                                                  keepFailures=keepFailures,
                                                                  check_empty_mask=check_empty_mask,
                                                                  audio_to_video=audio_to_video))
+
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.getLogger('maskgen').info('Failed composite generation: {} to {} for edge {} with operation {}'.format(
@@ -3135,7 +3147,7 @@ class CompositeDelegate:
                                     donorVideoSegments=_compositeImageToVideoSegment(
                                         donortuple.mask_wrapper) if donortuple.media_type != 'image' else None,
                                     level=self.level,
-                                    empty=self.empty,
+                                    empty=self.empty or target_mask.isEmpty(),
                                     failure=failure,
                                     donorFailure=donorFailure,
                                     finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
@@ -3150,7 +3162,7 @@ class CompositeDelegate:
                                 targetVideoSegments=target_mask.composeVideoSegments(),
                                 targetChangeSizeInPixels=target_mask.sizeOfChange(),
                                 level=self.level,
-                                empty=self.empty,
+                                empty=self.empty or target_mask.isEmpty(),
                                 failure=failure,
                                 donorFailure=donorFailure,
                                 finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
@@ -3413,7 +3425,7 @@ class CompositeDelegate:
         return donors
 
 
-def prepareComposite(edge_id, graph, gopLoader, memory=None):
+def prepareComposite(edge_id, graph, gopLoader, memory=None, notifier=None):
     """
     Depending on the edge properties, construct the composite mask
     :param graph
@@ -3424,4 +3436,4 @@ def prepareComposite(edge_id, graph, gopLoader, memory=None):
     @type edge_id: (str, str)
     @type edge: dict[str,dict]
     """
-    return CompositeDelegate(edge_id, graph, gopLoader, memory)
+    return CompositeDelegate(edge_id, graph, gopLoader, memory,notifier=notifier)
