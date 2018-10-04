@@ -43,7 +43,6 @@ class HPSpreadsheet(Toplevel):
             self.audioDir = os.path.join(self.dir, 'audio')
             self.modelDir = os.path.join(self.dir, 'model')
             self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
-            self.tempDir = os.path.join(self.dir, "temp")
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -191,17 +190,15 @@ class HPSpreadsheet(Toplevel):
         Open clicked image in system default viewer. Primarily for video and raw files.
         :return: None
         """
-        image = os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png")
+        image = os.path.join(self.imageDir, self.imName)
         if not os.path.exists(image):
-            image = os.path.join(self.imageDir, self.imName)
+            image = os.path.join(self.videoDir, self.imName)
             if not os.path.exists(image):
-                image = os.path.join(self.videoDir, self.imName)
+                image = os.path.join(self.audioDir, self.imName)
                 if not os.path.exists(image):
-                    image = os.path.join(self.audioDir, self.imName)
+                    image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
                     if not os.path.exists(image):
-                        image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
-                        if not os.path.exists(image):
-                            image = os.path.join(self.thumbnailDir, self.imName)
+                        image = os.path.join(self.thumbnailDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
@@ -235,7 +232,7 @@ class HPSpreadsheet(Toplevel):
             type_col = self.pt.get_col_by_name("FileType")
 
             if type == "image":
-                im = Image.open(os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png"))
+                im = Image.open(os.path.join(self.imageDir, self.imName))
             elif type == "model":
                 im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
             else:
@@ -475,59 +472,9 @@ class HPSpreadsheet(Toplevel):
         #self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
 
         self.processErrors = self.check_process_errors()
-        self.generate_temp_images()
         self.exportCSV(False, True)
         self.update_current_image()
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
-
-    def generate_temp_images(self):
-        name_col = self.pt.get_col_by_name("ImageFilename")
-        type_col = self.pt.get_col_by_name("Type")
-        imgs_needed = [self.pt.model.getValueAt(x, name_col) for x in xrange(0, self.pt.rows) if
-                       self.pt.model.getValueAt(x, type_col).lower() == 'image']
-
-        if not imgs_needed:
-            return
-
-        print("Generating preview images...")
-
-        if not os.path.isdir(self.tempDir):
-            os.mkdir(self.tempDir)
-
-        errs = []
-
-        for i, img in enumerate(imgs_needed):
-            new_img = os.path.join(self.tempDir, os.path.splitext(img)[0] + ".png")
-            if not os.path.isfile(new_img):
-                try:
-                    magic = subprocess.Popen(['magick', 'convert', os.path.join(self.imageDir, img), new_img],
-                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-                except WindowsError:
-                    tkMessageBox.showerror("Error", "ImageMagick must be installed to create temporary images.")
-                    return
-                if magic[1] != "":
-                    errs.append((img, magic[1]))
-            print("\r{0}% Complete".format(int(float(i+1)/len(imgs_needed) * 100))),
-        print  # This has to be here to break to the next line
-
-        print "Checking for corrupt images...  ",
-        corrupt_imgs = [i for i, e in errs if e.startswith("unknown file: data corrupted")]
-        if not corrupt_imgs:
-            print "complete"
-        else:
-            print "error"
-            tkMessageBox.showerror("Corrupt Images", "The following images have been found corrupt and will be removed"
-                                                     " from the output directory and the spreadsheet.\n\n" +
-                                   "\n".join("{0} ({1})".format(self.get_old_name(corrupt), corrupt) for corrupt in
-                                             corrupt_imgs), parent=self)
-            for i in corrupt_imgs:
-                os.remove(os.path.join(self.imageDir, i))
-                os.remove(os.path.join(self.tempDir, os.path.splitext(i)[0] + '.png'))
-                row = self.pt.get_row_by_image_name(i)
-                if row is not None:
-                    self.pt.model.df = self.pt.model.df.drop(row)
-            self.pt.update()
-        self.pt.resetIndex()
 
     def get_old_name(self, newname):
         old_col = self.pt.get_col_by_name('OriginalImageName')
@@ -758,8 +705,6 @@ class HPSpreadsheet(Toplevel):
                 if err:
                     tkMessageBox.showerror(title='Error', message='Failed to notify Trello (' + str(err) + ')', parent=self)
                 else:
-                    if os.path.isdir(self.tempDir):
-                        shutil.rmtree(self.tempDir)
                     tkMessageBox.showinfo(title='Status', message='Complete!', parent=self)
 
         else:
