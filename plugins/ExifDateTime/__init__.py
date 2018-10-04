@@ -4,7 +4,7 @@ Plugin adapted from ExifGPSChange\__init__.py
 '''
 
 from maskgen.exif import getexif
-from maskgen.video_tools import runffmpeg, get_ffmpeg_version
+from maskgen.ffmpeg_api import run_ffmpeg, get_ffmpeg_version
 import datetime
 import random
 
@@ -27,7 +27,7 @@ def modify_datetime(source, target, date, time):
     dt = " ".join([date, time + "Z"])
     # ffmpeg -i input.mp4 -c copy -map 0 -metadata creation_time="2013-06-21 12:00:00" output.mp4
 
-    runffmpeg(['-y', '-i', source, '-c', 'copy', '-map', '0', '-metadata', 'creation_time=' + dt, target])
+    run_ffmpeg(['-y', '-i', source, '-c', 'copy', '-map', '0', '-metadata', 'creation_time=' + dt, target])
     return
 
 
