@@ -59,6 +59,7 @@ class UrlMediaFetcher(Fetcher):
         return im
 
     def get_url(self, filename):
+        filename = os.path.basename(filename)
         return self.browserapi.get_url(filename)
 
 
@@ -81,14 +82,14 @@ class GraphMediaHandler:
     """
     Resolve media using local graph (in a directory)
     """
-    def __init__(self):
-        pass
+    def __init__(self, media_fetcher=FileMediaFetcher()):
+        self.media_fetcher = media_fetcher
 
     def get_image(self, graph, node_id):
         return graph.get_image(node_id)
 
     def get_url(self, graph, node_id):
-        return graph.get_pathname(node_id)
+        return self.media_fetcher.get_url(graph.get_pathname(node_id))
 
 
 class ExternalMediaHandler:
