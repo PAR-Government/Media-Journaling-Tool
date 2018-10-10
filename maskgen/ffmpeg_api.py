@@ -191,7 +191,7 @@ def get_stream_indices_of_type(stream_data, stream_type):
     for pos in range(len(stream_data)):
         if getValue(stream_data[pos],'codec_type','na') == stream_type:
             indicies.append(pos)
-    return indicies if len(indicies) > 0 else None
+    return indicies
 
 def process_stream_meta(stream, errorstream):
     meta = {}
@@ -263,6 +263,9 @@ def get_meta_from_video(file, with_frames=False, show_streams=False, media_types
         if os.path.exists(path):
             logging.getLogger('maskgen').warn("Failed to remove file {}".format(path))
 
+    if not os.path.exists(file):
+        raise ValueError("{} not found".format(file))
+
     def runProbe(func, args=None):
         ffmpegcommand = [get_ffprobe_tool(), file]
         if args != None:
@@ -331,25 +334,18 @@ def is_vfr(meta, frames=[]):
     :return: based on meta data for video, is the stream variable frame rate
     @rtype: bool
     """
+    if getValue(meta,'codec_type','na') != 'video':
+        return False
     prior_check = getValue(meta,'is_vfr',None)
     if prior_check is not None:
         return prior_check
-    nb = getValue(meta,'nb_frames','N/A')
-    avg = getValue(meta,'avg_frame_rate','N/A')
-    r = getValue(meta,'r_frame_rate','N/A')
-    if (r[0] != 'N' and r != avg) or r[0] in ['N','0']  or nb[0] in ['N','0']:
+    nb = getValue(meta,'nb_frames','N/A').lower()
+    avg = getValue(meta,'avg_frame_rate','N/A').lower()
+    r = getValue(meta,'r_frame_rate','N/A').lower()
+    if (r[0] != 'n' and r != avg) or r[0] in ['n','0'] or nb[0] in ['n','0']:
         return True
     # approach requires frames which is more expensive to gather but more accurate
-    first_frame_duration = 0
-    def to_float(v):
-        try:
-            return float(v)
-        except:
-            return 0
-    for idx in range(1, min(100, len(frames))):
-            frame_duration = round(to_float(getValue(frames[idx],'pkt_pts_time',0)) - to_float(getValue(frames[idx-1],'pkt_pts_time',0)), 10)
-            if first_frame_duration == 0:
-                first_frame_duration = frame_duration
-            if frame_duration != first_frame_duration:
-                return True
+    frame_durations = set([frame['pkt_duration_time'] for frame in frames[0:100]]) if len(frames) > 0 else []
+    if len(frame_durations) > 1:
+        return True
     return False

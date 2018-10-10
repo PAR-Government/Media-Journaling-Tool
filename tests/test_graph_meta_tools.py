@@ -1,12 +1,9 @@
-from maskgen import graph_rules
 import unittest
-from maskgen.scenario_model import loadProject
 from test_support import TestSupport
-from mock import MagicMock, Mock
-from maskgen.validation.core import Severity
 from maskgen import video_tools
-from maskgen.graph_meta_tools import MetaDataExtractor, GraphProxy
+from maskgen.graph_meta_tools import MetaDataExtractor, GraphProxy, get_meta_data_change_from_edge
 import os
+
 
 class TestMetaExtractor(TestSupport):
 
@@ -49,22 +46,46 @@ class TestMetaExtractor(TestSupport):
     def test_Audio_to_Video(self):
         source = self.locateFile('tests/videos/sample1.mov')
         extractor = MetaDataExtractor(GraphProxy(source, 'b'))
-        masks = [{'endframe': 2618367, 'rate': 44100, 'starttime': 0.0, 'frames': 2618367,
-                  'startframe': 1, 'endtime': 59373.424, 'type': 'audio'}]
+        masks = [video_tools.create_segment(endframe= 2618367,
+                                            rate= 44100,
+                                            starttime=0.0,
+                                            frames= 2618367,
+                                            startframe=1,
+                                            endtime=59373.424,
+                                            type='audio')]
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['startframe'] == 1)
-        self.assertTrue(newMasks[1]['endframe'] == 803)
-        self.assertTrue(newMasks[1]['rate'] == 28.25)
-        self.assertTrue(newMasks[1]['endtime'] == 59348.333)
+        self.assertTrue(video_tools.get_start_frame_from_segment(newMasks[1]) == 1)
+        self.assertTrue(video_tools.get_end_frame_from_segment(newMasks[1]) == 803)
+        self.assertTrue(video_tools.get_rate_from_segment(newMasks[1]) == 28.25)
+        self.assertTrue(video_tools.get_end_time_from_segment(newMasks[1]) == 59348.333)
         source = self.locateFile('tests/videos/Sample1_slow.mov')
-        masks = [{'endframe': 441000, 'rate': 44100, 'starttime': 1000.0, 'frames': 396901,
-                  'startframe': 44100, 'endtime': 10000.0, 'type': 'audio'}]
+        masks = [video_tools.create_segment(endframe= 441000,
+                                            rate= 44100,
+                                            starttime=1000.0,
+                                            frames= 396901,
+                                            startframe=44100,
+                                            endtime=10000.0,
+                                            type='audio')]
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
-        self.assertTrue(newMasks[1]['rate'] == 10.0)
-        self.assertTrue(newMasks[1]['startframe'] == 11)
-        self.assertTrue(newMasks[1]['endframe'] == 100)
+        self.assertTrue(video_tools.get_rate_from_segment(newMasks[1]) == 10.0)
+        self.assertTrue(video_tools.get_start_frame_from_segment(newMasks[1]) == 11)
+        self.assertTrue(video_tools.get_end_frame_from_segment(newMasks[1]) == 100)
+
+    def test_get_meta_data_change_from_edge(self):
+        result = get_meta_data_change_from_edge({'metadatadiff': {'video': {
+            'nb_frames': ('change',9,10),
+            'r_frame_rate': ('change',29,30),
+            'duration': ('change',10,11)
+        }}})
+        self.assertEqual(9,result[0])
+        self.assertEqual(10000, result[1])
+        self.assertEqual(10, result[2])
+        self.assertEqual(11000, result[3])
+        self.assertEqual(30, result[4])
+
+
 
 
     def testWarp(self):
@@ -73,57 +94,57 @@ class TestMetaExtractor(TestSupport):
         source_set = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(source),
                                                           start_time='29', end_time='55')
         target_set = video_tools.getMaskSetForEntireVideoForTuples(video_tools.FileMetaDataLocator(target),
-                                                                   start_time_tuple=(source_set[0]['starttime'], 0),
-                                                                   end_time_tuple=(source_set[0]['endtime'], 0))
+                                                                   start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
+                                                                   end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
         print(source_set[0])
         extractor = MetaDataExtractor(GraphProxy(source,target))
         new_mask_set = extractor.warpMask(source_set, source, source)
         print(new_mask_set[0])
-        self.assertTrue(new_mask_set[0]['frames'] == source_set[0]['frames'])
-        self.assertTrue(new_mask_set[0]['endtime'] == source_set[0]['endtime'])
-        self.assertTrue(new_mask_set[0]['rate'] == source_set[0]['rate'])
-        self.assertTrue(new_mask_set[0]['startframe'] == source_set[0]['startframe'])
-        self.assertTrue(new_mask_set[0]['starttime'] == source_set[0]['starttime'])
+        self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(source_set[0]))
+        self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(source_set[0]))
+        self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(source_set[0]))
+        self.assertTrue(video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(source_set[0]))
+        self.assertTrue(video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(source_set[0]))
         self._add_mask_files_to_kill(source_set)
         new_mask_set = extractor.warpMask(source_set,  source, target)
-        self.assertTrue(new_mask_set[0]['frames'] == target_set[0]['frames'])
-        self.assertTrue(new_mask_set[0]['endtime'] == target_set[0]['endtime'])
-        self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
-        self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
-        self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(target_set[0]))
         source_mask_set = extractor.warpMask(new_mask_set, source, target, inverse=True)
-        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
-        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error'] * 2)
-        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
-        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(video_tools.get_frames_from_segment(source_mask_set[0]) - video_tools.get_frames_from_segment(source_set[0])) < 2)
+        self.assertTrue(abs(video_tools.get_end_time_from_segment(source_mask_set[0]) - video_tools.get_end_time_from_segment(source_set[0])) < video_tools.get_error_from_segment(source_mask_set[0]) * 2)
+        self.assertTrue(abs(video_tools.get_rate_from_segment(source_mask_set[0]) - video_tools.get_rate_from_segment(source_set[0])) < 0.1)
+        self.assertTrue(abs(video_tools.get_start_frame_from_segment(source_mask_set[0]) - video_tools.get_start_frame_from_segment(source_set[0])) < 2)
         self.assertTrue(
-            abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error'] * 2)
+            abs(video_tools.get_start_time_from_segment(source_mask_set[0]) - video_tools.get_start_time_from_segment(source_set[0])) < video_tools.get_error_from_segment(source_mask_set[0]) * 2)
         new_mask_set = extractor.warpMask(source_set, source, target, useFFMPEG=True)
-        self.assertTrue(new_mask_set[0]['frames'] == target_set[0]['frames'])
-        self.assertTrue(new_mask_set[0]['endtime'] == target_set[0]['endtime'])
-        self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
-        self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
-        self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(target_set[0]))
         source_mask_set = extractor.warpMask(new_mask_set, source, target, inverse=True, useFFMPEG=True)
-        self.assertTrue(abs(source_mask_set[0]['frames'] - source_set[0]['frames']) < 2)
-        self.assertTrue(abs(source_mask_set[0]['endtime'] - source_set[0]['endtime']) < source_mask_set[0]['error'] * 2)
-        self.assertTrue(abs(source_mask_set[0]['rate'] - source_set[0]['rate']) < 0.1)
-        self.assertTrue(abs(source_mask_set[0]['startframe'] - source_set[0]['startframe']) < 2)
+        self.assertTrue(abs(video_tools.get_frames_from_segment(source_mask_set[0]) - video_tools.get_frames_from_segment(source_set[0])) < 2)
+        self.assertTrue(abs(video_tools.get_end_time_from_segment(source_mask_set[0]) - video_tools.get_end_time_from_segment(source_set[0])) < video_tools.get_error_from_segment(source_mask_set[0]) * 2)
+        self.assertTrue(abs(video_tools.get_rate_from_segment(source_mask_set[0]) - video_tools.get_rate_from_segment(source_set[0])) < 0.1)
+        self.assertTrue(abs(video_tools.get_start_frame_from_segment(source_mask_set[0]) - video_tools.get_start_frame_from_segment(source_set[0])) < 2)
         self.assertTrue(
-            abs(source_mask_set[0]['starttime'] - source_set[0]['starttime']) < source_mask_set[0]['error'] * 2)
+            abs(video_tools.get_start_time_from_segment(source_mask_set[0]) - video_tools.get_start_time_from_segment(source_set[0])) < video_tools.get_error_from_segment(source_mask_set[0]) * 2)
 
         source_set = target_set
         source = target
         target = 'sample1_ffr_2_ex.mov'
         target_set = video_tools.getMaskSetForEntireVideoForTuples(video_tools.FileMetaDataLocator(target),
-                                                                   start_time_tuple=(source_set[0]['starttime'], 0),
-                                                                   end_time_tuple=(source_set[0]['endtime'], 0))
+                                                                   start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
+                                                                   end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
         new_mask_set = extractor.warpMask(new_mask_set, source, target)
-        self.assertTrue(new_mask_set[0]['frames'] == target_set[0]['frames'])
-        self.assertTrue(new_mask_set[0]['endtime'] == target_set[0]['endtime'])
-        self.assertTrue(new_mask_set[0]['rate'] == target_set[0]['rate'])
-        self.assertTrue(new_mask_set[0]['startframe'] == target_set[0]['startframe'])
-        self.assertTrue(new_mask_set[0]['starttime'] == target_set[0]['starttime'])
+        self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(target_set[0]))
+        self.assertTrue(video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(target_set[0]))
 
 if __name__ == '__main__':
     unittest.main()

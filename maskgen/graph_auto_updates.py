@@ -72,9 +72,10 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op,_fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
-         ('0.5.0918.25f7a6f767', [_fixVideoNode]),
-         ('0.5.0918.b370476d40', [])
+         ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
+         ('0.5.0918.25f7a6f767', []),
+         ('0.5.0918.b370476d40', []),
+         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal])
          ])
 
     versions= list(fixes.keys())
@@ -106,6 +107,31 @@ def updateJournal(scModel):
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
 
+def _fixSelectRegionAutoJournal(scModel, gopLoader):
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        plugin_name = getValue(edge, 'plugin_name', '')
+        if plugin_name == 'SelectRegion':
+            setPathValue(edge, 'arguments.subject', 'other')
+
+    donor_base_tuples = scModel.getDonorAndBaseNodeTuples()
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        plugin_name = getValue(edge, 'plugin_name', '')
+        if plugin_name == 'PasteSplice':
+            for db_tuple in donor_base_tuples:
+                if to == db_tuple[0][1]:
+                    for idx in range(0, len(db_tuple[2])-1):
+                        to_node = db_tuple[2][idx]
+                        frm_node = db_tuple[2][idx+1]
+                        node_edge = scModel.G.get_edge(frm_node, to_node)
+                        if getValue(node_edge, 'op', '') == 'SelectRegion':
+                            setPathValue(edge, 'arguments.subject', getValue(node_edge, 'arguments.subject', 'other'))
+                            break
+            setPathValue(edge, 'arguments.purpose', 'add')
+
+
 def _fix_PosterizeTime_Op(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -118,8 +144,8 @@ def _fixVideoNode(scModel, gopLoader):
     tool = VideoAddTool()
     def needs_rerun(meta):
         indices = get_stream_indices_of_type(meta, 'video')
-        if len(indices) > 0:
-            return getValue(meta[indices[0]],'is_vfr', None) is None
+        if indices:
+            return True
         return False
     for node_id in scModel.G.get_nodes():
         node = scModel.G.get_node(node_id)
@@ -170,7 +196,7 @@ def _fixMetaStreamReferences(scModel, gopLoader):
         if os.path.exists(filepath):
             meta, frames = get_meta_from_video(filepath, show_streams=True, with_frames=False, media_types=['audio', 'video'])
             videoIndexes = get_stream_indices_of_type(meta, 'video')
-            return (videoIndexes != None)
+            return bool(videoIndexes)
         else:
             if 'codec_type' in nodeMeta:
                 return nodeMeta['codec_type'] == 'video'
@@ -213,11 +239,29 @@ def _fixMetaStreamReferences(scModel, gopLoader):
         frm_node = scModel.G.get_node(frm)
         to_node = scModel.G.get_node(to)
         metadiff = getValue(edge,'metadatadiff')
-        if metadiff is not None:
+        if metadiff is not None and type(metadiff) != list:
             hasvideo = [videoStreamDoesExist(frm_node), videoStreamDoesExist(to_node)]
-            for diff in metadiff:
-                remap(diff, hasvideo=hasvideo[1])
+            remap(metadiff, hasvideo=hasvideo[1])
+            edge['metadatadiff'] = metadiff
         
+
+def _fixMetaDataDiff(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        metadiff = getValue(edge,'metadatadiff')
+        if metadiff is not None:
+            if type(metadiff) == list:
+                md = {}
+                edge['metadatadiff'] = md
+                if len(metadiff) > 0:
+                    for k,v in metadiff[0].iteritems():
+                        parts = k.split(':')
+                        if len(parts) > 1:
+                            if parts[0] not in md:
+                                md[parts[0]]  = {}
+                            md[parts[0]][parts[1]] = v
+
+
 
 def _fixInputMasks(scModel,gopLoader):
     scModel.fixInputMasks()
@@ -332,7 +376,7 @@ def _fixTimeStrings(scModel, gopLoader):
         except:
             pass
 
-def _fixErasure(scModel,gopLoader):
+def _fixErasure(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if getValue(edge,'op','') == 'ErasureByGAN':
@@ -341,7 +385,7 @@ def _fixErasure(scModel,gopLoader):
             else:
                 edge['op'] = 'ErasureByGAN::Multi'
 
-def _emptyMask(scModel,gopLoader):
+def _emptyMask(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'videomasks' in edge:
@@ -515,6 +559,7 @@ def _fixVideoMasks(scModel, gopLoader):
         edge = scModel.G.get_edge(frm, to)
         if 'videomasks' in edge and (contains_files(edge) or len(getValue(edge, 'videomasks', [])) == 0):
             try:
+                edge.pop('videomasks')
                 scModel.select((frm, to))
                 scModel.reproduceMask()
             except Exception as e:

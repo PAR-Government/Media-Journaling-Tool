@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0515.afee2e2e08",
+  "version": "0.10.01.b370476d40",
   "operations": [
     {
       "category": "Audio",
@@ -62,14 +62,12 @@
         "checkAddFrameTime",
         "checkSameChannels",
         "checkUncompressed",
+        "checkSampleRate",
         "checkAudioOnly"
       ],
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.add_audio"
-      },
-      "maskTransformFunction": {
-        "video": "maskgen.mask_rules.echo",
-        "audio": "maskgen.mask_rules.echo"
+        "video": "maskgen.mask_rules.add_audio",
+        "audio": "maskgen.mask_rules.add_audio"
       },
       "optionalparameters": {
         "Copy End Time": {
@@ -115,7 +113,8 @@
       },
       "rules": [
         "checkFrameTimes",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkSampleRate"
       ],
       "optionalparameters": {
         "End Time": {
@@ -179,6 +178,7 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAudioTimeFormat",
+        "checkSampleRate",
         "checkAudioOnly"
       ],
       "optionalparameters": {
@@ -248,6 +248,7 @@
           "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "rules": [
         "checkForDonorAudio",
         "checkOverlay",
@@ -255,7 +256,8 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
-        "checkForAudio",
+        "checkSampleRate",
+        "checkForVideoRetainment",
         "checkUncompressed",
         "checkChannelLoss",
         "checkAudioTimeFormat",
@@ -319,6 +321,7 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkUncompressed",
+        "checkSampleRate",
         "checkAudioTimeFormat",
         "checkDurationAudio",
         "checkAudioLength"
@@ -445,6 +448,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkAudioTimeFormat",
+        "checkSampleRate",
         "checkDurationAudio",
         "checkAudioOnly",
         "checkFrameRateChange_Strict",
@@ -559,6 +563,7 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
+        "checkSampleRate",
         "checkAudioOnly",
         "checkFrameRateChange_Strict",
         "checkAudioLength"
@@ -650,6 +655,7 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
+        "checkSampleRate",
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
@@ -728,6 +734,7 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkDurationAudio",
+        "checkSampleRate",
         "checkAudioTimeFormat",
         "checkAudioLength",
         "checkFrameRateChange_Strict"
@@ -822,14 +829,11 @@
         "audio": "maskgen.mask_rules.replace_audio",
         "video": "maskgen.mask_rules.replace_audio"
       },
+      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
       "includeInMask": {
         "default": true
-      },
-      "maskTransformFunction": {
-        "video": "maskgen.mask_rules.echo",
-        "audio": "maskgen.mask_rules.echo"
       },
       "generateMask": "audio",
       "transitions": [
@@ -2320,7 +2324,7 @@
           "description": "An image file containing a mask describing the areas affected."
         },
         "lookuptable": {
-          "type": "string",
+          "type": "text",
           "description": "Name of the lookup table (LUT) to color grade layers of footage"
         },
         "End Time": {
@@ -4101,6 +4105,7 @@
           "description": "Subject catgeory pasted to image"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.image_interpolate",
       "rules": [
         "checkSize",
         "checkSIFT",
@@ -4190,6 +4195,7 @@
         "checkForDonor",
         "checkPasteFrameLength",
         "checkFrameTimes",
+        "checkDonorTimesMatch",
         "checkSameChannels",
         "checkFrameRateChange_Strict"
       ],
@@ -4203,6 +4209,7 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.video_donor",
       "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
       },
@@ -4260,6 +4267,7 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.video_donor",
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": {
         "default": true
@@ -4671,7 +4679,8 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkEmpty",
-        "checkFrameRateChange_Strict"
+        "checkFrameRateChange_Strict",
+        "checkLengthSame"
       ],
       "optionalparameters": {
          "End Time": {
@@ -4790,9 +4799,7 @@
           "description": "Presentation time of the select frame (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": [
-        "checkFrameRateChange_Strict"
-      ],
+      "rules": [],
       "optionalparameters": {
       },
       "description": "Select a single frame into an image.",
@@ -5303,7 +5310,7 @@
         "check_eight_bit",
         "checkSameChannels",
         "checkFrameRateChange_Strict",
-        "check_dirty_mask"
+        "checkCropMask"
       ],
       "optionalparameters": {
         "location": {
@@ -5626,6 +5633,43 @@
       "transitions": [
         "image.image",
         "video.video"
+      ]
+    },
+    {
+      "category": "Transform",
+      "name": "TransformCropResize",
+      "mandatoryparameters": {
+          "crop width": {
+            "type": "int[0:100000]",
+            "description": "The width of the crop image prior to resize"
+          },
+         "crop height": {
+            "type": "int[0:100000]",
+            "description": "The height of the crop image prior to resize"
+          }
+      },
+      "rules": [],
+      "optionalparameters": {
+         "Position Mapping": {
+          "type": "boxpair",
+          "description": "Maps the bounding regions of each image"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.crop_resize_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.cropResizeCompare"
+      },
+      "description": "Crop image and then resize image back to original image size.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
       ]
     },
     {
@@ -6237,7 +6281,8 @@
       },
       "objecturls": {
         "type": "urls",
-        "description": "CGI Object files"
+        "description": "CGI Object files",
+        "save_to_defaults": true
       }
     }
   }

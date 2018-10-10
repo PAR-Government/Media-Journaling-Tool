@@ -18,12 +18,12 @@ setup(name='maskgen',
       test_requires=['python-pptx'],
       entry_points=
        {'gui_scripts': [
-            'jtuiw = maskgen.MaskGenUI:main',
+            'jtuiw = maskgen.ui.MaskGenUI:main',
         ],
         'console_scripts': [
                'jtproject = maskgen.batch.batch_project:main',
                'jtbatch = maskgen.batch.batch_processes:main',
-               'jtui = maskgen.MaskGenUI:main',
+               'jtui = maskgen.ui.MaskGenUI:main',
                'jtprocess = maskgen.batch.batch_process:main'
         ]
        },

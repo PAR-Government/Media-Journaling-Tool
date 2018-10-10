@@ -13,7 +13,9 @@ from maskgen.cv2api import cv2api_delegate
 from maskgen.support import getValue
 from maskgen.tool_set import GrayBlockReader, fileType
 from maskgen.video_tools import get_shape_of_video, get_frame_time, getMaskSetForEntireVideo, \
-    getMaskSetForEntireVideoForTuples, MetaDataLocator
+    getMaskSetForEntireVideoForTuples, MetaDataLocator, get_end_time_from_segment, get_start_frame_from_segment, \
+    get_frames_from_segment, get_rate_from_segment, get_start_time_from_segment, get_end_frame_from_segment,\
+    get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment
 
 
 def get_meta_data_change_from_edge(edge, expectedType='video'):
@@ -28,31 +30,27 @@ def get_meta_data_change_from_edge(edge, expectedType='video'):
     changeDuration = None
     changeRate = None
     if 'metadatadiff' in edge and expectedType == 'video':
-        for item in edge['metadatadiff']:
-            if changeFrame is None:
-                changeFrame = item['0:nb_frames'][1:] if '0:nb_frames' in item and \
-                                                         item['0:nb_frames'][0] == 'change' else None
-            if changeDuration is None:
-                changeDuration = item['0:duration'][1:] if '0:duration' in item and \
-                                                           item['0:duration'][0] == 'change' else None
-            if changeRate is None:
-                changeRate = item['0:r_frame_rate'][1:] if '0:r_frame_rate' in item and \
-                                                           item['0:r_frame_rate'][0] == 'change' else None
+        change = getValue(edge,'metadatadiff.video.nb_frames',('x',0,0))
+        changeFrame =  change if change[0] == 'change' else None
+        change = getValue(edge, 'metadatadiff.video.duration', ('x', 0, 0))
+        changeDuration = change if change[0] == 'change' else None
+        change = getValue(edge, 'metadatadiff.video.r_frame_rate', getValue(edge, 'metadatadiff.video.avg_frame_rate',('x', 0, 0)))
+        changeRate = change if change[0] == 'change' else None
 
     if not changeFrame and not changeDuration:
         return None
 
     try:
         if changeFrame and changeDuration and changeRate:
-            if '/' in changeRate[1]:
-                parts = changeRate[1].split('/')
+            if '/' in str(changeRate[2]):
+                parts = changeRate[2].split('/')
                 changeRate = float(parts[0]) / float(parts[1])
             else:
-                changeRate = float(changeRate[1])
-            return int(changeFrame[0]), \
-                   float(changeDuration[0]) * 1000.0, \
-                   int(changeFrame[1]), \
+                changeRate = float(changeRate[2])
+            return int(changeFrame[1]), \
                    float(changeDuration[1]) * 1000.0, \
+                   int(changeFrame[2]), \
+                   float(changeDuration[2]) * 1000.0, \
                    changeRate
     except:
         pass
@@ -224,9 +222,9 @@ class MetaDataExtractor:
 
         maskSource = getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source), media_types=[expectedType])
         maskTarget = getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(target), media_types=[expectedType])
-        return maskSource[0]['frames'], maskSource[0]['endtime'], \
-               maskTarget[0]['frames'], maskTarget[0]['endtime'], \
-               maskSource[0]['rate'], maskTarget[0]['rate']
+        return get_frames_from_segment(maskSource[0]), get_end_time_from_segment(maskSource[0]), \
+               get_frames_from_segment(maskTarget[0]), get_end_time_from_segment(maskTarget[0]), \
+               get_rate_from_segment(maskSource[0]), get_rate_from_segment(maskTarget[0])
 
     def create_video_for_audio(self, source, masks):
         """
@@ -250,33 +248,36 @@ class MetaDataExtractor:
             return abs(dist) if dist <= 0 else float('inf')
 
         meta_and_frames = self.getVideoMeta(source, show_streams=True, with_frames=False, media_types=['video'])
-        hasVideo = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video') is not None
+        hasVideo = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video')
         meta = meta_and_frames[0][0]
         isVFR = ffmpeg_api.is_vfr(meta)
-        video_masks = [mask for mask in masks if mask['type'] == 'video']
-        audio_masks = [mask for mask in masks if mask['type'] == 'audio']
+        video_masks = [mask for mask in masks if get_type_of_segment(mask)== 'video']
+        audio_masks = [mask for mask in masks if get_type_of_segment(mask) == 'audio']
         if len(video_masks) == 0 and hasVideo:
             entire_mask = getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source), media_types=['video'])[0]
-            upper_bounds = (entire_mask['endframe'], entire_mask['endtime'])
+            upper_bounds = (get_end_frame_from_segment(entire_mask), get_end_time_from_segment(entire_mask))
             new_masks = list(audio_masks)
             for mask in audio_masks:
-                end_time = min(mask['endtime'], upper_bounds[1])
+                end_time = min(get_end_time_from_segment(mask), upper_bounds[1])
                 new_mask = mask.copy()
-                new_mask['type'] = 'video-associate'
                 rate = get_frame_rate(self.getMetaDataLocator(source))
-                new_mask['rate'] = rate
-                new_mask['endtime'] = end_time
                 if not isVFR:
-                    start_frame = int(mask['starttime']*rate/1000.0) + 1
-                    end_frame = int(end_time*rate/1000.0)
+                    start_frame = int(get_start_time_from_segment(mask) * rate / 1000.0) + 1
+                    end_frame = int(end_time * rate / 1000.0)
                 else:
-                    video_frames = self.getVideoMeta(source, show_streams=True, with_frames=True, media_types=['video'])[1][0]
-                    start_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), mask['starttime']))) + 1
-                    end_frame = video_frames.index(min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), end_time))) + 1
+                    video_frames = \
+                    self.getVideoMeta(source, show_streams=True, with_frames=True, media_types=['video'])[1][0]
+                    start_frame = video_frames.index(
+                        min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), get_start_time_from_segment(mask)))) + 1
+                    end_frame = video_frames.index(
+                        min(video_frames, key=lambda x: _frame_distance(_get_frame_time(x), end_time))) + 1
                 end_frame = min(end_frame, upper_bounds[0])
-                new_mask['startframe'] = start_frame
-                new_mask['endframe'] = end_frame
-                new_mask['frames'] = (end_frame - start_frame) + 1
+                update_segment(new_mask,
+                               type= 'video-associate',
+                               rate=rate,
+                               endtime=end_time,
+                               startframe=start_frame,
+                               endframe=end_frame)
                 new_masks.append(new_mask)
             return new_masks
         else:
@@ -341,17 +342,17 @@ class MetaDataExtractor:
                     element = hits[hitspos][1]
                     error = abs(aptime - hits[hitspos][0])
                     if element == 'starttime':
-                        mask['starttime'] = lasttime
-                        mask['startframe'] = pos
-                        mask['error'] = error + getValue(mask, 'error', 0)
+                        update_segment(mask,
+                                       starttime=lasttime,
+                                       startframe=pos,
+                                       error=error + get_error_from_segment(mask))
                         start_mask = mask
                     else:
-                        mask['endtime'] = lasttime
-                        # only record the error if not recorded
-                        if start_mask != mask:
-                            mask['error'] = error + getValue(mask, 'error', 0)
-                        mask['endframe'] = pos
-                        mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+                        # for error, only record the error if not recorded
+                        update_segment(mask,
+                                       endtime=lasttime,
+                                       endframe=pos,
+                                       error=(error if start_mask != mask else 0) + get_error_from_segment(mask))
                     hitspos += 1
                 lasttime = aptime
             return mask
@@ -371,14 +372,15 @@ class MetaDataExtractor:
                         element = hits[hitspos][1]
                         error = max(abs(last - hits[hitspos][0]), abs(aptime - hits[hitspos][0]))
                         if element == 'starttime':
-                            mask['starttime'] = last
-                            mask['startframe'] = frmcnt
-                            mask['error'] = error
+                            update_segment(mask,
+                                           starttime =last,
+                                           startframe=frmcnt,
+                                           error = error)
                         else:
-                            mask['endtime'] = last
-                            mask['error'] = max(error, getValue(mask, 'error', 0))
-                            mask['endframe'] = frmcnt
-                            mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+                            update_segment(mask,
+                                           endtime =last,
+                                           endframe=frmcnt,
+                                           error = max(error, get_error_from_segment(mask)))
                         hitspos += 1
                     last = aptime
             finally:
@@ -394,29 +396,34 @@ class MetaDataExtractor:
             if 'type' in mask_set and mask_set['type'] != expectedType:
                 new_mask_set.append(mask_set)
                 continue
-            change = dict()
-            change['rate'] = sourceRate if inverse else targetRate
-            change['type'] = mask_set['type']
-            change['starttime'] = apply_change(mask_set['starttime'], sourceTime, targetTime, inverse=inverse,
-                                               round_value=False)
-            change['startframe'], error_start = apply_change(mask_set['startframe'], float(sourceFrames),
-                                                             float(targetFrames), inverse=inverse, round_value=True)
-            change['endtime'] = apply_change(mask_set['endtime'], float(sourceTime), targetTime, inverse=inverse,
-                                             round_value=False)
-            change['endframe'], error_end = apply_change(mask_set['endframe'], float(sourceFrames), float(targetFrames),
+            startframe, error_start = apply_change(get_start_frame_from_segment(mask_set), float(sourceFrames),
+                                       float(targetFrames), inverse=inverse, round_value=True)
+            endframe, error_end = apply_change(get_end_frame_from_segment(mask_set), float(sourceFrames), float(targetFrames),
                                                          inverse=inverse,
                                                          round_value=True)
+            endtime = apply_change(get_end_time_from_segment(mask_set), float(sourceTime), targetTime, inverse=inverse,
+                                             round_value=False)
+            starttime = apply_change(get_start_time_from_segment(mask_set), sourceTime, targetTime, inverse=inverse,
+                                               round_value=False)
+
+
             try:
-                if change['endframe'] == int(getValue(meta_o[index_o], 'nb_frames', 0)) and \
+                if endframe == int(getValue(meta_o[index_o], 'nb_frames', 0)) and \
                                 float(getValue(meta_o[index_o], 'duration', 0)) > 0:
-                    change['endtime'] = float(getValue(meta_o[index_o], 'duration', 0)) * 1000.0
+                    endtime = float(getValue(meta_o[index_o], 'duration', 0)) * 1000.0
             except:
                 pass
-            change['error'] = getValue(mask_set, 'error', 0) + (max(error_start, error_end) * targetRate)
-            change['frames'] = change['endframe'] - change['startframe'] + 1
+            change = create_segment(rate=sourceRate if inverse else targetRate,
+                                    type=get_type_of_segment(mask_set),
+                                    starttime=starttime,
+                                    startframe=startframe,
+                                    error=get_error_from_segment(mask_set) + (max(error_start, error_end) * targetRate),
+                                    endtime=endtime,
+                                    endframe=endframe,
+                                    videosegment=get_file_from_segment(mask_set))
             new_mask_set.append(change)
-            hits.append((change['starttime'], 'starttime', change))
-            hits.append((change['endtime'], 'endime', change))
+            hits.append((get_start_time_from_segment(change), 'starttime', change))
+            hits.append((get_end_time_from_segment(change), 'endime', change))
 
         # only required when one of the two videos is variable rate
         hits = sorted(hits)
@@ -435,16 +442,15 @@ class MetaDataExtractor:
         for mask_set in video_masks:
             change = new_mask_set[pos]
             pos += 1
-            if 'videosegment' in mask_set:
-                change['videosegment'] = mask_set['videosegment']
-                reader = GrayBlockReader(mask_set['videosegment'],
-                                         start_frame=change['startframe'],
-                                         start_time=change['starttime'])
+            if get_file_from_segment(mask_set):
+                reader = GrayBlockReader(get_file_from_segment(mask_set),
+                                         start_frame=get_start_frame_from_segment(change),
+                                         start_time=get_start_time_from_segment(change))
                 writer = None
                 try:
                     writer = reader.create_writer()
-                    frame_time = change['starttime']
-                    frame_count = change['startframe']
+                    frame_time = get_start_time_from_segment(change)
+                    frame_count = get_start_frame_from_segment(change)
                     while True:
                         mask = reader.read()
                         if mask is not None:
@@ -454,11 +460,11 @@ class MetaDataExtractor:
                         frame_count += 1
                         # for now, assume fixed rate.
                         frame_time += 1000.0 / targetRate
-                    change['videosegment'] = writer.filename
+                    update_segment(change,videosegment = writer.filename)
 
                 except Exception as e:
                     logging.getLogger('maskgen').error(
-                        'Failed to transform time for {}'.format(mask_set['videosegment']))
+                        'Failed to transform time for {}'.format(get_file_from_segment(mask_set)))
                     logging.getLogger('maskgen').error(e)
                 finally:
                     reader.close()

@@ -198,38 +198,23 @@ class VideoMetaDiff:
         return 'FRAME'
 
     def getSections(self):
-        return ['Global'] + self.diffData[1].keys()
+        return self.diffData.keys()
 
     def getColumnNames(self, section):
         return ['Operation', 'Old', 'New']
 
     def toColumns(self, section):
         d = {}
+        if len(self.diffData) == 0:
+            return d
         if section is None:
-            section = 'Global'
-        if section == 'Global':
-            self._sectionChanges(d, self.diffData[0])
-        else:
-            itemTuple = self.diffData[1][section]
-            if itemTuple[0] == 'add':
-                d['add'] = {'Operation': '', 'Old': '', 'New': ''}
-            elif itemTuple[0] == 'delete':
-                d['delete'] = {'Operation': '', 'Old': '', 'New': ''}
-            else:
-                for changeTuple in itemTuple[1]:
-                    if changeTuple[0] == 'add':
-                        d[str(changeTuple[1])] = {'Operation': 'add', 'Old': '',
-                                                  'New': str(changeTuple[3]) + ':=>' + str(changeTuple[2])}
-                    elif changeTuple[0] == 'delete':
-                        d[str(changeTuple[1])] = {'Operation': 'delete',
-                                                  'Old': str(changeTuple[3]) + ':=>' + str(changeTuple[2]), 'New': ''}
-                    else:
-                        self._sectionChanges(d, changeTuple[4], prefix=str(changeTuple[3]))
+            section = self.diffData.keys()[0]
+        self._sectionChanges(d, self.diffData[section])
         return d
 
     def _sectionChanges(self, d, sectionData, prefix=''):
         for k, v in sectionData.iteritems():
-            dictKey = k if prefix == '' else prefix + ': ' + str(k)
+            dictKey = str(k)
             old = v[1] if v[0].lower() == 'change' or v[0].lower() == 'delete' else ''
             new = v[2] if v[0].lower() == 'change' else (v[1] if v[0].lower() == 'add' else '')
             if type(old) is not str:
@@ -373,6 +358,34 @@ class LinkTool:
     def __init__(self):
         return
 
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.donothing_processor"
+
+    def processDonors(self, scModel, start, destination, startIm, startFileName, destIm, destFileName, arguments, invert=False):
+        """
+
+        :param scModel:
+        :param destination:
+        :param startIm:
+        :param startFileName:
+        :param destIm:
+        :param destFileName:
+        :param arguments:
+        :param invert:
+        :return:
+        @type scModel: ImageProjectModel
+        """
+        result = scModel.getCreatingOperation(destination)
+        if result is not None:
+            return result[1].getDonorProcessor(default_processor=self.getDefaultDonorProcessor())(
+                                                          scModel.getGraph(),
+                                                          start,
+                                                          destination,
+                                                          result[0],
+                                                          (startIm, startFileName),
+                                                          (destIm, destFileName)).create(arguments=arguments,
+                                                          invert=invert)
+
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
         return None, {}, []
@@ -470,34 +483,8 @@ class ImageImageLinkTool(LinkTool):
             analysis = {}
             if not skipDonorAnalysis:
                 errors = list()
-                for pred in predecessors:
-                    pred_edge = scModel.G.get_edge(pred, destination)
-                    edge_op = scModel.gopLoader.getOperationWithGroups(pred_edge['op'])
-                    expect_donor_mask = edge_op is not None and 'checkSIFT' in edge_op.rules
-                    if expect_donor_mask:
-                        expect_donor_mask = getValue(scModel.G.get_edge(pred, destination), 'arguments.homography','None') not in ['None', 'Map']
-                        mask = scModel.G.get_edge_image(pred, destination, 'arguments.pastemask')
-                        if mask is None:
-                            mask = scModel.G.get_edge_image(pred, destination, 'maskname')
-                        mask, analysis = interpolateMask(
-                            mask, startIm, destIm,
-                            arguments=consolidate(arguments, analysis_params), invert=invert)
-                        if mask is not None and mask.shape != (0,0):
-                            mask = ImageWrapper(mask)
-                        else:
-                            mask = None
-                        break
-            if mask is None:
-                analysis = {}
-                predecessors = scModel.G.predecessors(start)
-                for pred in predecessors:
-                    edge = scModel.G.get_edge(pred, start)
-                    # probably should change this to == 'SelectRegion'
-                    if edge['op'] == 'SelectRegion':
-                        mask = invertMask(scModel.G.get_edge_image(pred, start, 'maskname'))
-                        if mask.size != startIm.size:
-                            mask = mask.resize(startIm.size, Image.ANTIALIAS)
-                        break
+                mask = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                          consolidate(arguments, analysis_params), invert=invert)
             if mask is None:
                 mask = convertToMask(startIm).invert()
                 if expect_donor_mask:
@@ -538,6 +525,9 @@ class VideoImageLinkTool(ImageImageLinkTool):
 
     def __init__(self):
         ImageImageLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.video_without_audio_donor"
 
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -596,6 +586,9 @@ class ZipImageLinkTool(VideoImageLinkTool):
     def __init__(self):
         VideoImageLinkTool.__init__(self)
 
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.donothing_stream_processor"
+
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
             Return both images, the mask set and the meta-data diff results
@@ -645,12 +638,13 @@ class ZipImageLinkTool(VideoImageLinkTool):
                                                                                                    'End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
+                                                       #alternateFrameFunction=operation.getCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         # for now, just save the first mask
-        if len(maskSet) > 0 and 'mask' in maskSet[0]:
-            mask = ImageWrapper(maskSet[0]['mask'])
+        if len(maskSet) > 0 and video_tools.get_mask_from_segment( maskSet[0] ) is not None:
+            mask = ImageWrapper(video_tools.get_mask_from_segment( maskSet[0] ))
             for item in maskSet:
-                item.pop('mask')
+                video_tools.drop_mask_from_segment(item)
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         metaDataDiff = None
@@ -670,13 +664,16 @@ class VideoVideoLinkTool(LinkTool):
     def __init__(self):
         LinkTool.__init__(self)
 
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.video_without_audio_donor"
+
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
             Return both images, the mask set and the meta-data diff results
         """
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(end)
-        mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp', skipDonorAnalysis=True,
+        mask, analysis, errors = self.compareImages(start, end, scModel, 'noOp',
                                                     arguments=arguments, analysis_params={})
         if 'metadatadiff' in analysis:
             analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
@@ -686,28 +683,6 @@ class VideoVideoLinkTool(LinkTool):
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
 
-    def _constructDonorMask(self, startFileName, destFileName, start, destination, scModel,
-                            invert=False, arguments={}, media_types=['video']):
-        """
-          Used for Donor video or images, the mask recording a 'donation' is the inversion of the difference
-          of the Donor image and its parent, it exists.
-          Otherwise, the donor image mask is the donor image (minus alpha channels):
-        """
-        predecessors = scModel.G.predecessors(destination)
-        errors = []
-        for pred in predecessors:
-            edge = scModel.G.get_edge(pred, destination)
-            op = scModel.gopLoader.getOperationWithGroups(edge['op'])
-            if op is not None:
-                if'checkSIFT' in op.rules:
-                    return video_tools.interpolateMask(
-                        os.path.join(scModel.G.dir, shortenName(start + '_' + destination, '_mask')),
-                        scModel.G.dir,
-                        edge['videomasks'],
-                        startFileName,
-                        destFileName,
-                        arguments=arguments)
-        return video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(startFileName),media_types=media_types), errors
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
@@ -740,10 +715,10 @@ class VideoVideoLinkTool(LinkTool):
             if maskSet is None:
                 maskSet = list()
             errors = list()
-        elif op == 'Donor':
-            maskSet, errors = self._constructDonorMask(startFileName, destFileName,
-                                                       start, destination, scModel, invert=invert,
-                                                       arguments=consolidate(arguments, analysis_params))
+        elif op == 'Donor' and not skipDonorAnalysis:
+            errors = list()
+            maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                          consolidate(arguments, analysis_params), invert=invert)
         else:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
@@ -754,18 +729,18 @@ class VideoVideoLinkTool(LinkTool):
                                                                                                    'End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
+                                                       #alternateFrameFunction=operation.getCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         mask = None
         for item in maskSet:
-            if 'mask' in item:
-                mask = ImageWrapper(item['mask']) if mask is None else mask
-                item.pop('mask')
+            if video_tools.get_mask_from_segment(item) is not None:
+                mask = ImageWrapper(video_tools.get_mask_from_segment(item))
+                video_tools.drop_mask_from_segment(item)
         if mask is None:
             mask = ImageWrapper(np.ones(startIm.image_array.shape[0:2], dtype='uint8')*255)
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
-        metaDataDiff = video_tools.form_meta_data_diff(startFileName, destFileName,
-                                                       frames=operation.generateMask in ["all", "frames"])
+        metaDataDiff = video_tools.form_meta_data_diff(startFileName, destFileName)
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         analysis['shape change'] = sizeDiff(startIm, destIm)
@@ -782,6 +757,9 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
 
     def __init__(self):
         VideoVideoLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.all_audio_processor"
 
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -821,12 +799,10 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         errors = []
         if op == 'Donor':
-            maskSet, errors = self._constructDonorMask(startFileName, destFileName,
-                                                       start, destination, scModel, invert=invert,
-                                                       arguments=consolidate(arguments, analysis_params),
-                                                       media_types=['audio'])
-
-        if op != 'Donor' and operation.generateMask in ['audio','all']:
+            errors = list()
+            maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                      consolidate(arguments, analysis_params), invert=invert)
+        elif op != 'Donor' and operation.generateMask in ['audio','all']:
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -863,6 +839,9 @@ class VideoAudioLinkTool(LinkTool):
 
     def __init__(self):
         LinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.all_audio_processor"
 
     def compare(self, start, end, scModel, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
@@ -901,13 +880,20 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
     def __init__(self):
         VideoVideoLinkTool.__init__(self)
 
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.alpha_stream_processor"
+
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
         startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
         mask = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
         if op == 'Donor':
-            mask = startIm.to_mask()
+            mask = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                      consolidate(arguments, analysis_params), invert=invert)
+            if mask is None:
+                mask = startIm.to_mask().invert()
         return mask, {}, ()
 
 
@@ -968,7 +954,7 @@ class VideoAddTool(AddTool):
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
         indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
-        if len(indices) > 0:
+        if indices:
             meta[indices[0]]['is_vfr'] = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
             # redundant but requested by NIST
             parent['is_vfr'] = meta[indices[0]]['is_vfr']
@@ -1056,16 +1042,6 @@ class ImageProjectModel:
 
     def getGroupOperationLoader(self):
         return self.gopLoader
-
-    def isParentSelect(self):
-        if self.getImage(self.start).has_alpha():
-            return True
-        predecessors = self.G.predecessors(self.start)
-        for pred in predecessors:
-            edge = self.G.get_edge(pred, self.start)
-            if edge['op'].startswith('Select'):
-                return True
-        return False
 
     def addImagesFromDir(self, dir, baseImageFileName=None, xpos=100, ypos=30, suffixes=list(),
                          sortalg=lambda s: s.lower(),preferences={}):
@@ -1308,8 +1284,8 @@ class ImageProjectModel:
                                      constructDonors=True,
                                      keepFailures=False,
                                      exclusions={},
-                                     check_empty_mask=True,
-                                     audio_to_video=False,
+                                     checkEmptyMask=True,
+                                     audioToVideo=False,
                                      notifier=None):
         """
         :param inclusionFunction: filter out edges to not include in the probe set
@@ -1320,7 +1296,7 @@ class ImageProjectModel:
         The agreed set of rules will evolve and is particular to the function.
         Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
         global.inputmaskname.
-        :param audio_to_video: If true, create video masks for audio masks, providing there are no audio masks.
+        :param audioToVideo: If true, create video masks for audio masks, providing there are no audio masks.
         :return: The set of probes
         @rtype: list [Probe]
         """
@@ -1331,15 +1307,15 @@ class ImageProjectModel:
         for edge_id in useGraph.get_edges():
             edge = useGraph.get_edge(edge_id[0], edge_id[1])
             if inclusionFunction(edge_id, edge, self.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
-                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader, self.probeMaskMemory,notifier=notifier)
+                composite_generator =  mask_rules.prepareComposite(edge_id, useGraph, self.gopLoader, self.probeMaskMemory, notifier=notifier)
                 futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
                     'saveTargets':saveTargets,
                     'inclusionFunction':inclusionFunction,
                     'constructDonors':constructDonors,
                     'keepFailures':keepFailures,
                     'exclusions':exclusions,
-                    'check_empty_mask':check_empty_mask,
-                    'audio_to_video':audio_to_video,
+                    'checkEmptyMask':checkEmptyMask,
+                    'audioToVideo':audioToVideo
                 }))
         probes = list()
         for future in futures:
@@ -1355,8 +1331,8 @@ class ImageProjectModel:
                     keepFailures=False,
                     constructDonors=True,
                     exclusions={},
-                    check_empty_mask=True,
-                    audio_to_video=True,
+                    checkEmptyMask=True,
+                    audioToVideo=True,
                     notifier=None
                     ):
         """
@@ -1369,7 +1345,7 @@ class ImageProjectModel:
         Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
         global.inputmaskname.
         :param keepFailures: If true, keep probe and mark as failure.
-        :param audio_to_video: If true, create video masks for audio masks, providing there are no audio masks.
+        :param audioToVideo: If true, create video masks for audio masks, providing there are no audio masks.
         :return: list if Probe
         @type operationTypes: list of str
         @type inclusionFunction: (tuple, dict) -> bool
@@ -1399,10 +1375,9 @@ class ImageProjectModel:
                                               exclusions=exclusions,
                                               keepFailures=keepFailures,
                                               constructDonors=constructDonors,
-                                              check_empty_mask=check_empty_mask,
-                                              audio_to_video=audio_to_video,
-                                              notifier=notifier
-        )
+                                              checkEmptyMask=checkEmptyMask,
+                                              audioToVideo=audioToVideo,
+                                              notifier=notifier)
 
         probes = sorted(probes, cmp=probeCompare)
         localCompositeBuilders = [cb() for cb in compositeBuilders]
@@ -1438,6 +1413,18 @@ class ImageProjectModel:
                 return self.getBaseNode(pred)
         return node
 
+    def getCreatingOperation(self, destination):
+        """
+        :return: operation for the manipulation that created this destination and the start node
+        @rtype: (str,Operation)
+        """
+        predecessors = self.G.predecessors(destination)
+        for pred in predecessors:
+            pred_edge = self.G.get_edge(pred, destination)
+            edge_op = self.gopLoader.getOperationWithGroups(pred_edge['op'])
+            if edge_op is not None and pred_edge['op'] != 'Donor':
+                return pred, edge_op
+
     def getDonorAndBaseImage(self):
         """
          Get the donor image and associated baseImage for the selected node.
@@ -1452,7 +1439,7 @@ class ImageProjectModel:
                 for donortuple in donors:
                     if donortuple.base == x[1]:
                         if donortuple.media_type == 'video':
-                            return getSingleFrameFromMask(donortuple.mask_wrapper), baseImage
+                            return video_tools.getSingleFrameFromMask(donortuple.mask_wrapper), baseImage
                         elif donortuple.media_type == 'audio':
                             return None, None
                         else:
@@ -1464,44 +1451,8 @@ class ImageProjectModel:
         :return: list of CompositeImage
         """
         composite_generator = mask_rules.prepareComposite((self.start, self.end),self.G, self.gopLoader, self.probeMaskMemory)
-        return composite_generator.constructComposites(check_empty_mask=False)
+        return composite_generator.constructComposites(checkEmptyMask=False)
 
-    def extendCompositeByOne(self, probes, start=None, override_args={}):
-        """
-        :param compositeMask:
-        :param level:
-        :param replacementEdgeMask:
-        :param colorMap:
-        :param override_args:
-        :return:
-        @type compositeMask: ImageWrapper
-        @type level: IntObject
-        @type replacementEdgeMask: ImageWrapper
-        @rtype ImageWrapper
-        """
-        results = mask_rules.findBaseNodesWithCycleDetection(self.G, start if start is not None else \
-            (self.end if self.end is not None else self.start))
-        if len(results) == 0:
-            return
-        nodeids = results[0][2]
-        graph = self.G.subgraph(nodeids)
-        composite_generator = mask_rules.prepareComposite((self.start,self.end), graph, self.gopLoader, self.probeMaskMemory)
-        probes = composite_generator.extendByOne(probes,self.start,self.end,override_args=override_args)
-        return self.getProbeSet(replacement_probes=probes)
-
-    def constructPathProbes(self, start=None,constructDonors=True):
-        """
-         Construct the composite mask for the selected node.
-         Does not save the composite in the node.
-         Returns the composite mask if successful, otherwise None
-        """
-        results = mask_rules.findBaseNodesWithCycleDetection(self.G, start if start is not None else \
-            (self.end if self.end is not None else self.start))
-        if len(results) == 0:
-            return
-        nodeids = results[0][2]
-        graph = self.G.subgraph(nodeids)
-        return self.getProbeSet(graph=graph,saveTargets=False,inclusionFunction=mask_rules.isEdgeComposite, constructDonors=constructDonors)
 
     def executeFinalNodeRules(self):
         terminalNodes = [node for node in self.G.get_nodes() if
@@ -1766,7 +1717,7 @@ class ImageProjectModel:
         msg = os.linesep.join(allErrors).strip()
         return msg if len(msg) > 0 else None
 
-    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=True,
+    def _compareImages(self, start, destination, opName, invert=False, arguments={}, skipDonorAnalysis=False,
                        analysis_params=dict(),
                        force=False):
         if prefLoader.get_key('skip_compare') and not force:
@@ -2096,6 +2047,27 @@ class ImageProjectModel:
             paths = [(path[0]+[node], condition(node, path[0][-1]) | path[1]) for path in paths]
             return paths
 
+    def findEdgePaths(self,node):
+        """
+        Return a list of a tuple.  The first item is the full path in reverse order
+        from final node to current node.  The second item is a boolean indicating if the path
+        meets the condition.
+        :param node:
+        :param condition:
+        :return:
+        @rtype: list of (list,bool)
+        """
+        successors = self.G.successors(node)
+        if len(successors) == 0:
+            return [[]]
+        else:
+            paths=[]
+            for successsor in successors:
+                for path in self.findEdgePaths(successsor):
+                    paths.append(path)
+            paths = [path+[(node, successsor)] for path in paths]
+            return paths
+
     def getImage(self, name):
         if name is None or name == '':
             return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
@@ -2254,15 +2226,6 @@ class ImageProjectModel:
         @rtype: ImageGraph
         """
         return self.G
-
-    def donorRequireInterpolate(self):
-        for pred in self.G.predecessors(self.end):
-            edge = self.G.get_edge(pred, self.end)
-            op = self.gopLoader.getOperationWithGroups(edge['op'])
-            if op is not None:
-                if 'checkSIFT' in op.rules:
-                    return True
-        return False
 
     def validate(self, external=False, status_cb=None):
         """ Return the list of errors from all validation rules on the graph.
@@ -2752,6 +2715,16 @@ class ImageProjectModel:
         return [edge for edge in [self.G.get_edge(edge[0], edge[1]) for edge in self.G.get_edges()]
                 if edge['op'] == opName]
 
+    def getPathExtender(self):
+        """
+        :return: Extend the composite or donor through current operation
+        """
+        #nodes = self._findTerminalNodes(self.start, excludeDonor=True)
+        #if len(nodes) > 0:
+        return CompositeExtender(self)
+        #else:
+        #    return DonorExtender(self)
+
     def export(self, location, include=[], notifier=None):
         with self.lock:
             self.clear_validation_properties()
@@ -2907,14 +2880,93 @@ class VideoMaskSetInfo:
             self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
 
     def _convert(self, item):
-        return {'Start': self.tofloat(item['starttime']), 'End': self.tofloat(item['endtime']),
-                'Frames': item['frames'],
-                'File': item['videosegment'] if 'videosegment' in item else ''}
+        return {'Start': self.tofloat(video_tools.get_start_time_from_segment(item)),
+                'End': self.tofloat(video_tools.get_end_time_from_segment(item)),
+                'Frames': video_tools.get_frames_from_segment(item),
+                'File': video_tools.get_file_from_segment(item,default_value='')}
 
 
     def update(self, item_number, column, value):
-        self.maskset[item_number][self.columnKeys[column]] = self.func[column](value)
-        self.maskset[item_number]['rate'] = (self.maskset[item_number]['endtime'] - self.maskset[item_number]['starttime'])/self.maskset[item_number]['frames']
+        video_tools.update_segment(self.maskset[item_number],
+                       **{self.columnKeys[column] : self.func[column](value)})
+        video_tools.update_segment(self.maskset[item_number],rate= \
+                                            (video_tools.get_end_time_from_segment(self.maskset[item_number]) -
+                                             video_tools.get_start_time_from_segment(self.maskset[item_number])/
+                                             video_tools.get_frames_from_segment(self.maskset[item_number])))
 
     def tofloat(self, o):
         return o if o is None else float(o)
+
+class CompositeExtender:
+
+    """ All masks in a color composite up to and through the current operation
+    """
+    def __init__(self, scModel):
+        """
+        :param scModel:
+        @type scModel: ImageProjectModel
+        """
+        self.scModel = scModel
+        self.prior_probes = None
+
+    def extendCompositeByOne(self, probes, start=None, override_args={}):
+        """
+        :param compositeMask:
+        :param level:
+        :param replacementEdgeMask:
+        :param colorMap:
+        :param override_args:
+        :return:
+        @type compositeMask: ImageWrapper
+        @type level: IntObject
+        @type replacementEdgeMask: ImageWrapper
+        @rtype ImageWrapper
+        """
+        results = mask_rules.findBaseNodesWithCycleDetection(self.scModel.getGraph(), start if start is not None else \
+            (self.scModel.end if self.scModel.end is not None else self.scModel.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.scModel.getGraph().subgraph(nodeids)
+        composite_generator = mask_rules.prepareComposite((self.scModel.start,self.scModel.end), graph, self.scModel.getGroupOperationLoader(),
+                                                          self.scModel.probeMaskMemory)
+        probes = composite_generator.extendByOne(probes,self.scModel.start,self.scModel.end,override_args=override_args)
+        return self.scModel.getProbeSet(replacement_probes=probes)
+
+    def constructPathProbes(self, start=None, constructDonors=True):
+        """
+         Construct the composite mask for the selected node.
+         Does not save the composite in the node.
+         Returns the composite mask if successful, otherwise None
+        """
+        results = mask_rules.findBaseNodesWithCycleDetection(self.scModel.getGraph(), start if start is not None else \
+            (self.scModel.end if self.scModel.end is not None else self.scModel.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.scModel.getGraph().subgraph(nodeids)
+        return self.scModel.getProbeSet(graph=graph,saveTargets=False,inclusionFunction=mask_rules.isEdgeComposite, constructDonors=constructDonors)
+
+    def get_image(self, override_args={}, target_size=(0,0)):
+        if self.prior_probes is None:
+            self.prior_probes = self.constructPathProbes(start=self.scModel.start, constructDonors=False)
+
+        if self.scModel.getDescription() is None or not self.prior_probes:
+            probes = self.prior_probes
+        else:
+            probes =  self.extendCompositeByOne(self.prior_probes,
+                                                override_args=override_args)
+        if probes:
+            composite = probes[-1].composites['color']['image']
+            if composite.size != target_size:
+                composite = composite.resize(target_size,Image.ANTIALIAS)
+            return composite
+        return ImageWrapper(np.zeros((target_size[1], target_size[0]), dtype='uint8'))
+
+class DonorExtender:
+
+    def __init__(self, scModel):
+        self.scModel = scModel
+
+    def get_image(self, override_args={},target_size=(0,0)):
+        return ImageWrapper(np.zeros((target_size[1],target_size[0]),dtype='uint8'))

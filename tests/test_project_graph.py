@@ -41,9 +41,9 @@ class TestToolSet(TestSupport):
         model = ImageProjectModel(self.locateFile('images/sample.json'))
         model.assignColors()
         model.selectEdge('input_mod_1', 'input_mod_2')
-        prior_probes = model.constructPathProbes(start='input_mod_1')
+        prior_probes = model.getPathExtender().constructPathProbes(start='input_mod_1')
         prior_composite = prior_probes[-1].composites['color']['image']
-        new_probes = model.extendCompositeByOne(prior_probes)
+        new_probes = model.getPathExtender().extendCompositeByOne(prior_probes)
         composite = new_probes[-1].composites['color']['image']
         self.assertTrue(sum(sum(np.all(prior_composite.image_array != [255, 255, 255], axis=2))) -
                         sum(sum(np.all(composite.image_array != [255, 255, 255], axis=2))) < 100)

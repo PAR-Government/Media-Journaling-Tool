@@ -59,6 +59,13 @@ class TestToolSet(TestSupport):
         self.assertTrue(np.all(img3[10:15,10:15]==3))
         img3[10:15, 10:15] = 0
 
+    def testCropCompare(self):
+        import cv2
+        pre = tool_set.openImageFile(self.locateFile('tests/images/prefill.png')).to_array()
+        post = pre[10:-10,10:-10]
+        resized_post = cv2.resize(post, (pre.shape[1],pre.shape[0]))
+        mask, analysis = tool_set.cropResizeCompare(pre,resized_post, arguments={'crop width':pre.shape[1]-20,'crop height':pre.shape[0]-20})
+        self.assertEquals((10,10), tool_set.toIntTuple(analysis['location']))
 
     def test_fileMask(self):
         pre = tool_set.openImageFile(self.locateFile('tests/images/prefill.png'))

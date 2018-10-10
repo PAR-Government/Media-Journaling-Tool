@@ -166,13 +166,15 @@ class QaNotifier:
         fo = [n.end]
         fwdedges = [(n.start,n.end)]
         condition = lambda x, y: True
-        paths = self.scmodel.findPaths(n.end,condition)[0][0][:-1]
-        paths.reverse()
-        prev = n.end
-        for path in paths:
-            fwdedges.append((prev,path))
-            fo.append(path)
-            prev = path
+        paths_tuples = self.scmodel.findPaths(n.end, condition)
+        for path_tuple in paths_tuples:
+            path = path_tuple[0][:-1]
+            path.reverse()
+            prev = n.end
+            for path_part in path:
+               fwdedges.append((prev,path_part))
+               fo.append(path_part)
+               prev = path_part
         return fwdedges, fo
 
     def _backtrack(self, n):

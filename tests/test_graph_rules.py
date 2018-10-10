@@ -22,6 +22,104 @@ class TestToolSet(TestSupport):
         self.assertEqual('yes', result['imagecompression'])
 
 
+    def test_checkForVideoRetainment(self):
+        graph = Mock()
+        mapping = {'a':self.locateFile('videos/sample1.mov'), 'b':self.locateFile('videos/sample1.wav')}
+        graph.get_image = lambda x:  (None, mapping[x])
+        result = graph_rules.checkForVideoRetainment('op', graph, 'a', 'a')
+        self.assertIsNone(result)
+        result = graph_rules.checkForVideoRetainment('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+
+    def test_checkAudioLengthBigger(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkAudioLengthBigger('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 1, 1)}}})
+        result = graph_rules.checkAudioLengthBigger('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 1, 2)}}})
+        result = graph_rules.checkAudioLengthBigger('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+
+    def test_checkAudioLengthSmaller(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkAudioLengthSmaller('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 1, 1)}}})
+        result = graph_rules.checkAudioLengthSmaller('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
+        result = graph_rules.checkAudioLengthSmaller('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+
+    def test_checkAudioLength(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'x': ('change', 1, 1)}}})
+        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
+        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+
+    def test_checkSampleRate(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'sample_rate': ('change', 1, 2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkSampleRate('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'avr_rate': ('change', 1, 2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkSampleRate('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+
+    def test_checkAudioOnly(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        result = graph_rules.checkAudioOnly('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        result = graph_rules.checkAudioOnly('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
+                                            'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
+        result = graph_rules.checkAudioOnly('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+
     def test_checkCropLength(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time':1,'End Time':2},
@@ -201,7 +299,7 @@ class TestToolSet(TestSupport):
         r = graph_rules.checkSizeAndExif('Op', mockGraph, 'a', 'b')
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
-        mockGraph.get_edge.return_value = {'shape change': '(1664,-1664)','metadatadiff': [{'_rotate': [270]}]}
+        mockGraph.get_edge.return_value = {'shape change': '(1664,-1664)','metadatadiff': {'video':{'_rotate': ('change',90,270)}}}
         r = graph_rules.checkSizeAndExif('Op', mockGraph, 'a', 'b')
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)

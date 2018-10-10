@@ -275,16 +275,6 @@ def imageResize(img, dim):
     return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
 
-def isCompressed(media_file):
-    """
-    TODO: Need to figure this one out more efficiently and accurately
-    :param media_file:
-    :return:
-    """
-    import exif
-    data = exif.getexif(media_file)
-    return getValue(data,'File Type') not in ['AVI','PNG','WAV']
-
 def imageResizeRelative(img, dim, otherImDim):
     """
     Preserves the dimension ratios_
@@ -1883,6 +1873,14 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     newMask = newMask | compositeMask * maskAltered
     return newMask
 
+def cropResize(img,location, wh):
+    img_crop = img[location[0]:wh[0],location[1]:wh[1],:]
+    return cv2.resize(img_crop, (img.shape[1],img.shape[0]))
+
+def cropResizeCompare(img1, img2, arguments=dict()):
+    width_and_height = (int(arguments['crop width']), int(arguments['crop height']))
+    pre_resize_img = cv2.resize(img2, width_and_height)
+    return composeCropImageMask(img1, pre_resize_img, location=None)
 
 def cropCompare(img1, img2, arguments=dict()):
     from maskgen.image_wrap import ImageWrapper
@@ -1896,7 +1894,6 @@ def cropCompare(img1, img2, arguments=dict()):
         analysis.update(analysis)
         return mask, analysis_d
     return None, {}
-
 
 def _composeLCS(img1, img2):
     from scipy import sparse
@@ -2042,6 +2039,31 @@ def convertCompare(img1, img2, arguments=dict()):
         new_img2 = img2
     return __diffMask(img1, new_img2, False, args=arguments)
 
+def mediatedCompare(img1, img2, arguments):
+    from scipy import signal
+    def moving_average(a, n=3):
+        ret = np.cumsum(a, dtype=float)
+        ret[n:] = ret[n:] - ret[:-n]
+        print ret
+        return ret[n - 1:] / n
+
+    # compute diff in 3 colors
+    diff = (np.abs(img1 - img2)).astype('uint16')
+    mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+    hist, bin_edges = np.histogram(mask, bins=getValue(arguments,'bins',512), density=False)
+
+    hist = moving_average(hist, getValue(arguments,'smoothing spread',5))  # smooth out the histogram
+    minima = signal.argrelmin(hist, order=2)  # find local minima
+    if minima[0].size == 0:  # if there was no minima, hardcode
+        threshold = 2
+    else:
+        threshold = minima[0][0]  # Use first minima
+
+    mask[np.where(mask < threshold)] = 0  # set to black if less than threshold
+    mask[np.where(mask > 0)] = 255
+    mask = mask.astype('uint8')
+        #mask = cv2.medianBlur(mask, 3)  # filter out noise in the mask
+    return mask
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """
@@ -2221,17 +2243,26 @@ def __findRotation(img1, img2, range):
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
 def extractAlpha(rawimg1, rawimg2):
+    """
+    If rawimg2 has an alpha channel, then the pixels then the high alpha value is the pixels that did not change
+    :param rawimg1:
+    :param rawimg2:
+    :return:
+    """
     img2_array = rawimg2.to_array()
     img1_array = rawimg1.to_array()
     ii16 = np.iinfo(np.uint16)
     if len(img2_array.shape) == 3 and img2_array.shape[2] == 4:
         img2_array = img2_array[:, :, 3]
     if len(img2_array.shape) == 2:
-        all = np.ones((img2_array.shape[0], img2_array.shape[1])).astype('uint16')
-        all[img2_array > 0] = ii16.max
+        all = np.zeros((img2_array.shape[0], img2_array.shape[1])).astype('uint16')
+        all[img2_array == 0] = ii16.max
         return np.zeros((img1_array.shape[0], img1_array.shape[1])).astype('uint16'), all
     return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
+
+def convert16bitcolor(rawimg1, rawimg2):
+    return rawimg1.to_array().astype('int16'), rawimg2.to_array().astype('int16')
 
 def __alignChannels(rawimg1, rawimg2, convertFunction=None):
     """
@@ -2685,37 +2716,6 @@ def execute_every(interval, worker_func, start=True, **kwargs):
     executions[worker_func].start()
     if not start:
         worker_func(**kwargs)
-
-
-def getSingleFrameFromMask(video_masks, directory=None):
-    """
-    Read a single frame
-    :param start_time: insertion start time.
-    :param end_time:insertion end time.
-    :param directory:
-    :param video_masks:
-    :return: new set of video masks
-    """
-    mask = None
-    if video_masks is None:
-        return None
-    for mask_set in video_masks:
-        if 'videosegment' not in mask_set:
-            continue
-        reader = GrayBlockReader(os.path.join(directory,
-                                              mask_set['videosegment'])
-                                 if directory is not None else mask_set['videosegment'],
-                                 start_frame=getValue(mask_set,'startframe',1),
-                                 start_time=getValue(mask_set,'starttime',0))
-        try:
-            while True:
-                mask = reader.read()
-                break
-        finally:
-            reader.close()
-        if mask is not None:
-            break
-    return ImageWrapper(mask) if mask is not None else None
 
 
 class GrayBlockReader:

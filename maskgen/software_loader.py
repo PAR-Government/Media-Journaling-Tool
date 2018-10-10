@@ -38,6 +38,14 @@ def getFileName(fileName, path=None):
             return newNanme
 
 
+def extract_default_values(operation_arguments):
+    """
+    given argument definitions, return operation name: default value if default is present
+    :param operation_arguments:
+    :return:
+     @type dict
+    """
+    return {k:v['defaultvalue'] for k,v in operation_arguments.iteritems() if 'defaultvalue' in v}
 
 class ProjectProperty:
     description = None
@@ -98,6 +106,7 @@ class Operation:
     maskTransformFunction = None
     compareOperations = None
     parameter_dependencies = None
+    donor_processor = None
     """
     parameter_dependencies is a dictionary: { 'parameter name' : { 'parameter value' : 'dependenent parameter name'}}
     If the parameter identitied by parameter name has a value if 'parameter value' then the parameter identified by
@@ -151,12 +160,13 @@ class Operation:
     @type compareparameters: dict
     @type parameter_dependencies: dict
     @type maskTransformFunction:dict
+    @type donor_processor: str
     """
 
     def __init__(self, name='', category='', includeInMask={"default": False}, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=None,parameter_dependencies = None, qaList=None):
+                 maskTransformFunction=None,parameter_dependencies = None, qaList=None,donor_processor=None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -173,6 +183,7 @@ class Operation:
         self.maskTransformFunction = maskTransformFunction
         self.parameter_dependencies = parameter_dependencies
         self.qaList = qaList
+        self.donor_processor = donor_processor
 
     def recordMaskInComposite(self,filetype):
         if filetype in self.includeInMask :
@@ -180,6 +191,11 @@ class Operation:
         if 'default' in self.includeInMask :
             return 'yes' if self.includeInMask ['default'] else 'no'
         return 'no'
+
+    def getDonorProcessor(self, default_processor = None):
+        if  self.donor_processor is not None:
+            return getRule(self.donor_processor)
+        return getRule(default_processor)
 
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
@@ -312,7 +328,8 @@ def loadOperationJSON(fileName):
                                             'compareparameters'] if 'compareparameters' in op else dict(),
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None,
                                         parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None,
-                                        qaList=op['qaList'] if 'qaList' in op else None)
+                                        qaList=op['qaList'] if 'qaList' in op else None,
+                                        donor_processor=op['donor_processor'] if 'donor_processor' in op else None)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 
