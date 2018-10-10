@@ -1106,7 +1106,7 @@ def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=N
             os.remove(input_filename)
 
 def outputRaw(input_filename, output_filename):
-    ffmpegcommand = ffmpeg_api.get_ffmpeg_tool
+    ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()
     command = [ffmpegcommand, '-y','-i', input_filename]
     command.extend(['-vcodec', 'rawvideo'])
     command.append(output_filename)
