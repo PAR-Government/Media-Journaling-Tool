@@ -34,118 +34,120 @@
     "semanticgroup": {
         "Location Change": {
             "images": [
-                "location_change.png"
+                "semanticSlides/location_change.png"
             ]
         },
         "Aging": {
             "images": [
-                "aging.png"
+                "semanticSlides/aging.png"
             ]
         },
         "Dialog Change": {
             "images": [
-                "dialog_change.png"
+                "semanticSlides/dialog_change.png"
             ]
         },
         "Disaster": {
             "images": [
-                "disaster.png"
+                "semanticSlides/disaster.png"
             ]
         },
         "Face Manipulations": {
             "images": [
-                "face_manipulations.png"
+                "semanticSlides/face_manipulations.png"
             ]
         },
         "Wound": {
             "images": [
-                "wound.png"
+                "semanticSlides/wound.png"
             ]
         },
         "Timeofday": {
             "images": [
-                "timeofday.png"
+                "semanticSlides/timeofday.png"
             ]
         },
         "Date and Time": {
             "images": [
-                "dateandtime.png"
+                "semanticSlides/dateandtime.png"
             ]
         },
         "Tattoos": {
             "images": [
-                "tattoos.png"
+                "semanticSlides/tattoos.png"
             ]
         },
         "Crowd Relocation": {
             "images": [
-                "crowd_relocation.png"
+                "semanticSlides/crowd_relocation.png"
             ]
         },
         "Weather Changes": {
             "images": [
-                "weather_changes.png"
+                "semanticSlides/weather_changes.png"
             ]
         },
         "Cadaver": {
             "images": [
-                "cadaver.png"
+                "semanticSlides/cadaver.png"
             ]
         },
         "Ambience Audio Swap": {
             "images": [
-                "ambience_audio_swap.png"
+                "semanticSlides/ambience_audio_swap.png"
             ]
         },
         "Personal Appearance": {
             "images": [
-                "personal_appearance.png"
+                "semanticSlides/personal_appearance.png"
             ]
         },
         "Mood Change": {
             "images": [
-                "mood_change.png"
+                "semanticSlides/mood_change.png"
             ]
         },
         "Reflection Manipulations": {
             "images": [
-                "reflection_manipulations.png"
+                "semanticSlides/reflection_manipulations.png"
             ]
         },
         "Building Relocation": {
             "images": [
-                "building_relocation.png"
+                "semanticSlides/building_relocation.png"
             ]
         },
         "ENF": {
             "images": [
-                "enf.png"
+                "semanticSlides/enf.png"
             ]
         },
         "AntiForensic Illumination": {
-            "images": ["antiforensic_illumination.png"
+            "images": [
+                "semanticSlides/antiforensic_illumination.png"
 			],
-			"url":["http://www.cosy.sbg.ac.at/~uhl/mmsec/acm05.pdf"
+			"url":[
+                "http://www.cosy.sbg.ac.at/~uhl/mmsec/acm05.pdf"
 			]
         },
         "Data Embedding Watermark": {
             "images": [
-                "data_embedding_watermark.png"
+                "semanticSlides/data_embedding_watermark.png"
             ]
         },
         "Manhattan World": {
             "images": [
-                "manhattan_world.png"
+                "semanticSlides/manhattan_world.png"
             ]
         },
         "Building Destruction": {
             "images": [
-                "building_destruction.png"
+                "semanticSlides/building_destruction.png"
             ]
         },
         "Shadow Manipulations": {
             "images": [
-                "shadow_manipulations.png"
+                "semanticSlides/shadow_manipulations.png"
             ]
         },
         "Data Embedding Steganography": {
@@ -153,749 +155,725 @@
         },
         "Voice Audio Swap": {
             "images": [
-                "voice_audio_swap.png"
+                "semanticSlides/voice_audio_swap.png"
             ]
         },
         "Date Burn-in": {
             "images": [
-                "dateburnin.png"
+                "semanticSlides/dateburnin.png"
             ]
         }
     },
     "operation": {
 		"AudioCopyAdd": {
 			"images": [
-				"audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioSample": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"DeleteAudioSample": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AddAudioSample": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioEffect": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioFilter": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioAmplify": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioReverb": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"AudioCompress": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"ReplaceAudioSample": {
 			"images": [
-				"operationsSlides/audio.png"
+				"operationSlides/audio.png"
 			]
 		},
 		"CameraMovement": {
 			"images": [
-				"operationsSlides/video_additional_effects.png"
+				"operationSlides/video_additional_effects.png"
 			]
 		},
 		"Fading": {
 			"images": [
-				"operationsSlides/video_additional_effects.png"
+				"operationSlides/video_additional_effects.png"
 			]
 		},
 		"Mosaic": {
 			"images": [
-				"operationsSlides/mosaic2.png",
-				"operationsSlides/mosaic.png"
+				"operationSlides/mosaic2.png",
+				"operationSlides/mosaic.png"
 			]
 		},
 		"ReduceInterlaceFlicker": {
 			"images": [
-				"operationsSlides/video_additional_effects.png"
+				"operationSlides/video_additional_effects.png"
 			]
 		},
 		"AddNoise": {
 			"images": [
-				"operationsSlides/add_noise.png",
-				"operationsSlides/add_noise2.png"
+				"operationSlides/add_noise.png",
+				"operationSlides/add_noise2.png"
 			]
 		},
 		"Blur": {
 			"images": [
-				"operationsSlides/blur.png",
-				"operationsSlides/blur2.png",
-				"operationsSlides/blur3.png"
+				"operationSlides/blur.png",
+				"operationSlides/blur2.png",
+				"operationSlides/blur3.png"
 			]
 		},
 		"WarpStabilize": {
 			"images": [
-				"operationsSlides/video_additional_effects.png"
+				"operationSlides/video_additional_effects.png"
 			]
 		},
 		"Sharpening": {
 			"images": [
-				"operationsSlides/sharpening.png",
-				"operationsSlides/sharpening2.png"
+				"operationSlides/sharpening.png",
+				"operationSlides/sharpening2.png"
 			]
 		},
 		"AddTransitions": {
 			"images": [
-				"operationsSlides/video_additional_effects.png"
+				"operationSlides/video_additional_effects.png"
 			]
 		},
 		"AntiForensicCopyExif": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AddCameraModel": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AntiForensicEditExif": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AntiForensicJPGCompression": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AntiForensicDither": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AntiForensicExifQuantizationTable": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"CFACorrection": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"LensDistortion": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AddCamFingerprintPRNU": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"RemoveCamFingerprintPRNU": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AddCamFingerprintAveragePRNUFromSet": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"RemoveCamFingerprintAveragePRNUFromSet": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"ErasureByGAN": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"AberrationCorrection": {
 			"images": [
-				"operationsSlides/antiforensic.png"
+				"operationSlides/antiforensic.png"
 			]
 		},
 		"ArtificialLighting": {
 			"images": [
-				"operationsSlides/artificial_lighting.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/artificial_lighting.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"ArtificialReflection": {
 			"images": [
-				"operationsSlides/artificial_reflection.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/artificial_reflection.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"ArtificialShadow": {
 			"images": [
-				"operationsSlides/artificial_shadow.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/artificial_shadow.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"ObjectCGI": {
 			"images": [
-				"operationsSlides/object_cgi.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/object_cgi.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"LayerOpacity": {
 			"images": [
-				"operationsSlides/opacity_fill.png",
-				"operationsSlides/layer.png",
-				"operationsSlides/layer2.png"
+				"operationSlides/opacity_fill.png",
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
 		},
 		"LayerFill": {
 			"images": [
-				"operationsSlides/opacity_fill.png",
-				"operationsSlides/layer.png",
-				"operationsSlides/layer2.png"
+				"operationSlides/opacity_fill.png",
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
 		},
 		"Blend": {
 			"images": [
-				"operationsSlides/layer.png",
-				"operationsSlides/layer2.png"
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
 		},
 		"SocialMedia": {
 			"images": [
-				"operationsSlides/laundering.png"
+				"operationSlides/laundering.png"
 			]
 		},
 		"ColorBalance": {
 			"images": [
-				"operationsSlides/color_balance.png",
-				"operationsSlides/color.png"
+				"operationSlides/color_balance.png",
+				"operationSlides/color.png"
 			]
 		},
 		"ColorLUT": {
 			"images": [
-				"operationsSlides/color_lut.png",
-				"operationsSlides/color.png"
+				"operationSlides/color_lut.png",
+				"operationSlides/color.png"
 			]
 		},
 		"CGIFill": {
 			"images": [
-				"operationsSlides/CGI_fill.png",
-				"operationsSlides/cgi_fill2.png",
-				"operationsSlides/cgi.png"
+				"operationSlides/CGI_fill.png",
+				"operationSlides/cgi_fill2.png",
+				"operationSlides/cgi.png"
 			]
 		},
 		"SynthesizeGAN": {
 			"images": [
-				"operationsSlides/synthesizeGAN.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/synthesizeGAN.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"SynthesizeVideo": {
 			"images": [
-				"operationsSlides/synthesize_video.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/synthesize_video.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"Hue": {
 			"images": [
-				"operationsSlides/hue.png",
-				"operationsSlides/hue2.png",
-				"operationsSlides/color.png",
-				"operationsSlides/color2.png"
+				"operationSlides/hue.png",
+				"operationSlides/hue2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
 		},
 		"Saturation": {
 			"images": [
-				"operationsSlides/saturation.png",
-				"operationsSlides/saturation2.png",
-				"operationsSlides/color.png",
-				"operationsSlides/color2.png"
+				"operationSlides/saturation.png",
+				"operationSlides/saturation2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
 		},
 		"Vibrance": {
 			"images": [
-				"operationsSlides/vibrance.png",
-				"operationsSlides/vibrance2.png",
-				"operationsSlides/color.png",
-				"operationsSlides/color2.png"
+				"operationSlides/vibrance.png",
+				"operationSlides/vibrance2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
 		},
 		"CreativeFilter": {
 			"images": [
-				"operationsSlides/creative_filter.png",
-				"operationsSlides/creative_filter2.png"
+				"operationSlides/creative_filter.png",
+				"operationSlides/creative_filter2.png"
 			]
 		},
 		"ContentAwareFill": {
 			"images": [
-				"operationsSlides/content_aware_fill.png",
-				"operationsSlides/content_aware_fill2.png"
+				"operationSlides/content_aware_fill.png",
+				"operationSlides/content_aware_fill2.png"
 			]
 		},
 		"GANFill": {
 			"images": [
-				"operationsSlides/GAN_fill.png"
+				"operationSlides/GAN_fill.png"
 			]
 		},
 		"Gradient": {
 			"images": [
-				"operationsSlides/gradient.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png",
-				"operationsSlides/cgi3.png"
+				"operationSlides/gradient.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png",
+				"operationSlides/cgi3.png"
 			]
 		},
 		"PasteSampled": {
 			"images": [
-				"operationsSlides/paste_sampled.png",
-				"operationsSlides/paste_sampled_clone.png",
-				"operationsSlides/paste_sampled_secondary_workflow.png"
+				"operationSlides/paste_sampled.png",
+				"operationSlides/paste_sampled_clone.png",
+				"operationSlides/paste_sampled_secondary_workflow.png"
 			]
 		},
 		"FilterConvolutionKernel": {
 			"images": [
-				"operationsSlides/filter_convolution_kernal.png"
+				"operationSlides/filter_convolution_kernal.png"
 			]
 		},
 		"MotionBlur": {
 			"images": [
-				"operationsSlides/blur.png"
+				"operationSlides/blur.png"
 			]
 		},
 		"FilterKeying": {
 			"images": [
-				"operationsSlides/filter2.png"
+				"operationSlides/filter2.png"
 			]
 		},
 		"Normalization": {
 			"images": [
-				"operationsSlides/normalization.png"
+				"operationSlides/normalization.png"
 			]
 		},
 		"Contrast": {
 			"images": [
-				"operationsSlides/contrast.png"
+				"operationSlides/contrast.png"
 			]
 		},
 		"Curves": {
 			"images": [
-				"operationsSlides/curves.png",
-				"operationsSlides/levels_curves.png",
-				"operationsSlides/levels_curves_color.png"
+				"operationSlides/curves.png",
+				"operationSlides/levels_curves.png",
+				"operationSlides/levels_curves_color.png"
 			]
 		},
 		"Exposure": {
 			"images": [
-				"operationsSlides/exposure.png",
-				"operationsSlides/exposure2.png"
+				"operationSlides/exposure.png",
+				"operationSlides/exposure2.png"
 			]
 		},
 		"Levels": {
 			"images": [
-				"operationsSlides/levels.png",
-				"operationsSlides/levels_curves.png",
-				"operationsSlides/levels_curves_color.png"
+				"operationSlides/levels.png",
+				"operationSlides/levels_curves.png",
+				"operationSlides/levels_curves_color.png"
 			]
 		},
 		"Luminosity": {
 			"images": [
-				"operationsSlides/luminosity.png"
+				"operationSlides/luminosity.png"
 			]
 		},
 		"DigitalPenDraw": {
 			"images": [
-				"operationsSlides/digital_pen_draw.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/digital_pen_draw.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"Handwriting": {
 			"images": [
-				"operationsSlides/handwriting.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/handwriting.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"OverlayObject": {
 			"images": [
-				"operationsSlides/overlay_object.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/overlay_object.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
 		"OverlayText": {
 			"images": [
-				"operationsSlides/overlay_text.png",
-				"operationsSlides/cgi.png",
-				"operationsSlides/cgi2.png"
+				"operationSlides/overlay_text.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
 		},
-
-
-
-
-
-
-
-
-
 		"OutputCopy": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 
 			]
 		},
 		"OutputBmp": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputAudioPCM": {
 			"images": [
-				"operationsSlides/output.png"
+				"operationSlides/output.png"
 			]
 		},
 		"OutputAudioCompressed": {
 			"images": [
-				"operationsSlides/output.png"
+				"operationSlides/output.png"
 			]
 		},
 		"OutputDng": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputJpg": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputJp2": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputNITF": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputPng": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputPDF": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputTif": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_image.png"
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
 			]
 		},
 		"OutputXVID": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_video.png"
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
 			]
 		},
 		"OutputMOV": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_video.png"
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
 			]
 		},
 		"OutputMP4": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_video.png"
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
 			]
 		},
 		"OutputM4": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_video.png"
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
 			]
 		},
 		"OutputAVI": {
 			"images": [
-				"operationsSlides/output.png",
-				"operationsSlides/output_video.png"
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
 			]
 		},
-
-
-
-
-
-
-
-
-
-
-
 		"PasteSplice": {
 			"images": [
-				"operationsSlides/paste_splice.png",
-				"operationsSlides/paste_splice_blend_workflow_donor_image.png",
-				"operationsSlides/paste_splice_clone.png",
-				"operationsSlides/paste_splice_sampled_summary.png",
-				"operationsSlides/video_pastes.png",
-				"operationsSlides/workflow_overview.png"
+				"operationSlides/paste_splice.png",
+				"operationSlides/paste_splice_blend_workflow_donor_image.png",
+				"operationSlides/paste_splice_clone.png",
+				"operationSlides/paste_splice_sampled_summary.png",
+				"operationSlides/video_pastes.png",
+				"operationSlides/workflow_overview.png"
 			]
 		},
 		"PasteFrames": {
 			"images": [
-				"operationsSlides/video_pastes.png"
+				"operationSlides/video_pastes.png"
 			]
 		},
 		"PasteOverlay": {
 			"images": [
-				"operationsSlides/video_pastes.png"
+				"operationSlides/video_pastes.png"
 			]
 		},
 		"PasteImageSpliceToFrames": {
 			"images" : [
-				"operationsSlides/video_pastes.png"
+				"operationSlides/video_pastes.png"
 			]
 		},
 		"CopyPaste": {
 			"images": [
-				"operationsSlides/video_pastes.png"
+				"operationSlides/video_pastes.png"
 			]
 		},
 		"CutPaste": {
 			"images": [
-				"operationsSlides/video_pastes.png"
+				"operationSlides/video_pastes.png"
 			]
 		},
 		"PostProcessingSizeUpDownOrgExif": {
 			"images": [
-				"operationsSlides/post_processing.png"
+				"operationSlides/post_processing.png"
 			]
 		},
 		"Recapture": {
 			"images": [
-				"operationsSlides/post_processing.png",
-				"operationsSlides/recapture_types.png",
-				"operationsSlides/recapture_considerations.png",
-				"operationsSlides/recapture_journal_data.png",
-				"operationsSlides/recapture_manipulations.png",
-				"operationsSlides/recapture_no_journal_data.png",
-				"operationsSlides/recapture_tips.png"
+				"operationSlides/post_processing.png",
+				"operationSlides/recapture_types.png",
+				"operationSlides/recapture_considerations.png",
+				"operationSlides/recapture_journal_data.png",
+				"operationSlides/recapture_manipulations.png",
+				"operationSlides/recapture_no_journal_data.png",
+				"operationSlides/recapture_tips.png"
 			]
 		},
 		"SelectRegion": {
 			"images": [
-				"operationsSlides/select.png",
-				"operationsSlides/select_region.png"
+				"operationSlides/select.png",
+				"operationSlides/select_region.png"
 			]
 		},
 		"SelectRegionFromFrames": {
 			"images": [
-				"operationsSlides/select.png"
+				"operationSlides/select.png"
 			]
 		},
 		"SelectCutFrames": {
 			"images": [
-				"operationsSlides/select.png"
+				"operationSlides/select.png"
 			]
 		},
 		"DuplicateFrameDrop": {
 			"images": [
-				"operationsSlides/post_processing.png"
+				"operationSlides/post_processing.png"
 			]
 		},
 		"SelectCropFrames": {
 			"images": [
-				"operationsSlides/select.png"
+				"operationSlides/select.png"
 			]
 		},
 		"SelectRemove": {
 			"images": [
-				"operationsSlides/select_remove.png",
-				"operationsSlides/select.png"
+				"operationSlides/select_remove.png",
+				"operationSlides/select.png"
 			]
 		},
 		"SelectImageFromFrame": {
 			"images": [
-				"operationsSlides/select.png"
+				"operationSlides/select.png"
 			]
 		},
 		"OutputMosaic": {
 			"images": [
-				"operationsSlides/output_video.png",
-				"operationsSlides/output.png"
+				"operationSlides/output_video.png",
+				"operationSlides/output.png"
 			]
 		},
 		"TimeAlterationEcho": {
 			"images": [
-				"operationsSlides/time_alteration.png"
+				"operationSlides/time_alteration.png"
 			]
 		},
 		"TimeAlterationFrameRate": {
 			"images": [
-				"operationsSlides/time_alteration.png"
+				"operationSlides/time_alteration.png"
 			]
 		},
 		"TimeAlterationDifferenceEffect": {
 			"images": [
-				"operationsSlides/time_alteration.png"
+				"operationSlides/time_alteration.png"
 			]
 		},
 		"TimeAlterationDisplacementEffect": {
 			"images": [
-				"operationsSlides/time_alteration.png"
+				"operationSlides/time_alteration.png"
 			]
 		},
 		"TimeAlterationWarp": {
 			"images": [
-				"operationsSlides/time_alteration.png"
+				"operationSlides/time_alteration.png"
 			]
 		},
-
-
 		"ImageInterpolation": {
 			"images": [
-				"operationsSlides/interpolation.png",
-				"operationsSlides/transform.png"
+				"operationSlides/interpolation.png",
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformAffine": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformContentAwareScale": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformCrop": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformCropResize": {
 			"images": [
-				"operationsSlides/transform_crop_resize.png"
+				"operationsSlides/transform.png"
 			]
 		},
 		"EncodeMessage": {
 			"images": [
-				"operationsSlides/stego.png"
+				"operationSlides/stego.png"
 			]
 		},
 		"TransformDistort": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformFlip": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformMove": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformResize": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformRotate": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformScale": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformSeamCarving": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformShear": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformSkew": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformWarp": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformDownSample": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"TransformReverse": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"DeepFakeFaceSwap": {
 			"images": [
-				"operationsSlides/cgi3.png"
+				"operationSlides/cgi3.png"
 			]
 		},
 		"MediaStacking": {
 			"images": [
-				"operationsSlides/layer.png"
+				"operationSlides/layer.png"
 			]
 		},
 		"FrameBlend": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		}
-
-
     }
 }

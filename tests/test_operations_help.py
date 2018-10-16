@@ -29,7 +29,7 @@ class TestOperationsHelp(TestSupport):
         slide = len(prs.slides)
         print 'Number of slides gotten from online: ' + str(slide)
 
-        jtLocation = '../resources/help/operationsSlides'
+        jtLocation = '../resources/help/operationSlides'
         path, dirs, slides = next(os.walk(jtLocation))
         print "JT Slides: " + str(len(slides))
 
