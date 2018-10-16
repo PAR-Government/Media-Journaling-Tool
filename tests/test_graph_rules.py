@@ -304,6 +304,37 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
+    def test_checkSizeAndExifPNG(self):
+
+        def get_MockImage(name, metadata=dict()):
+            if name[0] == 'a':
+                return mockImage_frm, name
+            else:
+                return mockImage_to, name
+
+        mockGraph = Mock(get_edge = Mock(return_value={'shape change': '(1664,-1664)',
+                                                       'exifdiff':{'Orientation': ['add', 'Rotate 270 CW']}}),
+                         get_image=get_MockImage)
+        mockImage_frm = Mock(size=(3264, 4928))
+        mockImage_to = Mock(size=(4928, 3264))
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
+        self.assertIsNone(r)
+        mockImage_to.size = (3264, 4928)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+
+        mockGraph.get_edge.return_value = {'shape change': '(-30,-30)'}
+        mockImage_to.size = (3234, 4898)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertIsNone(r)
+
+        mockGraph.get_edge.return_value = {'shape change': '(-30,-30)'}
+        mockImage_to.size = (3234, 4898)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
+        self.assertTrue(len(r)> 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+
 
 
 if __name__ == '__main__':

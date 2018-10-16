@@ -32,6 +32,7 @@ from tool_set import  openImageFile, fileTypeChanged, fileType, \
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
+from maskgen import maskGenPreferences
 
 project_property_rules = {}
 
@@ -1295,27 +1296,44 @@ def sizeChanged(op, graph, frm, to):
     return None
 
 def checkSizeAndExifPNG(op, graph, frm, to):
-    frm_shape = graph.get_image(frm)[0].size
-    to_shape = graph.get_image(to)[0].size
+    frm_img, frm_file = graph.get_image(frm)
+    to_img, to_file = graph.get_image(to)
+    frm_shape = frm_img.size
+    to_shape = to_img.size
     acceptable_change =(0.01 * frm_shape[0],0.01 * frm_shape[1])
-    if frm_shape[0] == to_shape[0] and frm_shape[1] == to_shape[1]:
-        return None
-    if frm_shape[0] - to_shape[0] < acceptable_change[0] and frm_shape[1] - to_shape[1] < acceptable_change[1]:
-        return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+
+    acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
+
+    diff_frm = frm_img.size[0] - frm_img.size[1]
+    diff_to = to_img.size[0] - to_img.size[1]
+
     edge = graph.get_edge(frm, to)
     orientation = getValue(edge, 'exifdiff.Orientation')
+
     if orientation is None:
         orientation = getOrientationFromMetaData(edge)
+
     if orientation is not None:
         orientation = str(orientation)
         if ('270' in orientation or '90' in orientation):
             if frm_shape[0] - to_shape[1] == 0 and \
-                                    frm_shape[1] - to_shape[0] == 0:
+               frm_shape[1] - to_shape[0] == 0:
                 return None
-            if frm_shape[0] - to_shape[1] < acceptable_change[0] and \
+            elif numpy.sign(diff_frm) == numpy.sign(diff_to):
+                return (Severity.ERROR, 'Image not rotated according Exif')
+            elif not acceptable_size_change and \
+                frm_shape[0] - to_shape[1] < acceptable_change[0] and \
                 frm_shape[1] - to_shape[0] < acceptable_change[1]:
                 return (Severity.WARNING, 'operation is not permitted to change the size of the image')
-    return (Severity.ERROR, 'operation is not permitted to change the size of the image')
+            else:
+                return None
+
+    if numpy.sign(diff_frm) != numpy.sign(diff_to):
+        return (Severity.ERROR, 'Image rotated')
+    elif not acceptable_size_change and frm_shape[0] - to_shape[0] < acceptable_change[0] and frm_shape[1] - to_shape[1] < acceptable_change[1]:
+        return (Severity.ERROR, 'operation is not permitted to change the size of the image')
+    else:
+        return None
 
 def checkSizeAndExif(op, graph, frm, to):
     """

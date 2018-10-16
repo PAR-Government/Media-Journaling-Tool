@@ -71,9 +71,9 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure]),
-         ('0.5.0822.b3f4049a83', [_fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
-         ('0.5.0918.25f7a6f767', []),
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI]),
+         ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
+         ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal])
          ])
@@ -106,6 +106,15 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fix_Inpainting_SoftwareName(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'PasteSampled' \
+                and edge['tool'] == 'PostInpaint.py' \
+                and edge['softwareName'] == '':
+            edge['softwareName'] = 'UoMInPainting'
+            edge['softwareVersion'] = '2.8'
 
 def _fixSelectRegionAutoJournal(scModel, gopLoader):
 
