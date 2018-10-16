@@ -78,6 +78,23 @@ class FileMediaFetcher(Fetcher):
         return os.path.abspath(filename)
 
 
+class FileMediaURLMixinFetcher(Fetcher):
+    """
+    Fectch URL from remote.
+    Image from file system
+    """
+    def __init__(self,url_fetcher):
+        Fetcher.__init__(self)
+        self.url_fetcher = url_fetcher
+
+    def get_image(self, filename):
+        im = openImage(filename)
+        return im
+
+    def get_url(self, filename):
+        return self.url_fetcher.get_url(os.path.basename(filename))
+
+
 class GraphMediaHandler:
     """
     Resolve media using local graph (in a directory)
