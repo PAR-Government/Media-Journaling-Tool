@@ -3585,6 +3585,10 @@
         "Image Rotated": {
           "type": "yesno",
           "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        },
+        "Lens Distortation Applied":{
+          "type":"yesno",
+          "description":"Len Distortation Algorithms Applied?"
         }
       },
       "rules": [

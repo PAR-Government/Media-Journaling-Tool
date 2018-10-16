@@ -1300,7 +1300,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     to_img, to_file = graph.get_image(to)
     frm_shape = frm_img.size
     to_shape = to_img.size
-    acceptable_change =(0.01 * frm_shape[0],0.01 * frm_shape[1])
+
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
@@ -1309,6 +1309,9 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
     edge = graph.get_edge(frm, to)
     orientation = getValue(edge, 'exifdiff.Orientation')
+    distortion = getValue(edge,'arguments.Lens Distortation Applied','no')=='yes'
+    change_allowed = 0.005 if not distortion else 0.02
+    acceptable_change = (change_allowed * frm_shape[0], change_allowed * frm_shape[1])
 
     if orientation is None:
         orientation = getOrientationFromMetaData(edge)
@@ -1322,16 +1325,21 @@ def checkSizeAndExifPNG(op, graph, frm, to):
             elif numpy.sign(diff_frm) == numpy.sign(diff_to):
                 return (Severity.ERROR, 'Image not rotated according Exif')
             elif not acceptable_size_change and \
-                frm_shape[0] - to_shape[1] < acceptable_change[0] and \
-                frm_shape[1] - to_shape[0] < acceptable_change[1]:
-                return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+                    ((frm_shape[0] - to_shape[1]) > acceptable_change[0] or \
+                    (frm_shape[1] - to_shape[0]) > acceptable_change[1]):
+                return (Severity.ERROR, 'operation is not permitted to change the size of the image')
             else:
-                return None
+                return (Severity.WARNING, 'operation is not permitted to change the size of the image')
 
     if numpy.sign(diff_frm) != numpy.sign(diff_to):
         return (Severity.ERROR, 'Image rotated')
-    elif not acceptable_size_change and frm_shape[0] - to_shape[0] < acceptable_change[0] and frm_shape[1] - to_shape[1] < acceptable_change[1]:
+    elif not acceptable_size_change and \
+            ((frm_shape[0] - to_shape[0]) > acceptable_change[0] or \
+            (frm_shape[1] - to_shape[1]) > acceptable_change[1]):
         return (Severity.ERROR, 'operation is not permitted to change the size of the image')
+    elif (frm_shape[0] - to_shape[1]) != 0 or \
+         (frm_shape[1] - to_shape[0]) != 0:
+        return (Severity.WARNING, 'operation is not permitted to change the size of the image')
     else:
         return None
 
