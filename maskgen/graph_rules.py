@@ -1309,7 +1309,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
     edge = graph.get_edge(frm, to)
     orientation = getValue(edge, 'exifdiff.Orientation')
-    distortion = getValue(edge,'arguments.Lens Distortation Applied','no')=='yes'
+    distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
     change_allowed = 0.005 if not distortion else 0.02
     acceptable_change = (change_allowed * frm_shape[0], change_allowed * frm_shape[1])
 
