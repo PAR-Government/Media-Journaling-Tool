@@ -75,7 +75,7 @@ def updateJournal(scModel):
          ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
-         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal])
+         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware])
          ])
 
     versions= list(fixes.keys())
@@ -107,12 +107,41 @@ def updateJournal(scModel):
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
 
+def _fixNoSoftware(scModel, gopLoader):
+    """
+    fills in missing softwareName field.
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    from collections import Counter
+
+    used_software = []
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'Recapture':
+            setPathValue(edge, 'softwareName', 'Off Camera')
+        software_name = getValue(edge, 'softwareName', '')
+        if software_name != '' and software_name.lower() != 'no software':
+            used_software.append(software_name)
+
+    #use most commonly used software in the Journal if Empty
+    counter = Counter(used_software)
+    most_used_software = counter.most_common(1)[0][0]
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        software_name = getValue(edge, 'softwareName', '')
+        if (software_name == '' or software_name.lower() == 'no software') and op_name != 'Donor':
+            setPathValue(edge, 'softwareName', most_used_software)
+
 def _fix_Inpainting_SoftwareName(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if edge['op'] == 'PasteSampled' \
-                and edge['tool'] == 'PostInpaint.py' \
-                and edge['softwareName'] == '':
+                and getValue(edge, 'tool', '') == 'PostInpaint.py' \
+                and getValue(edge, 'softwareName', '') == '':
             edge['softwareName'] = 'UoMInPainting'
             edge['softwareVersion'] = '2.8'
 
