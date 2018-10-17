@@ -128,6 +128,8 @@ def _fixNoSoftware(scModel, gopLoader):
 
     #use most commonly used software in the Journal if Empty
     counter = Counter(used_software)
+    if len(counter) == 0:
+        return
     most_used_software = counter.most_common(1)[0][0]
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
