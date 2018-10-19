@@ -46,10 +46,12 @@
         },
         "Copy Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -72,6 +74,7 @@
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -99,6 +102,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream": {
@@ -119,6 +123,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -150,6 +155,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
@@ -184,6 +190,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -232,6 +239,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream": {
@@ -269,6 +277,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -312,6 +321,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -388,6 +398,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -434,6 +445,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Smoothing": {
@@ -482,6 +494,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Noise Reduction": {
@@ -553,6 +566,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -584,6 +598,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -638,6 +653,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Subtype": {
@@ -673,6 +689,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -723,6 +740,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
@@ -751,6 +769,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -794,6 +813,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream": {
@@ -822,6 +842,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -854,6 +875,7 @@
         "Start Time": {
           "type": "time",
           "source": "video",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
         },
@@ -887,6 +909,7 @@
         "End Time": {
           "type": "time",
           "source": "video",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -911,6 +934,7 @@
         "Start Time": {
           "type": "time",
           "source": "video",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
         }
@@ -933,6 +957,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -957,6 +982,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -987,6 +1013,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1013,6 +1040,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -1033,6 +1061,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1057,6 +1086,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -1092,6 +1122,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1119,6 +1150,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -1157,6 +1189,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -1246,6 +1279,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "defaultValue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1269,6 +1303,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1297,6 +1332,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1311,6 +1347,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1691,6 +1728,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1714,6 +1752,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1741,6 +1780,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1762,6 +1802,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1788,6 +1829,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1810,6 +1852,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1848,6 +1891,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1870,6 +1914,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1901,6 +1946,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -1995,6 +2041,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2026,6 +2073,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2047,6 +2095,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2073,6 +2122,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2095,6 +2145,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2123,6 +2174,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -2173,6 +2225,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2255,6 +2308,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -2277,6 +2331,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2304,6 +2359,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2329,6 +2385,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2356,6 +2413,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -2388,6 +2446,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2522,6 +2581,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -2544,6 +2604,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2579,6 +2640,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -2601,6 +2663,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2726,6 +2789,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -2749,6 +2813,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2758,7 +2823,8 @@
       ],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
       "compareparameters": {
-        "tolerance": 0.0001
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.ca_fill"
@@ -2805,6 +2871,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -2814,6 +2881,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2823,7 +2891,8 @@
       ],
       "description": "Use a GAN to fill in a selected region of an image.",
       "compareparameters": {
-        "tolerance": 0.0001
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "includeInMask": {
         "default": true
@@ -2842,11 +2911,13 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2900,6 +2971,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2946,6 +3018,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2956,6 +3029,10 @@
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": {
         "default": true
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_sampled"
@@ -3027,6 +3104,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3049,6 +3127,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3093,6 +3172,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -3125,6 +3205,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3152,6 +3233,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -3171,6 +3253,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3198,6 +3281,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -3218,6 +3302,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3254,6 +3339,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -3298,6 +3384,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip ( frame number)",
           "defaultvalue": 1
@@ -3321,6 +3408,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3348,6 +3436,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -3371,6 +3460,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3398,6 +3488,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3418,6 +3509,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3425,6 +3517,10 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": {
         "default": true
@@ -3444,6 +3540,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3463,9 +3560,14 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3490,6 +3592,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3511,9 +3614,14 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3538,6 +3646,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3558,9 +3667,14 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3823,7 +3937,7 @@
       "name": "OutputPDF",
       "mandatoryparameters": {
         "resolution": {
-          "type": "int",
+          "type": "int[0:10000000]",
           "description": "DPI"
         }
       },
@@ -4192,6 +4306,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4210,7 +4325,13 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "kernel": {
+          "type":"int[1:27]",
+          "defaultvalue": 3,
+          "description": "Size of kernel to remove noise"
         }
       },
       "donor_processor":"maskgen.masks.donor_rules.video_donor",
@@ -4236,6 +4357,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -4268,6 +4390,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4275,6 +4398,9 @@
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": {
         "default": true
+      },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "generateMask": "all",
       "transitions": [
@@ -4292,6 +4418,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "subject": {
@@ -4325,6 +4452,9 @@
           "description": "Purpose: remove an object, add an object."
         }
       },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "rules": [
         "checkSize",
         "checkForDonorWithRegion",
@@ -4340,6 +4470,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4362,6 +4493,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
@@ -4370,6 +4502,7 @@
         },
         "Dest Paste Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
@@ -4401,6 +4534,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the cut video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
@@ -4409,6 +4543,7 @@
         },
         "Dest Paste Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
@@ -4600,6 +4735,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": 1,
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4612,6 +4748,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "key insertion": {
@@ -4636,6 +4773,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4650,6 +4788,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4676,6 +4815,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4689,6 +4829,7 @@
       "optionalparameters": {
          "End Time": {
           "type": "time",
+           "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4734,6 +4875,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4747,6 +4889,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4800,6 +4943,7 @@
       "mandatoryparameters": {
         "Frame Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Presentation time of the select frame (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4837,12 +4981,14 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start frame",
           "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End frame"
         }
@@ -4866,6 +5012,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -4877,6 +5024,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4911,6 +5059,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4924,6 +5073,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4955,11 +5105,13 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5009,11 +5161,13 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5048,10 +5202,12 @@
       "optionalparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5080,6 +5236,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": 1,
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Vector Detail": {
@@ -5112,6 +5269,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5137,11 +5295,13 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5181,6 +5341,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5215,6 +5376,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5240,6 +5402,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5285,6 +5448,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5380,6 +5544,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5418,6 +5583,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5467,6 +5633,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5498,6 +5665,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5543,6 +5711,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5583,6 +5752,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -5690,6 +5860,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5722,6 +5893,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5751,6 +5923,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
@@ -5787,6 +5960,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5896,6 +6070,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5932,6 +6107,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5957,6 +6133,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5994,6 +6171,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -6019,6 +6197,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -6059,6 +6238,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -6121,11 +6301,13 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": 1,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },

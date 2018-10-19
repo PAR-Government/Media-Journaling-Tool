@@ -1129,7 +1129,18 @@ class ImageProjectModel:
         :return:
         @type mod: Modification
         """
+        op = self.gopLoader.getOperationWithGroups(mod.operationName,fake=True)
         mod_old = self.getModificationForEdge(self.start, self.end)
+
+        trigger_update = False
+        for k,v in mod.arguments.iteritems():
+            if (k not in mod_old.arguments or mod_old.arguments[k] != v) and \
+                k in op.getTriggerUpdateArguments():
+                trigger_update = True
+        for k in mod_old.arguments:
+            if k not in mod.arguments and \
+                k in op.getTriggerUpdateArguments():
+                trigger_update = True
 
         self.G.update_edge(self.start, self.end,
                            op=mod.operationName,
@@ -1142,8 +1153,12 @@ class ImageProjectModel:
                            softwareName=('' if mod.software is None else mod.software.name),
                            softwareVersion=('' if mod.software is None else mod.software.version),
                            inputmaskname=mod.inputMaskName)
-        self.notify((self.start, self.end), 'update_edge')
         self._save_group(mod.operationName)
+
+        if trigger_update:
+            self.reproduceMask()
+        else:
+            self.notify((self.start, self.end), 'update_edge')
 
     def compare(self, destination, arguments={}):
         """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.

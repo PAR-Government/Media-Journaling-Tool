@@ -11,8 +11,6 @@ import os
 import time
 from subprocess import Popen, PIPE
 from threading import RLock
-from maskgen import exif
-
 
 import cv2
 import ffmpeg_api
@@ -23,6 +21,7 @@ from cachetools import cached
 from cachetools.keys import hashkey
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
+from maskgen import exif
 from maskgen_loader import  MaskGenLoader
 from support import getValue
 
@@ -1269,7 +1268,10 @@ class VidAnalysisComponents:
         res, self.frame_two = self.vid_two.retrieve()
         return res,self.frame_two
 
-def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
+def default_compare(x,y,args):
+    return np.abs(x - y)
+
+def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function=default_compare):
     """
     Find a region of cut frames given the current starting point
     :param vidAnalysisComponents: VidAnalysisComponents
@@ -1292,7 +1294,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             if not ret_one:
                 vidAnalysisComponents.vid_one.release()
                 break
-            diff = 0 if vidAnalysisComponents.frame_two is None else np.abs(frame_one - vidAnalysisComponents.frame_two)
+            diff = 0 if vidAnalysisComponents.frame_two is None else compare_function(frame_one, vidAnalysisComponents.frame_two,arguments)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_two.isOpened():
                 break
             vidAnalysisComponents.time_manager.updateToNow(
@@ -1307,7 +1309,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={}):
         return False
     return True
 
-def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
+def addDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function=default_compare):
     """
     Find a region of added frames given the current starting point
     :param vidAnalysisComponents:
@@ -1330,13 +1332,14 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
             if not ret_two:
                 vidAnalysisComponents.vid_two.release()
                 break
-            diff = 0 if vidAnalysisComponents.frame_one is None else np.abs(vidAnalysisComponents.frame_one - frame_two)
+            diff = 0 if vidAnalysisComponents.frame_one is None else compare_function(vidAnalysisComponents.frame_one, frame_two,arguments)
             if __changeCount(diff) == 0 and vidAnalysisComponents.vid_one.isOpened():
                 break
-            vidAnalysisComponents.time_manager.updateToNow(vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec))
             frame_count_diff-=1
             if frame_count_diff == 0:
                 break
+            vidAnalysisComponents.time_manager.updateToNow(vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_pos_msec))
+
             end_time = vidAnalysisComponents.time_manager.milliNow
         update_segment(addition,
                        endtime=end_time,
@@ -1346,18 +1349,16 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={}):
     return True
 
 def __changeCount(mask):
-    if isinstance(mask,np.ndarray):
-        return __changeCount(sum(mask))
-    return mask
+    return np.sum(mask)
 
-def detectChange(vidAnalysisComponents, ranges=list(), arguments={}):
+def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_function=default_compare):
     """
        Find a region of changed frames given the current starting point
        :param vidAnalysisComponents:
        :param ranges: collection of meta-data describing then range of changed frames
        :return:
        """
-    if __changeCount(vidAnalysisComponents.mask) > 0:
+    if np.sum(vidAnalysisComponents.mask) > 0:
         mask = vidAnalysisComponents.write(vidAnalysisComponents.mask,
                                            vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                                            vidAnalysisComponents.time_manager.frameSinceBeginning)
@@ -1482,11 +1483,25 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     if arguments['add type'] == 'replace':
-        return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
-    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
+        return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
+                         arguments=arguments,
+                         compare_function=tool_set.mediatedCompare,
+                         convert_function=tool_set.convert16bitcolor
+                         )
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect,
+                     arguments=arguments,
+                     compare_function=tool_set.morphologyCompare,
+                     convert_function=tool_set.convert16bitcolor)
 
 def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
+
+
+def mediatedDetectedCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
+                     compare_function=tool_set.mediatedCompare,
+                     convert_function = tool_set.convert16bitcolor,
+                     arguments = arguments)
 
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
@@ -1637,7 +1652,11 @@ def formMaskDiff(fileOne,
     if  diffPref in ['2','ffmpeg']:
         result = __form_mask_using_ffmpeg_diff(fileOne, fileTwo, name_prefix, opName, time_manager)
     else:
-        result = __runDiff(fileOne, fileTwo, name_prefix,time_manager, detectChange, arguments=arguments)
+        result = __runDiff(fileOne, fileTwo, name_prefix,time_manager,
+                           detectChange,
+                           arguments=arguments,
+                           compare_function=tool_set.morphologyCompare,
+                           convert_function=tool_set.convert16bitcolor)
     analysis['startframe'] = time_manager.getStartFrame()
     analysis['stopframe'] = time_manager.getEndFrame()
     return result
@@ -2100,7 +2119,10 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
         writer.close()
     return [], analysis, exif.comparexif_dict(exif,img_wrapper.get_exif())
 
-def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={}):
+def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
+              compare_function=tool_set.morphologyCompare,
+              convert_function=tool_set.convert16bitcolor,
+              arguments={}):
     """
       compare frame to frame of each video
      :param fileOne:
@@ -2112,6 +2134,16 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
      :return:
      @type time_manager: VidTimeManager
      """
+    def compare_func(x,
+                     y,
+                     arguments=None):
+        return tool_set.createMask(ImageWrapper(x),
+                                   ImageWrapper(y),
+                                   False,
+                                   convertFunction=convert_function,
+                                   alternativeFunction=compare_function,
+                                   arguments=arguments)[0].to_array()
+
     analysis_components = VidAnalysisComponents()
     analysis_components.file_one = fileOne
     analysis_components.file_two = fileTwo
@@ -2130,7 +2162,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
                                                   analysis_components.vid_one.get(cv2api_delegate.prop_fps))
     analysis_components.time_manager = time_manager
     ranges = list()
-    compare_args = {'tolerance':getValue(arguments,'tolerance',0.0001)}
+    compare_args = arguments if arguments is not None else {}
     try:
         done = False
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
@@ -2151,13 +2183,13 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc, arguments={})
             ret_two, frame_two = analysis_components.retrieveTwo()
             if frame_one.shape != frame_two.shape:
                 return getMaskSetForEntireVideo(FileMetaDataLocator(fileOne)),[]
-            analysis_components.mask = tool_set.__diffMask(ImageWrapper(frame_one).to_16BitGray().to_array(),
-                                                           ImageWrapper(frame_two).to_16BitGray().to_array(),
-                                       True,
-                                       compare_args)[0]
-            #opening = cv2.erode(analysis_components.mask, kernel,1)
-            #analysis_components.mask = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
-            if not opFunc(analysis_components,ranges,arguments):
+            analysis_components.mask = tool_set.createMask(ImageWrapper(frame_one),
+                                                           ImageWrapper(frame_two),
+                                                           False,
+                                                           convertFunction=convert_function,
+                                                           alternativeFunction=compare_function,
+                                                           arguments=compare_args)[0].to_array()
+            if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
                 done = True
                 break
 
@@ -2289,7 +2321,6 @@ def dropFramesFromMask(bounds,
                           keepTime=False,
                           expectedType='video'
                           ):
-        import time
         drop_sf = get_start_frame_from_segment(bound,1)
         drop_ef = get_end_frame_from_segment(bound,-1)
         if drop_ef < 0:
@@ -2577,7 +2608,6 @@ def reverseMasks(edge_video_masks, composite_video_masks):
     :param video_masks:
     :return: new set of video masks
     """
-    import time
     new_mask_set = []
     mask_types = set([get_type_of_segment(composite_video_mask) for composite_video_mask in composite_video_masks])
     for mask_type in mask_types:

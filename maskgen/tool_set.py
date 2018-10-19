@@ -2029,6 +2029,58 @@ def resizeCompare(img1, img2, arguments=dict()):
     return __diffMask(img1, new_img2, False, args=arguments)
 
 
+def moving_average(a, n=3):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
+def morphologyCompare(img_one, img_two, **kwargs):
+    kernel_size = getValue(kwargs, 'kernel', 3)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    diff = (np.abs(img_one - img_two)).astype('uint16')
+    mask = np.sum(diff, 2)
+    difference = float(kwargs['tolerance']) if kwargs is not None and 'tolerance' in kwargs else 0.00390625
+    difference = difference * 256
+    mask[np.where(mask < difference)] = 0  # set to black if less than threshold
+    mask[np.where(mask > 0)] = 255
+    mask = mask.astype('uint8')
+    mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)# filter out noise in the mask
+    return mask, {}
+
+def mediatedCompare(img_one, img_two, **kwargs):
+    bins=getValue(kwargs,'bins',256)
+    kernel_size=getValue(kwargs,'kernel',3)
+    smoothing = getValue(kwargs, 'smoothing', 3)
+    algorithm = getValue(kwargs, 'filling', 'morphology')
+    aggregate = getValue(kwargs, 'aggregate', 'sum')
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    from scipy import signal
+    # compute diff in 3 colors
+    diff = (np.abs(img_one - img_two)).astype('uint16')
+    if aggregate == 'max':
+        mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+    else:
+        mask = np.sum(diff, 2)
+    hist, bin_edges = np.histogram(mask, bins=bins, density=False)
+
+    hist = moving_average(hist,n=smoothing)  # smooth out the histogram
+    minima = signal.argrelmin(hist, order=2)  # find local minima
+    if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
+        threshold = 2
+    else:
+        threshold = minima[0][0]  # Use first minima
+
+    mask[np.where(mask < threshold)] = 0  # set to black if less than threshold
+    mask[np.where(mask > 0)] = 255
+    mask = mask.astype('uint8')
+    if algorithm == 'morphology':
+        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    else:
+        mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
+    return mask, {'minima': threshold}
+
 def convertCompare(img1, img2, arguments=dict()):
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
@@ -2038,32 +2090,6 @@ def convertCompare(img1, img2, arguments=dict()):
     else:
         new_img2 = img2
     return __diffMask(img1, new_img2, False, args=arguments)
-
-def mediatedCompare(img1, img2, arguments):
-    from scipy import signal
-    def moving_average(a, n=3):
-        ret = np.cumsum(a, dtype=float)
-        ret[n:] = ret[n:] - ret[:-n]
-        print ret
-        return ret[n - 1:] / n
-
-    # compute diff in 3 colors
-    diff = (np.abs(img1 - img2)).astype('uint16')
-    mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
-    hist, bin_edges = np.histogram(mask, bins=getValue(arguments,'bins',512), density=False)
-
-    hist = moving_average(hist, getValue(arguments,'smoothing spread',5))  # smooth out the histogram
-    minima = signal.argrelmin(hist, order=2)  # find local minima
-    if minima[0].size == 0:  # if there was no minima, hardcode
-        threshold = 2
-    else:
-        threshold = minima[0][0]  # Use first minima
-
-    mask[np.where(mask < threshold)] = 0  # set to black if less than threshold
-    mask[np.where(mask > 0)] = 255
-    mask = mask.astype('uint8')
-        #mask = cv2.medianBlur(mask, 3)  # filter out noise in the mask
-    return mask
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """

@@ -14,6 +14,7 @@ from json import JSONEncoder
 
 from maskgen.config import global_config
 from maskgen_loader import MaskGenLoader
+from maskgen.support import getValue
 
 
 class OperationEncoder(JSONEncoder):
@@ -184,6 +185,20 @@ class Operation:
         self.parameter_dependencies = parameter_dependencies
         self.qaList = qaList
         self.donor_processor = donor_processor
+        self.trigger_arguments = self._getTriggerUpdateArguments()
+
+    def _getTriggerUpdateArguments(self):
+        names = set()
+        for k,v in self.mandatoryparameters.iteritems():
+            if getValue(v,'trigger mask',False):
+                names.add(k)
+        for k,v in self.optionalparameters.iteritems():
+            if getValue(v,'trigger mask',False):
+                names.add(k)
+        return names
+
+    def getTriggerUpdateArguments(self):
+        return self.trigger_arguments
 
     def recordMaskInComposite(self,filetype):
         if filetype in self.includeInMask :

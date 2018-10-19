@@ -2,39 +2,39 @@
 
 from maskgen.scenario\_model import ImageProjectModel, Description
 
-####Project can be the path to the JSON file, the directory of the journal or the tgz (tarred zip file) of the journal
+### Project can be the path to the JSON file, the directory of the journal or the tgz (tarred zip file) of the journal
 
 scModel = maskgen.scenario\_model.ImageProjectModel(project)
 
-####Obtain list of final node IDs
+### Obtain list of final node IDs
 
 scModel. finalNodes()
 
-####Find base node for given node id
+### Find base node for given node id
 
 scModel.getBaseNode(node)
 
-####Get the name of the project
+### Get the name of the project
 
 scModel.getName()
 
-####Get the list of based node ids (typical only one)
+### Get the list of based node ids (typical only one)
 
 scModel.baseNodes()
 
-####Get successor node ids to node
+### Get successor node ids to node
 
 scModel.getGraph().successors(nodeid)
 
-####Get predecessor node ids to node
+### Get predecessor node ids to node
 
 scModel.getGraph().predecessor(nodeid)
 
-####Returns the Description object describing the link
+### Returns the Description object describing the link
 
 description = scModel. getModificationForEdge(start,end)
 
-####Obtain all descriptions for all links
+### Obtain all descriptions for all links
 
 scModel.getDescriptions()
 
@@ -127,16 +127,18 @@ probes = scModel.getProbeSet(compositeBuilders=[EmptyCompositeBuilder])
 
 * notifier - notify progress (TBD)
 
-###Type of Composite Builders
+### Type of Composite Builders
 
 The set of builders are available in maskgen.mask_rules
 
 * ColorCompositeBuilder -- uses each edge's assigned color to overlay in a single mask per final image
 * JPEG2000CompositeBuilder -- store each probe in a JPEG2000 file as a bit plane.
 
+ColorCompositeBuilder make looking appealing but introduces obfuscation of masks, as one region of color covers another.
+
 JPEG2000CompositeBuilder builds one JP2 file per unique dimensions of final images within a project.   For example, if all the final images shared the same width and heighth,  the probes share the same JPEG2000 file.  Each probe is assigned a bit plane.  As an edge may be be represented by multiple probes, two or more probes for the same edge may share the same bit plane IF the probes final image mask are the same.
 
-AJPEG 2000 image is made up of multiple channels (third dimension).  Each pixel of every channel is described by an unsigned byte, with values from 0 to 255.  Each bit in the byte is part bit plane, covering the same bit across the entire set of pixels represented in the JPEG 2000 image.  
+A JPEG 2000 image is made up of multiple channels (third dimension).  Each pixel of every channel is described by an unsigned byte, with values from 0 to 255.  Each bit in the byte is part bit plane, covering the same bit across the entire set of pixels represented in the JPEG 2000 image.
 
 Each probe has a dictionary attribute called composites.  The key of the dictionary is the composite type: 'color' or 'jp2'.  The contents are dictionaries describing the probes participation in the composite.  This includes color, filename, bit plane, etc.   The bit plane is a number from 1 to N.   Common rules apply to find the actual channel and bit in the file:
 
