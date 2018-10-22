@@ -336,7 +336,7 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
-        mockGraph.get_edge.return_value = {'shape change': '(-30,-30)','arguments': {'Lens Distortation Applied':'yes'}}
+        mockGraph.get_edge.return_value = {'shape change': '(-30,-30)','arguments': {'Lens Distortion Applied':'yes'}}
         mockImage_to.size = (3234, 4898)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertTrue(len(r) > 0)
