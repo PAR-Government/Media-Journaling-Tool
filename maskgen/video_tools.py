@@ -431,10 +431,7 @@ def get_shape_of_video(video_file):
             height = int(item['height'])
     return width,height
 
-def get_frame_count_only(video_file):
-    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True, media_types=['video'])
-    index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-    return len(frames[index])
+
 
 def get_frame_time(video_frame, last_time, rate):
     try:
@@ -447,15 +444,64 @@ def get_frame_time(video_frame, last_time, rate):
 
 @cached(count_cache,lock=count_lock)
 def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
+    """
+    Provie a meta set with frame count givn the constraints.
+
+    :param video_file:
+    :param start_time_tuple:
+    :param end_time_tuple:
+    :return:
+    """
     frmcnt = 0
     startcomplete = False
     segment = create_segment(starttime=0,startframe=1,endtime=0,endframe=1,frames=0,rate=0)
-    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True, media_types=['video'])
+    # first assume FFR.
+    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False, media_types=['video'])
     indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
     if not indices:
         return None
-    index = indices[0]
+    index= indices[0]
+    #open_ended = end_time_tuple in [None, (0, 0), (0,1)] and start_time_tuple in [(0, 1),None]
+    #duration_missing = getValue(meta[index],'duration','n').lower()[0] in 'n'
+    ## not FFR, then need to pull more data from frames
+    if getValue(meta[index],'nb_frames','n').lower()[0] in ['0','n'] or ffmpeg_api.is_vfr(meta[index],frames):
+        #if open_ended and not duration_missing:
+        # All we need is the end.
+        #    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False,
+        #                                              media_types=['video'], count_frames=True)
+        #    index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+        #if not open_ended or getValue(meta[index],'nb_read_frames','n').lower()[0] in ['0','n']:
+        # need to pull the frame info to find the start and end frames.
+        meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True,
+                                                          media_types=['video'], frame_meta=['pkt_pts_time','pkt_dts_time','pkt_duration_time'])
+        index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+        frame_count = len(frames[index])
+        #else:
+        #    frame_count = int(meta[index]['nb_read_frames'])
+    else:
+        frame_count = int(meta[indices[0]]['nb_frames'])
+
+    if end_time_tuple in [None, (0, 0)]:
+        end_time_tuple = (0, frame_count)
+
+    if start_time_tuple in [None, (0, 0)]:
+        start_time_tuple = (0, 1)
+
     rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
+    if not ffmpeg_api.is_vfr(meta[index],frames):
+        update_segment(segment,**maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
+        return segment
+
+    #if open_ended and not duration_missing:
+    #    update_segment(segment,
+    #                   rate=rate,
+    #                   startframe=1,
+    #                   starttime=0,
+    #                   endframe=frame_count,
+    #                   endtime=float(getValue(meta[index],'duration',0))*1000.0-1000.0/rate
+    #                   )
+    #    return segment
+
     video_frames = frames[index]
     time_manager = tool_set.VidTimeManager(startTimeandFrame=start_time_tuple,stopTimeandFrame=end_time_tuple)
     aptime = 0
@@ -485,6 +531,9 @@ def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
 
     return segment
 
+def get_frame_count_only(video_file):
+    return get_frames_from_segment(get_frame_count(video_file))
+
 def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
     """
     Depending on variable or constraint frame rate, the time may not be accurate.
@@ -504,7 +553,8 @@ def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
     return create_segment(starttime=(startframe - 1) * 1000.0 / rate,
                           startframe=int(startframe),
                           endtime=(endframe-1)*1000/rate,
-                          endframe=int(endframe))
+                          endframe=int(endframe),
+                          rate=rate)
 
 class MetaDataLocator:
 
@@ -635,21 +685,10 @@ def getMaskSetForEntireVideoForTuples(locator, start_time_tuple=(0,1), end_time_
                 rate = float(item['sample_rate'])
             segment = create_segment(rate=rate,type=item['codec_type'])
             if item['codec_type'] == 'video':
-                if ffmpeg_api.is_vfr(meta[ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]]):
-                    maskupdate = get_frame_count(video_file, start_time_tuple=start_time_tuple,
+                maskupdate = get_frame_count(video_file,
+                                                 start_time_tuple=start_time_tuple,
                                                  end_time_tuple=end_time_tuple)
-                    update_segment(segment,**maskupdate)
-                elif end_time_tuple in [None,(0,0)]:
-                    try:
-                        update_segment(segment,**maskSetFromConstraints(rate,start_time_tuple,(0, int(item['nb_frames']))))
-                    except:
-                        update_segment(segment,**get_frame_count(video_file, start_time_tuple=start_time_tuple))
-                elif end_time_tuple is None:
-                    # input provides frames, so assume constant frame rate as time is just a reference point
-                    update_segment(segment,**get_frame_count(video_file, start_time_tuple=start_time_tuple))
-                else:
-                    update_segment(segment, **maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
-
+                update_segment(segment,**maskupdate)
                 update_segment(segment,mask= np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8))
             else:
                 starttime = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0

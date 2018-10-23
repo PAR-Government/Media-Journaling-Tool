@@ -263,6 +263,21 @@ class TestVideoTools(TestSupport):
 
     def test_frame_count(self):
 
+
+        #result = video_tools.get_frame_count(self.locateFile('tests/videos/fb1afd9b551cde13b6e011a201e42ae7.mts'), (2010, 0), None)
+        #self.assertEqual(2356, video_tools.get_frames_from_segment(result))
+        #self.assertEqual(2385, video_tools.get_end_frame_from_segment(result))
+        #self.assertEqual(80579, int(video_tools.get_end_time_from_segment(result)))
+        #self.assertEqual(2001.0, video_tools.get_start_time_from_segment(result))
+        #self.assertEqual(30, video_tools.get_start_frame_from_segment(result))
+
+        #result = video_tools.get_frame_count(self.locateFile('tests/videos/fb1afd9b551cde13b6e011a201e42ae7.mts'), (0, 21), (0, 593))
+        ##self.assertEqual(573, video_tools.get_frames_from_segment(result))
+        #self.assertEqual(593, video_tools.get_end_frame_from_segment(result))
+        #self.assertEqual(20786, int(video_tools.get_end_time_from_segment(result)))
+        #self.assertEqual(1700, int(video_tools.get_start_time_from_segment(result)))
+        #self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
+
         result = video_tools.get_frame_count('sample1_ffr.mov', (0, 21), (0, 593))
         self.assertEqual(59200.0, round(video_tools.get_end_time_from_segment(result)))
         self.assertEqual(573, video_tools.get_frames_from_segment(result))
@@ -290,6 +305,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
+
+
 
     def test_frame_binding_ffr(self):
 
@@ -1528,21 +1545,20 @@ class TestVideoTools(TestSupport):
 
     def testMetaDiff(self):
         from maskgen.support import getValue
-        meta_diff, frame_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
+        meta_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
                                                                 self.locateFile('tests/videos/sample1_slow_swap.mov'),
-                                                                frames=True, media_types=['video'])
-        self.assertTrue(len(frame_diff) > 0)
+                                                                media_types=['video'])
         self.assertTrue('nb_frames' in getValue({'metadatadiff': meta_diff}, 'metadatadiff.video', {}))
         self.assertTrue(meta_diff['video']['duration_ts'] == ('change', '35610', '610304'))
-        meta_diff, frame_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
+        meta_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
                                                                 self.locateFile('tests/videos/sample1_slow_swap.mov'),
-                                                                frames=True, media_types=['video', 'audio'])
+                                                                media_types=['video', 'audio'])
         self.assertTrue(meta_diff['stereo']['bit_rate'] == ('change', '126228', '128273'))
         self.assertTrue(meta_diff['video']['bit_rate'] == ('change', '2298880', '1364992'))
 
         meta_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
                                                                 self.locateFile('tests/videos/sample1_slow_swap.mov'),
-                                                                frames=False, media_types=['audio'])
+                                                                media_types=['audio'])
         self.assertTrue(meta_diff['stereo']['nb_frames'] == ('change', '2563', '2558'))
 
 

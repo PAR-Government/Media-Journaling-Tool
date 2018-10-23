@@ -939,7 +939,7 @@ class AddTool:
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         parent = {}
-        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30)
+        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30, frame_meta=['pkt_duration_time'])
         parent['media'] = meta
         width = 0
         height = 0

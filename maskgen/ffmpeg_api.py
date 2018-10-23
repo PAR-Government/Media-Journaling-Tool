@@ -211,7 +211,13 @@ def process_stream_meta(stream, errorstream):
             add_to_meta_data(meta, prefix, line, split=False)
     return meta
 
-def get_meta_from_video(file, with_frames=False, show_streams=False, media_types=['video', 'audio'], extras=None, frame_limit=None):
+def get_meta_from_video(file,
+                        with_frames=False,
+                        show_streams=False,
+                        count_frames=False,
+                        media_types=['video', 'audio'],
+                        frame_limit=None,
+                        frame_meta=[]):
 
     def strip(meta,frames,media_types):
         return [item for item in meta if getValue(item,'codec_type','na') in media_types],\
@@ -274,16 +280,17 @@ def get_meta_from_video(file, with_frames=False, show_streams=False, media_types
         return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if show_streams or with_frames:
-        args = '-show_streams' + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
+        args = '-show_streams' + ( ' -count_frames' if count_frames else '') + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
         meta = runProbe(process_meta_from_streams, args=args)
     else:
         meta = runProbe(process_stream_meta, args='')
 
     if with_frames:
+        frame_meta_list=['media_type','stream_index']
+        frame_meta_list.extend(frame_meta)
+        args = ['-show_frames', '-show_entries','subtitle=:frame={}'.format(','.join(frame_meta_list))]
         if frame_limit is not None:
-            args = ['-show_frames', '-read_intervals', '%+#{}'.format(frame_limit)]
-        else:
-            args = ['-show_frames']
+            args.extend(['-read_intervals', '%+#{}'.format(frame_limit)])
         frames = runProbeWithFrames(process_frames_from_stream, args=args)
     else:
         # insure match of frames to meta

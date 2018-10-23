@@ -109,7 +109,6 @@ class MetaDataExtractor:
         :param with_frames:
         :param show_streams:
         :param media_types:
-        :param extras: extra meta data
         :return:
         """
 
@@ -127,19 +126,18 @@ class MetaDataExtractor:
         return ffmpeg_api.get_frame_attribute(source_file, attribute, default=default, audio=audio)
 
 
-    def getVideoMeta(self, source, with_frames=False, show_streams=True, media_types=['video', 'audio'], extras=None):
+    def getVideoMeta(self, source, with_frames=False, show_streams=True, media_types=['video', 'audio']):
         """
         Featch meta data, overwriting any keys from the cache in the instance graph's node identified by source.
         :param source: source node id
         :param with_frames:
         :param show_streams:
         :param media_types:
-        :param extras: extra meta data
         :return:
         """
         source_file = self.graph.get_image_path(source)
         meta, frames = ffmpeg_api.get_meta_from_video(source_file, with_frames=with_frames, show_streams=show_streams,
-                                                      media_types=media_types, extras=extras)
+                                                      media_types=media_types)
         node_meta = self.__get_cache_from_graph(source)
         for item in meta:
             match = _match_stream(item, node_meta)
