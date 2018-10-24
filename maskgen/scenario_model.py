@@ -55,7 +55,7 @@ def loadProject(projectFileName, notify=None, username=None, tool=None):
       Given JSON file name, open then the appropriate type of project
       @rtype: ImageProjectModel
     """
-    graph = createGraph(projectFileName)
+    graph = createGraph(projectFileName, tool=tool)
     return ImageProjectModel(projectFileName, graph=graph, notify=notify, username=username, tool=tool)
 
 

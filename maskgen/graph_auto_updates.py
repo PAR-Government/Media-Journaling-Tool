@@ -469,8 +469,7 @@ def _fixTool(scModel,gopLoader):
     if scModel.getGraph().getDataItem('modifier_tools') is None:
         scModel.getGraph().setDataItem('modifier_tools', modifier_tools)
 
-    if scModel.getGraph().getDataItem('creator_tool') is None:
-        scModel.getGraph().setDataItem('creator_tool', tool_name)
+    scModel.getGraph().setDataItem('creator_tool', tool_name)
 
 def _fixValidationTime(scModel,gopLoader):
     import time
