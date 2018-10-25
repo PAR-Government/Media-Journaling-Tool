@@ -219,7 +219,7 @@ def get_meta_from_video(file,
                         media_types=['video', 'audio'],
                         frame_limit=None,
                         frame_start=None,
-                        frame_meta=[]):
+                        frame_meta=['pkt_pts_time','pkt_dts_time','pkt_duration_time']):
 
     def strip(meta,frames,media_types):
         return [item for item in meta if getValue(item,'codec_type','na') in media_types],\
