@@ -674,6 +674,13 @@
       "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
 	},
     {
+	  "semanticgroup": true,
+      "information": "Change recaptured documents nefariously. Example: Signature Change",
+      "type": "yesno",
+      "description": "Falsifying Documents",
+      "name": "FalsifyingDocuments"
+    },
+    {
       "description": "splice/copy",
       "name": "splice/copy",
       "type": "yesno",
@@ -702,6 +709,7 @@
       "operations": ["AdditionalEffectMosaic","Mosaic"],
       "information": "Mosaicing."
     },
+
     {
       "description": "Seam Carving",
       "name": "seamcarving",

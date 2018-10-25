@@ -151,7 +151,9 @@
             ]
         },
         "Data Embedding Steganography": {
-            "images": []
+            "images": [
+				"semanticSlides/data_embedding_stego.png"
+			]
         },
         "Voice Audio Swap": {
             "images": [
@@ -162,7 +164,22 @@
             "images": [
                 "semanticSlides/dateburnin.png"
             ]
-        }
+        },
+		"Falsifying Documents": {
+			"images": [
+				"semanticSlides/falsifying_documents.png"
+			]
+		},
+		"Drone Video Tests": {
+			"images": [
+				"semanticSlides/drone_test_video.png"
+			]
+		},
+		"splice/copy": {
+			"images": [
+				"semanticSlides/splice.png"
+			]
+		}
     },
     "operation": {
 		"AudioCopyAdd": {
