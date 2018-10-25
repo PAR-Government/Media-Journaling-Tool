@@ -440,7 +440,9 @@ def get_frame_time(video_frame, last_time, rate):
         try:
             return float(video_frame['pkt_dts_time']) * 1000
         except:
-            return last_time + rate
+            if rate is not None:
+                return last_time + rate
+            return None
 
 @cached(count_cache,lock=count_lock)
 def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
@@ -461,25 +463,43 @@ def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
     if not indices:
         return None
     index= indices[0]
-    #open_ended = end_time_tuple in [None, (0, 0), (0,1)] and start_time_tuple in [(0, 1),None]
-    #duration_missing = getValue(meta[index],'duration','n').lower()[0] in 'n'
-    ## not FFR, then need to pull more data from frames
-    if getValue(meta[index],'nb_frames','n').lower()[0] in ['0','n'] or ffmpeg_api.is_vfr(meta[index],frames):
-        #if open_ended and not duration_missing:
-        # All we need is the end.
-        #    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False,
-        #                                              media_types=['video'], count_frames=True)
-        #    index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-        #if not open_ended or getValue(meta[index],'nb_read_frames','n').lower()[0] in ['0','n']:
-        # need to pull the frame info to find the start and end frames.
-        meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True,
+    open_ended = end_time_tuple in [None, (0, 0), (0,1)]
+    open_started = start_time_tuple in [(0, 1),None]
+    missing_frame_count = getValue(meta[index],'nb_frames','n').lower()[0] in ['0','n']
+    end_time = None
+    def to_time(x):
+        return '%d:%d' % (x/60,x%60)
+    frame_count = int(meta[indices[0]]['nb_frames']) if not missing_frame_count else None
+    is_vfr = ffmpeg_api.is_vfr(meta[index],frames)
+    # Not FFR, then need to pull more data from frames
+    if missing_frame_count or is_vfr:
+        # do not incur this cost unless vfr or open started and missing frame count
+        # ffr missing frame count is an odd case, but lets trap it here
+        if open_ended and (open_started or not is_vfr) and missing_frame_count:
+            meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False,
+                                                          media_types=['video'],
+                                                          count_frames=True)
+            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+
+            # would be odd that this did not work
+            if frame_count is None and getValue(meta[index],'nb_read_frames','n').lower()[0] not in ['0','n']:
+                frame_count = int(meta[index]['nb_read_frames'])
+
+        if not (open_ended and open_started) or frame_count is None:
+            # need to pull the frame info to find the start and end frames.
+            meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True,
                                                           media_types=['video'], frame_meta=['pkt_pts_time','pkt_dts_time','pkt_duration_time'])
-        index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-        frame_count = len(frames[index])
-        #else:
-        #    frame_count = int(meta[index]['nb_read_frames'])
-    else:
-        frame_count = int(meta[indices[0]]['nb_frames'])
+            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+            frame_count = len(frames[index])
+        else:
+            # get the last frames, as we have the count and it is not open ended or open started
+            _, frames = ffmpeg_api.get_meta_from_video(video_file,
+                                                       show_streams=True,
+                                                       with_frames=True,
+                                                       media_types=['video'],
+                                                       frame_meta=['pkt_pts_time', 'pkt_dts_time'],
+                                                       frame_start=to_time(float(getValue(meta[index],'duration',100000.0))))
+            end_time = get_frame_time(frames[index][-1], None, None)
 
     if end_time_tuple in [None, (0, 0)]:
         end_time_tuple = (0, frame_count)
@@ -488,19 +508,19 @@ def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
         start_time_tuple = (0, 1)
 
     rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
-    if not ffmpeg_api.is_vfr(meta[index],frames):
+    if not is_vfr:
         update_segment(segment,**maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
         return segment
 
-    #if open_ended and not duration_missing:
-    #    update_segment(segment,
-    #                   rate=rate,
-    #                   startframe=1,
-    #                   starttime=0,
-    #                   endframe=frame_count,
-    #                   endtime=float(getValue(meta[index],'duration',0))*1000.0-1000.0/rate
-    #                   )
-    #    return segment
+    if open_ended and open_started and end_time is not None:
+        update_segment(segment,
+                       rate=rate,
+                       startframe=1,
+                       starttime=0,
+                       endframe=frame_count,
+                       endtime=end_time
+                       )
+        return segment
 
     video_frames = frames[index]
     time_manager = tool_set.VidTimeManager(startTimeandFrame=start_time_tuple,stopTimeandFrame=end_time_tuple)

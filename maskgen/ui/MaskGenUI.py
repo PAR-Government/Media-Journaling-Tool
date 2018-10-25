@@ -421,7 +421,7 @@ class MakeGenUI(Frame):
 
 
     def setautosave(self):
-        autosave_decision = self.prefLoader.get_key('autosave')
+        autosave_decision = self.prefLoader.get_key('autosave',default_value='600')
         d = SelectDialog(self,
                          "AutoSave",
                          "Autosave every 'n' seconds. 0 turns off AutoSave",

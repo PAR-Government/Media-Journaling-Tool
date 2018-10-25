@@ -75,7 +75,8 @@ def updateJournal(scModel):
          ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
-         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware])
+         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
+         ('0.5.0918.19c0afaab7', [_fixTool2])
          ])
 
     versions= list(fixes.keys())
@@ -96,6 +97,7 @@ def updateJournal(scModel):
         for id in fixes.keys()[fixes_needed:]:
             logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
             for fix in fixes[id]:
+                logging.getLogger('maskgen').info('Apply fix {} for {}'.format(fix.__name__, id))
                 ok &= apply_fix(fix, scModel, gopLoader)
     apply_fix(_fixMandatory,scModel, gopLoader)
     #update to the max
@@ -192,6 +194,7 @@ def _fixVideoNode(scModel, gopLoader):
         if getValue(node,'filetype','image') == 'video' and \
                 (getValue(node, 'media', None) is None or
                   needs_rerun(getValue(node, 'media', []))):
+            logging.getLogger('maskgen').info('load data for {}'.format(scModel.G.get_pathname(node_id)))
             node.update(tool.getAdditionalMetaData(scModel.G.get_pathname(node_id)))
 
 def _fixDonorVideoMask(scModel, gopLoader):
@@ -470,6 +473,25 @@ def _fixTool(scModel,gopLoader):
         scModel.getGraph().setDataItem('modifier_tools', modifier_tools)
 
     scModel.getGraph().setDataItem('creator_tool', tool_name)
+
+def _fixTool2(scModel,gopLoader):
+    """
+
+    :param scModel:
+    :param gopLoader:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+
+    def replace_tool(tool):
+        return 'jtui' if 'MaskGenUI' in tool else tool
+
+    modifier_tools = scModel.getGraph().getDataItem('modifier_tools')
+    if modifier_tools is not None:
+        scModel.getGraph().setDataItem('modifier_tools', [replace_tool(x) for x in modifier_tools])
+
+    creator_tool= scModel.getGraph().getDataItem('creator_tool')
+    scModel.getGraph().setDataItem('creator_tool', replace_tool(creator_tool))
 
 def _fixValidationTime(scModel,gopLoader):
     import time

@@ -217,6 +217,7 @@ def get_meta_from_video(file,
                         count_frames=False,
                         media_types=['video', 'audio'],
                         frame_limit=None,
+                        frame_start=None,
                         frame_meta=[]):
 
     def strip(meta,frames,media_types):
@@ -225,13 +226,7 @@ def get_meta_from_video(file,
                    if len(frames) > 0 else frames
 
     def runProbeWithFrames(func, args=None):
-        if len(media_types) == 1:
-            ffmpegcommand = [get_ffprobe_tool(), '-select_streams', media_types[0][0]]
-        else:
-            ffmpegcommand = [get_ffprobe_tool()]
-       # if extras is not None:
-       #     ffmpegcommand.append('-show_entries')
-       #     ffmpegcommand.append('-packet:' + ','.join(extras))
+        ffmpegcommand = [get_ffprobe_tool()]
         if args != None:
             ffmpegcommand.extend(args)
         ffmpegcommand.append(file)
@@ -275,23 +270,30 @@ def get_meta_from_video(file,
     def runProbe(func, args=None):
         ffmpegcommand = [get_ffprobe_tool(), file]
         if args != None:
-            ffmpegcommand.extend(args.split())
+            ffmpegcommand.extend(args)
         stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
         return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if show_streams or with_frames:
         args = '-show_streams' + ( ' -count_frames' if count_frames else '') + (' -select_streams {}'.format(media_types[0][0]) if len(media_types) == 1 else '')
-        meta = runProbe(process_meta_from_streams, args=args)
+        meta = runProbe(process_meta_from_streams, args=args.split())
     else:
-        meta = runProbe(process_stream_meta, args='')
+        meta = runProbe(process_stream_meta, args=[])
 
     if with_frames:
         frame_meta_list=['media_type','stream_index']
         frame_meta_list.extend(frame_meta)
-        args = ['-show_frames', '-show_entries','subtitle=:frame={}'.format(','.join(frame_meta_list))]
-        if frame_limit is not None:
-            args.extend(['-read_intervals', '%+#{}'.format(frame_limit)])
-        frames = runProbeWithFrames(process_frames_from_stream, args=args)
+        args = ['-show_frames']
+        if len(media_types) == 1:
+            args.extend( ['-select_streams', media_types[0][0]])
+        args.extend(['-show_frames', '-show_entries','subtitle=:frame={}'.format(','.join(frame_meta_list))])
+        if frame_limit is not None or frame_start is not None:
+            limit = '%+#{}'.format(frame_limit) if frame_limit is not None else ''
+            start = '{}'.format(frame_start) if frame_start is not None else ''
+            args.extend(['-read_intervals', '{}{}'.format(start, limit)])
+            frames = runProbe(process_frames_from_stream, args=args)
+        else:
+            frames = runProbeWithFrames(process_frames_from_stream, args=args)
     else:
         # insure match of frames to meta
         frames = []

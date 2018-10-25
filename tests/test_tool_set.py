@@ -162,6 +162,8 @@ class TestToolSet(TestSupport):
     def test_gray_writing(self):
         import os
         import sys
+        import time
+        s  = time.clock()
         writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)
         mask_set = list()
         for i in range(255):
@@ -181,6 +183,7 @@ class TestToolSet(TestSupport):
             pos += 1
         reader.close()
         self.assertEqual(255, pos)
+        print time.clock()- s
         suffix = 'm4v'
         if sys.platform.startswith('win'):
             suffix = 'avi'

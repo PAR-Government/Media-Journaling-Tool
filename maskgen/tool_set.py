@@ -2049,7 +2049,6 @@ def morphologyCompare(img_one, img_two, **kwargs):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, **kwargs):
-    bins=getValue(kwargs,'bins',256)
     kernel_size=getValue(kwargs,'kernel',3)
     smoothing = getValue(kwargs, 'smoothing', 3)
     algorithm = getValue(kwargs, 'filling', 'morphology')
@@ -2060,10 +2059,11 @@ def mediatedCompare(img_one, img_two, **kwargs):
     diff = (np.abs(img_one - img_two)).astype('uint16')
     if aggregate == 'max':
         mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+        bins=256
     else:
         mask = np.sum(diff, 2)
+        bins=768
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
-
     hist = moving_average(hist,n=smoothing)  # smooth out the histogram
     minima = signal.argrelmin(hist, order=2)  # find local minima
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
@@ -2744,6 +2744,60 @@ def execute_every(interval, worker_func, start=True, **kwargs):
         worker_func(**kwargs)
 
 
+class GrayBlockFrameFirstLayout():
+
+    name = 'framefirst'
+
+    @staticmethod
+    def is_end(reader):
+        return reader.pos >= reader.dset.shape[0]
+
+    @staticmethod
+    def get_frame(reader):
+        return reader.dset[reader.pos, :, :]
+
+    @staticmethod
+    def initial_shape(shape, size = None):
+        return (size, shape[0], shape[1])
+
+    @staticmethod
+    def resize(shape, writer):
+        if writer.dset.shape[0] < (writer.pos + 1):
+            writer.dset.resize((writer.pos + 1, shape[0], shape[1]))
+
+    @staticmethod
+    def set(writer,mask):
+        writer.dset[ writer.pos, :, :] = mask
+
+class GrayBlockFrameLastLayout():
+
+    name = 'framelast'
+
+    @staticmethod
+    def is_end(reader):
+        return reader.pos >= reader.dset.shape[2]
+
+    @staticmethod
+    def get_frame(reader):
+        return reader.dset[:, :, reader.pos]
+
+    @staticmethod
+    def initial_shape(shape, size=None):
+        return (shape[0], shape[1],size)
+
+    @staticmethod
+    def resize(shape, writer):
+        if writer.dset.shape[2] < (writer.pos + 1):
+            writer.dset.resize((shape[0], shape[1], writer.pos + 1))
+
+    @staticmethod
+    def set(writer,mask):
+        writer.dset[:, :, writer.pos] = mask
+
+
+MASKFORMATS = {GrayBlockFrameFirstLayout.name:GrayBlockFrameFirstLayout(),
+               GrayBlockFrameLastLayout.name:GrayBlockFrameLastLayout()}
+
 class GrayBlockReader:
 
     def __init__(self, filename, convert=False, preferences=None, start_time=0, start_frame=1):
@@ -2756,6 +2810,8 @@ class GrayBlockReader:
         self.fps = self.h_file.attrs['fps']
         self.start_time = self.h_file.attrs['start_time'] if 'start_time' in self.h_file.attrs else start_time
         self.start_frame = self.h_file.attrs['start_frame'] if 'start_frame' in self.h_file.attrs else start_frame
+        last_frame= self.h_file.attrs['end_frame'] if 'end_frame' in self.h_file.attrs else 0
+        self.mask_format = MASKFORMATS[self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
         self.convert = convert
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
@@ -2776,10 +2832,10 @@ class GrayBlockReader:
     def read(self):
         if self.dset is None:
             return None
-        if self.pos >= self.dset.shape[0]:
+        if self.mask_format.is_end(self):
             self.dset = None
             return None
-        mask = self.dset[self.pos, :, :]
+        mask = self.mask_format.get_frame(self)
         mask = mask.astype('uint8')
         self.writer.write(mask, self.current_frame_time())
         self.pos += 1
@@ -2807,7 +2863,7 @@ class GrayBlockWriter:
       Write Gray scale (Mask) images to a compressed block file
     """
 
-    def __init__(self, mask_prefix, fps):
+    def __init__(self, mask_prefix, fps, layout=GrayBlockFrameFirstLayout()):
         self.fps = fps
         self.dset = None
         self.grp = None
@@ -2816,6 +2872,9 @@ class GrayBlockWriter:
         self.suffix = 'hdf5'
         self.filename = None
         self.mask_prefix = mask_prefix
+        self.mask_format = layout
+        self.last_frame = 1
+        self.last_time = 0
 
     def write(self, mask, mask_time, frame_number):
         import h5py
@@ -2828,21 +2887,23 @@ class GrayBlockWriter:
             self.h_file.attrs['prefix'] = os.path.basename(self.mask_prefix)
             self.h_file.attrs['start_time'] = mask_time
             self.h_file.attrs['start_frame'] = frame_number
+            self.h_file.attrs['mask_format'] = self.mask_format.name
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
-                                                (10, mask.shape[0], mask.shape[1]),
+                                                self.mask_format.initial_shape(mask.shape, size=10),
                                                 compression="gzip",
                                                 chunks=True,
-                                                maxshape=(None, mask.shape[0], mask.shape[1]))
+                                                maxshape=self.mask_format.initial_shape(mask.shape))
             self.pos = 0
-        if self.dset.shape[0] < (self.pos + 1):
-            self.dset.resize((self.pos + 1, mask.shape[0], mask.shape[1]))
+        self.mask_format.resize(mask.shape, self)
         new_mask = mask
         if len(mask.shape) > 2:
             new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
                 new_mask[mask[:, :, i] > 0] = 0
-        self.dset[self.pos, :, :] = new_mask
+        self.last_frame = frame_number
+        self.last_time = mask_time
+        self.mask_format.set(self, new_mask)
         self.pos += 1
 
     def get_file_name(self):
@@ -2855,6 +2916,8 @@ class GrayBlockWriter:
         self.grp = None
         self.dset = None
         if self.h_file is not None:
+            self.h_file.attrs['end_time'] = self.last_time
+            self.h_file.attrs['end_frame'] = self.last_frame
             self.h_file.close()
         self.h_file = None
 
