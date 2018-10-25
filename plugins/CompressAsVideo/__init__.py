@@ -150,8 +150,11 @@ def parse_override_command(command, source, target):
     """
     command = command.lower()
     args = shlex.split(command, r"'")
+    y_index = args.index('-y') if '-y' in args else None
+    if y_index == None:
+        args.append('-y')
     if not path.exists(args[-1]):
-        args.insert(-1,target)
+        args.append(target)
     try:
         inp = args.index('-i')
     except ValueError:
@@ -272,24 +275,20 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                         height = old_width
                     if source_height != width or source_width != height:
                         video_size = width + ':' + height
-                        try:
-                            if 'display_aspect_ratio' in data:
-                                aspect_ratio = ',setdar=' + data['display_aspect_ratio']
-                            else:
-                                aspect_ratio = ''
-                        except KeyError:
+                        dar = get_item(data, 'display_aspect_ratio', 'N/A')
+                        if dar != 'N/A':
+                            aspect_ratio = ',setdar=' + dar
+                        else:
                             aspect_ratio = ''
                         filters += (',scale=' + video_size + aspect_ratio)
                 else:
                     if (abs(diff_rotation) == 90 and (source_height != width or source_width != height)) or \
                             (abs(diff_rotation) != 90 and (source_height != height or source_width != width)):
                         video_size = width + ':' + height
-                        try:
-                            if 'display_aspect_ratio' in data:
-                                aspect_ratio = ',setdar=' + data['display_aspect_ratio']
-                            else:
-                                aspect_ratio = ''
-                        except KeyError:
+                        dar = get_item(data, 'display_aspect_ratio', 'N/A')
+                        if dar != 'N/A':
+                            aspect_ratio = ',setdar=' + dar
+                        else:
                             aspect_ratio = ''
                         filters += (',scale=' + video_size + aspect_ratio)
                     if rotation_filter is not None and  len(rotation_filter) > 0:

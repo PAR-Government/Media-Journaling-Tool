@@ -40,6 +40,7 @@ def run_ffmpeg(args, noOutput=True, tool=get_ffmpeg_tool()):
         if pcommand.returncode != 0:
             print stderr
             error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
+            error += '\nffmpeg arguments: ' + str(args)
             raise ValueError(error)
         if noOutput == False:
             return stdout
