@@ -237,6 +237,42 @@ def get_rate_from_segment(segment, default_value=None):
         segment['rate'] = (segment['endtime'] - segment['starttime'])/float(segment['frames'])
     return segment['rate']
 
+def transfer_masks(video_masks, new_mask_set,
+                   frame_time_function=lambda x,y: x,
+                   frame_count_function=lambda x,y: x):
+    writer = None
+    pos = 0
+    reader_manager = tool_set.GrayBlockReaderManager()
+    writer_manager = tool_set.GrayBlockWriterManager()
+    try:
+        for mask_set in video_masks:
+            change = new_mask_set[pos]
+            pos += 1
+            if get_file_from_segment(mask_set):
+                reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                 start_frame=get_start_frame_from_segment(change),
+                                                 start_time=get_start_time_from_segment(change))
+                writer = writer_manager.create_writer(reader)
+                try:
+                    frame_time = get_start_time_from_segment(change)
+                    frame_count = get_start_frame_from_segment(change)
+                    while True:
+                        mask = reader.read()
+                        if mask is not None:
+                            writer.write(mask, frame_time, frame_count)
+                        else:
+                            break
+                        frame_count = frame_count_function(reader.current_frame(), frame_count)
+                        frame_time = frame_time_function(reader.current_frame_time(), frame_time)
+                    update_segment(change, videosegment=writer.filename)
+                except Exception as e:
+                    logging.getLogger('maskgen').error(
+                        'Failed to transform time for {}'.format(get_file_from_segment(mask_set)))
+                    logging.getLogger('maskgen').error(e)
+    finally:
+        reader_manager.close()
+        writer_manager.close()
+
 def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=True):
     """
 
@@ -304,7 +340,6 @@ def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=T
                     startTime = last_time
                     startFrame = time_manager.frameSinceBeginning
                     sample = result
-                    capOut.release()
                 capOut.write(result, last_time, amountRead)
             else:
                 if startTime is not None:
@@ -317,7 +352,6 @@ def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=T
                                                  mask=sample,
                                                  type='video',
                                                  videosegment=os.path.split(capOut.filename)[1]))
-                    capOut.release()
                     count = 0
                 startTime = None
             last_time = elapsed_time
@@ -330,35 +364,12 @@ def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=T
                                          mask=sample,
                                          type='video',
                                          videosegment=os.path.split(capOut.filename)[1]))
-            capOut.release()
     finally:
         capIn.release()
         capOut.close()
     if amountRead == 0:
         raise ValueError('Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
     return ranges
-
-
-def __invert_mask_from_segment(segmentFileName, prefix,start_frame=1,start_time=0):
-    """
-     Invert a single video file (gray scale)
-     """
-    capIn = tool_set.GrayBlockReader(segmentFileName,start_frame=start_frame,start_time=start_time)
-    capOut = tool_set.GrayBlockWriter(prefix,capIn.fps)
-    try:
-        while True:
-            frame_time = capIn.current_frame_time()
-            frame_count = capIn.current_frame()
-            frame = capIn.read()
-            if frame is not None:
-                frame = abs(frame - np.ones(frame.shape) * 255)
-                capOut.write(frame,frame_time, frame_count)
-            else:
-                break
-    finally:
-        capIn.close()
-        capOut.close()
-    return capOut.filename
 
 
 def invertVideoMasks(videomasks, start, end):
@@ -370,12 +381,40 @@ def invertVideoMasks(videomasks, start, end):
         return
     prefix = start + '_' + end
     result = []
-    for segment in videomasks:
-        segment = segment.copy()
-        update_segment(segment,videosegment=__invert_mask_from_segment(get_file_from_segment(segment), prefix,
-                                              start_frame=get_start_frame_from_segment(segment,1),
-                                              start_time=get_start_time_from_segment(segment,0)))
-        result.append(segment)
+
+    def __invert_mask_from_segment(capIn, capOut):
+        """
+         Invert a single video file (gray scale)
+         """
+        try:
+            while True:
+                frame_time = capIn.current_frame_time()
+                frame_count = capIn.current_frame()
+                frame = capIn.read()
+                if frame is not None:
+                    frame = abs(frame - np.ones(frame.shape) * 255)
+                    capOut.write(frame, frame_time, frame_count)
+                else:
+                    break
+        finally:
+            capIn.close()
+            capOut.close()
+        return capOut.filename
+
+    writer_manager = tool_set.GrayBlockWriterManager()
+    reader_manager = tool_set.GrayBlockReaderManager()
+    try:
+        for segment in videomasks:
+            segment = segment.copy()
+            capIn = reader_manager.create_reader(get_file_from_segment(segment),
+                                             start_frame=get_start_frame_from_segment(segment,1),
+                                             start_time=get_start_time_from_segment(segment,0))
+            capOut = writer_manager.create_writer(capIn)
+            update_segment(segment,videosegment=__invert_mask_from_segment(capIn, capOut))
+            result.append(segment)
+    finally:
+        writer_manager.close()
+        reader_manager.close()
     return result
 
 
@@ -2259,7 +2298,6 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
             analysis_components.retrieveTwo()
         if not done:
             opFunc(analysis_components,ranges,arguments)
-        analysis_components.writer.release()
     finally:
         analysis_components.vid_one.release()
         analysis_components.vid_two.release()
@@ -2280,6 +2318,7 @@ def __get_video_frame(video, frame_time):
             return frame,elapsed_time
     return None,None
 
+
 def interpolateMask(mask_file_name_prefix,
                     directory,
                     video_masks,
@@ -2294,71 +2333,70 @@ def interpolateMask(mask_file_name_prefix,
     :param dest_file_name:
     :return: maskname, mask, analysis, errors
     """
+    reader_manager = tool_set.GrayBlockReaderManager()
+    writer_manager = tool_set.GrayBlockWriterManager()
     if tool_set.fileType(start_file_name) == 'image':
         image = tool_set.openImage(start_file_name)
         new_mask_set = []
-        for mask_set in video_masks:
-            rate = reader.fps
-            change = create_segment(start_frame=get_start_frame_from_segment(mask_set,1),
-                                    end_frame=get_end_frame_from_segment(mask_set,1),
-                                    type=get_type_of_segment(mask_set))
-            destination_video = cv2api_delegate.videoCapture(dest_file_name)
-            reader = tool_set.GrayBlockReader(os.path.join(directory,get_file_from_segment(mask_set)),
-                                              start_frame=get_start_frame_from_segment(mask_set,1),
-                                              start_time=get_start_time_from_segment(mask_set,0))
-            try:
-                writer = tool_set.GrayBlockWriter(os.path.join(directory,mask_file_name_prefix),
-                                                  reader.fps)
-
-                try:
-                    first_mask = None
-                    count = 0
-                    vid_frame_time=0
-                    max_analysis = 0
-                    while True:
-                        frame_time = reader.current_frame_time()
-                        frame_no = reader.current_frame()
-                        mask = reader.read()
-                        if mask is None:
-                            break
-                        if frame_time < vid_frame_time:
-                            continue
-                        frame,vid_frame_time = __get_video_frame(destination_video, frame_time)
-                        if frame is None:
-                             new_mask = np.ones(mask.shape) * 255
-                        else:
-                            new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask),image, ImageWrapper(frame))
-                            if new_mask is None:
-                                new_mask = np.asarray(tool_set.convertToMask(image))
-                                max_analysis+=1
-                            if first_mask is None:
-                                update_segment(change,
-                                               mask=new_mask,
-                                               starttime=frame_time,
-                                               rate=rate,
-                                               type='video',
-                                               startframe=frame_no)
-                                first_mask = new_mask
-                        count+=1
-                        writer.write(new_mask,vid_frame_time,frame_no)
-                        if max_analysis > 10:
-                            break
-                    update_segment(change,
-                                   endtime=vid_frame_time,
-                                   frames=count,
-                                   rate=rate,
-                                   videosegment=os.path.split(writer.filename)[1],
-                                   type='video')
-                    if first_mask is not None:
-                        new_mask_set.append(change)
-                finally:
-                    writer.close()
-            finally:
-                reader.close()
-                destination_video.release()
-        return new_mask_set,[]
+        destination_video = cv2api_delegate.videoCapture(dest_file_name)
+        try:
+            for mask_set in video_masks:
+                rate = reader.fps
+                change = create_segment(start_frame=get_start_frame_from_segment(mask_set, 1),
+                                        end_frame=get_end_frame_from_segment(mask_set, 1),
+                                        type=get_type_of_segment(mask_set))
+                reader = reader_manager.create_reader(os.path.join(directory, get_file_from_segment(mask_set)),
+                                                      start_frame=get_start_frame_from_segment(mask_set, 1),
+                                                      start_time=get_start_time_from_segment(mask_set, 0))
+                writer = writer_manager.create_writer(reader)
+                first_mask = None
+                count = 0
+                vid_frame_time = 0
+                max_analysis = 0
+                while True:
+                    frame_time = reader.current_frame_time()
+                    frame_no = reader.current_frame()
+                    mask = reader.read()
+                    if mask is None:
+                        break
+                    if frame_time < vid_frame_time:
+                        continue
+                    frame, vid_frame_time = __get_video_frame(destination_video, frame_time)
+                    if frame is None:
+                        new_mask = np.ones(mask.shape) * 255
+                    else:
+                        new_mask, analysis = tool_set.interpolateMask(ImageWrapper(mask), image,
+                                                                      ImageWrapper(frame))
+                        if new_mask is None:
+                            new_mask = np.asarray(tool_set.convertToMask(image))
+                            max_analysis += 1
+                        if first_mask is None:
+                            update_segment(change,
+                                           mask=new_mask,
+                                           starttime=frame_time,
+                                           rate=rate,
+                                           type='video',
+                                           startframe=frame_no)
+                            first_mask = new_mask
+                    count += 1
+                    writer.write(new_mask, vid_frame_time, frame_no)
+                    if max_analysis > 10:
+                        break
+                update_segment(change,
+                               endtime=vid_frame_time,
+                               frames=count,
+                               rate=rate,
+                               videosegment=os.path.split(writer.filename)[1],
+                               type='video')
+                if first_mask is not None:
+                    new_mask_set.append(change)
+        finally:
+            reader_manager.close()
+            writer_manager.close()
+            destination_video.release()
+        return new_mask_set, []
     # Masks cannot be generated for video to video....yet
-    return [],[]
+    return [], []
 
 
 def dropFramesFromMask(bounds,
@@ -2385,44 +2423,46 @@ def dropFramesFromMask(bounds,
         if drop_ef < 0:
             drop_ef = None
         new_mask_set = []
-        for mask_set in video_masks:
-            if get_type_of_segment(mask_set) != expectedType:
-                new_mask_set.append(mask_set)
-                continue
-            mask_sf = get_start_frame_from_segment(mask_set)
-            mask_ef = get_end_frame_from_segment(mask_set,-1)
-            if mask_ef < 0:
-                mask_ef = None
-            rate = get_rate_from_segment(mask_set)
-            if   mask_ef is not None and drop_sf - mask_ef > 0:
-                new_mask_set.append(mask_set)
-                continue
-            if (drop_ef is None or (mask_ef is not None and drop_ef - mask_ef >= 0)) and \
-                    (drop_sf - mask_sf <=0):
-                # started after drop and subsummed by drop
-                continue
-            #occurs after drop region and time is not alterered
-            if keepTime and drop_ef is not None and drop_ef - mask_sf < 0:
-                new_mask_set.append(mask_set)
-                continue
-            if get_file_from_segment(mask_set) is None:
-                new_mask_set.extend(dropFramesWithoutMask([bound],[mask_set],keepTime=keepTime))
-                continue
-            reader = tool_set.GrayBlockReader(get_file_from_segment(mask_set),#xxx
-                                              start_frame=get_start_frame_from_segment(mask_set,1),
-                                              start_time=get_start_time_from_segment(mask_set,0))
-            writer = reader.create_writer()
-            if keepTime:
-                elapsed_count = 0
-                elapsed_time = 0
-            else:
-                if drop_ef is not None:
-                    elapsed_time = get_end_frame_from_segment(bound) - get_start_time_from_segment(bound)
-                    elapsed_count = drop_ef - drop_sf
-                else:
-                    elapsed_time = 0
+        reader_manager = tool_set.GrayBlockReaderManager()
+        writer_manager = tool_set.GrayBlockWriterManager()
+        try:
+            for mask_set in video_masks:
+                if get_type_of_segment(mask_set) != expectedType:
+                    new_mask_set.append(mask_set)
+                    continue
+                mask_sf = get_start_frame_from_segment(mask_set)
+                mask_ef = get_end_frame_from_segment(mask_set,-1)
+                if mask_ef < 0:
+                    mask_ef = None
+                rate = get_rate_from_segment(mask_set)
+                if   mask_ef is not None and drop_sf - mask_ef > 0:
+                    new_mask_set.append(mask_set)
+                    continue
+                if (drop_ef is None or (mask_ef is not None and drop_ef - mask_ef >= 0)) and \
+                        (drop_sf - mask_sf <=0):
+                    # started after drop and subsummed by drop
+                    continue
+                #occurs after drop region and time is not alterered
+                if keepTime and drop_ef is not None and drop_ef - mask_sf < 0:
+                    new_mask_set.append(mask_set)
+                    continue
+                if get_file_from_segment(mask_set) is None:
+                    new_mask_set.extend(dropFramesWithoutMask([bound],[mask_set],keepTime=keepTime))
+                    continue
+                reader = reader_manager.create_reader(get_file_from_segment(mask_set),#xxx
+                                                  start_frame=get_start_frame_from_segment(mask_set,1),
+                                                  start_time=get_start_time_from_segment(mask_set,0))
+                writer = writer_manager.create_writer(reader)
+                if keepTime:
                     elapsed_count = 0
-            try:
+                    elapsed_time = 0
+                else:
+                    if drop_ef is not None:
+                        elapsed_time = get_end_frame_from_segment(bound) - get_start_time_from_segment(bound)
+                        elapsed_count = drop_ef - drop_sf
+                    else:
+                        elapsed_time = 0
+                        elapsed_count = 0
                 startcount = get_start_frame_from_segment(mask_set)
                 starttime = get_start_time_from_segment(mask_set)
                 skipRead = False
@@ -2440,20 +2480,19 @@ def dropFramesFromMask(bounds,
                         if diff_current <= 0:
                             skipRead = True
                             break
-                        writer.write(mask, last_time,frame_count)
+                        writer.write(mask, last_time, frame_count)
                         written_count += 1
                     if written_count > 0:
-                            change = create_segment(
-                                starttime=starttime,
-                                type=get_type_of_segment(mask_set),
-                                startframe=startcount,
-                                endtime=last_time,
-                                endframe=frame_count - 1,
-                                rate=rate,
-                                error=get_error_from_segment(mask_set),
-                                videosegment= writer.filename)
-                            new_mask_set.append(change)
-                            writer.release()
+                        change = create_segment(
+                            starttime=starttime,
+                            type=get_type_of_segment(mask_set),
+                            startframe=startcount,
+                            endtime=last_time,
+                            endframe=frame_count - 1,
+                            rate=rate,
+                            error=get_error_from_segment(mask_set),
+                            videosegment=writer.filename)
+                        new_mask_set.append(change)
                 # else: covers the case of start occuring before OR after the end of the drop
                 starttime = None
                 written_count = 0
@@ -2478,7 +2517,7 @@ def dropFramesFromMask(bounds,
                     change = create_segment(
                         starttime=starttime,
                         type=get_type_of_segment(mask_set),
-                        startframe=get_end_frame_from_segment(mask_set)- elapsed_count - written_count + 1,
+                        startframe=get_end_frame_from_segment(mask_set) - elapsed_count - written_count + 1,
                         endtime=last_time - elapsed_time,
                         endframe=get_end_frame_from_segment(mask_set) - elapsed_count,
                         rate=rate,
@@ -2486,10 +2525,9 @@ def dropFramesFromMask(bounds,
                         error=get_error_from_segment(mask_set),
                         videosegment=writer.filename)
                     new_mask_set.append(change)
-                    writer.release()
-            finally:
-                reader.close()
-                writer.close()
+        finally:
+            writer_manager.close()
+            reader_manager.close()
         return new_mask_set
     new_mask_set = video_masks
     if bounds is None:
@@ -2669,28 +2707,30 @@ def reverseMasks(edge_video_masks, composite_video_masks):
     """
     new_mask_set = []
     mask_types = set([get_type_of_segment(composite_video_mask) for composite_video_mask in composite_video_masks])
-    for mask_type in mask_types:
-        for mask_set in composite_video_masks:
-            if get_type_of_segment(mask_set) != mask_type:
-                continue
-            for edge_video_mask in edge_video_masks:
-                if get_type_of_segment(edge_video_mask) != get_type_of_segment(mask_set):
+    reader_manager = tool_set.GrayBlockReaderManager()
+    writer_manager = tool_set.GrayBlockWriterManager()
+    try:
+        for mask_type in mask_types:
+            for mask_set in composite_video_masks:
+                if get_type_of_segment(mask_set) != mask_type:
                     continue
-                if get_end_frame_from_segment(edge_video_mask) < get_start_frame_from_segment(mask_set) or \
-                   get_start_frame_from_segment(edge_video_mask) > get_end_frame_from_segment(mask_set):
-                    new_mask_set.append(mask_set)
-                    continue
-                if  get_file_from_segment(mask_set) is None:
-                    new_mask_set.extend(reverseNonVideoMasks(mask_set,edge_video_mask))
-                    continue
-                reader = tool_set.GrayBlockReader(get_file_from_segment(mask_set) ,#xxx
-                                                  start_frame=get_start_frame_from_segment(mask_set, 1),
-                                                  start_time=get_start_time_from_segment(mask_set, 0)
-                                                  )
-                try:
+                for edge_video_mask in edge_video_masks:
+                    if get_type_of_segment(edge_video_mask) != get_type_of_segment(mask_set):
+                        continue
+                    if get_end_frame_from_segment(edge_video_mask) < get_start_frame_from_segment(mask_set) or \
+                       get_start_frame_from_segment(edge_video_mask) > get_end_frame_from_segment(mask_set):
+                        new_mask_set.append(mask_set)
+                        continue
+                    if  get_file_from_segment(mask_set) is None:
+                        new_mask_set.extend(reverseNonVideoMasks(mask_set,edge_video_mask))
+                        continue
+                    reader = reader_manager.create_reader(get_file_from_segment(mask_set) ,#xxx
+                                                      start_frame=get_start_frame_from_segment(mask_set, 1),
+                                                      start_time=get_start_time_from_segment(mask_set, 0)
+                                                      )
+                    writer = writer_manager.create_writer(reader)
                     frame_count = get_start_frame_from_segment(mask_set)
-                    if  frame_count < get_start_frame_from_segment(edge_video_mask):
-                        writer = reader.create_writer()
+                    if frame_count < get_start_frame_from_segment(edge_video_mask):
                         frame_count = get_start_frame_from_segment(mask_set)
                         for i in range(get_start_frame_from_segment(edge_video_mask) - frame_count):
                             frame_time = reader.current_frame_time()
@@ -2708,48 +2748,48 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                             endtime=frame_time,
                             endframe=frame_count,
                             videosegment=writer.filename)
-                        writer.close()
                         new_mask_set.append(change)
 
                     if frame_count <= get_end_frame_from_segment(edge_video_mask):
-                        writer = reader.create_writer()
                         masks = []
                         start_time = frame_time
-                        for i in range(get_end_frame_from_segment(edge_video_mask)-frame_count):
+                        for i in range(get_end_frame_from_segment(edge_video_mask) - frame_count):
                             frame_time = reader.current_frame_time()
                             mask = reader.read()
                             if mask is None:
                                 break
-                            masks.insert(0,mask)
-                        if get_end_frame_from_segment(edge_video_mask)>=get_end_frame_from_segment(mask_set):
-                            change = create_segment(starttime = get_end_time_from_segment(edge_video_mask) - (frame_time - start_time) + 1000.0/get_rate_from_segment(mask_set),
-                                                    startframe=get_end_frame_from_segment(edge_video_mask)-len(masks)  + 1,
-                                                    endtime= get_end_time_from_segment(edge_video_mask),
+                            masks.insert(0, mask)
+                        if get_end_frame_from_segment(edge_video_mask) >= get_end_frame_from_segment(mask_set):
+                            change = create_segment(starttime=get_end_time_from_segment(edge_video_mask) - (
+                            frame_time - start_time) + 1000.0 / get_rate_from_segment(mask_set),
+                                                    startframe=get_end_frame_from_segment(edge_video_mask) - len(
+                                                        masks) + 1,
+                                                    endtime=get_end_time_from_segment(edge_video_mask),
                                                     endframe=get_end_frame_from_segment(edge_video_mask),
                                                     type=get_type_of_segment(mask_set),
-                                                    error= get_error_from_segment(mask_set),
+                                                    error=get_error_from_segment(mask_set),
                                                     rate=get_rate_from_segment(mask_set))
                         else:
                             change = create_segment(starttime=get_start_time_from_segment(edge_video_mask),
                                                     startframe=get_start_frame_from_segment(edge_video_mask),
-                                                    endtime=get_start_time_from_segment(edge_video_mask) + (frame_time - start_time),
+                                                    endtime=get_start_time_from_segment(edge_video_mask) + (
+                                                    frame_time - start_time),
                                                     endframe=get_start_frame_from_segment(edge_video_mask) + len(masks),
                                                     type=get_type_of_segment(mask_set),
                                                     error=get_error_from_segment(mask_set),
                                                     rate=get_rate_from_segment(mask_set))
                         frame_time = get_start_time_from_segment(change)
                         frame_count = get_start_frame_from_segment(change)
-                        diff_time = (get_end_time_from_segment(change) - get_start_time_from_segment(change))/(get_frames_from_segment(change) - 1)
+                        diff_time = (get_end_time_from_segment(change) - get_start_time_from_segment(change)) / (
+                        get_frames_from_segment(change) - 1)
                         for mask in masks:
                             writer.write(mask, frame_time, frame_count)
                             frame_count += 1
                             frame_time += diff_time
-                            update_segment(change,videosegment=writer.filename)
+                            update_segment(change, videosegment=writer.filename)
                         new_mask_set.append(change)
-                        writer.close()
 
                     if get_end_frame_from_segment(edge_video_mask) < get_end_frame_from_segment(mask_set):
-                        writer = reader.create_writer()
                         while True:
                             frame_time = reader.current_frame_time()
                             frame_count = reader.current_frame()
@@ -2757,20 +2797,22 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                             if mask is None:
                                 break
                             writer.write(mask, frame_time, frame_count)
-                        change = create_segment(starttime=get_start_time_from_segment(edge_video_mask)+1000/get_rate_from_segment(mask_set),
-                                                startframe=get_end_frame_from_segment(edge_video_mask) + 1,
-                                                endtime=get_end_time_from_segment(mask_set),
-                                                endframe=get_end_frame_from_segment(mask_set),
-                                                type=get_type_of_segment(mask_set),
-                                                error=get_error_from_segment(mask_set),
-                                                rate=get_rate_from_segment(mask_set),
-                                                videosegment=writer.filename)
+                        change = create_segment(
+                            starttime=get_start_time_from_segment(edge_video_mask) + 1000 / get_rate_from_segment(
+                                mask_set),
+                            startframe=get_end_frame_from_segment(edge_video_mask) + 1,
+                            endtime=get_end_time_from_segment(mask_set),
+                            endframe=get_end_frame_from_segment(mask_set),
+                            type=get_type_of_segment(mask_set),
+                            error=get_error_from_segment(mask_set),
+                            rate=get_rate_from_segment(mask_set),
+                            videosegment=writer.filename)
                         new_mask_set.append(change)
-                        writer.close()
-                except Exception as e:
-                    logging.getLogger('maskgen').error(e)
-                finally:
-                    reader.close()
+    except Exception as e:
+        logging.getLogger('maskgen').error(e)
+    finally:
+        reader_manager.close()
+        writer_manager.close()
     return new_mask_set
 
 def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=False):
@@ -2790,46 +2832,49 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
     :return: new set of video masks
     """
     new_mask_set = []
-    for mask_set in video_masks:
-        if get_type_of_segment(mask_set) != expectedType or \
-            get_file_from_segment(mask_set) is None:
-            new_mask_set.append(mask_set)
-            continue
-        change = create_segment(starttime=get_start_time_from_segment(mask_set),
-                                startframe=get_start_frame_from_segment(mask_set),
-                                endtime=get_end_time_from_segment(mask_set),
-                                endframe=get_end_frame_from_segment(mask_set),
-                                type=get_type_of_segment(mask_set),
-                                error=get_error_from_segment(mask_set),
-                                rate=get_rate_from_segment(mask_set),
-                                videosegment=get_file_from_segment(mask_set))
-        mask_file_name = get_file_from_segment(mask_set)
-        reader = tool_set.GrayBlockReader(mask_file_name,start_time=get_start_frame_from_segment(change), start_frame=get_start_frame_from_segment(mask_set))
-        try:
-            writer = reader.create_writer()
-            while True:
-                frame_time = reader.current_frame_time()
-                frame_count = reader.current_frame()
-                mask = reader.read()
-                if funcReturnsList:
-                    for new_mask_tuple in func(mask, frame_time, frame_count):
-                        writer.write(new_mask_tuple[0], new_mask_tuple[1], new_mask_tuple[2])
-                if mask is None:
-                    break
-                if not funcReturnsList:
-                    new_mask = func(mask)
-                    writer.write(new_mask, frame_time, frame_count)
-            update_segment(change, videosegment=writer.filename)
-            new_mask_set.append(change)
-
-        except Exception as e:
-            logging.getLogger('maskgen').error('Failed to transform {} using {}'.format(get_file_from_segment(mask_set),
-                                                                                        str(func)))
-            logging.getLogger('maskgen').error(e)
-        finally:
-            reader.close()
-            if writer is not None:
-                writer.close()
+    reader_manager = tool_set.GrayBlockReaderManager()
+    writer_manager = tool_set.GrayBlockWriterManager()
+    try:
+        for mask_set in video_masks:
+            if get_type_of_segment(mask_set) != expectedType or \
+                get_file_from_segment(mask_set) is None:
+                new_mask_set.append(mask_set)
+                continue
+            change = create_segment(starttime=get_start_time_from_segment(mask_set),
+                                    startframe=get_start_frame_from_segment(mask_set),
+                                    endtime=get_end_time_from_segment(mask_set),
+                                    endframe=get_end_frame_from_segment(mask_set),
+                                    type=get_type_of_segment(mask_set),
+                                    error=get_error_from_segment(mask_set),
+                                    rate=get_rate_from_segment(mask_set),
+                                    videosegment=get_file_from_segment(mask_set))
+            mask_file_name = get_file_from_segment(mask_set)
+            reader = reader_manager.create_reader(mask_file_name,
+                                                  start_time=get_start_frame_from_segment(change),
+                                                  start_frame=get_start_frame_from_segment(mask_set))
+            writer = writer_manager.create_writer(reader)
+            try:
+                while True:
+                    frame_time = reader.current_frame_time()
+                    frame_count = reader.current_frame()
+                    mask = reader.read()
+                    if funcReturnsList:
+                        for new_mask_tuple in func(mask, frame_time, frame_count):
+                            writer.write(new_mask_tuple[0], new_mask_tuple[1], new_mask_tuple[2])
+                    if mask is None:
+                        break
+                    if not funcReturnsList:
+                        new_mask = func(mask)
+                        writer.write(new_mask, frame_time, frame_count)
+                update_segment(change, videosegment=writer.filename)
+                new_mask_set.append(change)
+            except Exception as e:
+                logging.getLogger('maskgen').error('Failed to transform {} using {}'.format(get_file_from_segment(mask_set),
+                                                                                            str(func)))
+                logging.getLogger('maskgen').error(e)
+    finally:
+        reader_manager.close()
+        writer_manager.close()
     return new_mask_set
 
 def inverse_intersection_for_mask(mask, video_masks):
@@ -2841,31 +2886,36 @@ def inverse_intersection_for_mask(mask, video_masks):
     """
     import copy
     new_mask_set = []
-    for mask_set in video_masks:
-        change = copy.copy(mask_set)
-        if get_file_from_segment(mask_set) is not None:
-            mask_file_name = get_file_from_segment(mask_set)
-            new_mask_file_name = os.path.splitext(mask_file_name)[0] + str(time.clock())
-            reader = tool_set.GrayBlockReader(mask_file_name,
-                                              start_frame=get_start_frame_from_segment(mask_set, 1),
-                                              start_time=get_start_time_from_segment(mask_set, 0)
-                                              )
-            writer = tool_set.GrayBlockWriter(new_mask_file_name,reader.fps)
-            while True:
-                frame_time = reader.current_frame_time()
-                frame_count = reader.current_frame()
-                frame = reader.read()
-                if frame is not None:
-                    # ony those pixels that are unchanged from the original
-                    # TODO Handle orientation change
-                    if frame.shape != mask.shape:
-                        frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
-                    frame = mask * ((255-frame)/255)
-                    writer.write(frame, frame_time, frame_count)
-                else:
-                    break
-            update_segment(change,videosegment=writer.get_file_name())
-        new_mask_set.append(change)
+    writer_manager = tool_set.GrayBlockWriterManager()
+    reader_manager = tool_set.GrayBlockReaderManager()
+    try:
+        for mask_set in video_masks:
+            change = copy.copy(mask_set)
+            if get_file_from_segment(mask_set) is not None:
+                mask_file_name = get_file_from_segment(mask_set)
+                reader = reader_manager.create_reader(mask_file_name,
+                                                  start_frame=get_start_frame_from_segment(mask_set, 1),
+                                                  start_time=get_start_time_from_segment(mask_set, 0)
+                                                  )
+                writer = writer_manager.create_writer(reader)
+                while True:
+                    frame_time = reader.current_frame_time()
+                    frame_count = reader.current_frame()
+                    frame = reader.read()
+                    if frame is not None:
+                        # ony those pixels that are unchanged from the original
+                        # TODO Handle orientation change
+                        if frame.shape != mask.shape:
+                            frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
+                        frame = mask * ((255-frame)/255)
+                        writer.write(frame, frame_time, frame_count)
+                    else:
+                        break
+                update_segment(change,videosegment=writer.get_file_name())
+            new_mask_set.append(change)
+    finally:
+        reader_manager.close()
+        writer_manager.close()
     return new_mask_set
 
 def extractMask(video_masks, frame_time):
@@ -2894,10 +2944,11 @@ def extractMask(video_masks, frame_time):
                                               start_time=get_start_time_from_segment(mask_set,0))
                 while True:
                     frame_time = reader.current_frame_time()
+                    frame_count = reader.current_frame()
                     mask = reader.read()
                     if mask is None:
                         break
-                    timeManager.updateToNow(frame_time,1)
+                    timeManager.updateToNow(frame_time,frame_count-timeManager.frameSinceBeginning)
                     if timeManager.isPastStartTime():
                         break
                 reader.close()
@@ -3140,75 +3191,76 @@ def insertFrames(bounds,
                 howmany-=1
                 writer.write(mask, frame_time + adjust_time, frame_count + adjust_count)
 
-        for mask_set in video_masks:
-            reader = None
-            if get_type_of_segment(mask_set) != expectedType:
-                new_mask_set.append(mask_set)
-                continue
-            mask_sf = get_start_frame_from_segment(mask_set,1)
-            mask_ef = get_end_frame_from_segment(mask_set,1)
-            rate = get_rate_from_segment(mask_set)
-            #before addition
-            if add_sf - mask_ef > 0:
-                new_mask_set.append(mask_set)
-                continue
-            start_diff_count= add_sf - mask_sf
-            start_diff_time = add_st - get_start_time_from_segment(mask_set,0)
-            end_adjust_count = add_ef - add_sf + 1
-            end_adjust_time = add_et - add_st + 1000.0/rate
-            if start_diff_count > 0:
-                change = create_segment(starttime=get_start_time_from_segment(mask_set),
-                                        startframe=get_start_frame_from_segment(mask_set),
-                                        endtime = get_start_time_from_segment(mask_set) + start_diff_time - 1000.0/get_rate_from_segment(mask_set),
-                                        endframe=get_start_frame_from_segment(mask_set) + start_diff_count - 1,
-                                        type= get_type_of_segment(mask_set),
-                                        error= get_error_from_segment(mask_set),
-                                        rate=rate)
-                if get_file_from_segment(mask_set) is not None:
-                    reader = tool_set.GrayBlockReader(get_file_from_segment(mask_set),
-                                              start_frame=get_start_frame_from_segment(mask_set,1),
-                                              start_time=get_start_time_from_segment(mask_set,0))
-                    writer = reader.create_writer()
-                    transfer(reader, writer, 0, 0, get_frames_from_segment(change))
-                    update_segment(change,videosegment=writer.filename)
-                    writer.close()
-                new_mask_set.append(change)
-                if end_adjust_count >= 0:
-                    # split in the middle
-                    change = create_segment(starttime=add_et + 1000.0/rate,
-                                        startframe=add_ef + 1,
-                                        endtime = get_end_time_from_segment(mask_set) + end_adjust_time,
-                                        endframe= get_end_frame_from_segment(mask_set) + end_adjust_count,
-                                        type= get_type_of_segment(mask_set),
-                                        error= get_error_from_segment(mask_set),
-                                        rate=rate)
-
+        reader_manager = tool_set.GrayBlockReaderManager()
+        writer_manager = tool_set.GrayBlockWriterManager()
+        try:
+            for mask_set in video_masks:
+                if get_type_of_segment(mask_set) != expectedType:
+                    new_mask_set.append(mask_set)
+                    continue
+                mask_sf = get_start_frame_from_segment(mask_set,1)
+                mask_ef = get_end_frame_from_segment(mask_set,1)
+                rate = get_rate_from_segment(mask_set)
+                #before addition
+                if add_sf - mask_ef > 0:
+                    new_mask_set.append(mask_set)
+                    continue
+                start_diff_count= add_sf - mask_sf
+                start_diff_time = add_st - get_start_time_from_segment(mask_set,0)
+                end_adjust_count = add_ef - add_sf + 1
+                end_adjust_time = add_et - add_st + 1000.0/rate
+                if start_diff_count > 0:
+                    change = create_segment(starttime=get_start_time_from_segment(mask_set),
+                                            startframe=get_start_frame_from_segment(mask_set),
+                                            endtime = get_start_time_from_segment(mask_set) + start_diff_time - 1000.0/get_rate_from_segment(mask_set),
+                                            endframe=get_start_frame_from_segment(mask_set) + start_diff_count - 1,
+                                            type= get_type_of_segment(mask_set),
+                                            error= get_error_from_segment(mask_set),
+                                            rate=rate)
                     if get_file_from_segment(mask_set) is not None:
-                        writer = reader.create_writer()
+                        reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                  start_frame=get_start_frame_from_segment(mask_set,1),
+                                                  start_time=get_start_time_from_segment(mask_set,0))
+                        writer = writer_manager.create_writer(reader)
+                        transfer(reader, writer, 0, 0, get_frames_from_segment(change))
+                        update_segment(change,videosegment=writer.filename)
+                    new_mask_set.append(change)
+                    if end_adjust_count >= 0:
+                        # split in the middle
+                        change = create_segment(starttime=add_et + 1000.0/rate,
+                                            startframe=add_ef + 1,
+                                            endtime = get_end_time_from_segment(mask_set) + end_adjust_time,
+                                            endframe= get_end_frame_from_segment(mask_set) + end_adjust_count,
+                                            type= get_type_of_segment(mask_set),
+                                            error= get_error_from_segment(mask_set),
+                                            rate=rate)
+                        if get_file_from_segment(mask_set) is not None:
+                            reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                                  start_frame=get_start_frame_from_segment(mask_set, 1),
+                                                                  start_time=get_start_time_from_segment(mask_set, 0))
+                            writer = writer_manager.create_writer(reader)
+                            transfer(reader, writer, end_adjust_time, end_adjust_count, get_frames_from_segment(change))
+                            update_segment(change, videosegment=writer.filename)
+                        new_mask_set.append(change)
+                elif end_adjust_count >= 0:
+                    change = create_segment(starttime=get_start_time_from_segment(mask_set) +  end_adjust_time,
+                                            startframe=get_start_frame_from_segment(mask_set) + end_adjust_count,
+                                            endtime=get_end_time_from_segment(mask_set) + end_adjust_time,
+                                            endframe=get_end_frame_from_segment(mask_set) + end_adjust_count,
+                                            type=get_type_of_segment(mask_set),
+                                            error=get_error_from_segment(mask_set),
+                                            rate=rate)
+                    if get_file_from_segment(mask_set) is not None:
+                        reader = reader_manager.create_reader(mask_set['videosegment'],
+                                                  start_frame=get_start_frame_from_segment(mask_set,1),
+                                                  start_time=get_start_time_from_segment(mask_set,0))
+                        writer = writer_manager.create_writer(reader)
                         transfer(reader, writer, end_adjust_time, end_adjust_count, get_frames_from_segment(change))
                         update_segment(change, videosegment=writer.filename)
-                        writer.close()
                     new_mask_set.append(change)
-            elif end_adjust_count >= 0:
-                change = create_segment(starttime=get_start_time_from_segment(mask_set) +  end_adjust_time,
-                                        startframe=get_start_frame_from_segment(mask_set) + end_adjust_count,
-                                        endtime=get_end_time_from_segment(mask_set) + end_adjust_time,
-                                        endframe=get_end_frame_from_segment(mask_set) + end_adjust_count,
-                                        type=get_type_of_segment(mask_set),
-                                        error=get_error_from_segment(mask_set),
-                                        rate=rate)
-
-                if get_file_from_segment(mask_set) is not None:
-                    reader = tool_set.GrayBlockReader(mask_set['videosegment'],
-                                              start_frame=get_start_frame_from_segment(mask_set,1),
-                                              start_time=get_start_time_from_segment(mask_set,0))
-                    writer = reader.create_writer()
-                    transfer(reader, writer, end_adjust_time, end_adjust_count, get_frames_from_segment(change))
-                    update_segment(change, videosegment=writer.filename)
-                    writer.close()
-                new_mask_set.append(change)
-            if reader is not None:
-                reader.close()
+        finally:
+            writer_manager.close()
+            reader_manager.close()
         return new_mask_set
 
     new_mask_set = video_masks

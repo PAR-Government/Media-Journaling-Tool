@@ -693,7 +693,14 @@
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Tests suitable for electric network frequency"
-	},  
+	},
+    {
+      "description":"Frame From Video",
+      "name":"FrameFromVideo",
+      "type":"yesno",
+      "semanticgroup": true,
+      "information":"Taking 1 frame of a video and using that frame as a part of a manipulation"
+    },
     {
 	  "description": "Disaster",
       "name": "Disaster",

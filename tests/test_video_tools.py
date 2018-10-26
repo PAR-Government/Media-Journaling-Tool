@@ -207,17 +207,17 @@ class TestVideoTools(TestSupport):
                        alter_funcs]
             for i in range(100):
                 mask = np.random.randint(255, size=(1090, 1920, 3)).astype('uint8')
-                writer_main.write(mask, main_count * rate)
+                writer_main.write(mask, main_count,  main_count * rate)
                 nextcounts = []
                 for writer, func, counter in zip(writers, alter_funcs, counters_for_all):
                     result = func(mask, i + 1)
                     if type(result) == list:
                         for item in result:
-                            writer.write(item, counter * rate)
+                            writer.write(item, counter, counter * rate)
                             counter += 1
                         nextcounts.append(counter)
                     else:
-                        writer.write(result, counter * rate)
+                        writer.write(result, counter, counter * rate)
                         nextcounts.append(counter + 1)
                 counters_for_all = nextcounts
                 main_count += 1
@@ -1657,7 +1657,7 @@ class TestVideoTools(TestSupport):
                              result[0]) - 1)
 
     def tearDown(self):
-        for f in self.filesToKill:
+        for f in set(self.filesToKill):
             if os.path.exists(f):
                 os.remove(f)
 

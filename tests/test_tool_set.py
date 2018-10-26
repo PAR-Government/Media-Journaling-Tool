@@ -169,7 +169,11 @@ class TestToolSet(TestSupport):
         for i in range(255):
             mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
             mask_set.append(mask)
-            writer.write(mask, 33.3666666667,i+1)
+            writer.write(mask, 33.3666666667*i,i+1)
+        for i in range(300,350):
+            mask = np.random.randint(255, size=(1090, 1920)).astype('uint8')
+            mask_set.append(mask)
+            writer.write(mask, 33.3666666667*i, i + 1)
         writer.close()
         fn = writer.get_file_name()
         reader = tool_set.GrayBlockReader(fn)
@@ -180,20 +184,24 @@ class TestToolSet(TestSupport):
                 break
             compare = mask == mask_set[pos]
             self.assertEqual(mask.size,sum(sum(compare)))
+            if pos == 255:
+                self.assertEqual(301,reader.current_frame()-1)
             pos += 1
+
         reader.close()
-        self.assertEqual(255, pos)
+        self.assertEqual(305, pos)
         print time.clock()- s
         suffix = 'm4v'
         if sys.platform.startswith('win'):
             suffix = 'avi'
-        self.assertEquals('test_ts_gw_mask_33.3666666667.' + suffix,tool_set.convertToVideo(fn))
-        self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.' + suffix))
+        filename  = tool_set.convertToVideo(fn)
+        self.assertEquals('test_ts_gw_mask_0.0.' + suffix, filename)
+        self.assertTrue(os.path.exists(filename))
 
-        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01')).size
+        size = tool_set.openImage(filename, tool_set.getMilliSecondsAndFrameCount('00:00:01')).size
         self.assertTrue(size == (1920,1090))
-        os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
-        os.remove('test_ts_gw_mask_33.3666666667.hdf5')
+        os.remove(filename)
+        os.remove(fn)
 
     def testSIFCheck(self):
         good_transform = {

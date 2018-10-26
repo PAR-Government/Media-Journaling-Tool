@@ -2798,30 +2798,156 @@ class GrayBlockFrameLastLayout():
 MASKFORMATS = {GrayBlockFrameFirstLayout.name:GrayBlockFrameFirstLayout(),
                GrayBlockFrameLastLayout.name:GrayBlockFrameLastLayout()}
 
+class GrayBlockReaderManager:
+
+    def __init__(self):
+        self.reader = None
+        self.filename = None
+
+    def create_reader(self, filename, start_frame=1, start_time=0):
+        """
+        :return:
+        @type filename: str
+        @rtype: GrayBlockReader
+        """
+        if filename == self.filename:
+            self.reader.set_group(start_frame=start_frame,start_time=start_time)
+        else:
+            if self.reader is not None:
+                self.reader.close()
+            self.reader = GrayBlockReader(filename,
+                                          start_frame=start_frame,
+                                          start_time=start_time)
+        return self.reader
+
+    def close(self):
+        if self.reader is not None:
+            self.reader.close()
+
+class GrayBlockWriterManager:
+
+    def __init__(self):
+        self.writer = None
+
+    def create_writer(self, reader):
+        """
+        :param reader:
+        :return:
+        @type reader: GrayBlockReader
+        @rtype: GrayBlockWriter
+        """
+        if self.writer is not None:
+            return self.writer
+        self.writer=  reader.create_writer()
+        return self.writer
+
+    def close(self):
+        if self.writer is not None:
+            self.writer.close()
+
+class NewFormatGroupSetter:
+    """
+    Multiple Mask Segment per HDF5 File, one in each group.
+    """
+
+    @staticmethod
+    def init_group(reader, start_frame=0, start_time=1):
+        NewFormatGroupSetter.set_group(reader,start_time=start_time,start_frame=start_frame, init=True)
+
+    @staticmethod
+    def set_group(reader, start_frame=0, start_time=1, init=False):
+        """
+        :param start_frame:
+        :param start_time:
+        :return:
+        @type reader: GrayBlockReader
+        """
+        grp_pos = len([x for x in reader.grps if int(x) <= start_frame]) - 1
+        if reader.grp_pos != grp_pos or init:
+            NewFormatGroupSetter.select_group(reader, grp_pos, start_frame=start_frame, start_time=start_time,init=init)
+
+    @staticmethod
+    def select_group(reader, grp_pos, start_frame=0, start_time=1, init=True):
+        """
+
+        :param reader:
+        :param grp_no:
+        :param start_frame:
+        :param start_time:
+        :param init: Force the trust of the internal state's start and end time
+        :return:
+        """
+        reader.current_group = reader.h_file.get(reader.grps[grp_pos])
+        reader.dset = reader.current_group.get('masks')
+        reader.start_time = reader.current_group.attrs[
+            'start_time'] if 'start_time' in reader.current_group.attrs else start_time
+        reader.start_frame = reader.current_group.attrs[
+            'start_frame'] if 'start_frame' in reader.current_group.attrs else start_frame
+        reader.pos = 0 if init else reader.start_frame - start_frame
+
+class OldFormatGroupSetter:
+    """
+    One Mask Segment per HDF5 File.
+    """
+
+    @staticmethod
+    def init_group(reader, start_frame=0, start_time=1):
+        OldFormatGroupSetter.set_group(reader,start_time=start_time,start_frame=start_frame)
+
+    @staticmethod
+    def set_group(reader, start_frame=0, start_time=1):
+        """
+        :param start_frame:
+        :param start_time:
+        :return:
+        @type reader: GrayBlockReader
+        """
+        reader.current_group = reader.h_file.get('masks')
+        reader.dset = reader.current_group.get('masks')
+        reader.start_time = reader.h_file.attrs[
+            'start_time'] if 'start_time' in reader.h_file.attrs else start_time
+        reader.start_frame = reader.h_file.attrs[
+            'start_frame'] if 'start_frame' in reader.h_file.attrs else start_frame
+        reader.pos = 0
+
+    @staticmethod
+    def select_group(reader, grp_pos, start_frame=0, start_time=1,init=True):
+        pass
+
 class GrayBlockReader:
 
     def __init__(self, filename, convert=False, preferences=None, start_time=0, start_frame=1):
         import h5py
-        self.pos = 0
         self.writer = None
         self.filename = filename
         self.h_file = h5py.File(filename, 'r')
-        self.dset = self.h_file.get('masks').get('masks')
+        grp_names = self.h_file.keys()
+        if 'masks' in grp_names:
+            self.grps = ['masks']
+            self.setter = OldFormatGroupSetter()
+        else:
+            self.setter = NewFormatGroupSetter()
+            self.grps = [str(x) for x in sorted([int(x) for x in grp_names])]
+        self.grp_pos = 0
         self.fps = self.h_file.attrs['fps']
-        self.start_time = self.h_file.attrs['start_time'] if 'start_time' in self.h_file.attrs else start_time
-        self.start_frame = self.h_file.attrs['start_frame'] if 'start_frame' in self.h_file.attrs else start_frame
-        last_frame= self.h_file.attrs['end_frame'] if 'end_frame' in self.h_file.attrs else 0
+        self.setter.init_group(self, start_time=start_time, start_frame=start_frame)
         self.mask_format = MASKFORMATS[self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
         self.convert = convert
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
                                       preferences=preferences) if self.convert else DummyWriter()
-
     def create_writer(self):
+        """
+        :return:
+        @rtype: GrayBlockWriter
+        """
         import time
         dir = os.path.dirname(self.filename)
         prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
         return GrayBlockWriter(prefix + str(time.clock()), self.fps)
+
+    def set_group(self, start_frame=0, start_time=1):
+        self.setter.set_group(self, start_frame=start_frame,start_time=start_time)
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000 / self.fps))
@@ -2833,11 +2959,15 @@ class GrayBlockReader:
         if self.dset is None:
             return None
         if self.mask_format.is_end(self):
-            self.dset = None
-            return None
+            self.grp_pos+=1
+            if self.grp_pos < len(self.grps):
+                self.setter.select_group(self, self.grp_pos)
+            else:
+                self.dset = None
+                return None
         mask = self.mask_format.get_frame(self)
         mask = mask.astype('uint8')
-        self.writer.write(mask, self.current_frame_time())
+        self.writer.write(mask, self.start_frame + self.pos, self.current_frame_time())
         self.pos += 1
         return mask
 
@@ -2851,7 +2981,7 @@ class GrayBlockReader:
 
 
 class DummyWriter:
-    def write(self, mask, mask_time):
+    def write(self, mask, mask_number, mask_time):
         pass
 
     def close(self):
@@ -2866,7 +2996,6 @@ class GrayBlockWriter:
     def __init__(self, mask_prefix, fps, layout=GrayBlockFrameFirstLayout()):
         self.fps = fps
         self.dset = None
-        self.grp = None
         self.pos = 0
         self.h_file = None
         self.suffix = 'hdf5'
@@ -2875,9 +3004,16 @@ class GrayBlockWriter:
         self.mask_format = layout
         self.last_frame = 1
         self.last_time = 0
+        self.current_group = None
 
     def write(self, mask, mask_time, frame_number):
         import h5py
+        if self.current_group is not None and frame_number - self.last_frame > 1:
+            grp = self.current_group
+            grp.attrs['end_time'] = self.last_time
+            grp.attrs['end_frame'] = self.last_frame
+            self.current_group = None
+
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
             if os.path.exists(self.filename):
@@ -2885,11 +3021,15 @@ class GrayBlockWriter:
             self.h_file = h5py.File(self.filename, 'w')
             self.h_file.attrs['fps'] = self.fps
             self.h_file.attrs['prefix'] = os.path.basename(self.mask_prefix)
-            self.h_file.attrs['start_time'] = mask_time
-            self.h_file.attrs['start_frame'] = frame_number
             self.h_file.attrs['mask_format'] = self.mask_format.name
-            self.grp = self.h_file.create_group('masks')
-            self.dset = self.grp.create_dataset("masks",
+            self.current_group = None
+
+        if self.current_group is None:
+            self.current_group = self.h_file.create_group(str(frame_number))
+            grp = self.current_group
+            grp.attrs['start_time'] = mask_time
+            grp.attrs['start_frame'] = frame_number
+            self.dset = grp.create_dataset("masks",
                                                 self.mask_format.initial_shape(mask.shape, size=10),
                                                 compression="gzip",
                                                 chunks=True,
@@ -2913,13 +3053,16 @@ class GrayBlockWriter:
         self.release()
 
     def release(self):
-        self.grp = None
+        self.current_group = None
         self.dset = None
+        if self.current_group is not None:
+            self.current_group.attrs['end_time'] = self.last_time
+            self.current_group.attrs['end_frame'] = self.last_frame
         if self.h_file is not None:
-            self.h_file.attrs['end_time'] = self.last_time
-            self.h_file.attrs['end_frame'] = self.last_frame
             self.h_file.close()
         self.h_file = None
+
+
 
 
 def preferredSuffix(preferences=None):
@@ -2963,7 +3106,7 @@ class GrayFrameWriter:
             self.codec = str(t_codec)
         self.fourcc = cv2api.cv2api_delegate.get_fourcc(self.codec) if self.codec is not 'raw' else 0
 
-    def write(self, mask, mask_time):
+    def write(self, mask, mask_number, mask_time):
         if self.capOut is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
             logging.getLogger('maskgen').info('writing using fourcc ' + str(self.fourcc))
