@@ -179,6 +179,11 @@
 			"images": [
 				"semanticSlides/splice.png"
 			]
+		},
+		"Frame From Video": {
+			"images": [
+				"semanticSlides/frame_from_video.png"
+			]
 		}
     },
     "operation": {
