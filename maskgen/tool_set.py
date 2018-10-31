@@ -2863,6 +2863,9 @@ class NewFormatGroupSetter:
         @type reader: GrayBlockReader
         """
         grp_pos = len([x for x in reader.grps if int(x) <= start_frame]) - 1
+        if grp_pos < 0:
+            grp_pos = 0
+            init = True
         if reader.grp_pos != grp_pos or init:
             NewFormatGroupSetter.select_group(reader, grp_pos, start_frame=start_frame, start_time=start_time,init=init)
 

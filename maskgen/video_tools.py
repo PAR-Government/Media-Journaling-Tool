@@ -17,11 +17,11 @@ import ffmpeg_api
 import numpy as np
 import tool_set
 from cachetools import LRUCache
-from cachetools import cached
 from cachetools.keys import hashkey
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
 from maskgen import exif
+from cachetools import cached
 from maskgen_loader import  MaskGenLoader
 from support import getValue
 
@@ -379,26 +379,21 @@ def invertVideoMasks(videomasks, start, end):
     """
     if videomasks is None:
         return
-    prefix = start + '_' + end
     result = []
 
     def __invert_mask_from_segment(capIn, capOut):
         """
          Invert a single video file (gray scale)
          """
-        try:
-            while True:
-                frame_time = capIn.current_frame_time()
-                frame_count = capIn.current_frame()
-                frame = capIn.read()
-                if frame is not None:
-                    frame = abs(frame - np.ones(frame.shape) * 255)
-                    capOut.write(frame, frame_time, frame_count)
-                else:
-                    break
-        finally:
-            capIn.close()
-            capOut.close()
+        while True:
+            frame_time = capIn.current_frame_time()
+            frame_count = capIn.current_frame()
+            frame = capIn.read()
+            if frame is not None:
+                frame = abs(frame - np.ones(frame.shape) * 255)
+                capOut.write(frame, frame_time, frame_count)
+            else:
+                break
         return capOut.filename
 
     writer_manager = tool_set.GrayBlockWriterManager()
@@ -2786,7 +2781,7 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                             writer.write(mask, frame_time, frame_count)
                             frame_count += 1
                             frame_time += diff_time
-                            update_segment(change, videosegment=writer.filename)
+                        update_segment(change, videosegment=writer.filename)
                         new_mask_set.append(change)
 
                     if get_end_frame_from_segment(edge_video_mask) < get_end_frame_from_segment(mask_set):
@@ -2932,6 +2927,7 @@ def extractMask(video_masks, frame_time):
         return None
     frames = 0
     mask = None
+    reader_manager = tool_set.GrayBlockReaderManager()
     for mask_set in video_masks:
         timeManager.updateToNow(get_end_time_from_segment(mask_set),get_end_frame_from_segment(mask_set)-frames)
         frames = get_end_frame_from_segment(mask_set)
@@ -2939,7 +2935,7 @@ def extractMask(video_masks, frame_time):
             if get_file_from_segment(mask_set) is not None:
                 timeManager = tool_set.VidTimeManager(extract_time_tuple)
                 timeManager.updateToNow(get_start_time_from_segment(mask_set), get_start_frame_from_segment(mask_set))
-                reader = tool_set.GrayBlockReader(get_file_from_segment(mask_set),
+                reader = reader_manager.create_reader(get_file_from_segment(mask_set),
                                               start_frame=get_start_frame_from_segment(mask_set,1),
                                               start_time=get_start_time_from_segment(mask_set,0))
                 while True:
@@ -2948,7 +2944,7 @@ def extractMask(video_masks, frame_time):
                     mask = reader.read()
                     if mask is None:
                         break
-                    timeManager.updateToNow(frame_time,frame_count-timeManager.frameSinceBeginning)
+                    timeManager.updateToNow(frame_time,frame_count-timeManager.frameSinceBeginning + 1)
                     if timeManager.isPastStartTime():
                         break
                 reader.close()

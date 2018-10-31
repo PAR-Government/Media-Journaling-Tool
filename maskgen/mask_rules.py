@@ -9,9 +9,9 @@
 import logging
 import os
 import sys
+import time
 import traceback
 from collections import namedtuple
-import time
 
 import cv2
 import exif
@@ -3314,8 +3314,7 @@ class GraphCompositeVideoIdAssigner:
         :param builder:
         :return:
         """
-        groups = self.__buildGroups(probes)
-        self.__buildProbeEdgeIds(probes, builder)
+        self.__buildGroups(probes, builder)
         return probes
 
     def __getProbeId(self,item, group):
@@ -3330,75 +3329,44 @@ class GraphCompositeVideoIdAssigner:
                 return newkey
         return key
 
-    def __buildGroups(self, probes):
+    def __buildGroups(self, probes, builder):
         """
           Build the list of probes assigned to each group
                @type probes : list of Probe
               :param probes:
               :param baseNodes:
         :return:
+        @type probes: list of Probe
         """
-        groups = {}
+        self.group_probes = {}
+        self.group_bits = {}
+        self.writers = {}
+        fileid = IntObject()
         for probe in probes:
             segment = video_tools.get_frame_count(probe.targetMaskFileName)
-            key =(video_tools.get_rate_from_segment(segment,30),
-                    video_tools.get_frames_from_segment(segment),
-                    video_tools.get_end_time_from_segment(segment))
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(probe)
-        return groups
-
-
-    def __buildProbeEdgeIds(self, probes, groups):
-        """
-         @type probes : list of Probe
-        :param probes:
-        :param baseNodes:
-        :return:
-        """
-        fileid = IntObject()
-
-        for group in groups:
-            tool_set.GrayFrameWriter
-        target_groups = dict()
-        group_bits = {}
-        # targets associated with different base nodes and shape are in a different groups
-        # note: target mask images will have the same shape as their final node
-        for probe in probes:
-            r = np.asarray(probe.targetMaskImage,order='C')
-            key = (probe.targetBaseNodeId, r.shape)
-            if key not in target_groups:
-                target_groups[key] = {}
-                target_groups[key] = (fileid.value, {})
-                group_bits[fileid.value] = IntObject()
-                fileid.increment()
-            if probe.edgeId not in target_groups[key][1]:
-                target_groups[key][1][probe.edgeId] = {}
-            probeid = self.__getProbeId(r,target_groups[key][1][probe.edgeId])
-            #print str(probe.edgeId) + '-> ' + probe.finalNodeId + '=' + probeid
-            if probeid not in target_groups[key][1][probe.edgeId]:
-                group_bits[target_groups[key][0]].increment()
+            if segment is not None:
+                key = (video_tools.get_rate_from_segment(segment, 30),
+                       video_tools.get_frames_from_segment(segment),
+                       video_tools.get_end_time_from_segment(segment))
+                if key not in self.group_probes:
+                    self.writers[key] = tool_set.GrayBlockWriter('vmasks_{}'.format(fileid.increment()), key[0])
+                    self.group_probes[key] = []
+                    self.group_bits[key] = IntObject()
+                self.group_probes[key].append(probe)
                 probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': group_bits[target_groups[key][0]].value
-                }
-                target_groups[key][1][probe.edgeId][probeid] = (group_bits[target_groups[key][0]].value,r)
-            else:
-                probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': target_groups[key][1][probe.edgeId][probeid][0]
+                    'groupid': key,
+                    'bit number': self.group_bits[key].increment()
                 }
 
 class HDF5CompositeBuilder(CompositeBuilder):
     def __init__(self):
         self.composites = dict()
         self.group_bit_check = dict()
-        CompositeBuilder.__init__(self, 1, 'jp2')
+        CompositeBuilder.__init__(self, 1, 'hdf5')
 
     def initialize(self, graph, probes):
-        compositeIdAssigner = GraphCompositeVideoIdAssigner(graph)
-        return compositeIdAssigner.updateProbes(probes, self.composite_type)
+        self.compositeIdAssigner = GraphCompositeVideoIdAssigner(graph)
+        return self.compositeIdAssigner.updateProbes(probes,'hdf5')
 
     def build(self, passcount, probe, edge):
         """
@@ -3409,97 +3377,47 @@ class HDF5CompositeBuilder(CompositeBuilder):
         :return:
         @type probe: Probe
         """
-        if passcount > 0:
-            return
-        groupid = probe.composites[self.composite_type]['groupid']
-        targetid = probe.composites[self.composite_type]['bit number']
-        bit = targetid - 1
-        if groupid not in self.composites:
-            self.composites[groupid] = []
-        composite_list = self.composites[groupid]
-        composite_mask_id = (bit / 8)
-        imarray = np.asarray(probe.targetMaskImage)
-        sums = np.sum(255-imarray)
-        if sums == 0:
-            logging.getLogger('maskgen').error('Empty bit plane for edge {} to {}:{}'.format(
-                str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
-            ))
-        # check to see if the bits are in fact the same for a group
-        if (groupid, targetid) not in self.group_bit_check:
-            self.group_bit_check[(groupid, targetid)] = imarray
-            while (composite_mask_id + 1) > len(composite_list):
-                composite_list.append(np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8'))
-            thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
-            bitvalue = 1 << (bit % 8)
-            thisbit[imarray == 0] = bitvalue
-            composite_list[composite_mask_id] = composite_list[composite_mask_id] | thisbit
-        else:
-            check = np.all(self.group_bit_check[(groupid, targetid)] == imarray)
-            if not check:
-                logging.getLogger('maskgen').error('Failed assertion for edge {} to {}:{}'.format(
-                  str(probe.edgeId), probe.finalNodeId,probe.finalImageFileName)
-                )
-            assert (check)
-
-
-    def checkProbes(self,probes):
-        files = {}
-        import glymur
-        for probe in probes:
-            file =  probe.composites[self.composite_type]['file name']
-            if file not in files:
-                jp2 = glymur.Jp2k(file)
-                files[file] = jp2[:]
-            jp2img = files[file]
-            bitplaneid = probe.composites[self.composite_type]['bit number'] - 1
-            byteplane = jp2img[:,:,bitplaneid / 8]
-            bit = 1<<(bitplaneid%8)
-            img = np.ones((jp2img.shape[0], jp2img.shape[1])).astype('uint8')*255
-            try:
-                img[(byteplane&bit)>0]  = 0
-                if not np.all(img==probe.targetMaskImage.image_array):
-                    raise EdgeMaskError('Not march on {}:{}'.format(file, str(probe.edgeId)),probe.edgeId)
-            except Exception as ex:
-                print ex
+        pass
 
 
     def finalize(self, probes, save=True):
+        import itertools
         results = {}
         if len(probes) == 0:
             return
-        dirs = [os.path.split(probe.targetMaskFileName)[0] for probe in probes if
-                probe.targetMaskFileName is not None]
-        dir = dirs[0] if len(dirs) > 0 else '.'
-        for groupid, compositeMaskList in self.composites.iteritems():
-            third_dimension = len(compositeMaskList)
-            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
-            if third_dimension == 1:
-                result = compositeMaskList[0]
-                analysis_mask[compositeMaskList[0] > 0] = 255
-            else:
-                result = np.zeros(
-                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
-                for dim in range(third_dimension):
-                    result[:, :, dim] = compositeMaskList[dim]
-                    analysis_mask[compositeMaskList[dim] > 0] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
-                                                                     globalAnalysis=True)
-            img = ImageWrapper(result, mode='JP2')
-            results[groupid] = (img, globalchange, changeCategory, ratio)
-            if save:
-                img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
-
-        for probe in probes:
-            groupid = probe.composites[self.composite_type]['groupid']
-            if groupid not in results:
-                continue
-            finalResult = results[groupid]
-            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
-            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
-            probe.composites[self.composite_type]['image'] = finalResult[0]
-
-        #self.checkProbes(probes)
-        return results
+        for group in self.compositeIdAssigner.group_probes:
+            writer = self.compositeIdAssigner.writers[group]
+            probes = self.compositeIdAssigner.group_probes[group]
+            segments = [[(segment,probes[i]) for segment in probes[i].targetVideoSegments] for i in range(len(probes))]
+            segments = list(itertools.chain(*segments))
+            segments = sorted(segments, key=lambda x: video_tools.get_start_frame_from_segment(x[0]))
+            frame_no = video_tools.get_start_frame_from_segment(segments[0][0])
+            frame_time = video_tools.get_start_time_from_segment(segments[0][0])
+            reader_managers = [tool_set.GrayBlockReaderManager() for probe in probes]
+            while len(segments) > 0:
+                segments = [segment for segment in segments if video_tools.get_stop_frame_from_segment(segment[0]) >= frame_no]
+                frame = None
+                for segment in segments:
+                    if frame_no >= video_tools.get_start_frame_from_segment(segment[0]):
+                        reader = reader_managers[segment[1]].create_reader(video_tools.get_file_from_segment(segment[0]),
+                                                                  video_tools.get_start_frame_from_segment(segment[0]),
+                                                                  video_tools.get_start_time_from_segment(segment[0]))
+                        mask = reader.read()
+                        if frame is None:
+                            frame= np.zeros(mask.shape,dtype='uint8')
+                        thisbit = np.zeros(mask.shape).astype('uint8')
+                        bit = probes[segment[1]].composite[self.composite_type]['bit number']
+                        bitvalue = 1 << (bit % 8)
+                        thisbit[mask == 0] = bitvalue
+                        frame = frame | thisbit
+                if frame is not None:
+                    writer.write(frame, frame_no, frame_time)
+                frame_no += 1
+                frame_time += 1000.0/video_tools.get_rate_from_segment(segment[0])
+            for probe in probes:
+                probe.composite[self.composite_type]['file name'] = writer.filename
+            writer.close()
+        return probes
 
 
 class Jpeg2000CompositeBuilder(CompositeBuilder):
