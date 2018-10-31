@@ -2712,7 +2712,7 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
 
 def convertToVideo(filename, preferences=None, start_frame=None, start_time=0):
     suffix = '.' + preferredSuffix(preferences=preferences)
-    fn = os.path.splitext(filename)[0] + suffix
+    fn = os.path.splitext(filename)[0] + (str(start_frame) if start_frame is not None else '') + suffix
     if os.path.exists(fn):
         if os.stat(filename).st_mtime < os.stat(fn).st_mtime:
             return fn
