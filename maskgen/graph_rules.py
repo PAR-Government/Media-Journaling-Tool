@@ -28,7 +28,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -1843,6 +1843,24 @@ def getNodeSummary(scModel, node_id):
     """
     node = scModel.getGraph().get_node(node_id)
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
+
+def checkTimeStamp(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    pred = graph.predecessors(to)
+    if pred<2:
+        ffile = os.path.join(graph.dir, graph.get_node(frm)['file'])
+        sfile = os.path.join(graph.dir, graph.get_node(to)['file'])
+        timediffs = dateTimeStampCompare(ffile,sfile)
+        if  len(timediffs) != 0:
+            return (Severity.INFO, "Timestamps " + str(timediffs) + " are in a format different from prior node")
+    else:
+        for p in pred:
+            if p != frm:
+                ffile = os.path.join(graph.dir, graph.get_node(p)['file'])
+                sfile = os.path.join(graph.dir, graph.get_node(to)['file'])
+                timediffs = dateTimeStampCompare(ffile, sfile)
+                if len(timediffs) != 0:
+                    return (Severity.INFO, "Timestamps "+ str(timediffs) + " are in a format different from donor")
 
 
 

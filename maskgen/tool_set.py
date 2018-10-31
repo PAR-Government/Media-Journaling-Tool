@@ -7,11 +7,11 @@
 # ==============================================================================
 
 import math
+import re
 from datetime import datetime
 from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
-import re
 import imghdr
 import sys
 from image_wrap import *
@@ -24,6 +24,7 @@ from ffmpeg_api import get_ffprobe_tool
 from maskgen.support import removeValue, getValue
 import os
 from maskgen.userinfo import get_username
+import maskgen.exif
 
 import platform
 
@@ -3044,3 +3045,40 @@ def selfVideoTest():
     except:
         return 'Video Writing Failed'
     return None
+
+def dateTimeStampCompare(v1, v2):
+    def get_defaults(source):
+        exifdata = maskgen.exif.getexif(source)
+        rd = {}
+        for e in exifdata:
+            if "date" in str(e).lower() or "time" in str(e).lower():
+                rd[e] = exifdata[e]
+        return rd
+        #date_time_stamp = exifdata['Create Date'] if 'Create Date' in exifdata else exifdata['File Creation Date/Time']
+
+    stamp1 = get_defaults(v1)
+    rgexdict = {}
+    for e in stamp1:
+        st = stamp1[e]
+        rgexf = "\\A"
+        for x in st:
+            if x.isdigit():
+                rgexf += '[0-9]'
+            elif x.isalpha():
+                rgexf += '[a-zA-z]*'
+            else:
+                rgexf += x
+        rgexf+= "\\Z"
+        rgexdict[e] = rgexf
+
+    stamp2 = get_defaults(v2)
+    nonmatches = []
+    for e in stamp2:
+        if e in rgexdict:
+            mo = re.match(rgexdict[e],stamp2[e])
+            if mo is None:
+                nonmatches.append(e)
+        else:
+            pass
+            #nonmatches.append(e)
+    return nonmatches
