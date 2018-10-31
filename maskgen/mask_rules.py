@@ -3400,8 +3400,9 @@ class HDF5CompositeBuilder(CompositeBuilder):
                 for segment in segments:
                     if frame_no >= video_tools.get_start_frame_from_segment(segment[0]):
                         reader = reader_managers[segment[1]].create_reader(video_tools.get_file_from_segment(segment[0]),
-                                                                  video_tools.get_start_frame_from_segment(segment[0]),
-                                                                  video_tools.get_start_time_from_segment(segment[0]))
+                                                                  start_frame=video_tools.get_start_frame_from_segment(segment[0]),
+                                                                  start_time=video_tools.get_start_time_from_segment(segment[0]),
+                                                                  end_frame=video_tools.get_end_frame_from_segment(segment[0]))
                         mask = reader.read()
                         if frame is None:
                             frame= np.zeros(mask.shape,dtype='uint8')

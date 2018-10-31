@@ -2710,7 +2710,7 @@ def composeVideoMaskName(maskprefix, starttime, suffix):
     return maskprefix + '_mask_' + str(starttime) + '.' + suffix
 
 
-def convertToVideo(filename, preferences=None):
+def convertToVideo(filename, preferences=None, start_frame=None, start_time=0):
     suffix = '.' + preferredSuffix(preferences=preferences)
     fn = os.path.splitext(filename)[0] + suffix
     if os.path.exists(fn):
@@ -2718,7 +2718,11 @@ def convertToVideo(filename, preferences=None):
             return fn
         else:
             os.remove(fn)
-    reader = GrayBlockReader(filename, convert=True, preferences=preferences)
+    reader = GrayBlockReader(filename,
+                             convert=True,
+                             preferences=preferences,
+                             start_frame=start_frame,
+                             start_time=start_time)
     while True:
         mask = reader.read()
         if mask is None:
@@ -2753,6 +2757,10 @@ class GrayBlockFrameFirstLayout():
         return reader.pos >= reader.dset.shape[0]
 
     @staticmethod
+    def count(reader):
+        return reader.dset.shape[2]
+
+    @staticmethod
     def get_frame(reader):
         return reader.dset[reader.pos, :, :]
 
@@ -2776,6 +2784,10 @@ class GrayBlockFrameLastLayout():
     @staticmethod
     def is_end(reader):
         return reader.pos >= reader.dset.shape[2]
+
+    @staticmethod
+    def count(reader):
+        return reader.dset.shape[2]
 
     @staticmethod
     def get_frame(reader):
@@ -2804,25 +2816,36 @@ class GrayBlockReaderManager:
         self.reader = None
         self.filename = None
 
-    def create_reader(self, filename, start_frame=1, start_time=0):
+    def create_reader(self, filename,
+                      start_frame=None,
+                      start_time=0,
+                      end_frame=None):
         """
+        :param filename:
+        :param start_frame:
+        :param start_time:
+        :param end_frame: optional stopping point
         :return:
         @type filename: str
         @rtype: GrayBlockReader
         """
         if filename == self.filename:
-            self.reader.set_group(start_frame=start_frame,start_time=start_time)
+            self.reader.set_group(start_frame=start_frame,
+                                  start_time=start_time,
+                                  end_frame=end_frame)
         else:
             if self.reader is not None:
                 self.reader.close()
             self.reader = GrayBlockReader(filename,
                                           start_frame=start_frame,
-                                          start_time=start_time)
+                                          start_time=start_time,
+                                          end_frame=end_frame)
         return self.reader
 
     def close(self):
         if self.reader is not None:
             self.reader.close()
+            self.reader = None
 
 class GrayBlockWriterManager:
 
@@ -2844,6 +2867,7 @@ class GrayBlockWriterManager:
     def close(self):
         if self.writer is not None:
             self.writer.close()
+            self.writer = None
 
 class NewFormatGroupSetter:
     """
@@ -2851,42 +2875,50 @@ class NewFormatGroupSetter:
     """
 
     @staticmethod
-    def init_group(reader, start_frame=0, start_time=1):
-        NewFormatGroupSetter.set_group(reader,start_time=start_time,start_frame=start_frame, init=True)
-
-    @staticmethod
-    def set_group(reader, start_frame=0, start_time=1, init=False):
+    def set_group(reader, start_frame=None, start_time=1,end_frame=None):
         """
         :param start_frame:
         :param start_time:
         :return:
         @type reader: GrayBlockReader
         """
-        grp_pos = len([x for x in reader.grps if int(x) <= start_frame]) - 1
-        if grp_pos < 0:
-            grp_pos = 0
-            init = True
-        if reader.grp_pos != grp_pos or init:
-            NewFormatGroupSetter.select_group(reader, grp_pos, start_frame=start_frame, start_time=start_time,init=init)
+        grp_pos = 0
+        if start_frame is not None:
+            pos = len([x for x in reader.grps if int(x) <= start_frame]) - 1
+            grp_pos = pos if pos > 0 else grp_pos
+        NewFormatGroupSetter.select_group(reader,
+                                          grp_pos,
+                                          start_frame=start_frame,
+                                          start_time=start_time,
+                                          end_frame=end_frame)
 
     @staticmethod
-    def select_group(reader, grp_pos, start_frame=0, start_time=1, init=True):
+    def select_group(reader,
+                     grp_pos,
+                     start_frame=None,
+                     start_time=0,
+                     end_frame=None):
         """
 
         :param reader:
         :param grp_no:
         :param start_frame:
         :param start_time:
-        :param init: Force the trust of the internal state's start and end time
+        :param end_frame: determine end frame
         :return:
         """
+        reader.grp_pos = grp_pos
+
         reader.current_group = reader.h_file.get(reader.grps[grp_pos])
         reader.dset = reader.current_group.get('masks')
         reader.start_time = reader.current_group.attrs[
             'start_time'] if 'start_time' in reader.current_group.attrs else start_time
         reader.start_frame = reader.current_group.attrs[
             'start_frame'] if 'start_frame' in reader.current_group.attrs else start_frame
-        reader.pos = 0 if init else reader.start_frame - start_frame
+        end_frame = reader.current_group.attrs[
+            'end_frame'] if 'end_frame' in reader.current_group.attrs and end_frame is None else end_frame
+        reader.end_frame = end_frame if end_frame is not None else None
+        reader.pos = 0 if start_frame is None else reader.start_frame - start_frame
 
 class OldFormatGroupSetter:
     """
@@ -2894,11 +2926,7 @@ class OldFormatGroupSetter:
     """
 
     @staticmethod
-    def init_group(reader, start_frame=0, start_time=1):
-        OldFormatGroupSetter.set_group(reader,start_time=start_time,start_frame=start_frame)
-
-    @staticmethod
-    def set_group(reader, start_frame=0, start_time=1):
+    def set_group(reader, start_frame=None, start_time=0, end_frame=None):
         """
         :param start_frame:
         :param start_time:
@@ -2911,17 +2939,23 @@ class OldFormatGroupSetter:
             'start_time'] if 'start_time' in reader.h_file.attrs else start_time
         reader.start_frame = reader.h_file.attrs[
             'start_frame'] if 'start_frame' in reader.h_file.attrs else start_frame
-        reader.pos = 0
+        reader.pos = 0 if start_frame is None else reader.start_frame - start_frame
 
     @staticmethod
-    def select_group(reader, grp_pos, start_frame=0, start_time=1,init=True):
-        pass
+    def select_group(reader, grp_pos, start_frame=None, start_time=0,end_frame=None):
+        OldFormatGroupSetter.set_group(reader,start_frame=start_frame,start_time=start_time)
 
 class GrayBlockReader:
 
-    def __init__(self, filename, convert=False, preferences=None, start_time=0, start_frame=1):
+    def __init__(self, filename,
+                 convert=False,
+                 preferences=None,
+                 start_time=0,
+                 start_frame=None,
+                 end_frame=None):
         import h5py
         self.writer = None
+
         self.filename = filename
         self.h_file = h5py.File(filename, 'r')
         grp_names = self.h_file.keys()
@@ -2931,10 +2965,18 @@ class GrayBlockReader:
         else:
             self.setter = NewFormatGroupSetter()
             self.grps = [str(x) for x in sorted([int(x) for x in grp_names])]
+        # group selection
         self.grp_pos = 0
+        # frame selection in group (relative to start of group)
+        self.pos = 0
+        # the smart numpy array
+        self.dset = None
+        # where to stop
+        self.end_frame = end_frame
         self.fps = self.h_file.attrs['fps']
-        self.setter.init_group(self, start_time=start_time, start_frame=start_frame)
-        self.mask_format = MASKFORMATS[self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
+        self.mask_format = MASKFORMATS[
+        self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
+        self.setter.set_group(self, start_time=start_time, start_frame=start_frame, end_frame=end_frame)
         self.convert = convert
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
@@ -2949,8 +2991,8 @@ class GrayBlockReader:
         prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
         return GrayBlockWriter(prefix + str(time.clock()), self.fps)
 
-    def set_group(self, start_frame=0, start_time=1):
-        self.setter.set_group(self, start_frame=start_frame,start_time=start_time)
+    def set_group(self, start_frame=None, start_time=1, end_frame=None):
+        self.setter.set_group(self, start_frame=start_frame,start_time=start_time, end_frame=end_frame)
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000 / self.fps))
@@ -2960,6 +3002,8 @@ class GrayBlockReader:
 
     def read(self):
         if self.dset is None:
+            return None
+        if self.end_frame is not None and self.current_frame() == self.end_frame + 1:
             return None
         if self.mask_format.is_end(self):
             self.grp_pos+=1

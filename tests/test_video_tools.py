@@ -1368,7 +1368,7 @@ class TestVideoTools(TestSupport):
         reader_orig = tool_set.GrayBlockReader(video_tools.get_file_from_segment(sets[0]))
         reader_new = tool_set.GrayBlockReader(video_tools.get_file_from_segment(result[0]))
         c = 0
-        while True:
+        while c < 16:
             orig_mask = reader_orig.read()
             if orig_mask is None:
                 break
@@ -1377,7 +1377,6 @@ class TestVideoTools(TestSupport):
                 break
             is_equal = np.all(orig_mask == new_mask)
             c+=1
-            print(c)
             self.assertTrue(is_equal)
         reader_new.close()
         reader_new = tool_set.GrayBlockReader(video_tools.get_file_from_segment(result[1]))

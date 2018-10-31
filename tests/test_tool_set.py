@@ -176,7 +176,7 @@ class TestToolSet(TestSupport):
             writer.write(mask, 33.3666666667*i, i + 1)
         writer.close()
         fn = writer.get_file_name()
-        reader = tool_set.GrayBlockReader(fn)
+        reader = tool_set.GrayBlockReader(fn, end_frame=305)
         pos = 0
         while True:
             mask = reader.read()

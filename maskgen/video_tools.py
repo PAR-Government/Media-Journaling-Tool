@@ -17,11 +17,11 @@ import ffmpeg_api
 import numpy as np
 import tool_set
 from cachetools import LRUCache
+from cachetools import cached
 from cachetools.keys import hashkey
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
 from maskgen import exif
-from cachetools import cached
 from maskgen_loader import  MaskGenLoader
 from support import getValue
 
@@ -240,7 +240,6 @@ def get_rate_from_segment(segment, default_value=None):
 def transfer_masks(video_masks, new_mask_set,
                    frame_time_function=lambda x,y: x,
                    frame_count_function=lambda x,y: x):
-    writer = None
     pos = 0
     reader_manager = tool_set.GrayBlockReaderManager()
     writer_manager = tool_set.GrayBlockWriterManager()
@@ -250,8 +249,9 @@ def transfer_masks(video_masks, new_mask_set,
             pos += 1
             if get_file_from_segment(mask_set):
                 reader = reader_manager.create_reader(get_file_from_segment(mask_set),
-                                                 start_frame=get_start_frame_from_segment(change),
-                                                 start_time=get_start_time_from_segment(change))
+                                                 start_frame=get_start_frame_from_segment(mask_set),
+                                                 start_time=get_start_time_from_segment(mask_set),
+                                                 end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 try:
                     frame_time = get_start_time_from_segment(change)
@@ -402,8 +402,9 @@ def invertVideoMasks(videomasks, start, end):
         for segment in videomasks:
             segment = segment.copy()
             capIn = reader_manager.create_reader(get_file_from_segment(segment),
-                                             start_frame=get_start_frame_from_segment(segment,1),
-                                             start_time=get_start_time_from_segment(segment,0))
+                                             start_frame=get_start_frame_from_segment(segment),
+                                             start_time=get_start_time_from_segment(segment),
+                                             end_frame=get_end_frame_from_segment(segment))
             capOut = writer_manager.create_writer(capIn)
             update_segment(segment,videosegment=__invert_mask_from_segment(capIn, capOut))
             result.append(segment)
@@ -2341,8 +2342,9 @@ def interpolateMask(mask_file_name_prefix,
                                         end_frame=get_end_frame_from_segment(mask_set, 1),
                                         type=get_type_of_segment(mask_set))
                 reader = reader_manager.create_reader(os.path.join(directory, get_file_from_segment(mask_set)),
-                                                      start_frame=get_start_frame_from_segment(mask_set, 1),
-                                                      start_time=get_start_time_from_segment(mask_set, 0))
+                                                      start_frame=get_start_frame_from_segment(mask_set),
+                                                      start_time=get_start_time_from_segment(mask_set),
+                                                      end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 first_mask = None
                 count = 0
@@ -2444,9 +2446,10 @@ def dropFramesFromMask(bounds,
                 if get_file_from_segment(mask_set) is None:
                     new_mask_set.extend(dropFramesWithoutMask([bound],[mask_set],keepTime=keepTime))
                     continue
-                reader = reader_manager.create_reader(get_file_from_segment(mask_set),#xxx
-                                                  start_frame=get_start_frame_from_segment(mask_set,1),
-                                                  start_time=get_start_time_from_segment(mask_set,0))
+                reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                  start_frame=get_start_frame_from_segment(mask_set),
+                                                  start_time=get_start_time_from_segment(mask_set),
+                                                  end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 if keepTime:
                     elapsed_count = 0
@@ -2719,10 +2722,10 @@ def reverseMasks(edge_video_masks, composite_video_masks):
                     if  get_file_from_segment(mask_set) is None:
                         new_mask_set.extend(reverseNonVideoMasks(mask_set,edge_video_mask))
                         continue
-                    reader = reader_manager.create_reader(get_file_from_segment(mask_set) ,#xxx
-                                                      start_frame=get_start_frame_from_segment(mask_set, 1),
-                                                      start_time=get_start_time_from_segment(mask_set, 0)
-                                                      )
+                    reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                      start_frame=get_start_frame_from_segment(mask_set),
+                                                      start_time=get_start_time_from_segment(mask_set),
+                                                      end_frame=get_end_frame_from_segment(mask_set))
                     writer = writer_manager.create_writer(reader)
                     frame_count = get_start_frame_from_segment(mask_set)
                     if frame_count < get_start_frame_from_segment(edge_video_mask):
@@ -2845,8 +2848,9 @@ def _maskTransform( video_masks, func, expectedType='video', funcReturnsList=Fal
                                     videosegment=get_file_from_segment(mask_set))
             mask_file_name = get_file_from_segment(mask_set)
             reader = reader_manager.create_reader(mask_file_name,
-                                                  start_time=get_start_frame_from_segment(change),
-                                                  start_frame=get_start_frame_from_segment(mask_set))
+                                                  start_time=get_start_time_from_segment(mask_set),
+                                                  start_frame=get_start_frame_from_segment(mask_set),
+                                                  end_frame=get_end_frame_from_segment(mask_set))
             writer = writer_manager.create_writer(reader)
             try:
                 while True:
@@ -2889,8 +2893,9 @@ def inverse_intersection_for_mask(mask, video_masks):
             if get_file_from_segment(mask_set) is not None:
                 mask_file_name = get_file_from_segment(mask_set)
                 reader = reader_manager.create_reader(mask_file_name,
-                                                  start_frame=get_start_frame_from_segment(mask_set, 1),
-                                                  start_time=get_start_time_from_segment(mask_set, 0)
+                                                  start_frame=get_start_frame_from_segment(mask_set),
+                                                  start_time=get_start_time_from_segment(mask_set),
+                                                  end_frame=get_end_frame_from_segment(mask_set)
                                                   )
                 writer = writer_manager.create_writer(reader)
                 while True:
@@ -2936,8 +2941,8 @@ def extractMask(video_masks, frame_time):
                 timeManager = tool_set.VidTimeManager(extract_time_tuple)
                 timeManager.updateToNow(get_start_time_from_segment(mask_set), get_start_frame_from_segment(mask_set))
                 reader = reader_manager.create_reader(get_file_from_segment(mask_set),
-                                              start_frame=get_start_frame_from_segment(mask_set,1),
-                                              start_time=get_start_time_from_segment(mask_set,0))
+                                              start_frame=get_start_frame_from_segment(mask_set),
+                                              start_time=get_start_time_from_segment(mask_set))
                 while True:
                     frame_time = reader.current_frame_time()
                     frame_count = reader.current_frame()
@@ -3213,12 +3218,14 @@ def insertFrames(bounds,
                                             type= get_type_of_segment(mask_set),
                                             error= get_error_from_segment(mask_set),
                                             rate=rate)
+                    amount_to_transfer=get_frames_from_segment(change)
                     if get_file_from_segment(mask_set) is not None:
                         reader = reader_manager.create_reader(get_file_from_segment(mask_set),
-                                                  start_frame=get_start_frame_from_segment(mask_set,1),
-                                                  start_time=get_start_time_from_segment(mask_set,0))
+                                                  start_frame=get_start_frame_from_segment(mask_set),
+                                                  start_time=get_start_time_from_segment(mask_set),
+                                                  end_frame=get_end_frame_from_segment(mask_set))
                         writer = writer_manager.create_writer(reader)
-                        transfer(reader, writer, 0, 0, get_frames_from_segment(change))
+                        transfer(reader, writer, 0, 0, amount_to_transfer)
                         update_segment(change,videosegment=writer.filename)
                     new_mask_set.append(change)
                     if end_adjust_count >= 0:
@@ -3231,9 +3238,14 @@ def insertFrames(bounds,
                                             error= get_error_from_segment(mask_set),
                                             rate=rate)
                         if get_file_from_segment(mask_set) is not None:
-                            reader = reader_manager.create_reader(get_file_from_segment(mask_set),
-                                                                  start_frame=get_start_frame_from_segment(mask_set, 1),
-                                                                  start_time=get_start_time_from_segment(mask_set, 0))
+                            # Already open from above
+                            if reader is None:
+                                reader = reader_manager.create_reader(get_file_from_segment(mask_set),
+                                                                      start_frame=get_start_frame_from_segment(
+                                                                          mask_set) + amount_to_transfer,
+                                                                      start_time=get_start_time_from_segment(
+                                                                          mask_set) + amount_to_transfer,
+                                                                      end_frame=get_end_frame_from_segment(mask_set))
                             writer = writer_manager.create_writer(reader)
                             transfer(reader, writer, end_adjust_time, end_adjust_count, get_frames_from_segment(change))
                             update_segment(change, videosegment=writer.filename)
@@ -3248,8 +3260,9 @@ def insertFrames(bounds,
                                             rate=rate)
                     if get_file_from_segment(mask_set) is not None:
                         reader = reader_manager.create_reader(mask_set['videosegment'],
-                                                  start_frame=get_start_frame_from_segment(mask_set,1),
-                                                  start_time=get_start_time_from_segment(mask_set,0))
+                                                  start_frame=get_start_frame_from_segment(mask_set),
+                                                  start_time=get_start_time_from_segment(mask_set),
+                                                  end_frame=get_end_frame_from_segment(mask_set))
                         writer = writer_manager.create_writer(reader)
                         transfer(reader, writer, end_adjust_time, end_adjust_count, get_frames_from_segment(change))
                         update_segment(change, videosegment=writer.filename)
@@ -3308,9 +3321,7 @@ def getSingleFrameFromMask(video_masks, directory=None):
                                  start_frame=get_start_frame_from_segment(mask_set,1),
                                  start_time=get_start_time_from_segment(mask_set,0))
         try:
-            while True:
-                mask = reader.read()
-                break
+            mask = reader.read()
         finally:
             reader.close()
         if mask is not None:
