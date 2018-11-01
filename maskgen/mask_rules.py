@@ -9,9 +9,9 @@
 import logging
 import os
 import sys
+import time
 import traceback
 from collections import namedtuple
-import time
 
 import cv2
 import exif
@@ -936,7 +936,7 @@ def image_selection_preprocess(mask, edge,target_size ):
        """
     return mask
 
-def select_cut_frames_preprocess(mask, edge,target_size):
+def select_cut_frames_preprocess(mask, edge, target_size):
     """
     Creates the neighbor indicators...since can register frames cut from the target(they are done).
 
@@ -1088,8 +1088,15 @@ def replace_audio(buildState):
     else:
         return buildState.donorMask
 
+def copy_add_audio(buildState):
+    start_time = getValue(buildState.edge,'arguments.Insertion Time')
+    start_time_value = tool_set.getMilliSecondsAndFrameCount(start_time)
+    copy_start_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge, 'arguments.Copy Start Time'))
+    copy_end_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge,'arguments.Copy End Time'))
+    end_time = (start_time_value[0] + (copy_end_time[0] - copy_start_time[0]) ,0)
+    return add_audio(buildState, start_time=start_time, end_time=end_time)
 
-def add_audio(buildState):
+def add_audio(buildState, start_time = None, end_time=None):
     """
     :param buildState:
     :return: updated composite mask
@@ -1108,17 +1115,21 @@ def add_audio(buildState):
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
                                       video_tools.insertFrames(buildState.getMasksFromEdge(
-                                                           ['audio']),
+                                          ['audio'],
+                                          startTime=start_time,
+                                          endTime=end_time),
                                           buildState.compositeMask.videomasks,
                                           expectedType='audio'))
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
                                   video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
-                                      ['audio']),
-                                                                    buildState.compositeMask.videomasks,
-                                                                    keepTime=True,
-                                                                    expectedType='audio'))
+                                      ['audio'],
+                                      startTime=start_time,
+                                      endTime=end_time),
+                                      buildState.compositeMask.videomasks,
+                                      keepTime=True,
+                                      expectedType='audio'))
         return buildState.compositeMask
     # in donor case, the donor was already trimmed
     else:

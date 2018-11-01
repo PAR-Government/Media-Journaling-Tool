@@ -68,8 +68,8 @@
         "checkAudioOnly"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.add_audio",
-        "audio": "maskgen.mask_rules.add_audio"
+        "video": "maskgen.mask_rules.copy_add_audio",
+        "audio": "maskgen.mask_rules.copy_add_audio"
       },
       "optionalparameters": {
         "Copy End Time": {
