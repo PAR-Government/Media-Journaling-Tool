@@ -59,7 +59,7 @@ class UrlMediaFetcher(Fetcher):
         return im
 
     def get_url(self, filename):
-        filename = os.path.basename(filename)
+        filename = os.path.basename(filename).lower()
         return self.browserapi.get_url(filename)
 
 
@@ -255,4 +255,13 @@ class ImageGraphPainter:
         return pygraph
 
 
+def main(args):
+    from maskgen.scenario_model import ImageProjectModel
+    m = ImageProjectModel(args[1])
+    p = ImageGraphPainter(m.getGraph(),handler=GraphMediaHandler(media_fetcher=FileMediaURLMixinFetcher(UrlMediaFetcher())))
+    p.output(m.getName() + '.png',formats=['.png','.cmapx'])
 
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main(sys.argv))
