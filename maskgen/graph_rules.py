@@ -1337,8 +1337,8 @@ def checkSizeAndExifPNG(op, graph, frm, to):
             ((frm_shape[0] - to_shape[0]) > acceptable_change[0] or \
             (frm_shape[1] - to_shape[1]) > acceptable_change[1]):
         return (Severity.ERROR, 'operation is not permitted to change the size of the image')
-    elif (frm_shape[0] - to_shape[1]) != 0 or \
-         (frm_shape[1] - to_shape[0]) != 0:
+    elif (frm_shape[0] - to_shape[0]) != 0 or \
+         (frm_shape[1] - to_shape[1]) != 0:
         return (Severity.WARNING, 'operation is not permitted to change the size of the image')
     else:
         return None

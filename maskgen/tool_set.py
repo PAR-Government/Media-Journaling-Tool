@@ -849,9 +849,9 @@ class ImageOpener:
     def __init__(self):
         pass
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         try:
-            img = openImageFile(filename, isMask=isMask)
+            img = openImageFile(filename, isMask=isMask, args=args)
             return img if img is not None else openImage(get_icon('RedX.png'))
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
@@ -862,7 +862,7 @@ class AudioOpener(ImageOpener):
     def __init__(self):
         ImageOpener.__init__(self)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         return ImageOpener.openImage(self, get_icon('audio.png'))
 
 class VideoOpener(ImageOpener):
@@ -876,7 +876,7 @@ class VideoOpener(ImageOpener):
         return os.path.exists(snapshotFileName) and \
                os.stat(snapshotFileName).st_mtime >= os.stat(filename).st_mtime
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         if not ('video' in getFileMeta(filename)):
             return ImageOpener.openImage(self, get_icon('audio.png'))
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
@@ -893,7 +893,7 @@ class ZipOpener(VideoOpener):
     def __init__(self, videoFrameTime=None, preserveSnapshot=True):
         VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename, snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
@@ -951,7 +951,7 @@ def condenseZip(filename, outputfile=None, filetypes=None, keep=2):
                 os.remove(filename)
 
 
-def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
+def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False, args=None):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
     videoFrameTime, integer time in milliseconds, is provided, then find the frame after that point in time
@@ -975,7 +975,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 
-    return opener.openImage(filename, isMask=isMask)
+    return opener.openImage(filename, isMask=isMask, args=args)
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):

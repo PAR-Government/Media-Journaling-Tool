@@ -6472,7 +6472,18 @@
         "type": "urls",
         "description": "CGI Object files",
         "save_to_defaults": true
-      }
+      },
+      "Crop": {
+          "type": "yesno",
+          "defaultvalue":"yes",
+          "description": "Cropped according to camera?"
+        },
+      "White Balance":{
+          "type":"list",
+          "defaultvalue":"camera",
+          "values":["camera","auto","none"],
+          "description":"As Shot (camera) White Balance?"
+        }
     }
   }
 }

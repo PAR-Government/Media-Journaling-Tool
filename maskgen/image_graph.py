@@ -283,7 +283,8 @@ class ImageGraph:
                              metadata['Frame Time']),
                          isMask=mask,
                          preserveSnapshot=(imgDir == os.path.abspath(self.dir) and \
-                                           ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])))
+                                           ('skipSnapshot' not in metadata or not metadata['skipSnapshot'])),
+                         args=metadata)
 
     def replace_attribute_value(self, attributename, oldvalue, newvalue):
         self._setUpdate(attributename, update_type='attribute')
@@ -642,12 +643,18 @@ class ImageGraph:
         if not self.G.has_node(name):
             return None, None
         node = self.G.node[name]
+        meta = {}
+        meta.update(node)
+        meta.update(metadata)
         filename = os.path.abspath(os.path.join(self.dir, node['file']))
         if 'proxyfile' in node and os.path.exists(os.path.abspath(os.path.join(self.dir, node['proxyfile']))):
-            im = self.openImage(os.path.abspath(os.path.join(self.dir, node['proxyfile'])), metadata=metadata)
+            im = self.openImage(os.path.abspath(os.path.join(self.dir, node['proxyfile'])), metadata=meta)
             if im is not None:
                 return im,filename
-        im = self.openImage(filename, metadata=metadata)
+        meta = {}
+        meta.update(node)
+        meta.update(metadata)
+        im = self.openImage(filename, metadata=meta)
         return im, filename
 
     def get_image_path(self, name):

@@ -1121,6 +1121,7 @@ class ImageProjectModel:
         self.notify((self.start, self.end), 'update_edge')
 
     def update_node(self, node_properties):
+        deleteImage(self.getStartImageFile())
         self.G.update_node(self.start, **node_properties)
 
     def update_edge(self, mod):

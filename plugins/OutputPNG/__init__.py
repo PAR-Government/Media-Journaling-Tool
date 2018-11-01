@@ -1,7 +1,6 @@
-from PIL import Image
-from maskgen import exif
-import numpy as np
 import PIL
+import numpy as np
+from maskgen import exif
 from maskgen.image_wrap import openImageFile, ImageWrapper
 
 """
@@ -29,39 +28,45 @@ def transform(img,source,target, **kwargs):
     return analysis,None
     
 def operation():
-    return {'name':'OutputPng',
-            'category':'Output',
-            'description':'Save an image as .PNG',
-            'software':'PIL',
-             'version':PIL.__version__,
-            'arguments':{
-                'Image Rotated':{
-                    'type':'yesno',
-                    'defaultvalue':'no',
-                    'description':'Rotate image according to EXIF'
+    return {'name': 'OutputPng',
+            'category': 'Output',
+            'description': 'Save an image as .PNG',
+            'software': 'PIL',
+            'version': PIL.__version__,
+            'arguments': {
+                'Image Rotated': {
+                    'type': 'yesno',
+                    'defaultvalue': 'no',
+                    'description': 'Rotate image according to EXIF'
+                },
+                "Crop": {
+                    "type": "yesno",
+                    "defaultvalue": "no",
+                    "description": "Cropped according to camera?"
                 },
                 'Bits per Channel': {
                     'type': 'list',
-                    'values': ['8','16'],
+                    'values': ['8', '16'],
                     'defaultvalue': '8',
                     'description': 'Channel bit depth'
                 },
                 'White Balance': {
                     'type': 'list',
-                    'values': ['auto','camera','none'],
+                    'values': ['auto', 'camera', 'none'],
                     'defaultvalue': 'none',
                     'description': 'White Balance'
                 },
                 'Color Space': {
                     'type': 'list',
-                    'values': ['sRGB', 'ProPhoto','Adobe','XYZ','Wide','default'],
+                    'values': ['sRGB', 'ProPhoto', 'Adobe', 'XYZ', 'Wide', 'default'],
                     'defaultvalue': 'default',
                     'description': 'Color Spaces'
                 },
                 'Demosaic Algorithm': {
                     'type': 'list',
-                    'values' : ['default','AAHD','AFD','AMAZE','DCB','DCB','DHT','LMMSE','LINEAR','MODIFIED_AHD','PPG','VCD',
-                                'VCD_MODIFIED_AHD','VNG'],
+                    'values': ['default', 'AAHD', 'AFD', 'AMAZE', 'DCB', 'DCB', 'DHT', 'LMMSE', 'LINEAR',
+                               'MODIFIED_AHD', 'PPG', 'VCD',
+                               'VCD_MODIFIED_AHD', 'VNG'],
                     'defaultvalue': 'default',
                     'description': 'Rotate image according to EXIF'
                 }
@@ -69,7 +74,7 @@ def operation():
             'transitions': [
                 'image.image'
             ]
-        }
+            }
 
 def suffix():
     return '.png'

@@ -121,7 +121,7 @@ pip install -e .
 cd ..
 python setup.py sdist
 pip install -e .
-cd wrapper_plugins/rawphoto_wrapper
+cd wrapper_plugins/jpeg2000_wrapper
 python setup.py sdist
 pip install -e .
 

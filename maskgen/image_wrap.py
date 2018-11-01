@@ -51,15 +51,24 @@ except ImportError:
                 return []
 
 
-def _processRaw(raw, isMask=False, args=None):
+def getDimensions(filename):
+    import exif
+    meta = exif.getexif(filename)
+    heights= ['Image Height','Exif Image Height','Cropped Image Height']
+    widths = ['Image Width','Exif Image Width','Cropped Image Width']
+    height_selections = [meta[h] for h in heights if h in meta]
+    width_selections = [meta[w] for w in widths if w in meta]
+    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
+
+def _processRaw(filename, raw, isMask=False, args=None):
     import rawpy
-    try:
+    def _open_from_rawpy(raw,args=None):
         if args is not None and 'Bits per Channel' in args:
             bits = int(args['Bits per Channel'])
         else:
             bits = 8
-        use_camera_wb = args is not None and \
-                        'White Balance' in args and \
+        use_camera_wb = args is None or \
+                        'White Balance' not in args or \
                         args['White Balance'] == 'camera'
         use_auto_wb = args is not None and \
                       'White Balance' in args and \
@@ -89,16 +98,24 @@ def _processRaw(raw, isMask=False, args=None):
                        'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
                        'VCD_MODIFIED_AHD': rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
                        'VNG': rawpy.DemosaicAlgorithm.VNG}
-            return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v],
+            return raw.postprocess(demosaic_algorithm=mapping[v],
                                                 output_bps=bits,
                                                 use_camera_wb=use_camera_wb,
                                                 use_auto_wb=use_auto_wb,
-                                                output_color=colorspace), to_mask=isMask)
+                                                output_color=colorspace)
 
-        return ImageWrapper(raw.postprocess(output_bps=bits,
+        return raw.postprocess(output_bps=bits,
                                             use_camera_wb=use_camera_wb,
                                             use_auto_wb=use_auto_wb,
-                                            output_color=colorspace), to_mask=isMask)
+                                            output_color=colorspace)
+    try:
+        dims = getDimensions(filename) if args is None or 'Crop' not in args or args['Crop'] == 'yes' else None
+        rawdata = _open_from_rawpy(raw,args=args)
+        if dims is not None:
+            crop_height_amount = (rawdata.shape[0] - dims[0])/2
+            crop_width_amount = (rawdata.shape[1] - dims[1])/2
+            rawdata = rawdata[crop_height_amount:-crop_height_amount,crop_width_amount:-crop_width_amount,:]
+        return ImageWrapper(rawdata,to_mask=isMask)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
@@ -116,7 +133,7 @@ def openRaw(filename, isMask=False, args=None):
             if type(args) == list:
                 result = {}
                 for argitem in args:
-                    rawim = _processRaw(raw, isMask=isMask, args=argitem)
+                    rawim = _processRaw(filename, raw, isMask=isMask, args=argitem)
                     if rawim is not None:
                         if 'outputname' in argitem:
                             rawim.save(argitem['outputname'], format='PNG')
@@ -124,7 +141,7 @@ def openRaw(filename, isMask=False, args=None):
                         else:
                             result[str(argitem)] = rawim
             else:
-                result = _processRaw(raw)
+                result = _processRaw(filename,raw,args=args)
             if logger.isEnabledFor(logging.DEBUG):
                 logging.debug('Opened {} as raw'.format(filename))
             return result
@@ -263,7 +280,13 @@ def proxyOpen(filename, isMask=False):
 # openTiff supports raw files as well
 file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]),
                  ('', [defaultOpen]),
-                 ('', [openTiff]), ('', [proxyOpen])]
+                 ('', [openTiff]),
+                 ('cr2',[openRaw]),
+                 ('nef',[openRaw]),
+                 ('dng',[openRaw]),
+                 ('arw',[openRaw]),
+                 ('raf',[openRaw]),
+                 ('', [proxyOpen])]
 file_write_registry = {}
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
