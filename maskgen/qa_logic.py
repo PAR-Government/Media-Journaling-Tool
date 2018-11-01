@@ -25,7 +25,6 @@ class ValidationData:
                 self._qamodel_update()
 
 
-
     def update_All(self, qaState=None, qaPerson=None, qaComment=None, qaData=None):
         if qaState is not None:
             self.scmodel.setProjectData('validation', qaState, excludeUpdate=True)

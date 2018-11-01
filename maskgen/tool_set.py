@@ -3176,7 +3176,6 @@ class GrayFrameWriter:
     def release(self):
         self.close()
 
-
 def widthandheight(img):
     a = np.where(img != 0)
     if len(a[0]) == 0:

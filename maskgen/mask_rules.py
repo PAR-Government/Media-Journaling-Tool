@@ -2841,21 +2841,6 @@ class CompositeDelegate:
 
         return image, None, finalNodeId, 'video', failure
 
-    def __determine_task_designation(self,target_mask):
-       """
-       Task designation is deteremined by presence of spatial and temporal components
-       target_mask: CompositeImage
-       :param target_mask:
-       :return:
-       @type target_mask: CompositeImage
-       """
-       len_all_masks = len(target_mask.videomasks if not target_mask.isImage() else [])
-       len_vid_masks = len([x for x in target_mask.videomasks if video_tools.get_type_of_segment(x) == 'video' ] if not target_mask.isImage() else [])
-       len_spatial_masks = len([x for x in target_mask.videomasks if video_tools.get_file_from_segment(x) is not None] if not target_mask.isImage() else [])
-       task_two_eligible = len_all_masks > 0
-       task_three_eligible = task_two_eligible and len_spatial_masks > 0
-       return 1 if target_mask.isImage() or not task_two_eligible else (3 if task_three_eligible else 2)
-
     def ___add_final_node_with_donors(self,
                                       probes,
                                       finalNodeId,
@@ -2902,8 +2887,7 @@ class CompositeDelegate:
                                     empty=self.empty or target_mask.isEmpty(),
                                     failure=failure,
                                     donorFailure=donorFailure,
-                                    finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                    taskDesignation=self.__determine_task_designation(target_mask)))
+                                    finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
         else:
             probes.append(Probe(self.edge_id,
                                 finalNodeId,
@@ -2917,8 +2901,7 @@ class CompositeDelegate:
                                 empty=self.empty or target_mask.isEmpty(),
                                 failure=failure,
                                 donorFailure=donorFailure,
-                                finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                taskDesignation=self.__determine_task_designation(target_mask)))
+                                finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
     def _constructDonor(self, node, mask, media_type=None, baseEdge=None, checkEmptyMask=True):
         """

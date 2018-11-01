@@ -7,12 +7,12 @@
 #==============================================================================
 
 import os
-import maskgen.scenario_model
+from maskgen.scenario_model import ImageProjectModel, MaskgenThreadPool, prefLoader
 from maskgen.tool_set import *
 import tarfile
 import csv
-from maskgen.mask_rules import EmptyCompositeBuilder
-from maskgen.mask_rules import VideoSegment
+from maskgen.mask_rules import *
+
 
 """
 Support Functions for the Probe Generation Services
@@ -48,13 +48,15 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
     @param directory: str
     """
     if type(project) in ['unicode','str']:
-        scModel = maskgen.scenario_model.ImageProjectModel(project)
+        scModel = ImageProjectModel(project)
     else:
         scModel = project
     if reproduceMask:
         for edge_id in scModel.getGraph().get_edges():
             scModel.reproduceMask(edge_id=edge_id)
-    probes = scModel.getProbeSet(compositeBuilders=[EmptyCompositeBuilder])
+    generator = ProbeGenerator(scModel=scModel, processors=[GetProbeSet(scModel, compositeBuilders=[EmptyCompositeBuilder]),
+                                                            Determine_Task_Designation(scModel)])
+    probes = generator()
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')
     items_to_archive = []
@@ -125,6 +127,212 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
             archive_file.add(os.path.join(project_dir, item),
                         arcname=os.path.join(scModel.getName(), item))
         archive_file.close()
+
+
+class ProbeGenerator:
+
+    def __init__(self, scModel, processors = []):
+        self.scModel = scModel
+        self.processors = processors
+
+    def __call__(self, inclusionFunction= isEdgeLocalized,
+                                     saveTargets=True,
+                                     graph=None,
+                                     constructDonors=True,
+                                     keepFailures=False,
+                                     exclusions={},
+                                     checkEmptyMask=True,
+                                     audioToVideo=False,
+                                     notifier=None):
+        """
+        :param inclusionFunction: filter out edges to not include in the probe set
+        :param saveTargets: save the result images as files
+        :param graph: the ImageGraph
+        :param exclusions: dictionary of key value exclusion rules.  These rules apply to specific
+        subtypes of meta-data such as inputmasks for paste sampled or neighbor masks for seam carving
+        The agreed set of rules will evolve and is particular to the function.
+        Exclusion starts with the scope and then the paramater such as seam_carving.vertical or
+        global.inputmaskname.
+        :param audioToVideo: If true, create video masks for audio masks, providing there are no audio masks.
+        :return: The set of probes
+        @rtype: list [Probe]
+        """
+
+        self.scModel._executeSkippedComparisons()
+        thread_pool = MaskgenThreadPool(int(prefLoader.get_key('skipped_threads', 2)))
+        futures = list()
+        useGraph = graph if graph is not None else self.scModel.G
+        for edge_id in useGraph.get_edges():
+            edge = useGraph.get_edge(edge_id[0], edge_id[1])
+            if inclusionFunction(edge_id, edge, self.scModel.gopLoader.getOperationWithGroups(edge['op'],fake=True)):
+                composite_generator = prepareComposite(edge_id, useGraph, self.scModel.gopLoader, self.scModel.probeMaskMemory, notifier=notifier)
+                futures.append(thread_pool.apply_async(composite_generator.constructProbes, args=(),kwds={
+                    'saveTargets':saveTargets,
+                    'inclusionFunction':inclusionFunction,
+                    'constructDonors':constructDonors,
+                    'keepFailures':keepFailures,
+                    'exclusions':exclusions,
+                    'checkEmptyMask':checkEmptyMask,
+                    'audioToVideo':audioToVideo
+                }))
+        probes = list()
+        for future in futures:
+            probes.extend(future.get(timeout=int(prefLoader.get_key('probe_timeout', 100000))))
+        return self.apply_processors(probes)
+
+    def apply_processors(self, probes = []):
+        for processor in self.processors:
+            probes = processor.apply(probes)
+        return probes
+
+class ProbeProcessor:
+
+    def __init__(self, scModel):
+        self.scModel = scModel
+
+    def apply(self, probes = []):
+        return probes
+
+class GetProbeSet(ProbeProcessor):
+
+    def __init__(self, scModel=None, compositeBuilders=[ColorCompositeBuilder]):
+        ProbeProcessor.__init__(self, scModel=scModel)
+        self.compositeBuilders = compositeBuilders
+
+    def probeCompare(self, x, y):
+        """
+
+        :param x:
+        :param y:
+        :return:
+        @type x: Probe
+        @type y: Probe
+        """
+        diff = cmp(x.finalImageFileName, y.finalImageFileName)
+        if diff == 0:
+            diff = x.level - y.level
+            if diff == 0:
+                return cmp(str(x.edgeId), str(y.edgeId))
+        return diff
+
+    def apply(self, probes = []):
+        probes = sorted(probes, cmp=self.probeCompare)
+        localCompositeBuilders = [cb() for cb in self.compositeBuilders]
+        for compositeBuilder in localCompositeBuilders:
+            compositeBuilder.initialize(self.scModel.G, probes)
+        maxpass = max([compositeBuilder.passes for compositeBuilder in localCompositeBuilders])
+        composite_bases = dict()
+        for passcount in range(maxpass):
+            for probe in probes:
+                if probe.targetMaskImage is None:
+                    continue
+                composite_bases[probe.finalNodeId] = probe.targetBaseNodeId
+                edge = self.scModel.G.get_edge(probe.edgeId[0], probe.edgeId[1])
+                for compositeBuilder in localCompositeBuilders:
+                    compositeBuilder.build(passcount, probe, edge)
+        for compositeBuilder in localCompositeBuilders:
+            compositeBuilder.finalize(probes, save=False)
+        return probes
+
+class Determine_Task_Designation(ProbeProcessor):
+    """
+        Task designation is determined by presence of spatial and temporal components
+    """
+
+    def apply(self, probes = []):
+        for probe in probes:
+            ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
+            len_all_masks = len(probe.targetVideoSegments if not ftype == 'image' else [])
+            len_spatial_masks = len([x for x in probe.targetVideoSegments if
+                                     x.filename is not None] if not ftype == 'image' else [])
+            has_video_masks = len_all_masks > 0
+            spatial_temporal = has_video_masks and len_spatial_masks > 0
+            if ftype == 'image':
+                if probe.targetMaskImage != None:
+                    probe.taskDesignation = 'spatial'
+                    continue
+            elif has_video_masks:
+                probe.taskDesignation = 'spatial-temporal' if spatial_temporal else 'temporal'
+                continue
+            probe.taskDesignation = 'deter'
+        return probes
+
+class CompositeExtender:
+
+    """ All masks in a color composite up to and through the current operation
+    """
+    def __init__(self, scModel):
+        """
+        :param scModel:
+        @type scModel: ImageProjectModel
+        """
+        self.scModel = scModel
+        self.prior_probes = None
+
+    def extendCompositeByOne(self, probes, start=None, override_args={}):
+        """
+        :param compositeMask:
+        :param level:
+        :param replacementEdgeMask:
+        :param colorMap:
+        :param override_args:
+        :return:
+        @type compositeMask: ImageWrapper
+        @type level: IntObject
+        @type replacementEdgeMask: ImageWrapper
+        @rtype ImageWrapper
+        """
+        results = findBaseNodesWithCycleDetection(self.scModel.getGraph(), start if start is not None else \
+            (self.scModel.end if self.scModel.end is not None else self.scModel.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.scModel.getGraph().subgraph(nodeids)
+        composite_generator = prepareComposite((self.scModel.start,self.scModel.end), graph, self.scModel.getGroupOperationLoader(),
+                                                          self.scModel.probeMaskMemory)
+        probes = composite_generator.extendByOne(probes,self.scModel.start,self.scModel.end,override_args=override_args)
+
+        return GetProbeSet(self.scModel).apply(probes)
+
+    def constructPathProbes(self, start=None, constructDonors=True):
+        """
+         Construct the composite mask for the selected node.
+         Does not save the composite in the node.
+         Returns the composite mask if successful, otherwise None
+        """
+        results = findBaseNodesWithCycleDetection(self.scModel.getGraph(), start if start is not None else \
+            (self.scModel.end if self.scModel.end is not None else self.scModel.start))
+        if len(results) == 0:
+            return
+        nodeids = results[0][2]
+        graph = self.scModel.getGraph().subgraph(nodeids)
+        generator = ProbeGenerator(scModel=self.scModel, processors=[GetProbeSet(self.scModel)])
+        probes = generator(graph=graph,saveTargets=False,inclusionFunction=isEdgeComposite, constructDonors=constructDonors)
+        return probes
+
+    def get_image(self, override_args={}, target_size=(0,0)):
+        if self.prior_probes is None:
+            self.prior_probes = self.constructPathProbes(start=self.scModel.start, constructDonors=False)
+
+        if self.scModel.getDescription() is None or not self.prior_probes:
+            probes = self.prior_probes
+        else:
+            probes = self.extendCompositeByOne(self.prior_probes,
+                                                override_args=override_args)
+        if probes:
+            composite = probes[-1].composites['color']['image']
+            if composite.size != target_size:
+                composite = composite.resize(target_size,Image.ANTIALIAS)
+            return composite
+        return ImageWrapper(np.zeros((target_size[1], target_size[0]), dtype='uint8'))
+
+class DonorExtender:
+
+    def __init__(self, scModel):
+        self.scModel = scModel
+
+    def get_image(self, override_args={},target_size=(0,0)):
+        return ImageWrapper(np.zeros((target_size[1],target_size[0]),dtype='uint8'))
 
 def main():
     import sys

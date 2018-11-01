@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 import maskgen.scenario_model
+from maskgen.services.probes import ProbeGenerator, GetProbeSet
 from maskgen.tool_set import *
 from maskgen import ffmpeg_api
 import tempfile
@@ -236,7 +237,8 @@ def perform_update(project, args):
         errors.append('Journal could not be validated')
         errors.append(e.message)
     try:
-        probes = scModel.getProbeSet()
+        generator = ProbeGenerator(scModel=scModel, processors=[GetProbeSet(scModel=scModel)])
+        probes = generator()
         if len(probes) > 0:
             try:
                 errs = scModel.exporttos3(args.uploadfolder, args.tempfolder)

@@ -17,6 +17,7 @@ from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from maskgen.tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
     validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon,convertToVideo
 from maskgen.scenario_model import Modification,ImageProjectModel
+from maskgen.services.probes import CompositeExtender
 from maskgen.video_tools import get_start_frame_from_segment, get_start_time_from_segment, get_file_from_segment,\
     get_end_frame_from_segment
 from maskgen.support import getValue
@@ -1775,7 +1776,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.angle = angle
         self.scModel = model
         self.op = op
-        self.extender = self.scModel.getPathExtender()
+        self.extender = CompositeExtender(scModel=self.scModel)
         self.argument_name = argument_name
         tkSimpleDialog.Dialog.__init__(self, parent)
 
