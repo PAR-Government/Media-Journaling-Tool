@@ -204,7 +204,9 @@
       },
       "generateMask": "frames",
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio",
+        "video.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -4124,7 +4126,9 @@
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
-      "includeInMask": false,
+      "includeInMask": {
+        "default": false
+      },
       "generateMask": "meta",
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"

@@ -784,7 +784,7 @@ def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=
 
 
 def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFileName=None):
-    cap = cv2api.cv2api_delegate.videoCapture(filename)
+    cap = cv2api.cv2api_delegate.videoCapture(filename, useFFMPEGForTime=False)
 
     bestSoFar = None
     bestVariance = -1
