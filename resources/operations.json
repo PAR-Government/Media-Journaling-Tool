@@ -3944,6 +3944,10 @@
           "description": "DPI"
         }
       },
+
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
       "rules": [
         "checkOutputType"
       ],

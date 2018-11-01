@@ -200,10 +200,9 @@ def pdf2_image_extractor(filename, isMask=False):
     import PyPDF2
     import io
     from PyPDF2 import generic
-    with open(filename, "rb") as f:
-        input1 = PyPDF2.PdfFileReader(f)
-        page0 = input1.getPage(0)
+    def find_image(page0):
         xObject = page0['/Resources']['/XObject'].getObject()
+        rotate = page0['/Rotate'] if '/Rotate' in page0 else 0
         for obj in xObject:
             if xObject[obj]['/Subtype'] == '/Image':
                 size = (xObject[obj]['/Width'], xObject[obj]['/Height'])
@@ -211,14 +210,27 @@ def pdf2_image_extractor(filename, isMask=False):
                     mode = "RGB"
                 else:
                     mode = "P"
-                hasJPEG = len([x for x in xObject[obj]['/Filter'] if x == '/DCTDecode']) > 0
+                hasJPEG = xObject[obj]['/Filter'] in ['/DCTDecode', '/JBIG2Decode']
                 if hasJPEG:
-                    if type(xObject[obj]['/Filter']) == generic.ArrayObject:
-                        xObject[obj].update({generic.NameObject('/Filter'):
-                                                 generic.ArrayObject([x for x in xObject[obj]['/Filter']
-                                                                      if x not in ['/DCTDecode', '/JBIG2Decode']])})
-                    im = Image.open(io.BytesIO(bytearray(xObject[obj].getData())))
-                    return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
+                    im = Image.open(io.BytesIO(bytearray(xObject[obj]._data)))
+                    ima = np.asarray(im)
+                    if rotate != 0:
+                        ima = np.rot90(ima, -rotate / 90)
+                    return ImageWrapper(ima, mode=im.mode, info=im.info, to_mask=isMask, filename=filename)
+                elif xObject[obj]['/Filter'] == '/FlateDecode':
+                    ima = Image.frombytes(mode, size, xObject[obj]._data)
+                    if rotate != 0:
+                        ima = np.rot90(ima, -rotate / 90)
+                    return ImageWrapper(ima, mode=mode, to_mask=isMask, filename=filename)
+            else:
+                r = find_image(xObject[obj])
+                if r is not None:
+                    return r
+
+    with open(filename, "rb") as f:
+        input1 = PyPDF2.PdfFileReader(f)
+        return find_image(input1.getPage(0))
+
     return None
 
 
@@ -278,7 +290,7 @@ def proxyOpen(filename, isMask=False):
     return None
 
 # openTiff supports raw files as well
-file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]),
+file_registry = [('png', [readPNG]), ('pdf', [wand_image_extractor, pdf2_image_extractor,  convertToPDF]),
                  ('', [defaultOpen]),
                  ('', [openTiff]),
                  ('cr2',[openRaw]),
