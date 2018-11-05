@@ -114,7 +114,10 @@ def _processRaw(filename, raw, isMask=False, args=None):
         if dims is not None:
             crop_height_amount = (rawdata.shape[0] - dims[0])/2
             crop_width_amount = (rawdata.shape[1] - dims[1])/2
-            rawdata = rawdata[crop_height_amount:-crop_height_amount,crop_width_amount:-crop_width_amount,:]
+            if crop_width_amount > 0:
+                rawdata = rawdata[:, crop_width_amount:-crop_width_amount, :]
+            if crop_height_amount > 0:
+                rawdata = rawdata[crop_height_amount:-crop_height_amount, :, :]
         return ImageWrapper(rawdata,to_mask=isMask)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
@@ -206,13 +209,22 @@ def pdf2_image_extractor(filename, isMask=False):
         for obj in xObject:
             if xObject[obj]['/Subtype'] == '/Image':
                 size = (xObject[obj]['/Width'], xObject[obj]['/Height'])
-                if xObject[obj]['/ColorSpace'] == '/DeviceRGB':
-                    mode = "RGB"
-                else:
-                    mode = "P"
+                mode = 'RGB'
+                if '/ColorSpace' in xObject[obj]:
+                    mode = "P" if xObject[obj]['/ColorSpace'] == '/DeviceGray' else mode
+                    mode = "CMYK" if xObject[obj]['/ColorSpace'] == '/DeviceCMYK' else mode
+                hasJPEGOld = len([x for x in xObject[obj]['/Filter'] if x == '/DCTDecode']) > 0
                 hasJPEG = xObject[obj]['/Filter'] in ['/DCTDecode', '/JBIG2Decode']
-                if hasJPEG:
-                    im = Image.open(io.BytesIO(bytearray(xObject[obj]._data)))
+                #isBig =  xObject[obj]['/Filter'] == '/JBIG2Decode'
+                if hasJPEG or hasJPEGOld:
+                    if type(xObject[obj]['/Filter']) == generic.ArrayObject:
+                        xObject[obj].update({generic.NameObject('/Filter'):
+                                                 generic.ArrayObject([x for x in xObject[obj]['/Filter']
+                                                                      if x not in ['/DCTDecode', '/JBIG2Decode']])})
+                    try:
+                        im = Image.open(io.BytesIO(bytearray(xObject[obj]._data if not hasJPEGOld else xObject[obj].getData()) ))
+                    except Exception as e:
+                        continue
                     ima = np.asarray(im)
                     if rotate != 0:
                         ima = np.rot90(ima, -rotate / 90)
