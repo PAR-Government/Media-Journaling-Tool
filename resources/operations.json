@@ -180,7 +180,6 @@
       },
       "rules": [
         "checkSize",
-        "checkHasVideoChannel",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAudioTimeFormat",
@@ -195,7 +194,8 @@
         }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.delete_audio"
+        "video": "maskgen.mask_rules.delete_audio",
+        "audio": "maskgen.mask_rules.delete_audio"
       },
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
