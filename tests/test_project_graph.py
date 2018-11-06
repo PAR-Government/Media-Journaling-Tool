@@ -7,7 +7,7 @@ from test_support import TestSupport
 from maskgen.support import getPathValuesFunc
 import numpy as np
 
-from maskgen.services.probes import ProbeGenerator, GetProbeSet, CompositeExtender
+from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender
 from maskgen.scenario_model import ImageProjectModel
 from maskgen.software_loader import getOperation
 from maskgen.graph_rules import processProjectProperties
@@ -20,8 +20,8 @@ class TestToolSet(TestSupport):
         scModel = ImageProjectModel(self.locateFile('images/sample.json'))
         processProjectProperties(scModel)
         scModel.assignColors()
-        generator = ProbeGenerator(scModel=scModel, processors=[GetProbeSet(scModel=scModel,
-                                                                            compositeBuilders=[Jpeg2000CompositeBuilder,
+        generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel,
+                                                                                compositeBuilders=[Jpeg2000CompositeBuilder,
                                                                                                ColorCompositeBuilder])])
         probeSet = generator()
         self.assertTrue(len(probeSet) == 2)

@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 import maskgen.scenario_model
-from maskgen.services.probes import ProbeGenerator, GetProbeSet
+from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder
 from maskgen.tool_set import *
 from maskgen import ffmpeg_api
 import tempfile
@@ -237,7 +237,7 @@ def perform_update(project, args):
         errors.append('Journal could not be validated')
         errors.append(e.message)
     try:
-        generator = ProbeGenerator(scModel=scModel, processors=[GetProbeSet(scModel=scModel)])
+        generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel)])
         probes = generator()
         if len(probes) > 0:
             try:
