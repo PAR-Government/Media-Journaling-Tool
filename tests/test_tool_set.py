@@ -26,7 +26,7 @@ class TestToolSet(TestSupport):
         filename = self.locateFile('tests/zips/raw.zip')
         self.addFileToRemove(os.path.join(os.path.dirname(filename), 'raw.png'))
         img = tool_set.openImage(filename,tool_set.getMilliSecondsAndFrameCount('2'),preserveSnapshot=True)
-        self.assertEqual((5760, 3840),img.size)
+        self.assertEqual((5796, 3870),img.size)
         tool_set.condenseZip(filename,keep=1)
         self.addFileToRemove(os.path.join(os.path.dirname(filename),'raw_c.zip'))
         contents = tool_set.getContentsOfZip(os.path.join(os.path.dirname(filename),'raw_c.zip'))

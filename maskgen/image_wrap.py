@@ -51,15 +51,6 @@ except ImportError:
                 return []
 
 
-def getDimensions(filename):
-    import exif
-    meta = exif.getexif(filename)
-    heights= ['Image Height','Exif Image Height','Cropped Image Height']
-    widths = ['Image Width','Exif Image Width','Cropped Image Width']
-    height_selections = [meta[h] for h in heights if h in meta]
-    width_selections = [meta[w] for w in widths if w in meta]
-    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
-
 def _processRaw(filename, raw, isMask=False, args=None):
     import rawpy
     def _open_from_rawpy(raw,args=None):
@@ -109,15 +100,7 @@ def _processRaw(filename, raw, isMask=False, args=None):
                                             use_auto_wb=use_auto_wb,
                                             output_color=colorspace)
     try:
-        dims = getDimensions(filename) if args is None or 'Crop' not in args or args['Crop'] == 'yes' else None
         rawdata = _open_from_rawpy(raw,args=args)
-        if dims is not None:
-            crop_height_amount = (rawdata.shape[0] - dims[0])/2
-            crop_width_amount = (rawdata.shape[1] - dims[1])/2
-            if crop_width_amount > 0:
-                rawdata = rawdata[:, crop_width_amount:-crop_width_amount, :]
-            if crop_height_amount > 0:
-                rawdata = rawdata[crop_height_amount:-crop_height_amount, :, :]
         return ImageWrapper(rawdata,to_mask=isMask)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))

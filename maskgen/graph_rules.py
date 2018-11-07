@@ -21,6 +21,7 @@ import numpy as np
 from ffmpeg_api import get_meta_from_video
 from graph_meta_tools import MetaDataExtractor
 from image_graph import ImageGraph
+from maskgen import maskGenPreferences
 from maskgen.validation.core import Severity
 from maskgen.video_tools import get_frame_rate
 from software_loader import  getProjectProperties, getRule, getMetDataLoader
@@ -32,7 +33,6 @@ from tool_set import  openImageFile, fileTypeChanged, fileType, \
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
-from maskgen import maskGenPreferences
 
 project_property_rules = {}
 
@@ -1295,53 +1295,70 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
+def getDimensions(filename):
+    from maskgen import exif
+    meta = exif.getexif(filename)
+    heights= ['Image Height','Exif Image Height','Cropped Image Height']
+    widths = ['Image Width','Exif Image Width','Cropped Image Width']
+    height_selections = [meta[h] for h in heights if h in meta]
+    width_selections = [meta[w] for w in widths if w in meta]
+    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
+
 def checkSizeAndExifPNG(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
     frm_shape = frm_img.size
     to_shape = to_img.size
 
+    dims = getDimensions(frm_file) if getValue(edge,'arguments.Crop',None) == 'yes' else None
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
     diff_frm = frm_img.size[0] - frm_img.size[1]
     diff_to = to_img.size[0] - to_img.size[1]
 
-    edge = graph.get_edge(frm, to)
     orientation = getValue(edge, 'exifdiff.Orientation')
     distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
-    change_allowed = 0.005 if not distortion else 0.02
-    acceptable_change = (change_allowed * frm_shape[0], change_allowed * frm_shape[1])
-
-    if orientation is None:
-        orientation = getOrientationFromMetaData(edge)
+    change_allowed = 0.01 if not distortion else 0.02
 
     if orientation is not None:
-        orientation = str(orientation)
-        if ('270' in orientation or '90' in orientation):
-            if frm_shape[0] - to_shape[1] == 0 and \
-               frm_shape[1] - to_shape[0] == 0:
-                return None
-            elif numpy.sign(diff_frm) == numpy.sign(diff_to):
-                return (Severity.ERROR, 'Image not rotated according Exif')
-            elif not acceptable_size_change and \
-                    ((frm_shape[0] - to_shape[1]) > acceptable_change[0] or \
-                    (frm_shape[1] - to_shape[0]) > acceptable_change[1]):
-                return (Severity.ERROR, 'operation is not permitted to change the size of the image')
-            else:
-                return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+        orientation = str(orientation) if orientation is not None else None
 
-    if numpy.sign(diff_frm) != numpy.sign(diff_to):
-        return (Severity.ERROR, 'Image rotated')
-    elif not acceptable_size_change and \
-            ((frm_shape[0] - to_shape[0]) > acceptable_change[0] or \
-            (frm_shape[1] - to_shape[1]) > acceptable_change[1]):
-        return (Severity.ERROR, 'operation is not permitted to change the size of the image')
-    elif (frm_shape[0] - to_shape[0]) != 0 or \
-         (frm_shape[1] - to_shape[1]) != 0:
-        return (Severity.WARNING, 'operation is not permitted to change the size of the image')
+    rotated = getValue(edge,'arguments.Image Rotated','yes') == 'yes'
+    expect_rotation = orientation is not None and ('270' in orientation or '90' in orientation) and rotated
+    if not expect_rotation and numpy.sign(diff_frm) != numpy.sign(diff_to):
+        return (Severity.ERROR, 'Image rotated; Exif does not indicate rotation')
+    elif expect_rotation and numpy.sign(diff_frm) == numpy.sign(diff_to):
+        return (Severity.ERROR, 'Image not rotated; Exif indicates rotation')
+
+    if rotated and numpy.sign(diff_frm) == numpy.sign(diff_to):
+        return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
+
+    if expect_rotation:
+        acceptable_shapes = [(frm_shape[1],frm_shape[0]), (dims[1], dims[0])] if dims is not None else [(frm_shape[1],frm_shape[0])]
     else:
-        return None
+        acceptable_shapes = [frm_shape, (dims[0], dims[1])] if dims is not None else [frm_shape]
+
+    warnings = 0
+    for acceptable_shape_option in acceptable_shapes:
+
+        acceptable_change = (change_allowed * acceptable_shape_option[0], change_allowed * acceptable_shape_option[1])
+
+        if acceptable_size_change and \
+                ((acceptable_shape_option[0] - to_shape[0]) <= acceptable_change[0] or \
+                             (acceptable_shape_option[1] - to_shape[1]) <= acceptable_change[1]):
+            return
+        elif acceptable_shape_option[0] - to_shape[0] == 0 and \
+                                acceptable_shape_option[1] - to_shape[1] == 0:
+            return
+        elif (acceptable_shape_option[0] - to_shape[0]) != 0 or \
+                        (acceptable_shape_option[1] - to_shape[1]) != 0:
+            warnings += 1
+            continue
+
+    if warnings == len(acceptable_shapes):
+        return (Severity.ERROR, 'operation is not permitted to change the size of the image')
 
 def checkSizeAndExif(op, graph, frm, to):
     """

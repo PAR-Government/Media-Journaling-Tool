@@ -3712,7 +3712,6 @@
       },
       "rules": [
         "checkSizeAndExifPNG",
-        "rotationCheck",
         "checkOutputType"
       ],
       "optionalparameters": {
