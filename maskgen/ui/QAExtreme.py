@@ -29,11 +29,12 @@ from maskgen.mask_rules import compositeMaskSetFromVideoSegment
 from maskgen.graph_meta_tools import MetaDataExtractor
 
 
-class Chkbox():
+class Chkbox:
 
-    def __init__(self, parent, dialog):
+    def __init__(self, parent, dialog, label=None):
         self.value = BooleanVar(value=dialog.parent.scModel.getProjectData('validation') == 'yes')
         self.box = Checkbutton(parent, variable=self.value, command=dialog.check_ok)
+        self.label = label
 
     def __nonzero__(self):
        return self.value.get()
@@ -41,30 +42,57 @@ class Chkbox():
     def set_value(self, value):
         self.value.set(value=value)
 
-class CheckboxGroup():
+    def grid_info(self):
+        return self.box.grid_info()
+
+    def grid(self):
+        self.label.grid()
+        self.box.grid()
+
+    def grid_remove(self):
+        self.box.grid_remove()
+        self.label.grid_remove()
+
+
+class CheckboxGroup:
     """
     boxes: list of wrapped Checkboxes
     condition: either 'all'- all checkboxes in the group must be true or 'any'- any true value will return true.
     """
-    boxes = []
-    condition = 'all'
 
     def __init__(self, boxes = [], condition = 'all'):
         self.boxes = boxes
         self.condition = condition
 
     def __nonzero__(self):
+        if len(self.boxes) == 0:
+            return True
         if self.condition == 'any':
             return any(bool(value) for value in self.boxes)
         else:
             return all(bool(value) for value in self.boxes)
+
+    def hide_group(self):
+        for ck in self.boxes:
+            ck.grid_remove()
+
+    def show_group(self):
+        for ck in self.boxes:
+            ck.grid()
+
+    def grid_info(self, index = -1):
+        """
+        Get the grid_info of the checkbox at the index. default is last index
+        :return:
+        """
+        return self.boxes[index].grid_info() if len(self.boxes) > 0 else {}
 
 class MannyPage(Frame):
 
     """
     Displays mascot with instructions and status information on probe and QA page generation.
     """
-
+    checkboxes = CheckboxGroup()
     manny_colors = [[155, 0, 0], [0, 155, 0], [0, 0, 155], [153, 76, 0], [96, 96, 96], [204, 204, 0], [160, 160, 160]]
 
     def __init__(self, master):
@@ -110,14 +138,15 @@ class FinalPage(Frame):
         qa_list = [
             'Base and terminal node images should be the same format. -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
             'All relevant semantic groups are identified.']
-        checkbox_group = CheckboxGroup(boxes=[])
+        self.checkboxes = CheckboxGroup(boxes=[])
         for q in qa_list:
-            ck = Chkbox(parent=self, dialog=master)
+            box_label = Label(self, text=q, wraplength=600, justify=LEFT)
+            ck = Chkbox(parent=self, dialog=master, label=box_label)
             ck.box.grid(row=row, column=col)
-            Label(self, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
-                                                                       sticky='W')
+            ck.label.grid(row=row, column=col + 1, sticky='W')
+            self.checkboxes.boxes.append(ck)
             row += 1
-        master.checkboxes[master.current_qa_page] = checkbox_group
+        master.checkboxes[master.current_qa_page] = self.checkboxes
         Label(self, text='QA Signoff: ').grid(row=row, column=col)
         col += 1
         self.reporterStr = StringVar()
@@ -150,7 +179,6 @@ class QAPage(Frame):
     """
     A standard QA Page, allows review and user validation of probe spatial, temporal aspects
     """
-    checkboxes = CheckboxGroup(boxes=[])
 
     #TODO: Refactor to put page data with the page.
     """
@@ -165,6 +193,7 @@ class QAPage(Frame):
         Frame.__init__(self, master=master)
         self.master = master
         self.link = link
+        self.checkboxes = CheckboxGroup(boxes=[])
         #Find this probe- could probably do this elsewhere and pass it in.
         self.edgeTuple = tuple(link.split("<-"))
         if len(self.edgeTuple) < 2:
@@ -235,13 +264,6 @@ class QAPage(Frame):
             self.semanticFrame.insertListbox(ANCHOR, sg)
         operation = master.scModel.getGroupOperationLoader().getOperationWithGroups(edge['op'])
 
-        #Main Features- load the overlay for images, load plot graph & overlay page for videos
-        if ('<-' in self.link and probe.donorVideoSegments is None) or probe.targetVideoSegments is None:
-            self.load_overlay(initialize=True)
-        else:
-            self.transitionString(None)
-            self.setUpFrames()
-
         #QA checkboxes
         if operation.qaList is not None:
             args = getValue(edge, 'arguments', {})
@@ -259,13 +281,21 @@ class QAPage(Frame):
             master.qaData.set_qalink_status(self.link, 'yes')
 
         for q in self.curOpList:
-            ck = Chkbox(parent=self, dialog=master)
+            box_label = Label(self, text=q, wraplength=250, justify=LEFT)
+            ck = Chkbox(parent=self, dialog=master, label=box_label)
             ck.box.grid(row=row, column=col - 1)
+            ck.label.grid(row=row, column=col, columnspan=4,sticky='W')
             self.checkboxes.boxes.append(ck)
-            Label(self, text=q, wraplength=250, justify=LEFT).grid(row=row, column=col, columnspan=4,
-                                                                sticky='W')
             row += 1
         master.checkboxes[self] = self.checkboxes
+
+        # Main Features- load the overlay for images, load plot graph & overlay page for videos
+        if ('<-' in self.link and probe.donorVideoSegments is None) or probe.targetVideoSegments is None:
+            self.load_overlay(initialize=True)
+        else:
+            self.transitionString(None)
+            self.setUpFrames()
+
         #Comment section
         currentComment = master.qaData.get_qalink_caption(self.link)
         self.commentBox.delete(1.0, END)
@@ -289,143 +319,14 @@ class QAPage(Frame):
 
         master.progressBars.append(pb)
 
-    def setUpMask(self):
-        """
-        Lays out the spatial review window for video
-        :return:
-        """
-        self.displayFrame = Frame(self.cImgFrame, height=500,width=50)
-
-        if (len(self.link.split('->'))>1):
-            probe = [probe for probe in self.master.probes if
-                 probe.edgeId[1] in self.master.lookup[self.edgeTuple[0]] and probe.finalNodeId in self.master.lookup[self.edgeTuple[1]]][0]
-        else:
-            probe = \
-            [probe for probe in self.master.probes if
-             probe.edgeId[1] in self.master.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId in
-             self.master.lookup[
-                 self.edgeTuple[1]]][0]
-        if probe.targetVideoSegments is not None:
-            #self.maskBox = MaskSetTable(self.displayFrame,
-                                        #maskgen.scenario_model.VideoMaskSetInfo(compositeMaskSetFromVideoSegment(probe.targetVideoSegments)),
-                                        #openColumn=3,
-                                        #dir=self.master.scModel.get_dir(), boxheight=389, boxwidth=452)
-            #self.maskBox.grid()
-            self.master.pageDisplays[self][1].append(self.displayFrame)
-
-    def setUpPlot(self):
-        """
-        Lays out the temporal review window for video
-        :return:
-        """
-        ps = [mpatches.Patch(color="red", label="Target Video"),
-              mpatches.Patch(color="blue", label="Current Manipulations"),
-              mpatches.Patch(color="green", label="Other Manipulations")]
-        data = []
-        f = Figure(figsize=(6, 4), dpi=100)
-        subplot = f.add_subplot(111)
-        subplot.legend(handles=ps, loc=8)
-        prolist = []
-        maxtsec = 0
-
-        for p in self.master.probes:
-            maxtsec = max(maxtsec, p.max_time())
-            if (self.finalNodeName == None):
-                if p.donorBaseNodeId is not None and self.master.getFileNameForNode(p.donorBaseNodeId) == self.edgeTuple[
-                    1]:
-                    prolist.append(p)
-            else:
-                if (self.master.getFileNameForNode(p.finalNodeId) == self.edgeTuple[1]):
-                    prolist.append(p)
-        try:
-            tsec = get_end_time_from_segment(getMaskSetForEntireVideo(
-                self.master.meta_extractor.getMetaDataLocator(self.master.lookup[self.edgeTuple[1]][0]),
-                media_types=p.media_types())[0]) / 1000.0
-        except Exception as ex:
-            logging.getLogger("maskgen").error(ex.message)
-            logging.getLogger("maskgen").error(
-                "{} Duration could not be found the length displayed in the graph is incorrect".format(
-                    self.edgeTuple[1]))
-            tsec = maxtsec
-        ytics = []
-        ytic_lbl = []
-        count = 0
-        high = 0
-        low = tsec * 1000 + 20000
-        for p in prolist:
-            count += 1
-            col = 2
-            cur = False
-            if (p.edgeId[1] in self.master.lookup[self.edgeTuple[0]]):
-                col = 1
-                cur = True
-            if self.finalNodeName == None:
-                for mvs in p.donorVideoSegments if p.donorVideoSegments is not None else []:
-                    data.append([count, col, mvs.starttime, mvs.endtime])
-                    if cur:
-                        high = max(high, mvs.endtime)
-                        low = min(low, mvs.starttime)
-                        subplot.text(mvs.starttime - 100, count - 0.5, "F:" + str(int(mvs.startframe)),
-                                     {'size': 10})
-                        subplot.text(mvs.endtime + 100, count - 0.5, "F:" + str(int(mvs.endframe)), {'size': 10})
-                        subplot.text(mvs.starttime - 100, count - 0.20, "T:" + str(int(mvs.starttime)),
-                                     {'size': 10})
-                        subplot.text(mvs.endtime + 100, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
-            else:
-                for mvs in p.targetVideoSegments if p.targetVideoSegments is not None else []:
-                    data.append([count, col, mvs.starttime, mvs.endtime])
-                    if cur:
-                        high = max(high, mvs.endtime)
-                        low = min(low, mvs.starttime)
-                        subplot.text(mvs.starttime, count - 0.5, "F:" + str(int(mvs.startframe)), {'size': 10})
-                        subplot.text(mvs.endtime, count - 0.5, "F:" + str(int(mvs.endframe)), {'size': 10})
-                        subplot.text(mvs.starttime, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
-                        subplot.text(mvs.endtime, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
-            ytics.append(count)
-            ytic_lbl.append(str(self.master.abreive(p.edgeId[0])))
-
-        color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'blue', 2: 'green'}.get(x))
-        data.append([count + 1, 0, 0.0, tsec * 1000.0])
-        ytics.append(count + 1)
-        ytic_lbl.append(self.master.abreive(self.edgeTuple[1]))
-        numpy_array = np.array(data)
-        subplot.hlines(numpy_array[:, 0], numpy_array[:, 2], numpy_array[:, 3], color_mapper(numpy_array[:, 1]), linewidth=10)
-        subplot.set_yticks(ytics)
-        subplot.set_yticklabels(ytic_lbl)
-        subplot.set_xlabel('Time in Milliseconds')
-        subplot.grid()
-        i = subplot.yaxis.get_view_interval()
-        if (i[1] - i[0] < 10):
-            i[0] = i[1] - 8
-            subplot.yaxis.set_view_interval(i[0], i[1])
-        i = subplot.xaxis.get_view_interval()
-        if (i[1] - i[0] > 2000):
-            i[0] = low - 1000
-            i[1] = high + 1000
-            subplot.xaxis.set_view_interval(i[0], i[1])
-        self.master.pltdata[self] = numpy_array
-        self.displayFrame = Frame(self.cImgFrame)
-        self.master.pageDisplays[self][1].append(self.displayFrame)
-        canvas = Canvas(self.displayFrame, height=50, width=50)
-        imscroll = Scrollbar(self.displayFrame, orient=HORIZONTAL)
-        imscroll.grid(row=1, column=0, sticky=EW)
-        imscroll.config(command=self.scrollplt)
-        fcanvas = FigureCanvasTkAgg(f, master=canvas)
-        fcanvas.show()
-        fcanvas.get_tk_widget().grid(row=0, column=0)
-        fcanvas._tkcanvas.grid(row=0, column=0)
-        canvas.grid(row=0, column=0)
-        canvas.config(height=50, width=50)
-        self.master.subplots[self] = f
-
     def setUpFrames(self):
         """
         Lays out inner display for video temporal and spatial review
         :return:
         """
-        self.master.pageDisplays[self] = [0, []]
-        self.setUpPlot()
-        self.setUpMask()
+        displays = [TemporalReviewDisplay(self), SpatialReviewDisplay(self)]
+        self.checkboxes.boxes.append(CheckboxGroup(boxes=[d.checkbox for d in displays], condition='any'))
+        self.master.pageDisplays[self] = [0, displays]
         self.frameMove(0)
         nextButton = Button(self.cImgFrame, text='Next', command=lambda: self.frameMove(1), width=15)
         nextButton.grid(row=1, column=2, columnspan=2, sticky='E')
@@ -525,7 +426,9 @@ class QAPage(Frame):
         frames = displays[1]
         if 0 <= cur+i < len(frames):
             frames[cur].grid_forget()
+            frames[cur].checkbox.grid_remove()
             frames[cur+i].grid(row=0,column=0,columnspan=3)
+            frames[cur+i].checkbox.grid()
             displays[0] += i
 
     def scrollplt(self, *args):
@@ -556,14 +459,170 @@ class DummyPage(Frame):
         self.nextButton.pack()
 
 
+class SpatialReviewDisplay(Frame):
+    """
+    The spatial review display for video
+    """
+
+    def __init__(self, page):
+        Frame.__init__(self, master=page.cImgFrame, height=500,width=50)
+
+        checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
+        chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
+        chkboxes_col = int(checkbox_info['column']) if len(checkbox_info) > 0 else 3
+        spatial_box_label = Label(master=page, text='Spatial Overlay Correct?', wraplength=250, justify=LEFT)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label)
+        self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col -1)
+        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col)
+        self.checkbox.grid_remove()
+
+        if (len(page.link.split('->')) > 1):
+            probe = [probe for probe in page.master.probes if
+                     probe.edgeId[1] in page.master.lookup[page.edgeTuple[0]] and probe.finalNodeId in
+                     page.master.lookup[page.edgeTuple[1]]][0]
+        else:
+            probe = \
+                [probe for probe in page.master.probes if
+                 probe.edgeId[1] in page.master.lookup[page.edgeTuple[0]] and probe.donorBaseNodeId in
+                 page.master.lookup[
+                     page.edgeTuple[1]]][0]
+        if probe.targetVideoSegments is not None:
+            overlayFile = os.path.basename(probe.targetBaseNodeId) + '_overlay.avi'
+            if not os.path.exists(overlayFile):
+
+                from maskgen.ffmpeg_api import ffmpeg_overlay
+                from maskgen.tool_set import GrayBlockReader
+                from maskgen.video_tools import get_file_from_segment
+                for segment in probe.targetVideoSegments:
+                    #reader = GrayBlockReader(filename=get_file_from_segment(segment))
+                    #ffmpeg_overlay(probe.targetBaseNodeId, probe.targetMaskImage)
+                    pass
+            self.playbutton = Button(master=self, text='PLAY: ' + overlayFile, command=lambda: openFile(overlayFile))
+            self.playbutton.grid()
+
+
+class TemporalReviewDisplay(Frame):
+    """
+    The temporal review display for video
+    """
+
+    def __init__(self, page):
+        Frame.__init__(self, master=page.cImgFrame)
+        checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
+        chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
+        chkboxes_col = int(checkbox_info['column']) if len(checkbox_info) > 0 else 3
+        temporal_box_label = Label(master=page, text='Temporal data correct?', wraplength=250, justify=LEFT)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label)
+        self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col - 1)
+        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col)
+        self.checkbox.grid_remove()
+
+        ps = [mpatches.Patch(color="red", label="Target Video"),
+              mpatches.Patch(color="blue", label="Current Manipulations"),
+              mpatches.Patch(color="green", label="Other Manipulations")]
+        data = []
+        f = Figure(figsize=(6, 4), dpi=100)
+        subplot = f.add_subplot(111)
+        subplot.legend(handles=ps, loc=8)
+        prolist = []
+        maxtsec = 0
+
+        for p in page.master.probes:
+            maxtsec = max(maxtsec, p.max_time())
+            if (page.finalNodeName == None):
+                if p.donorBaseNodeId is not None and page.master.getFileNameForNode(p.donorBaseNodeId) == \
+                        page.edgeTuple[
+                            1]:
+                    prolist.append(p)
+            else:
+                if (page.master.getFileNameForNode(p.finalNodeId) == page.edgeTuple[1]):
+                    prolist.append(p)
+        try:
+            tsec = get_end_time_from_segment(getMaskSetForEntireVideo(
+                page.master.meta_extractor.getMetaDataLocator(page.master.lookup[page.edgeTuple[1]][0]),
+                media_types=p.media_types())[0]) / 1000.0
+        except Exception as ex:
+            logging.getLogger("maskgen").error(ex.message)
+            logging.getLogger("maskgen").error(
+                "{} Duration could not be found the length displayed in the graph is incorrect".format(
+                    page.edgeTuple[1]))
+            tsec = maxtsec
+        ytics = []
+        ytic_lbl = []
+        count = 0
+        high = 0
+        low = tsec * 1000 + 20000
+        for p in prolist:
+            count += 1
+            col = 2
+            cur = False
+            if (p.edgeId[1] in page.master.lookup[page.edgeTuple[0]]):
+                col = 1
+                cur = True
+            if page.finalNodeName == None:
+                for mvs in p.donorVideoSegments if p.donorVideoSegments is not None else []:
+                    data.append([count, col, mvs.starttime, mvs.endtime])
+                    if cur:
+                        high = max(high, mvs.endtime)
+                        low = min(low, mvs.starttime)
+                        subplot.text(mvs.starttime - 100, count - 0.5, "F:" + str(int(mvs.startframe)),
+                                     {'size': 10})
+                        subplot.text(mvs.endtime + 100, count - 0.5, "F:" + str(int(mvs.endframe)), {'size': 10})
+                        subplot.text(mvs.starttime - 100, count - 0.20, "T:" + str(int(mvs.starttime)),
+                                     {'size': 10})
+                        subplot.text(mvs.endtime + 100, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
+            else:
+                for mvs in p.targetVideoSegments if p.targetVideoSegments is not None else []:
+                    data.append([count, col, mvs.starttime, mvs.endtime])
+                    if cur:
+                        high = max(high, mvs.endtime)
+                        low = min(low, mvs.starttime)
+                        subplot.text(mvs.starttime, count - 0.5, "F:" + str(int(mvs.startframe)), {'size': 10})
+                        subplot.text(mvs.endtime, count - 0.5, "F:" + str(int(mvs.endframe)), {'size': 10})
+                        subplot.text(mvs.starttime, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
+                        subplot.text(mvs.endtime, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
+            ytics.append(count)
+            ytic_lbl.append(str(page.master.abreive(p.edgeId[0])))
+
+        color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'blue', 2: 'green'}.get(x))
+        data.append([count + 1, 0, 0.0, tsec * 1000.0])
+        ytics.append(count + 1)
+        ytic_lbl.append(page.master.abreive(page.edgeTuple[1]))
+        numpy_array = np.array(data)
+        subplot.hlines(numpy_array[:, 0], numpy_array[:, 2], numpy_array[:, 3], color_mapper(numpy_array[:, 1]),
+                       linewidth=10)
+        subplot.set_yticks(ytics)
+        subplot.set_yticklabels(ytic_lbl)
+        subplot.set_xlabel('Time in Milliseconds')
+        subplot.grid()
+        i = subplot.yaxis.get_view_interval()
+        if (i[1] - i[0] < 10):
+            i[0] = i[1] - 8
+            subplot.yaxis.set_view_interval(i[0], i[1])
+        i = subplot.xaxis.get_view_interval()
+        if (i[1] - i[0] > 2000):
+            i[0] = low - 1000
+            i[1] = high + 1000
+            subplot.xaxis.set_view_interval(i[0], i[1])
+        page.master.pltdata[page] = numpy_array
+        canvas = Canvas(self, height=50, width=50)
+        imscroll = Scrollbar(self, orient=HORIZONTAL)
+        imscroll.grid(row=1, column=0, sticky=EW)
+        imscroll.config(command=page.scrollplt)
+        fcanvas = FigureCanvasTkAgg(f, master=canvas)
+        fcanvas.show()
+        fcanvas.get_tk_widget().grid(row=0, column=0)
+        fcanvas._tkcanvas.grid(row=0, column=0)
+        canvas.grid(row=0, column=0)
+        canvas.config(height=50, width=50)
+        page.master.subplots[page] = f
+
 class QAProjectDialog(Toplevel):
     """
     Host window for QA pages
     """
-    valid = False
     colors = [[155, 0, 0], [0, 155, 0], [0, 0, 155], [153, 76, 0], [96, 96, 96], [204, 204, 0], [160, 160, 160]]
 
-    lookup = {}
     def __init__(self, parent):
         self.parent = parent
         self.scModel = parent.scModel
@@ -575,6 +634,7 @@ class QAProjectDialog(Toplevel):
         self.current_qa_page = None
         self.checkboxes = {} #Checkboxes, keyed by page
         self.backs = {}
+        self.lookup = {}
         self.subplots ={}
         self.pltdata = {}
         self.backsProbes={}
@@ -588,6 +648,7 @@ class QAProjectDialog(Toplevel):
         self.progressBars = []
         self.narnia = {}
         self.pageDisplays = {}
+        self.valid = False
         self.mannypage = MannyPage(self)
         self.switch_frame(self.mannypage)
         self.lastpage = None #Assigned in generate Pages
@@ -774,6 +835,8 @@ class QAProjectDialog(Toplevel):
                 break
             i += dir
         self.switch_frame(self.pages[i])
+        if self.pages[i] == self.lastpage:
+            return
 
     def qa_done(self, qaState):
         self.qaData.update_All(qaState, self.lastpage.reporterStr.get(), self.lastpage.commentsBox.get(1.0, END), None)
@@ -788,14 +851,8 @@ class QAProjectDialog(Toplevel):
         return None
 
     def check_ok(self, event=None):
-        turn_on_ok = len(self.crit_links) > 0 and len(self.errors) == 0
-        if not turn_on_ok:
-            for l in self.checkboxes:
-                if l is not None:
-                    for b in self.checkboxes[l]:
-                        if b.get() is False or turn_on_ok is False:
-                            turn_on_ok = False
-        if turn_on_ok is True and self.valid is True:
-            self.lastpage.acceptButton.config(state=NORMAL)
-        else:
-            self.lastpage.acceptButton.config(state=DISABLED)
+        for page in self.pages:
+            if bool(page.checkboxes) is not True:
+                self.lastpage.acceptButton.config(state=DISABLED)
+                return
+        self.lastpage.acceptButton.config(state=NORMAL)
