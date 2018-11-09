@@ -31,9 +31,9 @@ from maskgen.graph_meta_tools import MetaDataExtractor
 
 class Chkbox:
 
-    def __init__(self, parent, dialog, label=None):
+    def __init__(self, parent, dialog, label=None, command=None):
         self.value = BooleanVar(value=dialog.parent.scModel.getProjectData('validation') == 'yes')
-        self.box = Checkbutton(parent, variable=self.value, command=dialog.check_ok)
+        self.box = Checkbutton(parent, variable=self.value, command=dialog.check_ok if command is None else command)
         self.label = label
 
     def __nonzero__(self):
@@ -284,7 +284,7 @@ class QAPage(Frame):
             box_label = Label(self, text=q, wraplength=250, justify=LEFT)
             ck = Chkbox(parent=self, dialog=master, label=box_label)
             ck.box.grid(row=row, column=col - 1)
-            ck.label.grid(row=row, column=col, columnspan=4,sticky='W')
+            ck.label.grid(row=row, column=col, columnspan=4, sticky='W')
             self.checkboxes.boxes.append(ck)
             row += 1
         master.checkboxes[self] = self.checkboxes
@@ -450,6 +450,19 @@ class QAPage(Frame):
             self.master.subplots[self].get_children()[1].xaxis.pan(int(args[1]))
             self.master.subplots[self].canvas.draw()
 
+    def cache_designation(self):
+        """
+        Cache the QA validation of probe designation.
+        :return:
+        """
+        self.master.check_ok()
+        displays = self.master.pageDisplays[self][1]
+        validation = {'temporal': bool(displays[0].checkbox), 'spatial': bool(displays[1].checkbox)}
+        elegibility = [key for key in validation.keys() if validation[key] == True]
+        designation = '-'.join(elegibility) if len(elegibility) else 'detect'
+        self.master.qaData.set_qalink_designation(self.link, designation)
+
+
 class DummyPage(Frame):
     def __init__(self, master, labeltext = ''):
         Frame.__init__(self, master=master)
@@ -467,14 +480,15 @@ class SpatialReviewDisplay(Frame):
     def __init__(self, page):
         Frame.__init__(self, master=page.cImgFrame, height=500,width=50)
 
+        #Add Checkbox for spatial review
         checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
         chkboxes_col = int(checkbox_info['column']) if len(checkbox_info) > 0 else 3
         spatial_box_label = Label(master=page, text='Spatial Overlay Correct?', wraplength=250, justify=LEFT)
-        self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label, command=page.cache_designation)
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col -1)
-        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col)
-        self.checkbox.grid_remove()
+        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
+        self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
 
         if (len(page.link.split('->')) > 1):
             probe = [probe for probe in page.master.probes if
@@ -489,13 +503,12 @@ class SpatialReviewDisplay(Frame):
         if probe.targetVideoSegments is not None:
             overlayFile = os.path.basename(probe.targetBaseNodeId) + '_overlay.avi'
             if not os.path.exists(overlayFile):
-
                 from maskgen.ffmpeg_api import ffmpeg_overlay
                 from maskgen.tool_set import GrayBlockReader
                 from maskgen.video_tools import get_file_from_segment
                 for segment in probe.targetVideoSegments:
-                    #reader = GrayBlockReader(filename=get_file_from_segment(segment))
-                    #ffmpeg_overlay(probe.targetBaseNodeId, probe.targetMaskImage)
+                    reader = GrayBlockReader(filename=get_file_from_segment(segment))
+                    ffmpeg_overlay(probe.targetBaseNodeId, probe.targetMaskImage)
                     pass
             self.playbutton = Button(master=self, text='PLAY: ' + overlayFile, command=lambda: openFile(overlayFile))
             self.playbutton.grid()
@@ -508,14 +521,16 @@ class TemporalReviewDisplay(Frame):
 
     def __init__(self, page):
         Frame.__init__(self, master=page.cImgFrame)
+
+        # Add Checkbox for spatial review
         checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
         chkboxes_col = int(checkbox_info['column']) if len(checkbox_info) > 0 else 3
         temporal_box_label = Label(master=page, text='Temporal data correct?', wraplength=250, justify=LEFT)
-        self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label, command=page.cache_designation)
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col - 1)
-        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col)
-        self.checkbox.grid_remove()
+        self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
+        self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
 
         ps = [mpatches.Patch(color="red", label="Target Video"),
               mpatches.Patch(color="blue", label="Current Manipulations"),
@@ -527,20 +542,20 @@ class TemporalReviewDisplay(Frame):
         prolist = []
         maxtsec = 0
 
-        for p in page.master.probes:
-            maxtsec = max(maxtsec, p.max_time())
+        for probe in page.master.probes:
+            maxtsec = max(maxtsec, probe.max_time())
             if (page.finalNodeName == None):
-                if p.donorBaseNodeId is not None and page.master.getFileNameForNode(p.donorBaseNodeId) == \
+                if probe.donorBaseNodeId is not None and page.master.getFileNameForNode(probe.donorBaseNodeId) == \
                         page.edgeTuple[
                             1]:
-                    prolist.append(p)
+                    prolist.append(probe)
             else:
-                if (page.master.getFileNameForNode(p.finalNodeId) == page.edgeTuple[1]):
-                    prolist.append(p)
+                if (page.master.getFileNameForNode(probe.finalNodeId) == page.edgeTuple[1]):
+                    prolist.append(probe)
         try:
             tsec = get_end_time_from_segment(getMaskSetForEntireVideo(
                 page.master.meta_extractor.getMetaDataLocator(page.master.lookup[page.edgeTuple[1]][0]),
-                media_types=p.media_types())[0]) / 1000.0
+                media_types=probe.media_types())[0]) / 1000.0
         except Exception as ex:
             logging.getLogger("maskgen").error(ex.message)
             logging.getLogger("maskgen").error(
@@ -552,15 +567,15 @@ class TemporalReviewDisplay(Frame):
         count = 0
         high = 0
         low = tsec * 1000 + 20000
-        for p in prolist:
+        for probe in prolist:
             count += 1
             col = 2
             cur = False
-            if (p.edgeId[1] in page.master.lookup[page.edgeTuple[0]]):
+            if (probe.edgeId[1] in page.master.lookup[page.edgeTuple[0]]):
                 col = 1
                 cur = True
             if page.finalNodeName == None:
-                for mvs in p.donorVideoSegments if p.donorVideoSegments is not None else []:
+                for mvs in probe.donorVideoSegments if probe.donorVideoSegments is not None else []:
                     data.append([count, col, mvs.starttime, mvs.endtime])
                     if cur:
                         high = max(high, mvs.endtime)
@@ -572,7 +587,7 @@ class TemporalReviewDisplay(Frame):
                                      {'size': 10})
                         subplot.text(mvs.endtime + 100, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
             else:
-                for mvs in p.targetVideoSegments if p.targetVideoSegments is not None else []:
+                for mvs in probe.targetVideoSegments if probe.targetVideoSegments is not None else []:
                     data.append([count, col, mvs.starttime, mvs.endtime])
                     if cur:
                         high = max(high, mvs.endtime)
@@ -582,7 +597,7 @@ class TemporalReviewDisplay(Frame):
                         subplot.text(mvs.starttime, count - 0.20, "T:" + str(int(mvs.starttime)), {'size': 10})
                         subplot.text(mvs.endtime, count - 0.20, "T:" + str(int(mvs.endtime)), {'size': 10})
             ytics.append(count)
-            ytic_lbl.append(str(page.master.abreive(p.edgeId[0])))
+            ytic_lbl.append(str(page.master.abreive(probe.edgeId[0])))
 
         color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'blue', 2: 'green'}.get(x))
         data.append([count + 1, 0, 0.0, tsec * 1000.0])
@@ -621,7 +636,7 @@ class QAProjectDialog(Toplevel):
     """
     Host window for QA pages
     """
-    colors = [[155, 0, 0], [0, 155, 0], [0, 0, 155], [153, 76, 0], [96, 96, 96], [204, 204, 0], [160, 160, 160]]
+    manny_colors = [[155, 0, 0], [0, 155, 0], [0, 0, 155], [153, 76, 0], [96, 96, 96], [204, 204, 0], [160, 160, 160]]
 
     def __init__(self, parent):
         self.parent = parent
@@ -647,7 +662,7 @@ class QAProjectDialog(Toplevel):
         self.resizable(width=False, height=False)
         self.progressBars = []
         self.narnia = {}
-        self.pageDisplays = {}
+        self.pageDisplays = {} #Frames that go inside pages, keyed by page.
         self.valid = False
         self.mannypage = MannyPage(self)
         self.switch_frame(self.mannypage)
@@ -794,12 +809,15 @@ class QAProjectDialog(Toplevel):
 
         if self.current_qa_page in self.edges.keys():
             self.edges[self.current_qa_page][0]['semanticGroups'] = self.edges[self.current_qa_page][1].get(0, END)
+
         finish = True
         if self.current_qa_page in self.checkboxes.keys():
             for box in self.checkboxes[self.current_qa_page].boxes:
-                if box is False:
+                if bool(box) is False:
                     finish = False
                     break
+
+        #caching in qaData
         ind = self.pages.index(self.current_qa_page)
         step = 0
         if 0<=ind-1<len(self.crit_links):
@@ -808,12 +826,15 @@ class QAProjectDialog(Toplevel):
                     step += 1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
                 self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END).strip())
+                designation = self.current_qa_page.displays
+                self.qaData.set_qalink_designation(self.crit_links[ind-1], )
 
             if not finish:
                 if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'yes':
                     step += -1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind - 1], 'no')
                 self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
+
         for p in self.progressBars:
             p.step(step)
         i = self.pages.index(self.current_qa_page) + dir
@@ -835,8 +856,6 @@ class QAProjectDialog(Toplevel):
                 break
             i += dir
         self.switch_frame(self.pages[i])
-        if self.pages[i] == self.lastpage:
-            return
 
     def qa_done(self, qaState):
         self.qaData.update_All(qaState, self.lastpage.reporterStr.get(), self.lastpage.commentsBox.get(1.0, END), None)
