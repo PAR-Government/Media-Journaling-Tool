@@ -1926,7 +1926,10 @@ class ImageProjectModel:
                     if path == 'basenode':
                         row.append(baseNodes[0])
                         continue
-                    values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
+                    elif type(path) == 'str':
+                        values = getPathValues(edge, path)
+                    else:
+                        values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
                     if len(values) > 0:
                         row.append(values[0])
                     else:
