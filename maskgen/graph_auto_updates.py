@@ -456,9 +456,9 @@ def _fixTool(scModel,gopLoader):
     if description is not None:
         scModel.setProjectData('projectdescription', description)
     tool_name = 'jtui'
-    if summary.lower().startswith('automate'):
-        tool_name = 'jtproject'
     creator = scModel.getGraph().getDataItem('creator')
+    if summary.lower().startswith('automate') or creator in ['alice', 'dupre']:
+        tool_name = 'jtproject'
     modifier_tools = [tool_name]
     # no easy way to find extensions, since all extensions are plugins
     modified_users = set()
