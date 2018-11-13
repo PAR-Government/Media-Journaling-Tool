@@ -286,12 +286,11 @@ def proxyOpen(filename, isMask=False):
 
 # openTiff supports raw files as well
 file_registry = [('png', [readPNG]), ('pdf', [wand_image_extractor, pdf2_image_extractor,  convertToPDF]),
-                 ('', [defaultOpen]),
-                 ('', [openTiff]),
                  ('cr2',[openRaw]),
                  ('nef',[openRaw]),
                  ('dng',[openRaw]),
                  ('arw',[openRaw]),
+                 ('', [defaultOpen, openTiff]),
                  ('raf',[openRaw]),
                  ('', [proxyOpen])]
 file_write_registry = {}
