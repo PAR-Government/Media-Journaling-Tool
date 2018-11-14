@@ -1,0 +1,4423 @@
+{
+  "directed": true, 
+  "graph": {
+    "validationtime": "09:41:03", 
+    "projectdescription": "Move animals closer with seam carving", 
+    "creator": "duck", 
+    "validatedby": "duck", 
+    "exporttime": "2017-08-03 13:45:51", 
+    "jt_upgrades": [
+      "0.5.0515.afee2e2e08", 
+      "0.5.0515.49f20fd1fa"
+    ], 
+    "creator_tool": "jtui", 
+    "autopastecloneinputmask": "no", 
+    "idcount": 5, 
+    "provenance": "no", 
+    "manipulationcategory": "4-Unit", 
+    "edgeFilePaths": {
+      "maskname": "", 
+      "videomasks.videosegment": "", 
+      "arguments.XMP File Name": "", 
+      "arguments.convolutionkernel": "", 
+      "selectmasks.mask": "", 
+      "arguments.pastemask": "", 
+      "arguments.qtfile": "", 
+      "inputmaskname": "inputmaskownership", 
+      "arguments.PNG File Name": ""
+    }, 
+    "skipped_edges": [], 
+    "username": "duck", 
+    "igversion": "0.5.0515.49f20fd1fa", 
+    "validationdate": "08/02/2017", 
+    "semanticgroups": [], 
+    "nodeFilePaths": {
+      "proxyfile": "", 
+      "compositemaskname": "", 
+      "donors.*": ""
+    }, 
+    "qadata": {}, 
+    "groups": {}, 
+    "updatetime": "2018-08-31 19:31:28", 
+    "projecttype": "image", 
+    "name": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+    "typespref": [
+      [
+        "jpeg files", 
+        "*.jpg"
+      ], 
+      [
+        "png files", 
+        "*.png"
+      ], 
+      [
+        "tiff files", 
+        "*.tiff"
+      ], 
+      [
+        "tiff files", 
+        "*.tif"
+      ], 
+      [
+        "Raw NEF", 
+        "*.nef"
+      ], 
+      [
+        "bmp files", 
+        "*.bmp"
+      ], 
+      [
+        "pdf files", 
+        "*.pdf"
+      ], 
+      [
+        "cr2", 
+        "*.cr2"
+      ], 
+      [
+        "raf", 
+        "*.raf"
+      ], 
+      [
+        "mpeg files", 
+        "*.mp4"
+      ], 
+      [
+        "mov files", 
+        "*.mov"
+      ], 
+      [
+        "wmv", 
+        "*.wmv"
+      ], 
+      [
+        "m4p", 
+        "*.m4p"
+      ], 
+      [
+        "m4v", 
+        "*.m4v"
+      ], 
+      [
+        "f4v", 
+        "*.flv"
+      ], 
+      [
+        "avi files", 
+        "*.avi"
+      ], 
+      [
+        "asf", 
+        "*.asf"
+      ], 
+      [
+        "mts", 
+        "*.mts"
+      ], 
+      [
+        "mpeg audio files", 
+        "*.m4a"
+      ], 
+      [
+        "mpeg audio files", 
+        "*.m4p"
+      ], 
+      [
+        "mpeg audio files", 
+        "*.mp3"
+      ], 
+      [
+        "raw audio files", 
+        "*.raw"
+      ], 
+      [
+        "Standard PC audio files", 
+        "*.wav"
+      ], 
+      [
+        "Windows Media  audio files", 
+        "*.wma"
+      ]
+    ], 
+    "qacomment": "", 
+    "modifier_tools": [
+      "jtui", 
+      "jtprocess"
+    ], 
+    "organization": "wonderland", 
+    "validation": "yes"
+  }, 
+  "nodes": [
+    {
+      "username": "duck", 
+      "xpos": 756.9639999999998, 
+      "nodetype": "base", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 25.0, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea.jpg", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 915.3639999999999, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 284.2, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 490.59999999999997, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 284.2, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 1379.7639999999997, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 370.59999999999997, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 25.0, 
+      "nodetype": "final", 
+      "ctime": "2017-08-02 18:21:25", 
+      "ypos": 284.2, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve", 
+      "ownership": "yes", 
+      "file": "f4d20ff93a85d22511f33392af1ccb5f.jpg", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve_05", 
+      "pathanalysis": {
+        "launderingsocialmedia": "no", 
+        "semanticrepurposing": null, 
+        "people": "no", 
+        "color": "no", 
+        "antiforensicnoiserestoration": "no", 
+        "otherenhancements": "no", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "histogramnormalizationglobal": "no", 
+        "compositepixelsize": "small", 
+        "audiosplice": "no", 
+        "imagecompressiontable": "yes", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "temporalother": "no", 
+        "temporalreorder": "no", 
+        "audiovoiceover": "no", 
+        "contrastenhancement": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "wound": "no", 
+        "dataembeddingwatermark": "no", 
+        "antiforensiccfacorrection": "no", 
+        "postprocesscropframes": "no", 
+        "antiforensicother": "no", 
+        "spatialmovingcamera": "no", 
+        "launderingmedianfiltering": "no", 
+        "timeofday": "no", 
+        "temporalremove": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "spatialother": "no", 
+        "audioothers": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "aging": "no", 
+        "clone": "no", 
+        "manmade": "no", 
+        "spatialsplice": "no", 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "crowdrelocation": "no", 
+        "antiforensicillumination": "no", 
+        "seamcarving": "yes", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "audioremoval": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "audiovoiceswapping": "no", 
+        "natural": "no", 
+        "largemanmade": "no", 
+        "postprocessstabilization": "no", 
+        "postprocesscompression": "no", 
+        "buildingrelocation": "no", 
+        "manipulationcategory": "2-Unit", 
+        "remove": "no", 
+        "face": "no", 
+        "reflectionmanipulations": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "imagereformat": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "shadowmanipulations": "no"
+      }
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 59.8, 
+      "nodetype": "final", 
+      "ctime": "2017-08-02 18:19:24", 
+      "ypos": 370.59999999999997, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize", 
+      "ownership": "yes", 
+      "file": "6af2da3c5d23c015e5b6108f7aefdc19.jpg", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize_02", 
+      "pathanalysis": {
+        "launderingsocialmedia": "no", 
+        "semanticrepurposing": null, 
+        "people": "no", 
+        "color": "no", 
+        "antiforensicnoiserestoration": "no", 
+        "otherenhancements": "no", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "histogramnormalizationglobal": "no", 
+        "compositepixelsize": "small", 
+        "audiosplice": "no", 
+        "imagecompressiontable": "yes", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "temporalother": "no", 
+        "temporalreorder": "no", 
+        "audiovoiceover": "no", 
+        "contrastenhancement": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "wound": "no", 
+        "dataembeddingwatermark": "no", 
+        "antiforensiccfacorrection": "no", 
+        "postprocesscropframes": "no", 
+        "antiforensicother": "no", 
+        "spatialmovingcamera": "no", 
+        "launderingmedianfiltering": "no", 
+        "timeofday": "no", 
+        "temporalremove": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "spatialother": "no", 
+        "audioothers": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "aging": "no", 
+        "clone": "no", 
+        "manmade": "no", 
+        "spatialsplice": "no", 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "crowdrelocation": "no", 
+        "antiforensicillumination": "no", 
+        "seamcarving": "yes", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "audioremoval": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "audiovoiceswapping": "no", 
+        "natural": "no", 
+        "largemanmade": "no", 
+        "postprocessstabilization": "no", 
+        "postprocesscompression": "no", 
+        "buildingrelocation": "no", 
+        "manipulationcategory": "3-Unit", 
+        "remove": "no", 
+        "face": "no", 
+        "reflectionmanipulations": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "imagereformat": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "shadowmanipulations": "no"
+      }
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 1395.3639999999998, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 284.2, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 756.9639999999998, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 197.79999999999998, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 1580.1639999999998, 
+      "nodetype": "final", 
+      "ctime": "2017-08-02 18:19:30", 
+      "ypos": 457.0, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize", 
+      "ownership": "yes", 
+      "file": "a6d450472aa5e7446ef5875e79e5e054.jpg", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize_03", 
+      "pathanalysis": {
+        "launderingsocialmedia": "no", 
+        "semanticrepurposing": null, 
+        "people": "no", 
+        "color": "no", 
+        "antiforensicnoiserestoration": "no", 
+        "otherenhancements": "yes", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "histogramnormalizationglobal": "no", 
+        "compositepixelsize": "small", 
+        "audiosplice": "no", 
+        "imagecompressiontable": "yes", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "temporalother": "no", 
+        "temporalreorder": "no", 
+        "audiovoiceover": "no", 
+        "contrastenhancement": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "wound": "no", 
+        "dataembeddingwatermark": "no", 
+        "antiforensiccfacorrection": "no", 
+        "postprocesscropframes": "no", 
+        "antiforensicother": "no", 
+        "spatialmovingcamera": "no", 
+        "launderingmedianfiltering": "no", 
+        "timeofday": "no", 
+        "temporalremove": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "spatialother": "no", 
+        "audioothers": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "aging": "no", 
+        "clone": "no", 
+        "manmade": "no", 
+        "spatialsplice": "no", 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "crowdrelocation": "no", 
+        "antiforensicillumination": "no", 
+        "seamcarving": "yes", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "audioremoval": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "audiovoiceswapping": "no", 
+        "natural": "no", 
+        "largemanmade": "no", 
+        "postprocessstabilization": "no", 
+        "postprocesscompression": "no", 
+        "buildingrelocation": "no", 
+        "manipulationcategory": "4-Unit", 
+        "remove": "no", 
+        "face": "no", 
+        "reflectionmanipulations": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "imagereformat": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "shadowmanipulations": "no"
+      }
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 839.7639999999999, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 370.59999999999997, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 756.9639999999998, 
+      "nodetype": "interim", 
+      "ctime": "2017-08-02 18:08:20", 
+      "ypos": 111.39999999999999, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+      "ownership": "no", 
+      "file": "ff0b47fa9f343b3bc5547e8f6b0b83ea.png", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_01"
+    }, 
+    {
+      "username": "duck", 
+      "xpos": 923.7639999999999, 
+      "nodetype": "final", 
+      "ctime": "2017-08-02 18:19:35", 
+      "ypos": 457.0, 
+      "seriesname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize", 
+      "ownership": "yes", 
+      "file": "689cacd0d565a8f68bdbc37b0865557d.jpg", 
+      "id": "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize_04", 
+      "pathanalysis": {
+        "launderingsocialmedia": "no", 
+        "semanticrepurposing": null, 
+        "people": "no", 
+        "color": "no", 
+        "antiforensicnoiserestoration": "no", 
+        "otherenhancements": "no", 
+        "blurlocal": "no", 
+        "audioclone": "no", 
+        "histogramnormalizationglobal": "no", 
+        "compositepixelsize": "small", 
+        "audiosplice": "no", 
+        "imagecompressiontable": "yes", 
+        "landscape": "no", 
+        "imagecompression": "yes", 
+        "audioactivity": "no", 
+        "temporalother": "no", 
+        "temporalreorder": "no", 
+        "audiovoiceover": "no", 
+        "contrastenhancement": "no", 
+        "othersubjects": "no", 
+        "antiforensicaberrationcorrection": "no", 
+        "wound": "no", 
+        "dataembeddingwatermark": "no", 
+        "antiforensiccfacorrection": "no", 
+        "postprocesscropframes": "no", 
+        "antiforensicother": "no", 
+        "spatialmovingcamera": "no", 
+        "launderingmedianfiltering": "no", 
+        "timeofday": "no", 
+        "temporalremove": "no", 
+        "antiforensicaddcamfingerprintprnu": "no", 
+        "spatialother": "no", 
+        "audioothers": "no", 
+        "healinglocal": "no", 
+        "semanticrefabrication": null, 
+        "aging": "no", 
+        "clone": "no", 
+        "manmade": "no", 
+        "spatialsplice": "no", 
+        "spatialclone": "no", 
+        "spatialmovingobject": "no", 
+        "spatialremove": "no", 
+        "crowdrelocation": "no", 
+        "antiforensicillumination": "no", 
+        "seamcarving": "yes", 
+        "facemanipulations": "no", 
+        "cadaver": "no", 
+        "temporalclone": "no", 
+        "audioremoval": "no", 
+        "recapture": "no", 
+        "mosaicing": "no", 
+        "audiovoiceswapping": "no", 
+        "natural": "no", 
+        "largemanmade": "no", 
+        "postprocessstabilization": "no", 
+        "postprocesscompression": "no", 
+        "buildingrelocation": "no", 
+        "manipulationcategory": "4-Unit", 
+        "remove": "no", 
+        "face": "no", 
+        "reflectionmanipulations": "no", 
+        "dataembeddingsteganography": "no", 
+        "semanticrestaging": null, 
+        "imagereformat": "no", 
+        "moodchange": "no", 
+        "temporalsplice": "no", 
+        "shadowmanipulations": "no"
+      }
+    }
+  ], 
+  "links": [
+    {
+      "username": "duck", 
+      "maskname": "82465ce1229633d7b14b2aa39ec32bc2_fafase05__mask.png", 
+      "errors": [], 
+      "description": "", 
+      "empty mask": "no", 
+      "homography max matches": 20, 
+      "editable": "no", 
+      "softwareName": "", 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 0, 
+      "softwareVersion": "", 
+      "recordMaskInComposite": "no", 
+      "automated": "no", 
+      "op": "Donor", 
+      "target": 4, 
+      "ctime": "2017-08-02 18:21:26"
+    }, 
+    {
+      "username": "duck", 
+      "maskname": "b0c60f67348c9071bf29d5fd690be741_fafacere03__mask.png", 
+      "errors": [], 
+      "description": "", 
+      "empty mask": "no", 
+      "homography max matches": 20, 
+      "editable": "no", 
+      "softwareName": "", 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 0, 
+      "softwareVersion": "", 
+      "recordMaskInComposite": "no", 
+      "automated": "no", 
+      "op": "Donor", 
+      "target": 8, 
+      "ctime": "2017-08-02 18:19:31"
+    }, 
+    {
+      "username": "duck", 
+      "maskname": "874032dd4aa10ba8a12ec1f33c331e91_fafacpre04__mask.png", 
+      "errors": [], 
+      "description": "", 
+      "empty mask": "no", 
+      "homography max matches": 20, 
+      "editable": "no", 
+      "softwareName": "", 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 0, 
+      "softwareVersion": "", 
+      "recordMaskInComposite": "no", 
+      "automated": "no", 
+      "op": "Donor", 
+      "target": 11, 
+      "ctime": "2017-08-02 18:19:36"
+    }, 
+    {
+      "recordMaskInComposite": "no", 
+      "ctime": "2017-08-02 18:11:02", 
+      "linkcolor": "85 21 85", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "local psnr": 38.07706321027778, 
+      "source": 0, 
+      "arguments": {
+        "Image Rotated": "no"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "target": 10, 
+      "maskname": "1409e92a0196581a137102b64a73d90b_fafa01__mask.png", 
+      "psnr": 45.78612906394422, 
+      "shape change": "(0, 0)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Focal Plane Y Size": [
+          "delete", 
+          "4.01 mm"
+        ], 
+        "Drive Mode": [
+          "delete", 
+          "Single-frame Shooting"
+        ], 
+        "Focus Range": [
+          "delete", 
+          "Auto"
+        ], 
+        "Compression": [
+          "change", 
+          "JPEG (old-style)", 
+          "Deflate/Inflate"
+        ], 
+        "File Type Extension": [
+          "change", 
+          "jpg", 
+          "png"
+        ], 
+        "AF Image Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Bits Per Sample": [
+          "delete", 
+          "8"
+        ], 
+        "Flash": [
+          "delete", 
+          "Auto, Did not fire"
+        ], 
+        "F Number": [
+          "delete", 
+          "4.8"
+        ], 
+        "Lens Type": [
+          "delete", 
+          "n/a"
+        ], 
+        "Thumbnail Offset": [
+          "delete", 
+          "2048"
+        ], 
+        "AE Setting": [
+          "delete", 
+          "Normal AE"
+        ], 
+        "Bulb Duration": [
+          "delete", 
+          "0"
+        ], 
+        "Max Focal Length": [
+          "delete", 
+          "16.21875 mm"
+        ], 
+        "Focus Distance Upper": [
+          "delete", 
+          "4.34 m"
+        ], 
+        "Photo Effect": [
+          "delete", 
+          "Off"
+        ], 
+        "Canon Exposure Mode": [
+          "delete", 
+          "Easy"
+        ], 
+        "Pixel Units": [
+          "add", 
+          "meters"
+        ], 
+        "User Comment": [
+          "delete", 
+          ""
+        ], 
+        "Spot Metering Mode": [
+          "delete", 
+          "AF Point"
+        ], 
+        "Camera ISO": [
+          "delete", 
+          "Auto"
+        ], 
+        "Focal Plane X Resolution": [
+          "delete", 
+          "7766.990291"
+        ], 
+        "Digital Zoom Ratio": [
+          "delete", 
+          "1"
+        ], 
+        "Macro Mode": [
+          "delete", 
+          "Normal"
+        ], 
+        "AF Image Height": [
+          "delete", 
+          "300"
+        ], 
+        "Hyperfocal Distance": [
+          "delete", 
+          "12.05 m"
+        ], 
+        "Exif Version": [
+          "delete", 
+          "0220"
+        ], 
+        "Components Configuration": [
+          "delete", 
+          "Y, Cb, Cr, -"
+        ], 
+        "Exif Byte Order": [
+          "delete", 
+          "Little-endian (Intel, II)"
+        ], 
+        "Min Focal Length": [
+          "delete", 
+          "5.40625 mm"
+        ], 
+        "Y Cb Cr Sub Sampling": [
+          "delete", 
+          "YCbCr4:2:2 (2 1)"
+        ], 
+        "Slow Shutter": [
+          "delete", 
+          "Off"
+        ], 
+        "Flash Bits": [
+          "delete", 
+          "(none)"
+        ], 
+        "Focal Units": [
+          "delete", 
+          "32/mm"
+        ], 
+        "Flash Exposure Compensation": [
+          "delete", 
+          "0"
+        ], 
+        "Manual Flash Output": [
+          "delete", 
+          "n/a"
+        ], 
+        "Optical Zoom Code": [
+          "delete", 
+          "6"
+        ], 
+        "Base ISO": [
+          "delete", 
+          "50"
+        ], 
+        "Canon Flash Mode": [
+          "delete", 
+          "Red-eye reduction (Auto)"
+        ], 
+        "Max Aperture Value": [
+          "delete", 
+          "4.8"
+        ], 
+        "Color Space": [
+          "delete", 
+          "sRGB"
+        ], 
+        "Canon Firmware Version": [
+          "delete", 
+          "Firmware Version 1.00"
+        ], 
+        "File Size": [
+          "change", 
+          "772 kB", 
+          "7.3 MB"
+        ], 
+        "Max Aperture": [
+          "delete", 
+          "4.8"
+        ], 
+        "Record Mode": [
+          "delete", 
+          "JPEG"
+        ], 
+        "Exif Image Height": [
+          "delete", 
+          "1200"
+        ], 
+        "Aperture": [
+          "delete", 
+          "4.8"
+        ], 
+        "Target Exposure Time": [
+          "delete", 
+          "1/125"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:35:54-04:00", 
+          "2017:08:02 17:44:51-04:00"
+        ], 
+        "Date/Time Original": [
+          "delete", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Min Aperture": [
+          "delete", 
+          "8"
+        ], 
+        "Zoom Source Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Shutter Speed Value": [
+          "delete", 
+          "1/125"
+        ], 
+        "Shooting Mode": [
+          "delete", 
+          "Full auto"
+        ], 
+        "Owner Name": [
+          "delete", 
+          ""
+        ], 
+        "AF Area Y Positions": [
+          "delete", 
+          "-60 0 0 0 60"
+        ], 
+        "Flash Activity": [
+          "delete", 
+          "0"
+        ], 
+        "Auto ISO": [
+          "delete", 
+          "100"
+        ], 
+        "Field Of View": [
+          "delete", 
+          "19.1 deg"
+        ], 
+        "Aperture Value": [
+          "delete", 
+          "4.8"
+        ], 
+        "Pixels Per Unit Y": [
+          "add", 
+          "7087"
+        ], 
+        "Pixels Per Unit X": [
+          "add", 
+          "7087"
+        ], 
+        "AF Point": [
+          "delete", 
+          "Auto AF point selection"
+        ], 
+        "Focal Plane Resolution Unit": [
+          "delete", 
+          "inches"
+        ], 
+        "Color Components": [
+          "delete", 
+          "3"
+        ], 
+        "Focal Length": [
+          "delete", 
+          "16.2 mm (35 mm equivalent: 107.2 mm)"
+        ], 
+        "Focus Distance Lower": [
+          "delete", 
+          "0 m"
+        ], 
+        "Zoom Target Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Self Timer": [
+          "delete", 
+          "Off"
+        ], 
+        "AF Points In Focus": [
+          "delete", 
+          "1"
+        ], 
+        "File Type": [
+          "change", 
+          "JPEG", 
+          "PNG"
+        ], 
+        "Scale Factor To 35 mm Equivalent": [
+          "delete", 
+          "6.6"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2006:05:02 21:37:47", 
+          "2017:08:02 21:44:51"
+        ], 
+        "X Resolution": [
+          "delete", 
+          "180"
+        ], 
+        "Focus Mode": [
+          "delete", 
+          "Single"
+        ], 
+        "Canon Image Size": [
+          "delete", 
+          "Large"
+        ], 
+        "Continuous Drive": [
+          "delete", 
+          "Single"
+        ], 
+        "Sharpness": [
+          "delete", 
+          "0"
+        ], 
+        "Y Resolution": [
+          "delete", 
+          "180"
+        ], 
+        "Self Timer 2": [
+          "delete", 
+          "0"
+        ], 
+        "Control Mode": [
+          "delete", 
+          "Camera Local Control"
+        ], 
+        "Canon Image Type": [
+          "delete", 
+          "IMG:PowerShot A60 JPEG"
+        ], 
+        "Circle Of Confusion": [
+          "delete", 
+          "0.005 mm"
+        ], 
+        "Make": [
+          "delete", 
+          "Canon"
+        ], 
+        "Auto Exposure Bracketing": [
+          "delete", 
+          "Off"
+        ], 
+        "AF Area Width": [
+          "delete", 
+          "288"
+        ], 
+        "Interlace": [
+          "add", 
+          "Noninterlaced"
+        ], 
+        "ISO": [
+          "delete", 
+          "50"
+        ], 
+        "Canon Image Height": [
+          "delete", 
+          "1200"
+        ], 
+        "Flashpix Version": [
+          "delete", 
+          "0100"
+        ], 
+        "Contrast": [
+          "delete", 
+          "Normal"
+        ], 
+        "Related Image Height": [
+          "delete", 
+          "1200"
+        ], 
+        "Camera Type": [
+          "delete", 
+          "Compact"
+        ], 
+        "Lens": [
+          "delete", 
+          "5.4 - 16.2 mm (35 mm equivalent: 35.7 - 107.2 mm)"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:35:54-04:00", 
+          "2017:08:02 17:44:52-04:00"
+        ], 
+        "Exposure Mode": [
+          "delete", 
+          "Auto"
+        ], 
+        "Scene Capture Type": [
+          "delete", 
+          "Standard"
+        ], 
+        "Primary AF Point": [
+          "delete", 
+          "1"
+        ], 
+        "File Source": [
+          "delete", 
+          "Digital Camera"
+        ], 
+        "Interoperability Version": [
+          "delete", 
+          "0100"
+        ], 
+        "MIME Type": [
+          "change", 
+          "image/jpeg", 
+          "image/png"
+        ], 
+        "Interoperability Index": [
+          "delete", 
+          "R98 - DCF basic file (sRGB)"
+        ], 
+        "Easy Mode": [
+          "delete", 
+          "Full auto"
+        ], 
+        "Valid AF Points": [
+          "delete", 
+          "5"
+        ], 
+        "Filter": [
+          "add", 
+          "Adaptive"
+        ], 
+        "Num AF Points": [
+          "delete", 
+          "5"
+        ], 
+        "Bit Depth": [
+          "add", 
+          "8"
+        ], 
+        "Resolution Unit": [
+          "delete", 
+          "inches"
+        ], 
+        "File Number": [
+          "delete", 
+          "105-0530"
+        ], 
+        "Flash Output": [
+          "delete", 
+          "0"
+        ], 
+        "AF Area Height": [
+          "delete", 
+          "54"
+        ], 
+        "Orientation": [
+          "delete", 
+          "Horizontal (normal)"
+        ], 
+        "Exposure Time": [
+          "delete", 
+          "1/125"
+        ], 
+        "Target Aperture": [
+          "delete", 
+          "4.8"
+        ], 
+        "Metering Mode": [
+          "delete", 
+          "Evaluative"
+        ], 
+        "Digital Zoom": [
+          "delete", 
+          "None"
+        ], 
+        "Camera Model Name": [
+          "delete", 
+          "Canon PowerShot A60"
+        ], 
+        "Related Image Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Canon Image Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Custom Rendered": [
+          "delete", 
+          "Normal"
+        ], 
+        "Focal Plane Y Resolution": [
+          "delete", 
+          "7741.935484"
+        ], 
+        "Sensing Method": [
+          "delete", 
+          "One-chip color area"
+        ], 
+        "ND Filter": [
+          "delete", 
+          "Off"
+        ], 
+        "Focal Plane X Size": [
+          "delete", 
+          "5.36 mm"
+        ], 
+        "Focal Type": [
+          "delete", 
+          "Zoom"
+        ], 
+        "Exif Image Width": [
+          "delete", 
+          "1600"
+        ], 
+        "Y Cb Cr Positioning": [
+          "delete", 
+          "Centered"
+        ], 
+        "Depth Of Field": [
+          "delete", 
+          "0.80 m (1.84 - 2.64 m)"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:09:23-04:00", 
+          "2017:08:02 18:10:10-04:00"
+        ], 
+        "AEB Bracket Value": [
+          "delete", 
+          "0"
+        ], 
+        "Saturation": [
+          "delete", 
+          "Normal"
+        ], 
+        "Shutter Speed": [
+          "delete", 
+          "1/125"
+        ], 
+        "Focus Continuous": [
+          "delete", 
+          "Single"
+        ], 
+        "AF Area X Positions": [
+          "delete", 
+          "0 -289 0 289 0"
+        ], 
+        "Thumbnail Image Valid Area": [
+          "delete", 
+          "0 0 0 0"
+        ], 
+        "White Balance": [
+          "delete", 
+          "Auto"
+        ], 
+        "Measured EV": [
+          "delete", 
+          "13.22"
+        ], 
+        "Color Type": [
+          "add", 
+          "RGB with Alpha"
+        ], 
+        "Thumbnail Length": [
+          "delete", 
+          "3117"
+        ], 
+        "Canon Model ID": [
+          "delete", 
+          "PowerShot A60"
+        ], 
+        "Thumbnail Image": [
+          "delete", 
+          "(Binary data 3117 bytes, use -b option to extract)"
+        ], 
+        "Display Aperture": [
+          "delete", 
+          "4.8"
+        ], 
+        "Shot Number In Continuous Burst": [
+          "delete", 
+          "0"
+        ], 
+        "Auto Rotate": [
+          "delete", 
+          "None"
+        ], 
+        "Flash Guide Number": [
+          "delete", 
+          "0"
+        ], 
+        "Compressed Bits Per Pixel": [
+          "delete", 
+          "5"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea.jpg", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea.png"
+        ], 
+        "Encoding Process": [
+          "delete", 
+          "Baseline DCT, Huffman coding"
+        ], 
+        "Light Value": [
+          "delete", 
+          "12.5"
+        ], 
+        "Create Date": [
+          "delete", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Lens ID": [
+          "delete", 
+          "Unknown 5-16mm"
+        ], 
+        "Quality": [
+          "delete", 
+          "Superfine"
+        ], 
+        "Exposure Compensation": [
+          "delete", 
+          "0"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "op": "OutputPng"
+    }, 
+    {
+      "username": "duck", 
+      "maskname": "e9dc2b21cde866171205a7efecbb9311_fafare02__mask.png", 
+      "errors": [], 
+      "description": "", 
+      "empty mask": "no", 
+      "homography max matches": 20, 
+      "editable": "no", 
+      "softwareName": "", 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 0, 
+      "softwareVersion": "", 
+      "recordMaskInComposite": "no", 
+      "automated": "no", 
+      "op": "Donor", 
+      "target": 5, 
+      "ctime": "2017-08-02 18:19:25"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "170 42 170", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "local psnr": 25.70793527994121, 
+      "source": 1, 
+      "location": "(29, 53)", 
+      "arguments": {
+        "interpolation": "cubic"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.7660764444444444, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "ctime": "2017-08-02 18:17:52", 
+      "maskname": "eda94a0960e5a681eba87727f5e88cad_facpfacpre__mask.png", 
+      "psnr": 36.495765638548406, 
+      "shape change": "(75, 100)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1500x1125", 
+          "1600x1200"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:59:50", 
+          "2017:08:02 22:03:06"
+        ], 
+        "Image Height": [
+          "change", 
+          "1125", 
+          "1200"
+        ], 
+        "Image Width": [
+          "change", 
+          "1500", 
+          "1600"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.7", 
+          "1.9"
+        ], 
+        "File Size": [
+          "change", 
+          "6.4 MB", 
+          "7.3 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:59:50-04:00", 
+          "2017:08:02 18:03:07-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:16:03-04:00", 
+          "2017:08:02 18:17:32-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:59:50-04:00", 
+          "2017:08:02 18:03:06-04:00"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "target": 9, 
+      "op": "TransformResize", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          1.0667744501197112, 
+          5.64476097103332e-05, 
+          -0.026512947267349755
+        ], 
+        "r1": [
+          1.4867759924635581e-05, 
+          1.0669141436438196, 
+          -0.10810259292272313
+        ], 
+        "r2": [
+          1.0483490243988224e-08, 
+          1.1005134318015914e-07, 
+          1.0
+        ]
+      }
+    }, 
+    {
+      "recordMaskInComposite": "no", 
+      "ctime": "2017-08-02 18:19:25", 
+      "linkcolor": "255 63 255", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "softwareVersion": "1.1.7", 
+      "source": 2, 
+      "arguments": {
+        "donor": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+        "rotate": "no"
+      }, 
+      "username": "duck", 
+      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
+      "editable": "no", 
+      "softwareName": "PIL", 
+      "plugin_name": "CompressAs", 
+      "automated": "yes", 
+      "target": 5, 
+      "maskname": "95a092f670b0df0f9cf41f0180e2b5df_farefare02__mask.png", 
+      "psnr": 30.440577133827755, 
+      "shape change": "(0, 0)", 
+      "exifdiff": {
+        "Focal Plane Y Size": [
+          "add", 
+          "4.01 mm"
+        ], 
+        "Drive Mode": [
+          "add", 
+          "Single-frame Shooting"
+        ], 
+        "Focus Range": [
+          "add", 
+          "Auto"
+        ], 
+        "Compression": [
+          "change", 
+          "Deflate/Inflate", 
+          "JPEG (old-style)"
+        ], 
+        "File Type Extension": [
+          "change", 
+          "png", 
+          "jpg"
+        ], 
+        "AF Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Bits Per Sample": [
+          "add", 
+          "8"
+        ], 
+        "Flash": [
+          "add", 
+          "Auto, Did not fire"
+        ], 
+        "F Number": [
+          "add", 
+          "4.8"
+        ], 
+        "Lens Type": [
+          "add", 
+          "n/a"
+        ], 
+        "Thumbnail Offset": [
+          "add", 
+          "1464"
+        ], 
+        "AE Setting": [
+          "add", 
+          "Normal AE"
+        ], 
+        "Bulb Duration": [
+          "add", 
+          "0"
+        ], 
+        "Max Focal Length": [
+          "add", 
+          "16.21875 mm"
+        ], 
+        "Focus Distance Upper": [
+          "add", 
+          "4.34 m"
+        ], 
+        "Photo Effect": [
+          "add", 
+          "Off"
+        ], 
+        "Canon Exposure Mode": [
+          "add", 
+          "Easy"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ], 
+        "User Comment": [
+          "add", 
+          ""
+        ], 
+        "Spot Metering Mode": [
+          "add", 
+          "AF Point"
+        ], 
+        "Camera ISO": [
+          "add", 
+          "Auto"
+        ], 
+        "Focal Plane X Resolution": [
+          "add", 
+          "7766.990291"
+        ], 
+        "Digital Zoom Ratio": [
+          "add", 
+          "1"
+        ], 
+        "Macro Mode": [
+          "add", 
+          "Normal"
+        ], 
+        "Shot Number In Continuous Burst": [
+          "add", 
+          "0"
+        ], 
+        "Hyperfocal Distance": [
+          "add", 
+          "11.76 m"
+        ], 
+        "Exif Version": [
+          "add", 
+          "0220"
+        ], 
+        "Components Configuration": [
+          "add", 
+          "Y, Cb, Cr, -"
+        ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
+        "Min Focal Length": [
+          "add", 
+          "5.40625 mm"
+        ], 
+        "Y Cb Cr Sub Sampling": [
+          "add", 
+          "YCbCr4:4:4 (1 1)"
+        ], 
+        "Slow Shutter": [
+          "add", 
+          "Off"
+        ], 
+        "Flash Bits": [
+          "add", 
+          "(none)"
+        ], 
+        "Focal Units": [
+          "add", 
+          "32/mm"
+        ], 
+        "Flash Exposure Compensation": [
+          "add", 
+          "0"
+        ], 
+        "Manual Flash Output": [
+          "add", 
+          "n/a"
+        ], 
+        "Optical Zoom Code": [
+          "add", 
+          "6"
+        ], 
+        "Base ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Flash Mode": [
+          "add", 
+          "Red-eye reduction (Auto)"
+        ], 
+        "Max Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Color Space": [
+          "add", 
+          "sRGB"
+        ], 
+        "Canon Firmware Version": [
+          "add", 
+          "Firmware Version 1.00"
+        ], 
+        "File Size": [
+          "change", 
+          "7.3 MB", 
+          "851 kB"
+        ], 
+        "Max Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Record Mode": [
+          "add", 
+          "JPEG"
+        ], 
+        "Exif Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Target Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 18:05:25-04:00", 
+          "2017:08:02 18:19:24-04:00"
+        ], 
+        "Date/Time Original": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Min Aperture": [
+          "add", 
+          "8"
+        ], 
+        "Zoom Source Width": [
+          "add", 
+          "1600"
+        ], 
+        "Shutter Speed Value": [
+          "add", 
+          "1/125"
+        ], 
+        "Shooting Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Owner Name": [
+          "add", 
+          ""
+        ], 
+        "AF Area Y Positions": [
+          "add", 
+          "-60 0 0 0 60"
+        ], 
+        "Flash Activity": [
+          "add", 
+          "0"
+        ], 
+        "Auto ISO": [
+          "add", 
+          "100"
+        ], 
+        "Field Of View": [
+          "add", 
+          "19.5 deg"
+        ], 
+        "Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "7087"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "7087"
+        ], 
+        "AF Point": [
+          "add", 
+          "Auto AF point selection"
+        ], 
+        "Focal Plane Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "Color Components": [
+          "add", 
+          "3"
+        ], 
+        "Focal Length": [
+          "add", 
+          "16.2 mm (35 mm equivalent: 104.7 mm)"
+        ], 
+        "Focus Distance Lower": [
+          "add", 
+          "0 m"
+        ], 
+        "Zoom Target Width": [
+          "add", 
+          "1600"
+        ], 
+        "Self Timer": [
+          "add", 
+          "Off"
+        ], 
+        "AF Points In Focus": [
+          "add", 
+          "1"
+        ], 
+        "File Type": [
+          "change", 
+          "PNG", 
+          "JPEG"
+        ], 
+        "Scale Factor To 35 mm Equivalent": [
+          "add", 
+          "6.5"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 22:05:25", 
+          "2006:05:02 21:37:47"
+        ], 
+        "X Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Focus Mode": [
+          "add", 
+          "Single"
+        ], 
+        "Canon Image Size": [
+          "add", 
+          "Large"
+        ], 
+        "Continuous Drive": [
+          "add", 
+          "Single"
+        ], 
+        "Sharpness": [
+          "add", 
+          "0"
+        ], 
+        "Y Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Self Timer 2": [
+          "add", 
+          "0"
+        ], 
+        "Control Mode": [
+          "add", 
+          "Camera Local Control"
+        ], 
+        "Canon Image Type": [
+          "add", 
+          "IMG:PowerShot A60 JPEG"
+        ], 
+        "Circle Of Confusion": [
+          "add", 
+          "0.005 mm"
+        ], 
+        "Make": [
+          "add", 
+          "Canon"
+        ], 
+        "Auto Exposure Bracketing": [
+          "add", 
+          "Off"
+        ], 
+        "AF Area Width": [
+          "add", 
+          "288"
+        ], 
+        "Interlace": [
+          "delete", 
+          "Noninterlaced"
+        ], 
+        "ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Flashpix Version": [
+          "add", 
+          "0100"
+        ], 
+        "Contrast": [
+          "add", 
+          "Normal"
+        ], 
+        "Related Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Camera Type": [
+          "add", 
+          "Compact"
+        ], 
+        "Lens": [
+          "add", 
+          "5.4 - 16.2 mm (35 mm equivalent: 34.9 - 104.8 mm)"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 18:05:25-04:00", 
+          "2017:08:02 18:19:19-04:00"
+        ], 
+        "Exposure Mode": [
+          "add", 
+          "Auto"
+        ], 
+        "Scene Capture Type": [
+          "add", 
+          "Standard"
+        ], 
+        "Primary AF Point": [
+          "add", 
+          "1"
+        ], 
+        "File Source": [
+          "add", 
+          "Digital Camera"
+        ], 
+        "Interoperability Version": [
+          "add", 
+          "0100"
+        ], 
+        "MIME Type": [
+          "change", 
+          "image/png", 
+          "image/jpeg"
+        ], 
+        "Interoperability Index": [
+          "add", 
+          "R98 - DCF basic file (sRGB)"
+        ], 
+        "Easy Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Valid AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Filter": [
+          "delete", 
+          "Adaptive"
+        ], 
+        "Num AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Bit Depth": [
+          "delete", 
+          "8"
+        ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "File Number": [
+          "add", 
+          "105-0530"
+        ], 
+        "Flash Output": [
+          "add", 
+          "0"
+        ], 
+        "AF Area Height": [
+          "add", 
+          "54"
+        ], 
+        "Orientation": [
+          "add", 
+          "Horizontal (normal)"
+        ], 
+        "Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "Target Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Metering Mode": [
+          "add", 
+          "Evaluative"
+        ], 
+        "Digital Zoom": [
+          "add", 
+          "None"
+        ], 
+        "Camera Model Name": [
+          "add", 
+          "Canon PowerShot A60"
+        ], 
+        "Related Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Canon Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Custom Rendered": [
+          "add", 
+          "Normal"
+        ], 
+        "Focal Plane Y Resolution": [
+          "add", 
+          "7741.935484"
+        ], 
+        "Sensing Method": [
+          "add", 
+          "One-chip color area"
+        ], 
+        "ND Filter": [
+          "add", 
+          "Off"
+        ], 
+        "Focal Plane X Size": [
+          "add", 
+          "5.36 mm"
+        ], 
+        "Focal Type": [
+          "add", 
+          "Zoom"
+        ], 
+        "Exif Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Y Cb Cr Positioning": [
+          "add", 
+          "Centered"
+        ], 
+        "Depth Of Field": [
+          "add", 
+          "0.82 m (1.83 - 2.66 m)"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:18:44-04:00", 
+          "2017:08:02 18:19:24-04:00"
+        ], 
+        "AEB Bracket Value": [
+          "add", 
+          "0"
+        ], 
+        "Saturation": [
+          "add", 
+          "Normal"
+        ], 
+        "Shutter Speed": [
+          "add", 
+          "1/125"
+        ], 
+        "Focus Continuous": [
+          "add", 
+          "Single"
+        ], 
+        "AF Area X Positions": [
+          "add", 
+          "0 -289 0 289 0"
+        ], 
+        "Thumbnail Image Valid Area": [
+          "add", 
+          "0 0 0 0"
+        ], 
+        "White Balance": [
+          "add", 
+          "Auto"
+        ], 
+        "Measured EV": [
+          "add", 
+          "13.22"
+        ], 
+        "Color Type": [
+          "delete", 
+          "RGB with Alpha"
+        ], 
+        "Thumbnail Length": [
+          "add", 
+          "2633"
+        ], 
+        "Canon Model ID": [
+          "add", 
+          "PowerShot A60"
+        ], 
+        "Thumbnail Image": [
+          "add", 
+          "(Binary data 2633 bytes, use -b option to extract)"
+        ], 
+        "Display Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "AF Image Height": [
+          "add", 
+          "300"
+        ], 
+        "Auto Rotate": [
+          "add", 
+          "None"
+        ], 
+        "Flash Guide Number": [
+          "add", 
+          "0"
+        ], 
+        "Compressed Bits Per Pixel": [
+          "add", 
+          "5"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize_02.jpg"
+        ], 
+        "Encoding Process": [
+          "add", 
+          "Baseline DCT, Huffman coding"
+        ], 
+        "Light Value": [
+          "add", 
+          "12.5"
+        ], 
+        "Create Date": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Lens ID": [
+          "add", 
+          "Unknown 5-16mm"
+        ], 
+        "Quality": [
+          "add", 
+          "Superfine"
+        ], 
+        "Exposure Compensation": [
+          "add", 
+          "0"
+        ]
+      }, 
+      "local psnr": 19.234554209222157, 
+      "op": "AntiForensicExifQuantizationTable"
+    }, 
+    {
+      "recordMaskInComposite": "no", 
+      "ctime": "2017-08-02 18:19:31", 
+      "linkcolor": "85 85 84", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "softwareVersion": "1.1.7", 
+      "source": 3, 
+      "arguments": {
+        "donor": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+        "rotate": "no"
+      }, 
+      "username": "duck", 
+      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
+      "editable": "no", 
+      "softwareName": "PIL", 
+      "plugin_name": "CompressAs", 
+      "automated": "yes", 
+      "target": 8, 
+      "maskname": "6be55e8e8e4ed0da7c7bcca1b730c138_facerefacere03__mask.png", 
+      "psnr": 30.116826720399548, 
+      "shape change": "(0, 0)", 
+      "exifdiff": {
+        "Focal Plane Y Size": [
+          "add", 
+          "4.01 mm"
+        ], 
+        "Drive Mode": [
+          "add", 
+          "Single-frame Shooting"
+        ], 
+        "Focus Range": [
+          "add", 
+          "Auto"
+        ], 
+        "Compression": [
+          "change", 
+          "Deflate/Inflate", 
+          "JPEG (old-style)"
+        ], 
+        "File Type Extension": [
+          "change", 
+          "png", 
+          "jpg"
+        ], 
+        "AF Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Bits Per Sample": [
+          "add", 
+          "8"
+        ], 
+        "Flash": [
+          "add", 
+          "Auto, Did not fire"
+        ], 
+        "F Number": [
+          "add", 
+          "4.8"
+        ], 
+        "Lens Type": [
+          "add", 
+          "n/a"
+        ], 
+        "Thumbnail Offset": [
+          "add", 
+          "1464"
+        ], 
+        "AE Setting": [
+          "add", 
+          "Normal AE"
+        ], 
+        "Bulb Duration": [
+          "add", 
+          "0"
+        ], 
+        "Max Focal Length": [
+          "add", 
+          "16.21875 mm"
+        ], 
+        "Focus Distance Upper": [
+          "add", 
+          "4.34 m"
+        ], 
+        "Photo Effect": [
+          "add", 
+          "Off"
+        ], 
+        "Canon Exposure Mode": [
+          "add", 
+          "Easy"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ], 
+        "User Comment": [
+          "add", 
+          ""
+        ], 
+        "Spot Metering Mode": [
+          "add", 
+          "AF Point"
+        ], 
+        "Camera ISO": [
+          "add", 
+          "Auto"
+        ], 
+        "Focal Plane X Resolution": [
+          "add", 
+          "7766.990291"
+        ], 
+        "Digital Zoom Ratio": [
+          "add", 
+          "1"
+        ], 
+        "Macro Mode": [
+          "add", 
+          "Normal"
+        ], 
+        "Shot Number In Continuous Burst": [
+          "add", 
+          "0"
+        ], 
+        "Hyperfocal Distance": [
+          "add", 
+          "11.76 m"
+        ], 
+        "Exif Version": [
+          "add", 
+          "0220"
+        ], 
+        "Components Configuration": [
+          "add", 
+          "Y, Cb, Cr, -"
+        ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
+        "Min Focal Length": [
+          "add", 
+          "5.40625 mm"
+        ], 
+        "Y Cb Cr Sub Sampling": [
+          "add", 
+          "YCbCr4:4:4 (1 1)"
+        ], 
+        "Slow Shutter": [
+          "add", 
+          "Off"
+        ], 
+        "Flash Bits": [
+          "add", 
+          "(none)"
+        ], 
+        "Focal Units": [
+          "add", 
+          "32/mm"
+        ], 
+        "Flash Exposure Compensation": [
+          "add", 
+          "0"
+        ], 
+        "Manual Flash Output": [
+          "add", 
+          "n/a"
+        ], 
+        "Optical Zoom Code": [
+          "add", 
+          "6"
+        ], 
+        "Base ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Flash Mode": [
+          "add", 
+          "Red-eye reduction (Auto)"
+        ], 
+        "Max Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Color Space": [
+          "add", 
+          "sRGB"
+        ], 
+        "Canon Firmware Version": [
+          "add", 
+          "Firmware Version 1.00"
+        ], 
+        "File Size": [
+          "change", 
+          "7.3 MB", 
+          "869 kB"
+        ], 
+        "Max Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Record Mode": [
+          "add", 
+          "JPEG"
+        ], 
+        "Exif Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Target Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:52:06-04:00", 
+          "2017:08:02 18:19:30-04:00"
+        ], 
+        "Date/Time Original": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Min Aperture": [
+          "add", 
+          "8"
+        ], 
+        "Zoom Source Width": [
+          "add", 
+          "1600"
+        ], 
+        "Shutter Speed Value": [
+          "add", 
+          "1/125"
+        ], 
+        "Shooting Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Owner Name": [
+          "add", 
+          ""
+        ], 
+        "AF Area Y Positions": [
+          "add", 
+          "-60 0 0 0 60"
+        ], 
+        "Flash Activity": [
+          "add", 
+          "0"
+        ], 
+        "Auto ISO": [
+          "add", 
+          "100"
+        ], 
+        "Field Of View": [
+          "add", 
+          "19.5 deg"
+        ], 
+        "Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "7087"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "7087"
+        ], 
+        "AF Point": [
+          "add", 
+          "Auto AF point selection"
+        ], 
+        "Focal Plane Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "Color Components": [
+          "add", 
+          "3"
+        ], 
+        "Focal Length": [
+          "add", 
+          "16.2 mm (35 mm equivalent: 104.7 mm)"
+        ], 
+        "Focus Distance Lower": [
+          "add", 
+          "0 m"
+        ], 
+        "Zoom Target Width": [
+          "add", 
+          "1600"
+        ], 
+        "Self Timer": [
+          "add", 
+          "Off"
+        ], 
+        "AF Points In Focus": [
+          "add", 
+          "1"
+        ], 
+        "File Type": [
+          "change", 
+          "PNG", 
+          "JPEG"
+        ], 
+        "Scale Factor To 35 mm Equivalent": [
+          "add", 
+          "6.5"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:52:06", 
+          "2006:05:02 21:37:47"
+        ], 
+        "X Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Focus Mode": [
+          "add", 
+          "Single"
+        ], 
+        "Canon Image Size": [
+          "add", 
+          "Large"
+        ], 
+        "Continuous Drive": [
+          "add", 
+          "Single"
+        ], 
+        "Sharpness": [
+          "add", 
+          "0"
+        ], 
+        "Y Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Self Timer 2": [
+          "add", 
+          "0"
+        ], 
+        "Control Mode": [
+          "add", 
+          "Camera Local Control"
+        ], 
+        "Canon Image Type": [
+          "add", 
+          "IMG:PowerShot A60 JPEG"
+        ], 
+        "Circle Of Confusion": [
+          "add", 
+          "0.005 mm"
+        ], 
+        "Make": [
+          "add", 
+          "Canon"
+        ], 
+        "Auto Exposure Bracketing": [
+          "add", 
+          "Off"
+        ], 
+        "AF Area Width": [
+          "add", 
+          "288"
+        ], 
+        "Interlace": [
+          "delete", 
+          "Noninterlaced"
+        ], 
+        "ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Flashpix Version": [
+          "add", 
+          "0100"
+        ], 
+        "Contrast": [
+          "add", 
+          "Normal"
+        ], 
+        "Related Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Camera Type": [
+          "add", 
+          "Compact"
+        ], 
+        "Lens": [
+          "add", 
+          "5.4 - 16.2 mm (35 mm equivalent: 34.9 - 104.8 mm)"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:52:06-04:00", 
+          "2017:08:02 18:19:26-04:00"
+        ], 
+        "Exposure Mode": [
+          "add", 
+          "Auto"
+        ], 
+        "Scene Capture Type": [
+          "add", 
+          "Standard"
+        ], 
+        "Primary AF Point": [
+          "add", 
+          "1"
+        ], 
+        "File Source": [
+          "add", 
+          "Digital Camera"
+        ], 
+        "Interoperability Version": [
+          "add", 
+          "0100"
+        ], 
+        "MIME Type": [
+          "change", 
+          "image/png", 
+          "image/jpeg"
+        ], 
+        "Interoperability Index": [
+          "add", 
+          "R98 - DCF basic file (sRGB)"
+        ], 
+        "Easy Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Valid AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Filter": [
+          "delete", 
+          "Adaptive"
+        ], 
+        "Num AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Bit Depth": [
+          "delete", 
+          "8"
+        ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "File Number": [
+          "add", 
+          "105-0530"
+        ], 
+        "Flash Output": [
+          "add", 
+          "0"
+        ], 
+        "AF Area Height": [
+          "add", 
+          "54"
+        ], 
+        "Orientation": [
+          "add", 
+          "Horizontal (normal)"
+        ], 
+        "Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "Target Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Metering Mode": [
+          "add", 
+          "Evaluative"
+        ], 
+        "Digital Zoom": [
+          "add", 
+          "None"
+        ], 
+        "Camera Model Name": [
+          "add", 
+          "Canon PowerShot A60"
+        ], 
+        "Related Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Canon Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Custom Rendered": [
+          "add", 
+          "Normal"
+        ], 
+        "Focal Plane Y Resolution": [
+          "add", 
+          "7741.935484"
+        ], 
+        "Sensing Method": [
+          "add", 
+          "One-chip color area"
+        ], 
+        "ND Filter": [
+          "add", 
+          "Off"
+        ], 
+        "Focal Plane X Size": [
+          "add", 
+          "5.36 mm"
+        ], 
+        "Focal Type": [
+          "add", 
+          "Zoom"
+        ], 
+        "Exif Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Y Cb Cr Positioning": [
+          "add", 
+          "Centered"
+        ], 
+        "Depth Of Field": [
+          "add", 
+          "0.82 m (1.83 - 2.66 m)"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:14:56-04:00", 
+          "2017:08:02 18:19:30-04:00"
+        ], 
+        "AEB Bracket Value": [
+          "add", 
+          "0"
+        ], 
+        "Saturation": [
+          "add", 
+          "Normal"
+        ], 
+        "Shutter Speed": [
+          "add", 
+          "1/125"
+        ], 
+        "Focus Continuous": [
+          "add", 
+          "Single"
+        ], 
+        "AF Area X Positions": [
+          "add", 
+          "0 -289 0 289 0"
+        ], 
+        "Thumbnail Image Valid Area": [
+          "add", 
+          "0 0 0 0"
+        ], 
+        "White Balance": [
+          "add", 
+          "Auto"
+        ], 
+        "Measured EV": [
+          "add", 
+          "13.22"
+        ], 
+        "Color Type": [
+          "delete", 
+          "RGB with Alpha"
+        ], 
+        "Thumbnail Length": [
+          "add", 
+          "2687"
+        ], 
+        "Canon Model ID": [
+          "add", 
+          "PowerShot A60"
+        ], 
+        "Thumbnail Image": [
+          "add", 
+          "(Binary data 2687 bytes, use -b option to extract)"
+        ], 
+        "Display Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "AF Image Height": [
+          "add", 
+          "300"
+        ], 
+        "Auto Rotate": [
+          "add", 
+          "None"
+        ], 
+        "Flash Guide Number": [
+          "add", 
+          "0"
+        ], 
+        "Compressed Bits Per Pixel": [
+          "add", 
+          "5"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize_03.jpg"
+        ], 
+        "Encoding Process": [
+          "add", 
+          "Baseline DCT, Huffman coding"
+        ], 
+        "Light Value": [
+          "add", 
+          "12.5"
+        ], 
+        "Create Date": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Lens ID": [
+          "add", 
+          "Unknown 5-16mm"
+        ], 
+        "Quality": [
+          "add", 
+          "Superfine"
+        ], 
+        "Exposure Compensation": [
+          "add", 
+          "0"
+        ]
+      }, 
+      "local psnr": 20.814041049645585, 
+      "op": "AntiForensicExifQuantizationTable"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "170 106 169", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "local psnr": 7.200464477966956, 
+      "source": 6, 
+      "location": "(24, 53)", 
+      "arguments": {
+        "interpolation": "cubic"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.832450962962963, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "ctime": "2017-08-02 18:15:18", 
+      "maskname": "b7dc536ee48e2333d1bd182bf3d9323d_facefacere__mask.png", 
+      "psnr": 16.363145580749197, 
+      "shape change": "(75, 100)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1500x1125", 
+          "1600x1200"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:50:56", 
+          "2017:08:02 21:52:06"
+        ], 
+        "Image Height": [
+          "change", 
+          "1125", 
+          "1200"
+        ], 
+        "Image Width": [
+          "change", 
+          "1500", 
+          "1600"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale_resize.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.7", 
+          "1.9"
+        ], 
+        "File Size": [
+          "change", 
+          "6.4 MB", 
+          "7.3 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:50:56-04:00", 
+          "2017:08:02 17:52:06-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:13:26-04:00", 
+          "2017:08:02 18:14:56-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:50:56-04:00", 
+          "2017:08:02 17:52:06-04:00"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "target": 3, 
+      "op": "TransformResize", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          1.066842830885916, 
+          0.00014157079117335826, 
+          -0.09494481947587054
+        ], 
+        "r1": [
+          3.0374968086131827e-07, 
+          1.067076784561254, 
+          -0.17077130446275307
+        ], 
+        "r2": [
+          8.251258553290894e-09, 
+          1.9188180812597152e-07, 
+          1.0
+        ]
+      }
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "255 127 254", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "local psnr": 8.445126768114115, 
+      "source": 7, 
+      "location": "(75, 0)", 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.06273833333333333, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "ctime": "2017-08-02 18:14:18", 
+      "maskname": "ad60f7032b5d9991f323db173f1f095a_faseface__mask.png", 
+      "psnr": 20.469796994874724, 
+      "shape change": "(-75, 0)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1500x1200", 
+          "1500x1125"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:47:31", 
+          "2017:08:02 21:50:56"
+        ], 
+        "Image Height": [
+          "change", 
+          "1200", 
+          "1125"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_contentawarescale.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.8", 
+          "1.7"
+        ], 
+        "File Size": [
+          "change", 
+          "6.9 MB", 
+          "6.4 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:47:32-04:00", 
+          "2017:08:02 17:50:56-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:12:19-04:00", 
+          "2017:08:02 18:13:26-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:47:31-04:00", 
+          "2017:08:02 17:50:56-04:00"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "target": 6, 
+      "op": "TransformContentAwareScale"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "85 149 83", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "softwareVersion": "1.1.7", 
+      "source": 7, 
+      "location": "(0, 0)", 
+      "arguments": {
+        "function": "maskgen.tool_set.cropCompare"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.0625, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "ctime": "2017-08-02 18:16:16", 
+      "maskname": "b610a669603efcad040961c3e07a553d_fasefacp__mask.png", 
+      "psnr": 15.053506899748479, 
+      "shape change": "(-75, 0)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1500x1200", 
+          "1500x1125"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:47:31", 
+          "2017:08:02 21:59:50"
+        ], 
+        "Image Height": [
+          "change", 
+          "1200", 
+          "1125"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.8", 
+          "1.7"
+        ], 
+        "File Size": [
+          "change", 
+          "6.9 MB", 
+          "6.4 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:47:32-04:00", 
+          "2017:08:02 17:59:50-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:03 09:41:00-04:00", 
+          "2017:08:03 09:41:01-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:47:31-04:00", 
+          "2017:08:02 17:59:50-04:00"
+        ]
+      }, 
+      "local psnr": 3.0123070731892305, 
+      "target": 1, 
+      "op": "TransformCrop"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "linkcolor": "170 170 168", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "local psnr": 8.71874319761037, 
+      "source": 7, 
+      "location": "(0, 41)", 
+      "arguments": {
+        "interpolation": "cubic"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.7690933333333333, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "ctime": "2017-08-02 18:19:05", 
+      "maskname": "2521935596f36da985f4a55d622b57a2_fasefare__mask.png", 
+      "psnr": 18.47516377684005, 
+      "shape change": "(0, 100)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1500x1200", 
+          "1600x1200"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:47:31", 
+          "2017:08:02 22:05:25"
+        ], 
+        "Image Width": [
+          "change", 
+          "1500", 
+          "1600"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_resize.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.8", 
+          "1.9"
+        ], 
+        "File Size": [
+          "change", 
+          "6.9 MB", 
+          "7.3 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:47:32-04:00", 
+          "2017:08:02 18:05:25-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:12:19-04:00", 
+          "2017:08:02 18:18:44-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:47:31-04:00", 
+          "2017:08:02 18:05:25-04:00"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "target": 2, 
+      "op": "TransformResize", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          1.0666593535311975, 
+          -6.589752148423109e-05, 
+          0.057690356294448464
+        ], 
+        "r1": [
+          2.412385194257092e-05, 
+          0.9999456020358196, 
+          0.0008553845801459089
+        ], 
+        "r2": [
+          3.720432022357108e-08, 
+          -6.769017331478022e-08, 
+          1.0
+        ]
+      }
+    }, 
+    {
+      "recordMaskInComposite": "no", 
+      "ctime": "2017-08-02 18:21:26", 
+      "linkcolor": "255 191 253", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "softwareVersion": "1.1.7", 
+      "source": 7, 
+      "arguments": {
+        "donor": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+        "rotate": "no", 
+        "quality": "0"
+      }, 
+      "username": "duck", 
+      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "plugin_name": "CompressAs", 
+      "automated": "yes", 
+      "target": 4, 
+      "maskname": "41ded2997c0010ab4a988047ff98fadf_fasefase05__mask.png", 
+      "psnr": 35.29660672384807, 
+      "shape change": "(0, 0)", 
+      "exifdiff": {
+        "Focal Plane Y Size": [
+          "add", 
+          "4.01 mm"
+        ], 
+        "Drive Mode": [
+          "add", 
+          "Single-frame Shooting"
+        ], 
+        "Focus Range": [
+          "add", 
+          "Auto"
+        ], 
+        "Compression": [
+          "change", 
+          "Deflate/Inflate", 
+          "JPEG (old-style)"
+        ], 
+        "File Type Extension": [
+          "change", 
+          "png", 
+          "jpg"
+        ], 
+        "AF Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Bits Per Sample": [
+          "add", 
+          "8"
+        ], 
+        "Flash": [
+          "add", 
+          "Auto, Did not fire"
+        ], 
+        "F Number": [
+          "add", 
+          "4.8"
+        ], 
+        "Lens Type": [
+          "add", 
+          "n/a"
+        ], 
+        "Thumbnail Offset": [
+          "add", 
+          "1464"
+        ], 
+        "AE Setting": [
+          "add", 
+          "Normal AE"
+        ], 
+        "Bulb Duration": [
+          "add", 
+          "0"
+        ], 
+        "Max Focal Length": [
+          "add", 
+          "16.21875 mm"
+        ], 
+        "Focus Distance Upper": [
+          "add", 
+          "4.34 m"
+        ], 
+        "Photo Effect": [
+          "add", 
+          "Off"
+        ], 
+        "Canon Exposure Mode": [
+          "add", 
+          "Easy"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ], 
+        "User Comment": [
+          "add", 
+          ""
+        ], 
+        "Spot Metering Mode": [
+          "add", 
+          "AF Point"
+        ], 
+        "Camera ISO": [
+          "add", 
+          "Auto"
+        ], 
+        "Focal Plane X Resolution": [
+          "add", 
+          "7766.990291"
+        ], 
+        "Digital Zoom Ratio": [
+          "add", 
+          "1"
+        ], 
+        "Macro Mode": [
+          "add", 
+          "Normal"
+        ], 
+        "Shot Number In Continuous Burst": [
+          "add", 
+          "0"
+        ], 
+        "Hyperfocal Distance": [
+          "add", 
+          "11.76 m"
+        ], 
+        "Exif Version": [
+          "add", 
+          "0220"
+        ], 
+        "Components Configuration": [
+          "add", 
+          "Y, Cb, Cr, -"
+        ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
+        "Min Focal Length": [
+          "add", 
+          "5.40625 mm"
+        ], 
+        "Y Cb Cr Sub Sampling": [
+          "add", 
+          "YCbCr4:4:4 (1 1)"
+        ], 
+        "Slow Shutter": [
+          "add", 
+          "Off"
+        ], 
+        "Flash Bits": [
+          "add", 
+          "(none)"
+        ], 
+        "Focal Units": [
+          "add", 
+          "32/mm"
+        ], 
+        "Flash Exposure Compensation": [
+          "add", 
+          "0"
+        ], 
+        "Manual Flash Output": [
+          "add", 
+          "n/a"
+        ], 
+        "Optical Zoom Code": [
+          "add", 
+          "6"
+        ], 
+        "Base ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Flash Mode": [
+          "add", 
+          "Red-eye reduction (Auto)"
+        ], 
+        "Max Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Color Space": [
+          "add", 
+          "sRGB"
+        ], 
+        "Canon Firmware Version": [
+          "add", 
+          "Firmware Version 1.00"
+        ], 
+        "File Size": [
+          "change", 
+          "6.9 MB", 
+          "814 kB"
+        ], 
+        "Max Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Record Mode": [
+          "add", 
+          "JPEG"
+        ], 
+        "Exif Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Target Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:47:31-04:00", 
+          "2017:08:02 18:21:25-04:00"
+        ], 
+        "Date/Time Original": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Min Aperture": [
+          "add", 
+          "8"
+        ], 
+        "Zoom Source Width": [
+          "add", 
+          "1600"
+        ], 
+        "Shutter Speed Value": [
+          "add", 
+          "1/125"
+        ], 
+        "Shooting Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Owner Name": [
+          "add", 
+          ""
+        ], 
+        "AF Area Y Positions": [
+          "add", 
+          "-60 0 0 0 60"
+        ], 
+        "Flash Activity": [
+          "add", 
+          "0"
+        ], 
+        "Auto ISO": [
+          "add", 
+          "100"
+        ], 
+        "Field Of View": [
+          "add", 
+          "19.5 deg"
+        ], 
+        "Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "7087"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "7087"
+        ], 
+        "AF Point": [
+          "add", 
+          "Auto AF point selection"
+        ], 
+        "Focal Plane Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "Color Components": [
+          "add", 
+          "3"
+        ], 
+        "Focal Length": [
+          "add", 
+          "16.2 mm (35 mm equivalent: 104.7 mm)"
+        ], 
+        "Focus Distance Lower": [
+          "add", 
+          "0 m"
+        ], 
+        "Zoom Target Width": [
+          "add", 
+          "1600"
+        ], 
+        "Self Timer": [
+          "add", 
+          "Off"
+        ], 
+        "AF Points In Focus": [
+          "add", 
+          "1"
+        ], 
+        "File Type": [
+          "change", 
+          "PNG", 
+          "JPEG"
+        ], 
+        "Scale Factor To 35 mm Equivalent": [
+          "add", 
+          "6.5"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:47:31", 
+          "2006:05:02 21:37:47"
+        ], 
+        "X Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Focus Mode": [
+          "add", 
+          "Single"
+        ], 
+        "Canon Image Size": [
+          "add", 
+          "Large"
+        ], 
+        "Continuous Drive": [
+          "add", 
+          "Single"
+        ], 
+        "Sharpness": [
+          "add", 
+          "0"
+        ], 
+        "Y Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Self Timer 2": [
+          "add", 
+          "0"
+        ], 
+        "Control Mode": [
+          "add", 
+          "Camera Local Control"
+        ], 
+        "Canon Image Type": [
+          "add", 
+          "IMG:PowerShot A60 JPEG"
+        ], 
+        "Circle Of Confusion": [
+          "add", 
+          "0.005 mm"
+        ], 
+        "Make": [
+          "add", 
+          "Canon"
+        ], 
+        "Auto Exposure Bracketing": [
+          "add", 
+          "Off"
+        ], 
+        "AF Area Width": [
+          "add", 
+          "288"
+        ], 
+        "Interlace": [
+          "delete", 
+          "Noninterlaced"
+        ], 
+        "ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Flashpix Version": [
+          "add", 
+          "0100"
+        ], 
+        "Contrast": [
+          "add", 
+          "Normal"
+        ], 
+        "Related Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Camera Type": [
+          "add", 
+          "Compact"
+        ], 
+        "Lens": [
+          "add", 
+          "5.4 - 16.2 mm (35 mm equivalent: 34.9 - 104.8 mm)"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:47:32-04:00", 
+          "2017:08:02 18:21:21-04:00"
+        ], 
+        "Exposure Mode": [
+          "add", 
+          "Auto"
+        ], 
+        "Scene Capture Type": [
+          "add", 
+          "Standard"
+        ], 
+        "Primary AF Point": [
+          "add", 
+          "1"
+        ], 
+        "File Source": [
+          "add", 
+          "Digital Camera"
+        ], 
+        "Interoperability Version": [
+          "add", 
+          "0100"
+        ], 
+        "MIME Type": [
+          "change", 
+          "image/png", 
+          "image/jpeg"
+        ], 
+        "Interoperability Index": [
+          "add", 
+          "R98 - DCF basic file (sRGB)"
+        ], 
+        "Easy Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Valid AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Filter": [
+          "delete", 
+          "Adaptive"
+        ], 
+        "Num AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Bit Depth": [
+          "delete", 
+          "8"
+        ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "File Number": [
+          "add", 
+          "105-0530"
+        ], 
+        "Flash Output": [
+          "add", 
+          "0"
+        ], 
+        "AF Area Height": [
+          "add", 
+          "54"
+        ], 
+        "Orientation": [
+          "add", 
+          "Horizontal (normal)"
+        ], 
+        "Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "Target Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Metering Mode": [
+          "add", 
+          "Evaluative"
+        ], 
+        "Digital Zoom": [
+          "add", 
+          "None"
+        ], 
+        "Camera Model Name": [
+          "add", 
+          "Canon PowerShot A60"
+        ], 
+        "Related Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Canon Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Custom Rendered": [
+          "add", 
+          "Normal"
+        ], 
+        "Focal Plane Y Resolution": [
+          "add", 
+          "7741.935484"
+        ], 
+        "Sensing Method": [
+          "add", 
+          "One-chip color area"
+        ], 
+        "ND Filter": [
+          "add", 
+          "Off"
+        ], 
+        "Focal Plane X Size": [
+          "add", 
+          "5.36 mm"
+        ], 
+        "Focal Type": [
+          "add", 
+          "Zoom"
+        ], 
+        "Exif Image Width": [
+          "add", 
+          "1500"
+        ], 
+        "Y Cb Cr Positioning": [
+          "add", 
+          "Centered"
+        ], 
+        "Depth Of Field": [
+          "add", 
+          "0.82 m (1.83 - 2.66 m)"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:12:19-04:00", 
+          "2017:08:02 18:21:25-04:00"
+        ], 
+        "AEB Bracket Value": [
+          "add", 
+          "0"
+        ], 
+        "Saturation": [
+          "add", 
+          "Normal"
+        ], 
+        "Shutter Speed": [
+          "add", 
+          "1/125"
+        ], 
+        "Focus Continuous": [
+          "add", 
+          "Single"
+        ], 
+        "AF Area X Positions": [
+          "add", 
+          "0 -289 0 289 0"
+        ], 
+        "Thumbnail Image Valid Area": [
+          "add", 
+          "0 0 0 0"
+        ], 
+        "White Balance": [
+          "add", 
+          "Auto"
+        ], 
+        "Measured EV": [
+          "add", 
+          "13.22"
+        ], 
+        "Color Type": [
+          "delete", 
+          "RGB with Alpha"
+        ], 
+        "Thumbnail Length": [
+          "add", 
+          "2761"
+        ], 
+        "Canon Model ID": [
+          "add", 
+          "PowerShot A60"
+        ], 
+        "Thumbnail Image": [
+          "add", 
+          "(Binary data 2761 bytes, use -b option to extract)"
+        ], 
+        "Display Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "AF Image Height": [
+          "add", 
+          "300"
+        ], 
+        "Auto Rotate": [
+          "add", 
+          "None"
+        ], 
+        "Flash Guide Number": [
+          "add", 
+          "0"
+        ], 
+        "Compressed Bits Per Pixel": [
+          "add", 
+          "5"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve_05.jpg"
+        ], 
+        "Encoding Process": [
+          "add", 
+          "Baseline DCT, Huffman coding"
+        ], 
+        "Light Value": [
+          "add", 
+          "12.5"
+        ], 
+        "Create Date": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Lens ID": [
+          "add", 
+          "Unknown 5-16mm"
+        ], 
+        "Quality": [
+          "add", 
+          "Superfine"
+        ], 
+        "Exposure Compensation": [
+          "add", 
+          "0"
+        ]
+      }, 
+      "local psnr": 26.389134608022893, 
+      "op": "AntiForensicExifQuantizationTable"
+    }, 
+    {
+      "recordMaskInComposite": "no", 
+      "ctime": "2017-08-02 18:19:36", 
+      "linkcolor": "85 213 82", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "softwareVersion": "1.1.7", 
+      "source": 9, 
+      "arguments": {
+        "donor": "ff0b47fa9f343b3bc5547e8f6b0b83ea", 
+        "rotate": "no"
+      }, 
+      "username": "duck", 
+      "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
+      "editable": "no", 
+      "softwareName": "PIL", 
+      "plugin_name": "CompressAs", 
+      "automated": "yes", 
+      "target": 11, 
+      "maskname": "cb2853144ec1c84114ae6a4f2edb995d_facprefacpre04__mask.png", 
+      "psnr": 30.599289585318314, 
+      "shape change": "(0, 0)", 
+      "exifdiff": {
+        "Focal Plane Y Size": [
+          "add", 
+          "4.01 mm"
+        ], 
+        "Drive Mode": [
+          "add", 
+          "Single-frame Shooting"
+        ], 
+        "Focus Range": [
+          "add", 
+          "Auto"
+        ], 
+        "Compression": [
+          "change", 
+          "Deflate/Inflate", 
+          "JPEG (old-style)"
+        ], 
+        "File Type Extension": [
+          "change", 
+          "png", 
+          "jpg"
+        ], 
+        "AF Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Bits Per Sample": [
+          "add", 
+          "8"
+        ], 
+        "Flash": [
+          "add", 
+          "Auto, Did not fire"
+        ], 
+        "F Number": [
+          "add", 
+          "4.8"
+        ], 
+        "Lens Type": [
+          "add", 
+          "n/a"
+        ], 
+        "Thumbnail Offset": [
+          "add", 
+          "1464"
+        ], 
+        "AE Setting": [
+          "add", 
+          "Normal AE"
+        ], 
+        "Bulb Duration": [
+          "add", 
+          "0"
+        ], 
+        "Max Focal Length": [
+          "add", 
+          "16.21875 mm"
+        ], 
+        "Focus Distance Upper": [
+          "add", 
+          "4.34 m"
+        ], 
+        "Photo Effect": [
+          "add", 
+          "Off"
+        ], 
+        "Canon Exposure Mode": [
+          "add", 
+          "Easy"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ], 
+        "User Comment": [
+          "add", 
+          ""
+        ], 
+        "Spot Metering Mode": [
+          "add", 
+          "AF Point"
+        ], 
+        "Camera ISO": [
+          "add", 
+          "Auto"
+        ], 
+        "Focal Plane X Resolution": [
+          "add", 
+          "7766.990291"
+        ], 
+        "Digital Zoom Ratio": [
+          "add", 
+          "1"
+        ], 
+        "Macro Mode": [
+          "add", 
+          "Normal"
+        ], 
+        "Shot Number In Continuous Burst": [
+          "add", 
+          "0"
+        ], 
+        "Hyperfocal Distance": [
+          "add", 
+          "11.76 m"
+        ], 
+        "Exif Version": [
+          "add", 
+          "0220"
+        ], 
+        "Components Configuration": [
+          "add", 
+          "Y, Cb, Cr, -"
+        ], 
+        "Exif Byte Order": [
+          "add", 
+          "Little-endian (Intel, II)"
+        ], 
+        "Min Focal Length": [
+          "add", 
+          "5.40625 mm"
+        ], 
+        "Y Cb Cr Sub Sampling": [
+          "add", 
+          "YCbCr4:4:4 (1 1)"
+        ], 
+        "Slow Shutter": [
+          "add", 
+          "Off"
+        ], 
+        "Flash Bits": [
+          "add", 
+          "(none)"
+        ], 
+        "Focal Units": [
+          "add", 
+          "32/mm"
+        ], 
+        "Flash Exposure Compensation": [
+          "add", 
+          "0"
+        ], 
+        "Manual Flash Output": [
+          "add", 
+          "n/a"
+        ], 
+        "Optical Zoom Code": [
+          "add", 
+          "6"
+        ], 
+        "Base ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Flash Mode": [
+          "add", 
+          "Red-eye reduction (Auto)"
+        ], 
+        "Max Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Color Space": [
+          "add", 
+          "sRGB"
+        ], 
+        "Canon Firmware Version": [
+          "add", 
+          "Firmware Version 1.00"
+        ], 
+        "File Size": [
+          "change", 
+          "7.3 MB", 
+          "787 kB"
+        ], 
+        "Max Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Record Mode": [
+          "add", 
+          "JPEG"
+        ], 
+        "Exif Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Target Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 18:03:06-04:00", 
+          "2017:08:02 18:19:35-04:00"
+        ], 
+        "Date/Time Original": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Min Aperture": [
+          "add", 
+          "8"
+        ], 
+        "Zoom Source Width": [
+          "add", 
+          "1600"
+        ], 
+        "Shutter Speed Value": [
+          "add", 
+          "1/125"
+        ], 
+        "Shooting Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Owner Name": [
+          "add", 
+          ""
+        ], 
+        "AF Area Y Positions": [
+          "add", 
+          "-60 0 0 0 60"
+        ], 
+        "Flash Activity": [
+          "add", 
+          "0"
+        ], 
+        "Auto ISO": [
+          "add", 
+          "100"
+        ], 
+        "Field Of View": [
+          "add", 
+          "19.5 deg"
+        ], 
+        "Aperture Value": [
+          "add", 
+          "4.8"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "7087"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "7087"
+        ], 
+        "AF Point": [
+          "add", 
+          "Auto AF point selection"
+        ], 
+        "Focal Plane Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "Color Components": [
+          "add", 
+          "3"
+        ], 
+        "Focal Length": [
+          "add", 
+          "16.2 mm (35 mm equivalent: 104.7 mm)"
+        ], 
+        "Focus Distance Lower": [
+          "add", 
+          "0 m"
+        ], 
+        "Zoom Target Width": [
+          "add", 
+          "1600"
+        ], 
+        "Self Timer": [
+          "add", 
+          "Off"
+        ], 
+        "AF Points In Focus": [
+          "add", 
+          "1"
+        ], 
+        "File Type": [
+          "change", 
+          "PNG", 
+          "JPEG"
+        ], 
+        "Scale Factor To 35 mm Equivalent": [
+          "add", 
+          "6.5"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 22:03:06", 
+          "2006:05:02 21:37:47"
+        ], 
+        "X Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Focus Mode": [
+          "add", 
+          "Single"
+        ], 
+        "Canon Image Size": [
+          "add", 
+          "Large"
+        ], 
+        "Continuous Drive": [
+          "add", 
+          "Single"
+        ], 
+        "Sharpness": [
+          "add", 
+          "0"
+        ], 
+        "Y Resolution": [
+          "add", 
+          "180"
+        ], 
+        "Self Timer 2": [
+          "add", 
+          "0"
+        ], 
+        "Control Mode": [
+          "add", 
+          "Camera Local Control"
+        ], 
+        "Canon Image Type": [
+          "add", 
+          "IMG:PowerShot A60 JPEG"
+        ], 
+        "Circle Of Confusion": [
+          "add", 
+          "0.005 mm"
+        ], 
+        "Make": [
+          "add", 
+          "Canon"
+        ], 
+        "Auto Exposure Bracketing": [
+          "add", 
+          "Off"
+        ], 
+        "AF Area Width": [
+          "add", 
+          "288"
+        ], 
+        "Interlace": [
+          "delete", 
+          "Noninterlaced"
+        ], 
+        "ISO": [
+          "add", 
+          "50"
+        ], 
+        "Canon Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Flashpix Version": [
+          "add", 
+          "0100"
+        ], 
+        "Contrast": [
+          "add", 
+          "Normal"
+        ], 
+        "Related Image Height": [
+          "add", 
+          "1200"
+        ], 
+        "Camera Type": [
+          "add", 
+          "Compact"
+        ], 
+        "Lens": [
+          "add", 
+          "5.4 - 16.2 mm (35 mm equivalent: 34.9 - 104.8 mm)"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 18:03:07-04:00", 
+          "2017:08:02 18:19:31-04:00"
+        ], 
+        "Exposure Mode": [
+          "add", 
+          "Auto"
+        ], 
+        "Scene Capture Type": [
+          "add", 
+          "Standard"
+        ], 
+        "Primary AF Point": [
+          "add", 
+          "1"
+        ], 
+        "File Source": [
+          "add", 
+          "Digital Camera"
+        ], 
+        "Interoperability Version": [
+          "add", 
+          "0100"
+        ], 
+        "MIME Type": [
+          "change", 
+          "image/png", 
+          "image/jpeg"
+        ], 
+        "Interoperability Index": [
+          "add", 
+          "R98 - DCF basic file (sRGB)"
+        ], 
+        "Easy Mode": [
+          "add", 
+          "Full auto"
+        ], 
+        "Valid AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Filter": [
+          "delete", 
+          "Adaptive"
+        ], 
+        "Num AF Points": [
+          "add", 
+          "5"
+        ], 
+        "Bit Depth": [
+          "delete", 
+          "8"
+        ], 
+        "Resolution Unit": [
+          "add", 
+          "inches"
+        ], 
+        "File Number": [
+          "add", 
+          "105-0530"
+        ], 
+        "Flash Output": [
+          "add", 
+          "0"
+        ], 
+        "AF Area Height": [
+          "add", 
+          "54"
+        ], 
+        "Orientation": [
+          "add", 
+          "Horizontal (normal)"
+        ], 
+        "Exposure Time": [
+          "add", 
+          "1/125"
+        ], 
+        "Target Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "Metering Mode": [
+          "add", 
+          "Evaluative"
+        ], 
+        "Digital Zoom": [
+          "add", 
+          "None"
+        ], 
+        "Camera Model Name": [
+          "add", 
+          "Canon PowerShot A60"
+        ], 
+        "Related Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Canon Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Custom Rendered": [
+          "add", 
+          "Normal"
+        ], 
+        "Focal Plane Y Resolution": [
+          "add", 
+          "7741.935484"
+        ], 
+        "Sensing Method": [
+          "add", 
+          "One-chip color area"
+        ], 
+        "ND Filter": [
+          "add", 
+          "Off"
+        ], 
+        "Focal Plane X Size": [
+          "add", 
+          "5.36 mm"
+        ], 
+        "Focal Type": [
+          "add", 
+          "Zoom"
+        ], 
+        "Exif Image Width": [
+          "add", 
+          "1600"
+        ], 
+        "Y Cb Cr Positioning": [
+          "add", 
+          "Centered"
+        ], 
+        "Depth Of Field": [
+          "add", 
+          "0.82 m (1.83 - 2.66 m)"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:17:32-04:00", 
+          "2017:08:02 18:19:35-04:00"
+        ], 
+        "AEB Bracket Value": [
+          "add", 
+          "0"
+        ], 
+        "Saturation": [
+          "add", 
+          "Normal"
+        ], 
+        "Shutter Speed": [
+          "add", 
+          "1/125"
+        ], 
+        "Focus Continuous": [
+          "add", 
+          "Single"
+        ], 
+        "AF Area X Positions": [
+          "add", 
+          "0 -289 0 289 0"
+        ], 
+        "Thumbnail Image Valid Area": [
+          "add", 
+          "0 0 0 0"
+        ], 
+        "White Balance": [
+          "add", 
+          "Auto"
+        ], 
+        "Measured EV": [
+          "add", 
+          "13.22"
+        ], 
+        "Color Type": [
+          "delete", 
+          "RGB with Alpha"
+        ], 
+        "Thumbnail Length": [
+          "add", 
+          "2575"
+        ], 
+        "Canon Model ID": [
+          "add", 
+          "PowerShot A60"
+        ], 
+        "Thumbnail Image": [
+          "add", 
+          "(Binary data 2575 bytes, use -b option to extract)"
+        ], 
+        "Display Aperture": [
+          "add", 
+          "4.8"
+        ], 
+        "AF Image Height": [
+          "add", 
+          "300"
+        ], 
+        "Auto Rotate": [
+          "add", 
+          "None"
+        ], 
+        "Flash Guide Number": [
+          "add", 
+          "0"
+        ], 
+        "Compressed Bits Per Pixel": [
+          "add", 
+          "5"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_crop_resize_04.jpg"
+        ], 
+        "Encoding Process": [
+          "add", 
+          "Baseline DCT, Huffman coding"
+        ], 
+        "Light Value": [
+          "add", 
+          "12.5"
+        ], 
+        "Create Date": [
+          "add", 
+          "2006:05:02 21:37:47"
+        ], 
+        "Lens ID": [
+          "add", 
+          "Unknown 5-16mm"
+        ], 
+        "Quality": [
+          "add", 
+          "Superfine"
+        ], 
+        "Exposure Compensation": [
+          "add", 
+          "0"
+        ]
+      }, 
+      "local psnr": 19.094858397271157, 
+      "op": "AntiForensicExifQuantizationTable"
+    }, 
+    {
+      "global": "yes", 
+      "recordMaskInComposite": "no", 
+      "inputmaskownership": "no", 
+      "linkcolor": "170 234 167", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "source": 10, 
+      "arguments": {
+        "function": "maskgen.tool_set.seamCompare"
+      }, 
+      "username": "duck", 
+      "description": "", 
+      "change size category": "large", 
+      "change size ratio": 0.05557395833333333, 
+      "editable": "yes", 
+      "softwareName": "PIL", 
+      "automated": "no", 
+      "inputmaskname": "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve_select.png", 
+      "ctime": "2017-08-02 18:12:43", 
+      "maskname": "839d311f7057ff4514f5644327b852fe_fa01fase__mask.png", 
+      "shape change": "(0, -100)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "1600x1200", 
+          "1500x1200"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2017:08:02 21:44:51", 
+          "2017:08:02 21:47:31"
+        ], 
+        "Image Width": [
+          "change", 
+          "1600", 
+          "1500"
+        ], 
+        "File Name": [
+          "change", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea.png", 
+          "ff0b47fa9f343b3bc5547e8f6b0b83ea_seamcarve.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "1.9", 
+          "1.8"
+        ], 
+        "File Size": [
+          "change", 
+          "7.3 MB", 
+          "6.9 MB"
+        ], 
+        "File Modification Date/Time": [
+          "change", 
+          "2017:08:02 17:44:52-04:00", 
+          "2017:08:02 17:47:32-04:00"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2017:08:02 18:22:55-04:00", 
+          "2017:08:02 18:12:19-04:00"
+        ], 
+        "File Creation Date/Time": [
+          "change", 
+          "2017:08:02 17:44:51-04:00", 
+          "2017:08:02 17:47:31-04:00"
+        ]
+      }, 
+      "softwareVersion": "1.1.7", 
+      "target": 7, 
+      "op": "TransformSeamCarving", 
+      "transform matrix": {
+        "c": 3, 
+        "r": 3, 
+        "r0": [
+          0.9406737898835643, 
+          0.0029332697596295225, 
+          -2.8177821196601402
+        ], 
+        "r1": [
+          -0.0007755809317402361, 
+          1.0038947535600187, 
+          0.5654671196884328
+        ], 
+        "r2": [
+          1.0934658664347162e-06, 
+          1.8336380095764934e-06, 
+          1.0
+        ]
+      }
+    }
+  ], 
+  "multigraph": false
+}

@@ -4,6 +4,7 @@ from maskgen import graph_output
 import os
 import csv
 from test_support import TestSupport
+from maskgen.support import getPathValuesFunc
 import numpy as np
 
 from maskgen.scenario_model import  ImageProjectModel
@@ -13,11 +14,6 @@ from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 
 
 class TestToolSet(TestSupport):
-    def test_aproject(self):
-        self.addFileToRemove('test_graph_output.png')
-        scModel = ImageProjectModel(self.locateFile('images/sample.json'))
-        graph_output.ImageGraphPainter(scModel.getGraph()).outputToFile('test_graph_output.png')
-        self.assertTrue(os.path.exists('test_graph_output.png'))
 
     def test_composite(self):
         scModel = ImageProjectModel(self.locateFile('images/sample.json'))
@@ -26,7 +22,7 @@ class TestToolSet(TestSupport):
         probeSet = scModel.getProbeSet(compositeBuilders=[Jpeg2000CompositeBuilder,ColorCompositeBuilder])
         self.assertTrue(len(probeSet) == 2)
         self.assertTrue(len([x for x in probeSet if x.edgeId == ('input_mod_2','input_mod_2_3')]) == 1)
-        scModel.toCSV('test_composite.csv',additionalpaths=['linkcolor', 'basenode'])
+        scModel.toCSV('test_composite.csv',additionalpaths=[getPathValuesFunc('linkcolor'), 'basenode'])
         self.addFileToRemove('test_composite.csv')
         with open('test_composite.csv','rb') as fp:
             reader = csv.reader(fp)
@@ -45,9 +41,9 @@ class TestToolSet(TestSupport):
         model = ImageProjectModel(self.locateFile('images/sample.json'))
         model.assignColors()
         model.selectEdge('input_mod_1', 'input_mod_2')
-        prior_probes = model.constructPathProbes(start='input_mod_1')
+        prior_probes = model.getPathExtender().constructPathProbes(start='input_mod_1')
         prior_composite = prior_probes[-1].composites['color']['image']
-        new_probes = model.extendCompositeByOne(prior_probes)
+        new_probes = model.getPathExtender().extendCompositeByOne(prior_probes)
         composite = new_probes[-1].composites['color']['image']
         self.assertTrue(sum(sum(np.all(prior_composite.image_array != [255, 255, 255], axis=2))) -
                         sum(sum(np.all(composite.image_array != [255, 255, 255], axis=2))) < 100)

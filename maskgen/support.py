@@ -68,9 +68,9 @@ def setPathValue(d, path, value):
     if pos < 0:
         if listpos is not None:
             d[path][listpos] = value
-        elif value is None:
+        elif value is None and path in d:
             d.pop(path)
-        else:
+        elif value is not None:
             d[path] = value
     elif listpos is not None:
         setPathValue(d[path[0:pos]][listpos], nextpath, value)
@@ -78,6 +78,15 @@ def setPathValue(d, path, value):
         if path[0:pos] not in d:
             d[path[0:pos]] = {}
         setPathValue(d[path[0:pos]], nextpath, value)
+
+def getPathValuesFunc(path):
+    from functools import partial
+
+    def getValuePath(path, d, **kwargs):
+        return getPathValues(d, path)
+
+    return partial(getValuePath, path)
+
 
 def getPathValues(d, path):
     """
@@ -161,7 +170,7 @@ def getValue(obj, path, defaultValue=None, convertFunction=None):
                 result = []
                 for item in current:
                     v = getValue(item, path, defaultValue=defaultValue, convertFunction=convertFunction)
-                    if v:
+                    if v is not None:
                         result.append(v)
                 return result
         return getValue(current, path, defaultValue=defaultValue, convertFunction=convertFunction)

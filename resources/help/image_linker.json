@@ -2,674 +2,900 @@
     "project": {
         "username": {
             "images": []
-        }, 
+        },
         "projectdescription": {
             "images": []
-        }, 
+        },
         "validationdate": {
             "images": []
-        }, 
+        },
         "creator": {
             "images": []
-        }, 
+        },
         "provenance": {
             "images": []
-        }, 
+        },
         "validatedby": {
             "images": []
-        }, 
+        },
         "qacomment": {
             "images": []
-        }, 
+        },
         "organization": {
             "images": []
-        }, 
+        },
         "validation": {
             "images": []
-        }, 
+        },
         "technicalsummary": {
             "images": []
         }
-    }, 
+    },
     "semanticgroup": {
         "Location Change": {
             "images": [
-                "location_change.png"
+                "semanticSlides/location_change.png"
             ]
-        }, 
+        },
         "Aging": {
             "images": [
-                "aging.png"
+                "semanticSlides/aging.png"
             ]
-        }, 
+        },
         "Dialog Change": {
             "images": [
-                "dialog_change.png"
+                "semanticSlides/dialog_change.png"
             ]
-        },  
+        },
         "Disaster": {
             "images": [
-                "disaster.png"
+                "semanticSlides/disaster.png"
             ]
-        }, 
+        },
         "Face Manipulations": {
             "images": [
-                "face_manipulations.png"
+                "semanticSlides/face_manipulations.png"
             ]
-        }, 
+        },
         "Wound": {
             "images": [
-                "wound.png"
+                "semanticSlides/wound.png"
             ]
-        }, 
+        },
         "Timeofday": {
             "images": [
-                "timeofday.png"
+                "semanticSlides/timeofday.png"
             ]
-        }, 
+        },
         "Date and Time": {
             "images": [
-                "dateandtime.png"
+                "semanticSlides/dateandtime.png"
             ]
-        }, 
+        },
         "Tattoos": {
             "images": [
-                "tattoos.png"
+                "semanticSlides/tattoos.png"
             ]
-        }, 
+        },
         "Crowd Relocation": {
             "images": [
-                "crowd_relocation.png"
+                "semanticSlides/crowd_relocation.png"
             ]
-        }, 
+        },
         "Weather Changes": {
             "images": [
-                "weather_changes.png"
+                "semanticSlides/weather_changes.png"
             ]
-        }, 
+        },
         "Cadaver": {
             "images": [
-                "cadaver.png"
+                "semanticSlides/cadaver.png"
             ]
-        }, 
+        },
         "Ambience Audio Swap": {
             "images": [
-                "ambience_audio_swap.png"
+                "semanticSlides/ambience_audio_swap.png"
             ]
-        }, 
+        },
         "Personal Appearance": {
             "images": [
-                "personal_appearance.png"
+                "semanticSlides/personal_appearance.png"
             ]
-        }, 
+        },
         "Mood Change": {
             "images": [
-                "mood_change.png"
+                "semanticSlides/mood_change.png"
             ]
-        }, 
+        },
         "Reflection Manipulations": {
             "images": [
-                "reflection_manipulations.png"
+                "semanticSlides/reflection_manipulations.png"
             ]
-        }, 
+        },
         "Building Relocation": {
             "images": [
-                "building_relocation.png"
+                "semanticSlides/building_relocation.png"
             ]
-        }, 
+        },
         "ENF": {
             "images": [
-                "enf.png"
+                "semanticSlides/enf.png"
             ]
-        }, 
+        },
         "AntiForensic Illumination": {
-            "images": ["antiforensic_illumination.png"
+            "images": [
+                "semanticSlides/antiforensic_illumination.png"
 			],
-			"url":["http://www.cosy.sbg.ac.at/~uhl/mmsec/acm05.pdf"
+			"url":[
+                "http://www.cosy.sbg.ac.at/~uhl/mmsec/acm05.pdf"
 			]
-        }, 
+        },
         "Data Embedding Watermark": {
             "images": [
-                "data_embedding_watermark.png"
+                "semanticSlides/data_embedding_watermark.png"
             ]
-        }, 
+        },
         "Manhattan World": {
             "images": [
-                "manhattan_world.png"
+                "semanticSlides/manhattan_world.png"
             ]
-        }, 
+        },
         "Building Destruction": {
             "images": [
-                "building_destruction.png"
+                "semanticSlides/building_destruction.png"
             ]
-        }, 
+        },
         "Shadow Manipulations": {
             "images": [
-                "shadow_manipulations.png"
+                "semanticSlides/shadow_manipulations.png"
             ]
-        }, 
+        },
         "Data Embedding Steganography": {
-            "images": []
-        }, 
+            "images": [
+				"semanticSlides/data_embedding_stego.png"
+			]
+        },
         "Voice Audio Swap": {
             "images": [
-                "voice_audio_swap.png"
+                "semanticSlides/voice_audio_swap.png"
             ]
-        }, 
+        },
         "Date Burn-in": {
             "images": [
-                "dateburnin.png"
+                "semanticSlides/dateburnin.png"
             ]
-        }
-    }, 
+        },
+		"Falsifying Documents": {
+			"images": [
+				"semanticSlides/falsifying_documents.png"
+			]
+		},
+		"Drone Video Tests": {
+			"images": [
+				"semanticSlides/drone_test_video.png"
+			]
+		},
+		"splice/copy": {
+			"images": [
+				"semanticSlides/splice.png"
+			]
+		},
+		"Frame From Video": {
+			"images": [
+				"semanticSlides/frame_from_video.png"
+			]
+		}
+    },
     "operation": {
-        "FilterConvolutionKernel": {
-			"images":["convolutionkernel.png"
-			],
-            "url": ["https://en.wikipedia.org/wiki/Kernel_(image_processing)"
+		"AudioCopyAdd": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "AddCameraModel": {
-            "images": []
-        }, 
-        "ArtificialLighting": {
-            "images": [
-				"artificiallighting.png",
-                "cgi_add_lighting.png"
-            ]
-        }, 
-        "LayerOpacity": {
-            "images": [
-				"opacityfill1.png",
-                "opacityfill2.png"
-            ]
-        }, 
-        "LayerFill": {
-            "images": [
-                "opacityfill1.png",
-				"opacityfill2.png"
-            ]
-        }, 
-        "TimeAlterationEcho": {
-            "images": ["timealteration.png"
+		},
+		"AudioSample": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "AntiForensicCopyExif": {
-            "images": ["antiforensic.png"
+		},
+		"DeleteAudioSample": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "Blur": {
-            "images": [
-                "blur.png",
-				"blur2.png",
-				"blur3.png"
-            ]
-        }, 
-        "TimeAlterationWarp": {
-            "images": ["timealteration.png"
+		},
+		"AddAudioSample": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "OutputMP4": {
-            "images": ["outputAV.png"
+		},
+		"AudioEffect": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "OverlayObject": {
-            "images": ["overlayobject.png"
+		},
+		"AudioFilter": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "DigitalPenDraw": {
-            "images": ["digitalpendraw.png"
+		},
+		"AudioAmplify": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "Vibrance": {
-            "images": [
-                "color_vibrance.png", 
-				"vibrance2.png",
-                "color.png"
-				
-            ]
-        }, 
-        "OutputBmp": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "SocialMedia": {
-            "images": [
-                "socialmedia.png"
-            ]
-        }, 
-        "TransformResize": {
-            "images": ["Transforms.png"
+		},
+		"AudioReverb": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "OutputPng": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "AudioSample": {
-            "images": ["audio.png"
+		},
+		"AudioCompress": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "Exposure": {
-            "images": [
-                "exposure.png",
-				"exposure2.png"
-            ]
-        }, 
-        "OutputCopy": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "Sharpening": {
-            "images": [
-                "sharpening.png",
-				"sharpening2.png"
-            ]
-        }, 
-        "Handwriting": {
-            "images": ["handwriting.png"
+		},
+		"ReplaceAudioSample": {
+			"images": [
+				"operationSlides/audio.png"
 			]
-        }, 
-        "ObjectCGI": {
-            "images": ["objectcgi.png"
-			],
-			"url": ["https://stock.adobe.com/3d-assets"
+		},
+		"CameraMovement": {
+			"images": [
+				"operationSlides/video_additional_effects.png"
 			]
-        }, 
-        "OutputMOV": {
-            "images": ["outputAV.png"
+		},
+		"Fading": {
+			"images": [
+				"operationSlides/video_additional_effects.png"
 			]
-        }, 
-        "AudioCompress": {
-            "images": ["audio.png"]
-        }, 
-        "SelectImageFromFrame": {
-            "images": ["selectAV.png"
+		},
+		"Mosaic": {
+			"images": [
+				"operationSlides/mosaic2.png",
+				"operationSlides/mosaic.png"
 			]
-        }, 
-        "PasteImageSpliceToFrames": {
-            "images": ["pasteAV.png"]
-        }, 
-        "PasteSampled": {
-            "images": [
-                "pastesampled.png",
-				"pastesampled2.png",
-				"pastesampled3.png",
-				"pastesplicevspastesampled.png",
-				"pastespliceblend.png"
-            ]
-        }, 
-        "MotionBlur": {
-            "images": ["filterAV.png"
+		},
+		"ReduceInterlaceFlicker": {
+			"images": [
+				"operationSlides/video_additional_effects.png"
 			]
-        }, 
-        "Synthesize": {
-            "images": []
-        }, 
-        "AddCamFingerprintAveragePRNUFromSet": {
-            "images": ["antiforensic.png"
+		},
+		"AddNoise": {
+			"images": [
+				"operationSlides/add_noise.png",
+				"operationSlides/add_noise2.png"
 			]
-        }, 
-        "AberrationCorrection": {
-            "images": ["antiforensic.png"
+		},
+		"Blur": {
+			"images": [
+				"operationSlides/blur.png",
+				"operationSlides/blur2.png",
+				"operationSlides/blur3.png"
 			]
-        }, 
-        "OutputTif": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "TransformMove": {
-            "images": ["Transforms.png"
+		},
+		"WarpStabilize": {
+			"images": [
+				"operationSlides/video_additional_effects.png"
 			]
-        }, 
-        "AddTransitions": {
-            "images": ["filterAV.png"
+		},
+		"Sharpening": {
+			"images": [
+				"operationSlides/sharpening.png",
+				"operationSlides/sharpening2.png"
 			]
-        }, 
-        "OutputAudioPCM": {
-            "images": ["outputAV.png"
+		},
+		"AddTransitions": {
+			"images": [
+				"operationSlides/video_additional_effects.png"
 			]
-        }, 
-        "OutputXVID": {
-            "images": ["outputAV.png"
+		},
+		"AntiForensicCopyExif": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "CopyPaste": {
-            "images": ["pasteAV.png"
+		},
+		"AddCameraModel": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "AudioCopyAdd": {
-            "images": ["audio.png"
+		},
+		"AntiForensicEditExif": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "TransformRotate": {
-            "images": ["Transforms.png"
+		},
+		"AntiForensicJPGCompression": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "LensDistortion": {
-            "images": []
-        }, 
-        "PasteFrames": {
-            "images": ["pasteAV.png"
+		},
+		"AntiForensicDither": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "AntiForensicEditExif": {
-            "images": ["antiforensic.png"]
-        }, 
-        "AntiForensicJPGCompression": {
-            "images": ["antiforensic.png"
+		},
+		"AntiForensicExifQuantizationTable": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "OutputAVI": {
-            "images": ["outputAV.png"
+		},
+		"CFACorrection": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "PasteSplice": {
-            "images": [
-                "pastesplice.png",
-				"pastesplice2.png",
-				"pastesplice3.png",
-				"pastespliceblend.png",
-				"pastesplicevspastesampled.png",
-				"pasteAV.png"
-            ]
-        }, 
-        "CutPaste": {
-            "images": ["pasteAV.png"
+		},
+		"LensDistortion": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "TransformSeamCarving": {
-            "images": ["Transforms.png"
+		},
+		"AddCamFingerprintPRNU": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "ImageInterpolation": {
-            "images": [
-                "color_interpolation.png", 
-                "color.png"
-            ]
-        }, 
-        "PostProcessingSizeUpDownOrgExif": {
-            "images": ["postprocessing.png"
+		},
+		"RemoveCamFingerprintPRNU": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "RemoveCamFingerprintPRNU": {
-            "images": ["antiforensic.png"]
-        }, 
-        "CameraRawFilter": {
-            "images": ["camerarawfilter.png"
+		},
+		"AddCamFingerprintAveragePRNUFromSet": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "DeleteAudioSample": {
-            "images": ["audio.png"
+		},
+		"RemoveCamFingerprintAveragePRNUFromSet": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "TransformShear": {
-            "images": ["Transforms.png"
+		},
+		"ErasureByGAN": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "TransformWarp": {
-            "images": ["Transforms.png"]
-        }, 
-        "Blend": {
-            "images": []
-        }, 
-        "TransformDownSample": {
-            "images": ["Transforms.png"
+		},
+		"AberrationCorrection": {
+			"images": [
+				"operationSlides/antiforensic.png"
 			]
-        }, 
-        "OverlayText": {
-            "images": ["overlaytext.png"]
-        }, 
-        "AudioReverb": {
-            "images": ["audio.png"
+		},
+		"ArtificialLighting": {
+			"images": [
+				"operationSlides/artificial_lighting.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "CFACorrection": {
-            "images": ["antiforensic.png"]
-        }, 
-        "AudioAmplify": {
-            "images": ["audio.png"]
-        }, 
-        "OutputDng": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "Gradient": {
-            "images": [
-                "cgi_gradient.png"
-            ]
-        }, 
-        "OutputM4": {
-            "images": ["outputAV.png"
+		},
+		"ArtificialReflection": {
+			"images": [
+				"operationSlides/artificial_reflection.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "SelectRegionFromFrames": {
-            "images": ["selectAV.png"
+		},
+		"ArtificialShadow": {
+			"images": [
+				"operationSlides/artificial_shadow.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "Contrast": {
-            "images": [
-                "contrast.png"
-            ]
-        }, 
-        "ArtificialReflection": {
-            "images": [
-                "reflection.png"
-            ]
-        }, 
-        "Hue": {
-            "images": [
-                "color_hue.png",
-				"color_hue2.png",
-                "color.png"
-            ]
-        }, 
-        "WarpStabilize": {
-            "images": ["Transforms.png"]
-        }, 
-        "AddAudioSample": {
-            "images": ["audio.png"]
-        }, 
-        "Levels": {
-            "images": ["levels.png",
-			"levelscurves.png",
-			"levelscurvescolors.png"
-            ]
-        }, 
-        "SelectRegion": {
-            "images": [
-                "select_region.png",
-				"selectAV.png"
-            ]
-        }, 
-        "AntiForensicExifQuantizationTable": {
-            "images": ["antiforensic.png"]
-        }, 
-        "Mosaic": {
-            "images": [
-                "mosaic.png"
-            ]
-        }, 
-        "TimeAlterationDifferenceEffect": {
-            "images": ["timealteration.png"
+		},
+		"ObjectCGI": {
+			"images": [
+				"operationSlides/object_cgi.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "FilterKeying": {
-            "images": ["filterAV.png"]
-        }, 
-        "TransformDistort": {
-            "images": ["Transforms.png"]
-        }, 
-        "CameraMovement": {
-            "images": ["filterAV.png"]
-        }, 
-        "PasteOverlay": {
-            "images": ["pasteAV.png"]
-        }, 
-        "ReplaceAudioSample": {
-            "images": ["audio.png"]
-        }, 
-        "ColorBalance": {
-            "images": [
-                "color_balance.png", 
-                "color.png"
-            ]
-        }, 
-        "Normalization": {
-            "images": ["normalization.png"],
-			"url":["https://en.wikipedia.org/wiki/Normalization_(image_processing)"]
-        }, 
-        "OutputPDF": {
-            "images": ["output.png"
+		},
+		"LayerOpacity": {
+			"images": [
+				"operationSlides/opacity_fill.png",
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
-        }, 
-        "TransformCrop": {
-            "images": ["Transforms.png"
+		},
+		"LayerFill": {
+			"images": [
+				"operationSlides/opacity_fill.png",
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
-        }, 
-        "TransformSkew": {
-            "images": ["Transforms.png"
+		},
+		"Blend": {
+			"images": [
+				"operationSlides/layer.png",
+				"operationSlides/layer2.png"
 			]
-        }, 
-        "CreativeFilter": {
-            "images": [
-                "filter_creative.png",
-				"creativefilter2.png"
-            ]
-        }, 
-        "TimeAlterationDisplacementEffect": {
-            "images": ["timealteration.png"
+		},
+		"SocialMedia": {
+			"images": [
+				"operationSlides/laundering.png"
 			]
-        }, 
-        "AudioEffect": {
-            "images": ["audio.png"
+		},
+		"ColorBalance": {
+			"images": [
+				"operationSlides/color_balance.png",
+				"operationSlides/color.png"
 			]
-        }, 
-        "ArtificialShadow": {
-            "images": [
-                "shadow.png"
-            ]
-        }, 
-        "ColorLUT": {
-            "images": [
-				"colorlut.png"
-            ]
-        }, 
-        "TransformContentAwareScale": {
-            "images": ["Transforms.png"]
-        }, 
-        "SelectCropFrames": {
-            "images": ["selectAV.png"
+		},
+		"ColorLUT": {
+			"images": [
+				"operationSlides/color_lut.png",
+				"operationSlides/color.png"
 			]
-        }, 
-        "AntiForensicDither": {
-            "images": ["antiforensic.png"
+		},
+		"CGIFill": {
+			"images": [
+				"operationSlides/CGI_fill.png",
+				"operationSlides/cgi_fill2.png",
+				"operationSlides/cgi.png"
 			]
-        }, 
-        "OutputAudioCompressed": {
-            "images": ["outputAV.png"
+		},
+		"SynthesizeGAN": {
+			"images": [
+				"operationSlides/synthesizeGAN.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "TransformFlip": {
-            "images": ["Transforms.png"]
-        }, 
-        "Curves": {
-            "images": [
-                "curves.png", 
-                "levelscurves.png",
-				"levelscurvescolors.png"
-            ]
-        }, 
-        "SelectCutFrames": {
-            "images": ["selectAV.png"]
-        }, 
-        "ReduceInterlaceFlicker": {
-            "images": ["filterAV.png"
+		},
+		"SynthesizeVideo": {
+			"images": [
+				"operationSlides/synthesize_video.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
 			]
-        }, 
-        "TransformScale": {
-            "images": ["Transforms.png"]
-        }, 
-        "AddNoise": {
-            "images": [
-                "addnoise.png",
-				"noise2.png"
-            ]
-        }, 
-        "TransformAffine": {
-            "images": ["Transforms.png"]
-        }, 
-        "DuplicateFrameDrop": {
-            "images": []
-        }, 
-        "Saturation": {
-            "images": [
-                "saturation.png",
-				"saturation2.png"
-            ]
-        }, 
-        "TimeAlterationPosterizeTime": {
-            "images": ["timealteration.png"
+		},
+		"Hue": {
+			"images": [
+				"operationSlides/hue.png",
+				"operationSlides/hue2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
-        }, 
-        "AudioFilter": {
-            "images": ["audio.png"
+		},
+		"Saturation": {
+			"images": [
+				"operationSlides/saturation.png",
+				"operationSlides/saturation2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
-        }, 
-        "CGIFill": {
-            "images": [
-                "cgi_fill.png"
-            ]
-        }, 
-        "ContentAwareFill": {
-            "images": [
-                "contentawarefill.png"
-            ]
-        }, 
-        "Recapture": {
-            "images": ["recapture.png",
-			"recapture1.png",
-			"recapture2.png",
-			"recapture3.png",
-			"postprocessing.png"
+		},
+		"Vibrance": {
+			"images": [
+				"operationSlides/vibrance.png",
+				"operationSlides/vibrance2.png",
+				"operationSlides/color.png",
+				"operationSlides/color2.png"
 			]
-        }, 
-        "Luminosity": {
-            "images": ["luminosity.png"
+		},
+		"CreativeFilter": {
+			"images": [
+				"operationSlides/creative_filter.png",
+				"operationSlides/creative_filter2.png"
 			]
-        }, 
-        "OutputMosaic": {
-            "images": ["outputAV.png"
+		},
+		"ContentAwareFill": {
+			"images": [
+				"operationSlides/content_aware_fill.png",
+				"operationSlides/content_aware_fill2.png"
 			]
-        }, 
-        "RemoveCamFingerprintAveragePRNUFromSet": {
-            "images": ["antiforensic.png"
+		},
+		"GANFill": {
+			"images": [
+				"operationSlides/GAN_fill.png"
 			]
-        }, 
-        "SelectRemove": {
-            "images": [
-                "select_remove.png"
-            ]
-        }, 
-        "TransformReverse": {
-            "images": ["Transforms.png"
+		},
+		"Gradient": {
+			"images": [
+				"operationSlides/gradient.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png",
+				"operationSlides/cgi3.png"
 			]
-        }, 
-        "OutputJpg": {
-            "images": [
-                "output.png"
-            ]
-        }, 
-        "AddCamFingerprintPRNU": {
-            "images": ["antiforensic.png"]
-        }, 
-        "Fading": {
-            "images": []
-        }
+		},
+		"PasteSampled": {
+			"images": [
+				"operationSlides/paste_sampled.png",
+				"operationSlides/paste_sampled_clone.png",
+				"operationSlides/paste_sampled_secondary_workflow.png"
+			]
+		},
+		"FilterConvolutionKernel": {
+			"images": [
+				"operationSlides/filter_convolution_kernal.png"
+			]
+		},
+		"MotionBlur": {
+			"images": [
+				"operationSlides/blur.png"
+			]
+		},
+		"FilterKeying": {
+			"images": [
+				"operationSlides/filter2.png"
+			]
+		},
+		"Normalization": {
+			"images": [
+				"operationSlides/normalization.png"
+			]
+		},
+		"Contrast": {
+			"images": [
+				"operationSlides/contrast.png"
+			]
+		},
+		"Curves": {
+			"images": [
+				"operationSlides/curves.png",
+				"operationSlides/levels_curves.png",
+				"operationSlides/levels_curves_color.png"
+			]
+		},
+		"Exposure": {
+			"images": [
+				"operationSlides/exposure.png",
+				"operationSlides/exposure2.png"
+			]
+		},
+		"Levels": {
+			"images": [
+				"operationSlides/levels.png",
+				"operationSlides/levels_curves.png",
+				"operationSlides/levels_curves_color.png"
+			]
+		},
+		"Luminosity": {
+			"images": [
+				"operationSlides/luminosity.png"
+			]
+		},
+		"DigitalPenDraw": {
+			"images": [
+				"operationSlides/digital_pen_draw.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
+			]
+		},
+		"Handwriting": {
+			"images": [
+				"operationSlides/handwriting.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
+			]
+		},
+		"OverlayObject": {
+			"images": [
+				"operationSlides/overlay_object.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
+			]
+		},
+		"OverlayText": {
+			"images": [
+				"operationSlides/overlay_text.png",
+				"operationSlides/cgi.png",
+				"operationSlides/cgi2.png"
+			]
+		},
+		"OutputCopy": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+
+			]
+		},
+		"OutputBmp": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputAudioPCM": {
+			"images": [
+				"operationSlides/output.png"
+			]
+		},
+		"OutputAudioCompressed": {
+			"images": [
+				"operationSlides/output.png"
+			]
+		},
+		"OutputDng": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputJpg": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputJp2": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputNITF": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputPng": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputPDF": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputTif": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
+		"OutputXVID": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
+		"OutputMOV": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
+		"OutputMP4": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
+		"OutputM4": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
+		"OutputAVI": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
+		"PasteSplice": {
+			"images": [
+				"operationSlides/paste_splice.png",
+				"operationSlides/paste_splice_blend_workflow_donor_image.png",
+				"operationSlides/paste_splice_clone.png",
+				"operationSlides/paste_splice_sampled_summary.png",
+				"operationSlides/video_pastes.png",
+				"operationSlides/workflow_overview.png"
+			]
+		},
+		"PasteFrames": {
+			"images": [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"PasteOverlay": {
+			"images": [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"PasteImageSpliceToFrames": {
+			"images" : [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"CopyPaste": {
+			"images": [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"CutPaste": {
+			"images": [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"PostProcessingSizeUpDownOrgExif": {
+			"images": [
+				"operationSlides/post_processing.png"
+			]
+		},
+		"Recapture": {
+			"images": [
+				"operationSlides/post_processing.png",
+				"operationSlides/recapture_types.png",
+				"operationSlides/recapture_considerations.png",
+				"operationSlides/recapture_journal_data.png",
+				"operationSlides/recapture_manipulations.png",
+				"operationSlides/recapture_no_journal_data.png",
+				"operationSlides/recapture_tips.png"
+			]
+		},
+		"SelectRegion": {
+			"images": [
+				"operationSlides/select.png",
+				"operationSlides/select_region.png"
+			]
+		},
+		"SelectRegionFromFrames": {
+			"images": [
+				"operationSlides/select.png"
+			]
+		},
+		"SelectCutFrames": {
+			"images": [
+				"operationSlides/select.png"
+			]
+		},
+		"DuplicateFrameDrop": {
+			"images": [
+				"operationSlides/post_processing.png"
+			]
+		},
+		"SelectCropFrames": {
+			"images": [
+				"operationSlides/select.png"
+			]
+		},
+		"SelectRemove": {
+			"images": [
+				"operationSlides/select_remove.png",
+				"operationSlides/select.png"
+			]
+		},
+		"SelectImageFromFrame": {
+			"images": [
+				"operationSlides/select.png"
+			]
+		},
+		"OutputMosaic": {
+			"images": [
+				"operationSlides/output_video.png",
+				"operationSlides/output.png"
+			]
+		},
+		"TimeAlterationEcho": {
+			"images": [
+				"operationSlides/time_alteration.png"
+			]
+		},
+		"TimeAlterationFrameRate": {
+			"images": [
+				"operationSlides/time_alteration.png"
+			]
+		},
+		"TimeAlterationDifferenceEffect": {
+			"images": [
+				"operationSlides/time_alteration.png"
+			]
+		},
+		"TimeAlterationDisplacementEffect": {
+			"images": [
+				"operationSlides/time_alteration.png"
+			]
+		},
+		"TimeAlterationWarp": {
+			"images": [
+				"operationSlides/time_alteration.png"
+			]
+		},
+		"ImageInterpolation": {
+			"images": [
+				"operationSlides/interpolation.png",
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformAffine": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformContentAwareScale": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformCrop": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformCropResize": {
+			"images": [
+				"operationsSlides/transform.png"
+			]
+		},
+		"EncodeMessage": {
+			"images": [
+				"operationSlides/stego.png"
+			]
+		},
+		"TransformDistort": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformFlip": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformMove": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformResize": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformRotate": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformScale": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformSeamCarving": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformShear": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformSkew": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformWarp": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformDownSample": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformReverse": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"DeepFakeFaceSwap": {
+			"images": [
+				"operationSlides/cgi3.png"
+			]
+		},
+		"MediaStacking": {
+			"images": [
+				"operationSlides/layer.png"
+			]
+		},
+		"FrameBlend": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		}
     }
 }

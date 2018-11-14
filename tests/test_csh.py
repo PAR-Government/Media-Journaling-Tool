@@ -568,10 +568,11 @@ class TestToolSet(unittest.TestCase):
                     self.assertEqual(0, quadsum,msg=str((i,j)))
         #print seq2
 
-    def test_hash(self):
+    def xtest_hash(self):
         length_of_tables = 6
         tables= generateTableSet(number_of_tables=4, length_of_tables=length_of_tables)
         wh = WH(gen_wh(8))
+        # np.random.seed(3)
         codes= {}
         patch = np.random.randint(0, 128, (8, 8))
         print "test uniqueness within table set"

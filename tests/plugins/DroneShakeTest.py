@@ -2,7 +2,7 @@ import unittest
 import os
 import sys
 from maskgen import plugins
-from maskgen.video_tools import getShape
+from maskgen.video_tools import get_shape_of_video
 from maskgen import tool_set
 from maskgen.cv2api import cv2api_delegate
 from tests.test_support import TestSupport

@@ -1,6 +1,7 @@
 import unittest
 import os
-from maskgen import plugins, video_tools
+from maskgen import plugins, ffmpeg_api
+from maskgen.support import getValue
 from tests.test_support import TestSupport
 
 
@@ -31,15 +32,17 @@ class CropSelectorTestCase(TestSupport):
                            **kwargs)
         self.filesToKill.append(filename_output1)
         self.assertTrue(error is None)
-        frames1 = int(get_channel_data(video_tools.getMeta(filename, show_streams=True)[0], 'video')[0]['nb_frames'])
+        frames1 = int(get_channel_data(ffmpeg_api.get_meta_from_video(filename, show_streams=True)[0], 'video')[0]['nb_frames'])
         frames2 = int(
-            get_channel_data(video_tools.getMeta(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
+            get_channel_data(ffmpeg_api.get_meta_from_video(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
         diff = frames1-frames2
         self.assertTrue(diff>0)
         diff_time = int(args['End Time']) - int(args['Start Time'])+1
         self.assertEqual(diff, diff_time)
         filename_output2 = os.path.join(os.path.dirname(os.path.abspath(filename)), 'sample_out2a.avi')
         args['codec'] = 'XVID'
+        if getValue(args,'Frames to Add',0) < 1:
+            args['Frames to Add'] = 1
         print str(args)
         args, error = plugins.callPlugin('FlowDrivenVideoTimeWarp',
                                          None,
@@ -48,12 +51,12 @@ class CropSelectorTestCase(TestSupport):
                                          **args)
         self.filesToKill.append(filename_output2)
         self.assertTrue(error is None)
-        frames1 = int(get_channel_data(video_tools.getMeta(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
+        frames1 = int(get_channel_data(ffmpeg_api.get_meta_from_video(filename_output1, show_streams=True)[0], 'video')[0]['nb_frames'])
         frames2 = int(
-            get_channel_data(video_tools.getMeta(filename_output2, show_streams=True)[0], 'video')[0]['nb_frames'])
+            get_channel_data(ffmpeg_api.get_meta_from_video(filename_output2, show_streams=True)[0], 'video')[0]['nb_frames'])
         diff = frames2 - frames1
         self.assertTrue(diff > 0)
-        diff_time = int(args['End Time']) - int(args['Start Time'])
+        diff_time = int(args['End Time']) - int(args['Start Time']) + 1
         print str(args)
         self.assertEqual(diff, diff_time)
 

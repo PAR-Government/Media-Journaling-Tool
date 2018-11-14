@@ -14,14 +14,8 @@ class TestToolSet(TestSupport):
         f = open('test.log', 'w+')
         f.close()
         self.addFileToRemove('test.log')
-        if sys.platform.startswith('win'):
-            with self.assertRaises(ValueError):
-                tool_set.fileType(self.locateFile('test.log'))
-        else:
-            self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
+        self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
         self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
-
-
 
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
@@ -65,6 +59,13 @@ class TestToolSet(TestSupport):
         self.assertTrue(np.all(img3[10:15,10:15]==3))
         img3[10:15, 10:15] = 0
 
+    def testCropCompare(self):
+        import cv2
+        pre = tool_set.openImageFile(self.locateFile('tests/images/prefill.png')).to_array()
+        post = pre[10:-10,10:-10]
+        resized_post = cv2.resize(post, (pre.shape[1],pre.shape[0]))
+        mask, analysis = tool_set.cropResizeCompare(pre,resized_post, arguments={'crop width':pre.shape[1]-20,'crop height':pre.shape[0]-20})
+        self.assertEquals((10,10), tool_set.toIntTuple(analysis['location']))
 
     def test_fileMask(self):
         pre = tool_set.openImageFile(self.locateFile('tests/images/prefill.png'))
@@ -88,6 +89,10 @@ class TestToolSet(TestSupport):
             result =tool_set._remap(img1,mask,src_pts,dst_pts)
             self.assertTrue(np.all(result[55:65,15:25] == img1[20:30,50:60]))
 
+    def test_time_format(self):
+        t = tool_set.getDurationStringFromMilliseconds(100001.111)
+        self.assertEqual('00:01:40.001111',t)
+
     def test_timeparse(self):
         t, f = tool_set.getMilliSecondsAndFrameCount('00:00:00')
         self.assertEqual(1, f)
@@ -99,12 +104,8 @@ class TestToolSet(TestSupport):
         t,f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434')
         self.assertEqual(0, f)
         self.assertEqual(1690434, t)
-        t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10.434:23')
-        self.assertTrue(tool_set.validateTimeString('03:10:10.434:23'))
-        self.assertEqual(23, f)
-        self.assertEqual(1690434, t)
         t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10:23')
-        self.assertTrue(tool_set.validateTimeString('03:10:10:23'))
+        self.assertFalse(tool_set.validateTimeString('03:10:10:23'))
         self.assertEqual(23,f)
         self.assertEqual(1690000, t)
         t, f = tool_set.getMilliSecondsAndFrameCount('03:10:10:A', defaultValue=(0,0))
@@ -116,7 +117,7 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1000)
         self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1001)
-        self.assertFalse(time_manager.isBeforeTime())
+        self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1002)
         self.assertFalse(time_manager.isBeforeTime())
         self.assertFalse(time_manager.isPastTime())
@@ -133,9 +134,9 @@ class TestToolSet(TestSupport):
         time_manager.updateToNow(1008)
         self.assertTrue(time_manager.isPastTime())
         self.assertEqual(9,time_manager.getEndFrame() )
-        self.assertEqual(3, time_manager.getStartFrame())
+        self.assertEqual(4, time_manager.getStartFrame())
 
-        time_manager = tool_set.VidTimeManager(startTimeandFrame=(1000, 2), stopTimeandFrame=None)
+        time_manager = tool_set.VidTimeManager(startTimeandFrame=(999, 2), stopTimeandFrame=None)
         time_manager.updateToNow(999)
         self.assertTrue(time_manager.isBeforeTime())
         time_manager.updateToNow(1000)
@@ -161,6 +162,8 @@ class TestToolSet(TestSupport):
     def test_gray_writing(self):
         import os
         import sys
+        import time
+        s  = time.clock()
         writer = tool_set.GrayBlockWriter('test_ts_gw', 29.97002997)
         mask_set = list()
         for i in range(255):
@@ -180,13 +183,14 @@ class TestToolSet(TestSupport):
             pos += 1
         reader.close()
         self.assertEqual(255, pos)
+        print time.clock()- s
         suffix = 'm4v'
         if sys.platform.startswith('win'):
             suffix = 'avi'
         self.assertEquals('test_ts_gw_mask_33.3666666667.' + suffix,tool_set.convertToVideo(fn))
         self.assertTrue(os.path.exists('test_ts_gw_mask_33.3666666667.' + suffix))
 
-        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01:2')).size
+        size = tool_set.openImage('test_ts_gw_mask_33.3666666667.' + suffix, tool_set.getMilliSecondsAndFrameCount('00:00:01')).size
         self.assertTrue(size == (1920,1090))
         os.remove('test_ts_gw_mask_33.3666666667.'+suffix)
         os.remove('test_ts_gw_mask_33.3666666667.hdf5')
@@ -208,6 +212,14 @@ class TestToolSet(TestSupport):
         }
         self.assertTrue(tool_set.isHomographyOk(tool_set.deserializeMatrix(good_transform),450,450))
         self.assertFalse(tool_set.isHomographyOk(  tool_set.deserializeMatrix(bad_transform),8000,5320))
+
+    def test_time_stamp(self):
+        v1 = self.locateFile('tests/images/test.png')
+        v2 = self.locateFile('tests/images/donor_to_blend.png')
+        v3 = self.locateFile('tests/images/test_time_change.png')
+        self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v1))==0)
+        self.assertFalse(len(tool_set.dateTimeStampCompare(v1, v2))==0)
+        self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v3))==0)
 
 if __name__ == '__main__':
     unittest.main()

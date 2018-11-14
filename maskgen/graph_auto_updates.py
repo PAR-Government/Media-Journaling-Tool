@@ -8,6 +8,8 @@
 
 import logging
 from image_wrap import openImageFile,ImageWrapper
+from video_tools import get_frame_rate
+from graph_meta_tools import MetaDataExtractor
 import numpy as np
 from support import setPathValue ,getValue
 import tool_set
@@ -28,6 +30,20 @@ def updateJournal(scModel):
     upgrades = scModel.getGraph().getDataItem('jt_upgrades')
     upgrades = upgrades if upgrades is not None else []
     gopLoader = scModel.gopLoader
+
+    def apply_fix(fix, scModel, gopLoader):
+        try:
+            fix(scModel, gopLoader)
+            return True
+        except Exception as ex:
+            logging.getLogger('maskgen').error('Failed to apply fix {} for version {}:{}'.format(
+                fix.__name__, id, str(ex)
+            ))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logging.getLogger('maskgen').error(
+                ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+            return False
+
     fixes = OrderedDict(
         [("0.3.1115", [_replace_oldops]),
          ("0.3.1213", [_fixQT]),
@@ -55,7 +71,15 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI, _fixErasure])])
+         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI]),
+         ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
+         ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
+         ('0.5.0918.b370476d40', []),
+         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
+         ('0.5.0918.19c0afaab7', [_fixTool2]),
+         ('0.5.1105.665737a167', [])
+         ])
+
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
@@ -69,20 +93,14 @@ def updateJournal(scModel):
         else:
             fixes_needed = - len(versions)
     ok = True
+
     if fixes_needed < 0:
         for id in fixes.keys()[fixes_needed:]:
             logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
             for fix in fixes[id]:
-                try:
-                    fix(scModel, gopLoader)
-                except Exception as ex:
-                    logging.getLogger('maskgen').error('Failed to apply fix {} for version {}:{}'.format(
-                        fix.__name__,id, str(ex)
-                    ))
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    logging.getLogger('maskgen').error(
-                        ' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-                    ok = False
+                logging.getLogger('maskgen').info('Apply fix {} for {}'.format(fix.__name__, id))
+                ok &= apply_fix(fix, scModel, gopLoader)
+    apply_fix(_fixMandatory,scModel, gopLoader)
     #update to the max
     upgrades = fixes.keys()[-1:]
     if scModel.getGraph().getVersion() not in upgrades:
@@ -91,6 +109,203 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixNoSoftware(scModel, gopLoader):
+    """
+    fills in missing softwareName field.
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    from collections import Counter
+
+    used_software = []
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'Recapture':
+            setPathValue(edge, 'softwareName', 'Off Camera')
+        software_name = getValue(edge, 'softwareName', '')
+        if software_name != '' and software_name.lower() != 'no software':
+            used_software.append(software_name)
+
+    #use most commonly used software in the Journal if Empty
+    counter = Counter(used_software)
+    if len(counter) == 0:
+        return
+    most_used_software = counter.most_common(1)[0][0]
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        software_name = getValue(edge, 'softwareName', '')
+        if (software_name == '' or software_name.lower() == 'no software') and op_name != 'Donor':
+            setPathValue(edge, 'softwareName', most_used_software)
+
+def _fix_Inpainting_SoftwareName(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'PasteSampled' \
+                and getValue(edge, 'tool', '') == 'PostInpaint.py' \
+                and getValue(edge, 'softwareName', '') == '':
+            edge['softwareName'] = 'UoMInPainting'
+            edge['softwareVersion'] = '2.8'
+
+def _fixSelectRegionAutoJournal(scModel, gopLoader):
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        plugin_name = getValue(edge, 'plugin_name', '')
+        if plugin_name == 'SelectRegion':
+            setPathValue(edge, 'arguments.subject', 'other')
+
+    donor_base_tuples = scModel.getDonorAndBaseNodeTuples()
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        plugin_name = getValue(edge, 'plugin_name', '')
+        if plugin_name == 'PasteSplice':
+            for db_tuple in donor_base_tuples:
+                if to == db_tuple[0][1]:
+                    for idx in range(0, len(db_tuple[2])-1):
+                        to_node = db_tuple[2][idx]
+                        frm_node = db_tuple[2][idx+1]
+                        node_edge = scModel.G.get_edge(frm_node, to_node)
+                        if getValue(node_edge, 'op', '') == 'SelectRegion':
+                            setPathValue(edge, 'arguments.subject', getValue(node_edge, 'arguments.subject', 'other'))
+                            break
+            setPathValue(edge, 'arguments.purpose', 'add')
+
+
+def _fix_PosterizeTime_Op(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'TimeAlterationPosterizeTime':
+            edge['op'] = 'TimeAlterationFrameRate'
+
+def _fixVideoNode(scModel, gopLoader):
+    from scenario_model import VideoAddTool
+    from ffmpeg_api import get_stream_indices_of_type, is_vfr
+    tool = VideoAddTool()
+    def needs_rerun(meta):
+        indices = get_stream_indices_of_type(meta, 'video')
+        if indices:
+            return True
+        return False
+    for node_id in scModel.G.get_nodes():
+        node = scModel.G.get_node(node_id)
+        if getValue(node,'filetype','image') == 'video' and \
+                (getValue(node, 'media', None) is None or
+                  needs_rerun(getValue(node, 'media', []))):
+            logging.getLogger('maskgen').info('load data for {}'.format(scModel.G.get_pathname(node_id)))
+            node.update(tool.getAdditionalMetaData(scModel.G.get_pathname(node_id)))
+
+def _fixDonorVideoMask(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if edge['op'] == 'Donor' and \
+            scModel.getNodeFileType(frm) == 'video' and \
+            scModel.getNodeFileType(to) == 'video':
+            scModel.select((frm,to))
+            scModel.reproduceMask()
+
+def _fixMandatory(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        frm_file = scModel.G.get_pathname(frm)
+        frm_file_type = tool_set.fileType(frm_file)
+        args = getValue(edge,'arguments',{})
+        op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
+        missing = [param for param in op.mandatoryparameters.keys() if
+                   (param not in args or len(str(args[param])) == 0) and \
+                   ('source' not in op.mandatoryparameters[param] or op.mandatoryparameters[param][
+                       'source'] == frm_file_type)]
+        for missing_name in missing:
+            dv =  getValue(op.mandatoryparameters[missing_name],'defaultvalue',None)
+            if dv is not None:
+                args[missing_name] = dv
+        if len(args) > 0:
+            edge['arguments'] = args
+
+def _fixRawFilter(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if getValue(edge,'op','') == 'CameraRawFilter':
+            edge['op'] = 'CreativeFilter'
+
+def _fixMetaStreamReferences(scModel, gopLoader):
+    from re import search
+
+    def videoStreamDoesExist(nodeMeta):
+        from ffmpeg_api import get_stream_indices_of_type, get_meta_from_video
+        filepath = os.path.abspath(os.path.join(scModel.G.dir, nodeMeta['file']))
+        if os.path.exists(filepath):
+            meta, frames = get_meta_from_video(filepath, show_streams=True, with_frames=False, media_types=['audio', 'video'])
+            videoIndexes = get_stream_indices_of_type(meta, 'video')
+            return bool(videoIndexes)
+        else:
+            if 'codec_type' in nodeMeta:
+                return nodeMeta['codec_type'] == 'video'
+            else:
+                return getValue(nodeMeta,'filetype','video') == 'video'
+
+    def remap(stream, hasvideo = True):
+        index_map = {'0':'video', '1':'mono'} if hasvideo else {'0':'mono'}
+        for meta_key in stream.keys():
+            #safety if we already did this one from before.
+            if not 'video:' in meta_key or not 'mono:' in meta_key:
+                lookup = replace = ''
+                if meta_key[0].isdigit():  # handle first character being the lookup key
+                    lookup = replace = meta_key[0]
+                else:
+                    match = search(r"(#\d:\d)", meta_key)  #handle #0:0 pattern
+                    if match != None:
+                        lookup = match.group(0)[-1]
+                        replace = match.group(0) + '.' if match.start() == 0 else meta_key #replace #0:0. or whole key
+
+                if lookup in index_map:
+                    id = index_map[lookup]
+                elif lookup != '':  #add unknown lookup keys, assume audio.
+                    id = 'mono'
+                    tally = len([mapping for mapping in index_map.values() if id in mapping])
+                    if tally > 0:
+                        id = id + str(tally)
+                    index_map[lookup] = id
+                else:
+                    id = index_map['0'] #if no lookup key present, assume 0
+
+                if replace == meta_key or '.' in replace: #add colon separator if need be
+                    id = id + ':'
+
+                new_meta_key = meta_key.replace(replace, id) if replace != '' else id + ':' + meta_key
+                stream[new_meta_key] = stream.pop(meta_key)
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        frm_node = scModel.G.get_node(frm)
+        to_node = scModel.G.get_node(to)
+        metadiff = getValue(edge,'metadatadiff')
+        if metadiff is not None and type(metadiff) != list:
+            hasvideo = [videoStreamDoesExist(frm_node), videoStreamDoesExist(to_node)]
+            remap(metadiff, hasvideo=hasvideo[1])
+            edge['metadatadiff'] = metadiff
+        
+
+def _fixMetaDataDiff(scModel,gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        metadiff = getValue(edge,'metadatadiff')
+        if metadiff is not None:
+            if type(metadiff) == list:
+                md = {}
+                edge['metadatadiff'] = md
+                if len(metadiff) > 0:
+                    for k,v in metadiff[0].iteritems():
+                        parts = k.split(':')
+                        if len(parts) > 1:
+                            if parts[0] not in md:
+                                md[parts[0]]  = {}
+                            md[parts[0]][parts[1]] = v
+
+
 
 def _fixInputMasks(scModel,gopLoader):
     scModel.fixInputMasks()
@@ -109,7 +324,103 @@ def _fixPNGS(scModel,gopLoader):
         if imghdr.what(png_file) == 'tiff':
             openImageFile(png_file).save(png_file,format='PNG')
 
-def _fixErasure(scModel,gopLoader):
+def _repairNodeVideoStats(scModel,gopLoader):
+    """
+      USed to correct the use of the third ':' which indicated frames since time.
+      This caused confusion.  Users often used the the third ':' for milliseconds.
+      The journals are of course incorrect.  Cannot fix that here.
+      :param scModel:
+      :param gopLoader:
+      :return:
+      @type scModel: ImageProjectModel
+      """
+    import re
+    cross_attributes = ['codec_name','codec_tag','codec_long_name','codec_type',
+                        'codec_tag_string','profile','duration_ts','duration'
+                        'nb_frames']
+    video_attributes = ['avg_frame_rate','r_frame_rate','codec_time_base',
+                        'coded_width','coded_height','has_b_frames','sample_aspect_ratio',
+                        'display_aspect_ratio','color_space','timecode','is_avc',
+                        'start_pts','start_time','duration','duration_ts','pix_fmt',
+                        'width','height','nal_length_size','time_base','chroma_location']
+    audio_attributes = ['sample_rate','channels','channel_layout',
+                        'sample_fmt']
+    attributes_to_drop = ['index','id',
+                          'start_time',
+                          'bit_rate',
+                          'max_bit_rate',
+                          'bits_per_sample',
+                          'bits_per_raw_sample',
+                          'nb_read_frames',
+                          'nb_read_packets',
+                          re.compile('DISPOSITION:.*'),
+                          re.compile('TAG:.*'),
+                          'level',
+                          'color_range',
+                          'color_transfer',
+                          'color_primaries',
+                          'refs',
+                          'field_order',
+                          re.compile('.*SIDE_DATA.*'),
+                          re.compile('000.*:.*'),
+                          'displaymatrix']
+
+    def match_name_or_key(att_name_or_re,item_key):
+        is_not_re = type(att_name_or_re) in [str, unicode]
+        return (is_not_re and att_name_or_re == item_key) or \
+               (not is_not_re and att_name_or_re.match(item_key) is not None)
+
+    for node_id in scModel.getGraph().get_nodes():
+        node = scModel.getGraph().get_node(node_id)
+        codec_type = getValue(node, 'codec_type','video')
+        media = {}
+        for item_key in node.keys():
+            for att_name_or_re in attributes_to_drop:
+                if match_name_or_key(att_name_or_re,item_key):
+                        node.pop(item_key)
+            if 'audio' in media:
+                for att_name_or_re in audio_attributes:
+                    if match_name_or_key(att_name_or_re, item_key):
+                        media['audio'][item_key] = node.pop(item_key)
+            if 'video' in media:
+                for att_name_or_re in video_attributes:
+                    if match_name_or_key(att_name_or_re, item_key):
+                        media['video'][item_key] = node.pop(item_key)
+            for att_name_or_re in cross_attributes:
+                if match_name_or_key(att_name_or_re, item_key):
+                    if codec_type in media:
+                        media[codec_type][item_key] = node.pop(item_key)
+        if len(media) > 0:
+            node['media'] = media
+
+
+def _fixTimeStrings(scModel, gopLoader):
+    """
+    USed to correct the use of the third ':' which indicated frames since time.
+    This caused confusion.  Users often used the the third ':' for milliseconds.
+    The journals are of course incorrect.  Cannot fix that here.
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    from tool_set import getMilliSecondsAndFrameCount,getDurationStringFromMilliseconds
+    extractor = MetaDataExtractor(scModel.getGraph())
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        args = getValue(edge,'arguments',{})
+        try:
+            for k,v in args.iteritems():
+                if 'Time' in k and  v.count(':') == 3:
+                    m,f = getMilliSecondsAndFrameCount(v)
+                    rate = get_frame_rate(extractor.getMetaDataLocator(frm))
+                    if rate is not None:
+                        m += int(f*1000.0/rate)
+                    v = getDurationStringFromMilliseconds(m)
+                    setPathValue(edge,'arguments.{}'.format(k),v)
+        except:
+            pass
+
+def _fixErasure(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if getValue(edge,'op','') == 'ErasureByGAN':
@@ -118,7 +429,7 @@ def _fixErasure(scModel,gopLoader):
             else:
                 edge['op'] = 'ErasureByGAN::Multi'
 
-def _emptyMask(scModel,gopLoader):
+def _emptyMask(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         if 'videomasks' in edge:
@@ -145,9 +456,9 @@ def _fixTool(scModel,gopLoader):
     if description is not None:
         scModel.setProjectData('projectdescription', description)
     tool_name = 'jtui'
-    if summary.lower().startswith('automate'):
-        tool_name = 'jtproject'
     creator = scModel.getGraph().getDataItem('creator')
+    if summary.lower().startswith('automate') or creator in ['alice', 'dupre']:
+        tool_name = 'jtproject'
     modifier_tools = [tool_name]
     # no easy way to find extensions, since all extensions are plugins
     modified_users = set()
@@ -162,8 +473,26 @@ def _fixTool(scModel,gopLoader):
     if scModel.getGraph().getDataItem('modifier_tools') is None:
         scModel.getGraph().setDataItem('modifier_tools', modifier_tools)
 
-    if scModel.getGraph().getDataItem('creator_tool') is None:
-        scModel.getGraph().setDataItem('creator_tool', tool_name)
+    scModel.getGraph().setDataItem('creator_tool', tool_name)
+
+def _fixTool2(scModel,gopLoader):
+    """
+
+    :param scModel:
+    :param gopLoader:
+    :return:
+    @type scModel: ImageProjectModel
+    """
+
+    def replace_tool(tool):
+        return 'jtui' if 'MaskGenUI' in tool else tool
+
+    modifier_tools = scModel.getGraph().getDataItem('modifier_tools')
+    if modifier_tools is not None:
+        scModel.getGraph().setDataItem('modifier_tools', [replace_tool(x) for x in modifier_tools])
+
+    creator_tool= scModel.getGraph().getDataItem('creator_tool')
+    scModel.getGraph().setDataItem('creator_tool', replace_tool(creator_tool))
 
 def _fixValidationTime(scModel,gopLoader):
     import time
@@ -230,8 +559,11 @@ def _fixVideoMasksEndFrame(scModel, gopLoader):
         end_time = getValue(edge, 'arguments.End Time')
         for mask in masks:
             if end_time is None and mask['type'] == 'video':
-                result = video_tools.getFrameCount(scModel.G.get_pathname(frm))
-                if 'endframe' not in result:
+                result = video_tools.get_frame_count(scModel.G.get_pathname(frm)) \
+                        if os.path.exists(scModel.G.get_pathname(frm)) else None
+                if result is None or 'endframe' not in result:
+                    rate = float(video_tools.get_rate_from_segment(mask))
+                    mask['error'] = getValue(mask,'error',0) + 2*float(1000.0/rate)
                     continue
                 diff = result['endframe'] - mask['endframe']
                 if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
@@ -259,17 +591,17 @@ def _fixFrameRate(scModel,gopLoader):
                 elif mask['rate']<0:
                     mask['rate'] = float(mask['rate'])*1000.0
             else:
-                mask['rate'] = video_tools.getRateFromSegment(mask)
+                mask['rate'] = video_tools.get_rate_from_segment(mask)
             if 'startframe' not in mask:
-                mask['startframe'] = video_tools.getStartFrameFromSegment(mask)
+                mask['startframe'] = video_tools.get_start_frame_from_segment(mask)
             if 'endframe' not in mask:
-                mask['endframe'] = video_tools.getEndFrameFromSegment(mask)
+                mask['endframe'] = video_tools.get_end_frame_from_segment(mask)
             if 'starttime' not in mask:
-                mask['starttime'] = video_tools.getStartTimeFromSegment(mask)
+                mask['starttime'] = video_tools.get_start_time_from_segment(mask)
             if 'endtime' not in mask:
-                mask['endtime'] = video_tools.getEndTimeFromSegment(mask)
+                mask['endtime'] = video_tools.get_end_time_from_segment(mask)
             if 'frames' not in mask:
-                mask['frames'] = video_tools.getFramesFromSegment(mask)
+                mask['frames'] = video_tools.get_frames_from_segment(mask)
             if 'type' not in mask:
                 mask['type'] = 'audio' if 'Audio' in edge['op'] else 'video'
 
@@ -281,6 +613,19 @@ def _fixRANSAC(scModel,gopLoader):
         _updateEdgeHomography(args)
         if edge['op'] == 'Donor':
             edge['homography max matches'] = 20
+
+def _fixVideoMasks(scModel, gopLoader):
+    def contains_files(edge):
+        return len([m for m in getValue(edge, 'videomasks', []) if getValue(m,'videosegment','') != '']) > 0
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        if 'videomasks' in edge and (contains_files(edge) or len(getValue(edge, 'videomasks', [])) == 0):
+            try:
+                edge.pop('videomasks')
+                scModel.select((frm, to))
+                scModel.reproduceMask()
+            except Exception as e:
+                logging.getLogger('maskgen').warning('Could not correct video masks {}->{}: {}'.format(frm,to,e.message))
 
 def _fixRaws(scModel,gopLoader):
     if scModel.G.get_project_type()!= 'image':
@@ -335,7 +680,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
     op_mapping = {
         'AudioPan':'AudioAmplify',
         'SelectFromFrames':'SelectRegionFromFrames',
-        'ColorInterpolation':'ColorLUT'
+        'ColorInterpolation':'ColorLUT',
+        'SelectRemoveFromFrames':'ContentAwareFill'
     }
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
@@ -354,6 +700,8 @@ def _fixVideoAudioOps(scModel,gopLoader):
                     args['Left Pan'] = args.pop('Left')
                 if 'Right' in args:
                     args['Right Pan'] = args.pop('Right')
+                if edge['op'] == 'ContentAwareFill':
+                    args['purpose'] = 'remove'
     newgroups = {}
     for k, v in groups.iteritems():
         newgroups[k] = [op_mapping[op] if op in op_mapping else op for op in v]
@@ -532,7 +880,7 @@ def _pasteSpliceBlend(scModel,gopLoader):
             if len(donors) > 0:
                 args['donor'] = donors[0]
             args['sendNotifications'] = False
-            mod = scModel.getModificationForEdge(frm, to, edge)
+            mod = scModel.getModificationForEdge(frm, to)
             scModel.imageFromGroup(grp, software=mod.software, **args)
 
 def _fixColors(scModel,gopLoader):

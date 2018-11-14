@@ -93,13 +93,13 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
                     if r1 != r2:
                         rotate = 'yes'
                 if donor_filename.lower().endswith('jpg') or donor_filename.lower().endswith('jpeg'):
-                    msgs, pairs = self.scModel.imageFromPlugin('CompressAs', donor=pair[1],
-                                                          sendNotifications=False, rotate=rotate,
-                                                          skipRules=True)
+                    msgs, pairs = self.scModel.mediaFromPlugin('CompressAs', donor=pair[1],
+                                                               sendNotifications=False, rotate=rotate,
+                                                               skipRules=True)
                 elif donor_filename.lower().endswith('tiff') or donor_filename.lower().endswith('tif'):
-                    msgs, pairs = self.scModel.imageFromPlugin('OutputTIFF',  donor=pair[1],
-                                                                  sendNotifications=False, rotate=rotate,
-                                                                  skipRules=True)
+                    msgs, pairs = self.scModel.mediaFromPlugin('OutputTIFF', donor=pair[1],
+                                                               sendNotifications=False, rotate=rotate,
+                                                               skipRules=True)
                 else:
                     pairs = []
                 if len(pairs) == 0:

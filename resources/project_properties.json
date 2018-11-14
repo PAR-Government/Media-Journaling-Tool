@@ -674,6 +674,13 @@
       "information": "Putting a object with corners and depth into a Manhattan World image example: table, box, frame"	
 	},
     {
+	  "semanticgroup": true,
+      "information": "Change recaptured documents nefariously. Example: Signature Change",
+      "type": "yesno",
+      "description": "Falsifying Documents",
+      "name": "FalsifyingDocuments"
+    },
+    {
       "description": "splice/copy",
       "name": "splice/copy",
       "type": "yesno",
@@ -686,7 +693,14 @@
       "type": "yesno",
       "semanticgroup" : true,
       "information": "Tests suitable for electric network frequency"
-	},  
+	},
+    {
+      "description":"Frame From Video",
+      "name":"FrameFromVideo",
+      "type":"yesno",
+      "semanticgroup": true,
+      "information":"Taking 1 frame of a video and using that frame as a part of a manipulation"
+    },
     {
 	  "description": "Disaster",
       "name": "Disaster",
@@ -702,6 +716,7 @@
       "operations": ["AdditionalEffectMosaic","Mosaic"],
       "information": "Mosaicing."
     },
+
     {
       "description": "Seam Carving",
       "name": "seamcarving",
@@ -758,7 +773,7 @@
       "readonly": true,
       "node":true,
       "information": "Has a GAN provided the manipulation.",
-      "operations": ["SynthesizeGAN","AddCameraModel"],
+      "operations": ["SynthesizeGAN","AddCameraModel","DeepFakeFaceSwap","ErasureByGAN","GANFill"],
       "rule": "ganComponentRule",
       "includedonors": true
     }

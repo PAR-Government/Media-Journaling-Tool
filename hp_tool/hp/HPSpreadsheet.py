@@ -43,7 +43,6 @@ class HPSpreadsheet(Toplevel):
             self.audioDir = os.path.join(self.dir, 'audio')
             self.modelDir = os.path.join(self.dir, 'model')
             self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
-            self.tempDir = os.path.join(self.dir, "temp")
             self.csvDir = os.path.join(self.dir, 'csv')
         self.master = master
         self.ritCSV=ritCSV
@@ -51,7 +50,6 @@ class HPSpreadsheet(Toplevel):
         self.saveState = True
         self.highlighted_cells = []
         self.error_cells = []
-        self.needs_temps = ['heic', 'heif']
         self.temps_created = False
         self.device_type = None
         self.create_widgets()
@@ -192,17 +190,15 @@ class HPSpreadsheet(Toplevel):
         Open clicked image in system default viewer. Primarily for video and raw files.
         :return: None
         """
-        image = os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png")
+        image = os.path.join(self.imageDir, self.imName)
         if not os.path.exists(image):
-            image = os.path.join(self.imageDir, self.imName)
+            image = os.path.join(self.videoDir, self.imName)
             if not os.path.exists(image):
-                image = os.path.join(self.videoDir, self.imName)
+                image = os.path.join(self.audioDir, self.imName)
                 if not os.path.exists(image):
-                    image = os.path.join(self.audioDir, self.imName)
+                    image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
                     if not os.path.exists(image):
-                        image = os.path.join(self.modelDir, self.imName[:-6], self.imName)
-                        if not os.path.exists(image):
-                            image = os.path.join(self.thumbnailDir, self.imName)
+                        image = os.path.join(self.thumbnailDir, self.imName)
         if sys.platform.startswith('linux'):
             os.system('xdg-open "' + image + '"')
         elif sys.platform.startswith('win'):
@@ -235,9 +231,7 @@ class HPSpreadsheet(Toplevel):
         try:
             type_col = self.pt.get_col_by_name("FileType")
 
-            if type == "image" and self.pt.model.getValueAt(row, type_col).lower() in self.needs_temps:
-                im = Image.open(os.path.join(self.tempDir, os.path.splitext(self.imName)[0] + ".png"))
-            elif type == "image" and self.pt.model.getValueAt(row, type_col).lower() not in hp_data.exts['nonstandard']:
+            if type == "image":
                 im = Image.open(os.path.join(self.imageDir, self.imName))
             elif type == "model":
                 im = Image.open(os.path.join(self.modelDir, current_file.split(".")[0], self.imName))
@@ -478,41 +472,17 @@ class HPSpreadsheet(Toplevel):
         #self.mandatory = {'image':self.mandatoryImage, 'video':self.mandatoryVideo, 'audio':self.mandatoryAudio}
 
         self.processErrors = self.check_process_errors()
-        self.color_code_cells()
-        self.generate_temp_images()
+        self.exportCSV(False, True)
         self.update_current_image()
         self.master.statusBox.println('Loaded data from ' + self.ritCSV)
 
-    def generate_temp_images(self):
-        name_col = self.pt.get_col_by_name("ImageFilename")
-        type_col = self.pt.get_col_by_name("FileType")
-        imgs_needed = [self.pt.model.getValueAt(x, name_col) for x in xrange(0, self.pt.rows) if self.pt.model.getValueAt(x, type_col).lower() in self.needs_temps]
+    def get_old_name(self, newname):
+        old_col = self.pt.get_col_by_name('OriginalImageName')
+        image_row = self.pt.get_row_by_image_name(newname)
+        if not image_row:
+            return newname
 
-        if not imgs_needed:
-            return
-
-        print("Generating preview images...")
-
-        if not os.path.isdir(self.tempDir):
-            os.mkdir(self.tempDir)
-
-        errs = []
-
-        for i, img in enumerate(imgs_needed):
-            new_img = os.path.join(self.tempDir, os.path.splitext(img)[0] + ".png")
-            if not os.path.isfile(new_img):
-                try:
-                    magic = subprocess.Popen(['magick', 'convert', os.path.join(self.imageDir, img), new_img],
-                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-                except WindowsError:
-                    tkMessageBox.showerror("Error", "ImageMagick must be installed to create temporary images.")
-                    return
-                if magic[1] != "":
-                    errs.append(magic[1])
-            print("\r{0}% Complete".format(int(float(i+1)/len(imgs_needed) * 100))),
-        print  # This has to be here to break to the next line
-        if errs:
-            print("Error generating preview images.\n\n" + "\n".join(errs))
+        return self.pt.model.getValueAt(image_row, old_col)
 
     def color_code_cells(self, tab=None):
         """
@@ -532,10 +502,14 @@ class HPSpreadsheet(Toplevel):
         tab.disabled_cells = []
 
         local_id = self.pt.model.getValueAt(0, 9)
-        if not self.device_type:
-            self.device_type = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"), local_id).get_types()[0]
+        
+        if not self.device_type and local_id:
+            cam_handler = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"),
+                                             local_id)
+            self.device_type = cam_handler.get_types()[0] if cam_handler.get_types() else "model"
 
         notnans = tab.model.df.notnull()
+        tab.delete("all")
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
                 color_assigned = False
@@ -577,7 +551,6 @@ class HPSpreadsheet(Toplevel):
                                                 fill="#fff",
                                                 outline='#084B8A',
                                                 tag='cellrect')
-
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for errors in self.processErrors[image]:
@@ -862,6 +835,9 @@ class HPSpreadsheet(Toplevel):
         h_col = self.pt.get_col_by_name("ImageHeight")
         ps_col = self.pt.get_col_by_name("HP-PrimarySecondary")
 
+        files_in_dir = []
+        files_in_csv = []
+
         for row in range(0, self.pt.rows):
             for col in range(0, self.pt.cols):
                 currentColName = self.pt.model.df.columns[col]
@@ -899,6 +875,9 @@ class HPSpreadsheet(Toplevel):
             errors.extend(self.check_collections(row))
             if self.pt.model.df['HP-DeviceLocalID'][row] not in uniqueIDs:
                 uniqueIDs.append(self.pt.model.df['HP-DeviceLocalID'][row])
+            name = self.pt.model.df['ImageFilename'][row] if self.pt.model.df["Type"][row] != "model" else \
+                os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][row].split(".")[0]))
+            files_in_csv.append(name)
 
         local_id = self.pt.model.getValueAt(0, 9)
         tkerrs = [[], []]
@@ -916,7 +895,7 @@ class HPSpreadsheet(Toplevel):
                         tkerrs[1].append("{0}x{1} - Tagged:{2} Found:{3}".format(r[0][0], r[0][1], r[1], opp))
                 else:
                     tkMessageBox.showerror("Error", "The HP-PrimarySecondary field MUST be filled in prior to uploading.")
-                    return
+                    return None, True
 
         if tkerrs[0] or tkerrs[1]:
             tkMessageBox.showwarning("New Resolutions", "\nThe following resolutions do not exist under the camera "
@@ -933,9 +912,6 @@ class HPSpreadsheet(Toplevel):
                 if err not in errors:
                     errors.append(err)
 
-        files_in_dir = []
-        files_in_csv = []
-
         for root, dirs, files in os.walk(self.dir):
             for f in files:
                 if os.path.splitext(f)[1] not in ['.csv', '.tar']:
@@ -945,11 +921,6 @@ class HPSpreadsheet(Toplevel):
                         files_in_dir.append(f)
                     elif os.path.normpath(root) not in files_in_dir:
                             files_in_dir.append(os.path.normpath(root))
-
-        for r in range(0, self.pt.rows):
-            name = self.pt.model.df['ImageFilename'][r] if self.pt.model.df["Type"][r] != "model" else \
-                os.path.normpath(os.path.join(self.dir, "model", self.pt.model.df['ImageFilename'][r].split(".")[0]))
-            files_in_csv.append(name)
 
         dif_list = [x for x in files_in_dir if (x not in files_in_csv and "_" not in x and os.path.splitext(x)[1]
                                                 not in ["tar", "gpg"])]
@@ -1058,9 +1029,6 @@ class HPSpreadsheet(Toplevel):
         Prompts user to save sheet if edits have been made
         :return: None. Closes spreadsheet.
         """
-        if os.path.isdir(self.tempDir):
-            shutil.rmtree(self.tempDir)
-
         if self.saveState == False:
             message = 'Would you like to save before closing this sheet?'
             confirm = tkMessageBox.askyesnocancel(title='Save On Close', message=message, default=tkMessageBox.YES, parent=self)
@@ -1289,9 +1257,16 @@ class CustomTable(pandastable.Table):
         return
 
     def get_col_by_name(self, name):
-        for i in xrange(0, self.cols):
+        for i in range(0, self.cols):
             if self.model.getColumnName(i).lower() == name.lower():
                 return i
+        return None
+
+    def get_row_by_image_name(self, name):
+        col_num = self.get_col_by_name("ImageFilename")
+        for row in range(0, self.rows):
+            if self.model.getValueAt(row, col_num) == name:
+                return row
         return None
 
     def enter_true(self, event=None):
@@ -1624,6 +1599,11 @@ class CustomTable(pandastable.Table):
         self.tablecolheader.handle_mouse_drag(event)
         self.tablecolheader.bind("<ButtonRelease-1>", self.release)
         return
+
+    def deleteRow(self):
+        pandastable.Table.deleteRow(self)
+        self.resetIndex()
+        self.color_cb()
 
     def release(self, event):
         self.tablecolheader.handle_left_release(event)

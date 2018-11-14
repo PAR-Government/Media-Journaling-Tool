@@ -11,7 +11,7 @@ import ttk
 from Tkinter import *
 import  tkSimpleDialog
 import tkMessageBox
-
+import logging
 from maskgen.support import ModuleStatus
 
 
@@ -28,12 +28,12 @@ class ProgressBar(Frame):
         self.module_label_var.set('              ')
         self.function_label_var = StringVar()
         self.function_label_var.set('              ')
-        Label(master,textvariable=self.system_label_var,anchor=W, justify=LEFT,width=20).grid(row=0,column=1)
-        ttk.Separator().grid(row=0,column=2)
-        Label(master,textvariable=self.module_label_var,anchor=W, justify=LEFT,width=20).grid(row=0, column=3)
-        ttk.Separator().grid(row=0,column=4)
-        Label(master,textvariable=self.function_label_var,anchor=W, justify=LEFT,width=40).grid(row=0, column=5)
-        ttk.Separator().grid(row=0,column=6)
+        Label(master,textvariable=self.system_label_var,anchor=W, justify=LEFT,width=20).grid(row=0,column=0)
+        ttk.Separator().grid(row=0,column=1)
+        Label(master,textvariable=self.module_label_var,anchor=W, justify=LEFT,width=20).grid(row=0, column=2)
+        ttk.Separator().grid(row=0,column=3)
+        Label(master,textvariable=self.function_label_var,anchor=W, justify=LEFT,width=40).grid(row=0, column=4)
+        ttk.Separator().grid(row=0,column=5)
         self.pb_status = DoubleVar()
         self.pb_status.set(0)
         self.pb = ttk.Progressbar(master,
@@ -41,7 +41,7 @@ class ProgressBar(Frame):
                                   orient='horizontal',
                                   mode='determinate',
                                   maximum=100.001)
-        self.pb.grid(row=0,column=7,sticky=E)
+        self.pb.grid(row=0,column=6,sticky=E)
 
     def postChange(self,module_status):
         """
@@ -56,6 +56,10 @@ class ProgressBar(Frame):
         if module_status.system_name != self.system_label_var.get() or \
                                 current_time - self.last_time > 1.2 or \
                         module_status.percentage >= 99.9999:
+            logging.getLogger('maskgen').info('%s %s %s %2.3f' % (module_status.system_name,
+                                                                  module_status.module_name,
+                                                               module_status.component,
+                                                               module_status.percentage))
             self.system_label_var.set(module_status.system_name)
             self.module_label_var.set(module_status.module_name)
             self.function_label_var.set(module_status.component)

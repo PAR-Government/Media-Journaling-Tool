@@ -1,7 +1,5 @@
 import maskgen
-import numpy as np
-import os
-from maskgen.video_tools import getMeta
+from maskgen.ffmpeg_api import get_meta_from_video
 
 """
 Select FFPROBE properties
@@ -15,7 +13,7 @@ def __get_channel_data(source_data, codec_type):
             return data
 
 def transform(img, source, target, **kwargs):
-    meta = getMeta(source,show_streams=True)
+    meta = get_meta_from_video(source, show_streams=True)
     video_data = __get_channel_data(meta[0],'video')
     return video_data,None
 

@@ -69,8 +69,7 @@ def getNotifier(loader):
 
 
 class NotifyDelegate:
-    def __init__(self, scmodel, notifiers):
-        self.scmodel = scmodel
+    def __init__(self, notifiers):
         self.notifiers = notifiers
 
     def __call__(self,*args,**kwargs):
@@ -79,6 +78,29 @@ class NotifyDelegate:
             ok &= notify(*args,**kwargs)
         return ok
 
+    def get_notifier_by_type(self, notifier_type):
+        return next((notifier for notifier in self.notifiers if isinstance(notifier, notifier_type)), None)
+
+    def replace(self, notifier):
+        try:
+            index = self.notifiers.index(notifier)
+            self.notifiers[index] = notifier
+        except ValueError:
+            self.notifiers.append(notifier)
+
+class ValidationNotifier:
+    def __init__(self, total_errors=None):
+        self.total_errors = total_errors
+
+    def __eq__(self, other):
+        return other.__class__ == self.__class__
+
+    def __call__(self, *args, **kwargs):
+        if args[1] in ['label', 'export']:
+            return True
+        else:
+            self.total_errors = None
+            return True
 
 class QaNotifier:
     def __init__(self, scmodel):
@@ -144,13 +166,15 @@ class QaNotifier:
         fo = [n.end]
         fwdedges = [(n.start,n.end)]
         condition = lambda x, y: True
-        paths = self.scmodel.findPaths(n.end,condition)[0][0][:-1]
-        paths.reverse()
-        prev = n.end
-        for path in paths:
-            fwdedges.append((prev,path))
-            fo.append(path)
-            prev = path
+        paths_tuples = self.scmodel.findPaths(n.end, condition)
+        for path_tuple in paths_tuples:
+            path = path_tuple[0][:-1]
+            path.reverse()
+            prev = n.end
+            for path_part in path:
+               fwdedges.append((prev,path_part))
+               fo.append(path_part)
+               prev = path_part
         return fwdedges, fo
 
     def _backtrack(self, n):

@@ -4,7 +4,7 @@
     "username": "alice",
     "name": "video_flow",
     "organization": "NIST",
-    "projectdescription" : "Optical Flow and Remove PRNU",
+    "projectdescription" : "Optical Flow, Remove PRNU, Change Date and Time for ENF Checking",
     "technicalsummary" : "Automated",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
@@ -188,8 +188,101 @@
            "type": "donor",
            "source": "0"
          }
+      },
+      {
+        "op_type": "PluginOperation",
+        "plugin": "ExifDateTime",
+        "id": "12",
+        "arguments": {
+          "Time Minimum": {
+            "type": "value",
+            "value": "00:00:00"
+          },
+          "Time Maximum": {
+            "type": "value",
+            "value": "23:59:59"
+          },
+          "Date Minimum": {
+            "type": "value",
+            "value": "01-01-2000"
+          },
+          "Date Maximum": {
+            "type" : "value",
+            "value": "02-26-2018"
+          }
+        }
+      },
+      {
+        "op_type": "PluginOperation",
+        "plugin": "ExifDateTime",
+        "id": "13",
+
+        "arguments": {
+          "Time Minimum": {
+            "type": "value",
+            "value": "00:00:00"
+          },
+          "Time Maximum": {
+            "type": "value",
+            "value": "23:59:59"
+          },
+          "Date Minimum": {
+            "type": "value",
+            "value": "01-01-2000"
+          },
+          "Date Maximum": {
+            "type" : "value",
+            "value": "02-26-2018"
+          }
+        }
+      },
+      {
+        "op_type": "PluginOperation",
+        "plugin": "ExifDateTime",
+        "id": "14",
+        "arguments": {
+          "Time Minimum": {
+            "type": "value",
+            "value": "00:00:00"
+          },
+          "Time Maximum": {
+            "type": "value",
+            "value": "23:59:59"
+          },
+          "Date Minimum": {
+            "type": "value",
+            "value": "01-01-2000"
+          },
+          "Date Maximum": {
+            "type" : "value",
+            "value": "02-26-2018"
+          }
+        }
+      },
+      {
+        "op_type": "PluginOperation",
+        "plugin": "ExifDateTime",
+        "id": "15",
+        "arguments": {
+          "Time Minimum": {
+            "type": "value",
+            "value": "00:00:00"
+          },
+          "Time Maximum": {
+            "type": "value",
+            "value": "23:59:59"
+          },
+          "Date Minimum": {
+            "type": "value",
+            "value": "01-01-2000"
+          },
+          "Date Maximum": {
+            "type" : "value",
+            "value": "02-26-2018"
+          }
+        }
       }
-     }
+    }
   ],
   "links": [
     {
@@ -240,7 +333,23 @@
      {
       "source": 6,
       "target": 11
-     }
+     },
+    {
+      "source": 8,
+      "target": 12
+    },
+    {
+      "source": 9,
+      "target": 13
+    },
+    {
+      "source": 10,
+      "target": 14
+    },
+    {
+      "source": 11,
+      "target": 15
+    }
   ],
   "multigraph": false
 }

@@ -1,0 +1,22 @@
+Batch Project Example:
+
+jtproject
+--json /Users/xx/maskgen/tests/specifications/video_process_donor_prnu.json
+--results /Users/xx/projects
+--workdir /Users/xx/work
+--graph
+--loglevel 2
+--threads 2
+--global_variables
+image_dir=/Users/xx/videos,donor_dir=/Users/xx/donors,pairing_file=/Users/xx/work/donors.csv
+--count 10
+--export medifor/par/journal/projects/
+
+Denerate 10 journals, using two threads.
+Denerate the batch graph (a PNG graphviz depiction of the instruction flow and dependencies).
+store state in workdir (/Users/xx/work)
+store finished projects in results (/Users/xx/projects)
+pick videos from /Users/xx/videos,donors from /Users/xx/donors, match donors to source using /Users/xx/work/donors.csv
+The global variables are parameters substituted for place holders in the JSON spec.
+
+Note, the PRNU plugins may not be available publically during the course of the program.

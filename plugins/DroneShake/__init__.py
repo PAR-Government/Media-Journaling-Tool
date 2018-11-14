@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import random
 from maskgen.cv2api import cv2api_delegate
-from maskgen.video_tools import getShape
+from maskgen.video_tools import get_shape_of_video
 import csv
 import os
 import logging

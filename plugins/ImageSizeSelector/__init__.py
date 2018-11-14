@@ -19,14 +19,15 @@ file.  The file is the format:
  where format is a string "jpg","png","cr2", etc.
 """
 
-cameraData = {}
+
 global cameraData
+cameraData = {}
 
 def loadCameraData(cameraDataFile):
     import json
     global cameraData
     absfile = os.path.abspath(cameraDataFile)
-    if absfile  in cameraData:
+    if absfile in cameraData:
         return cameraData[absfile]
     cameraData[absfile] = dict()
     with open(cameraDataFile) as fp:

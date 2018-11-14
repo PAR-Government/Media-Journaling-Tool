@@ -16,6 +16,7 @@ from cachetools import LRUCache
 from cachetools import cached
 
 
+
 def getOrientationFromExif(source):
     orientations = [None, None, 'Mirror horizontal', 'Rotate 180', 'Mirror vertical',
                     'Mirror horizontal and Rotate 270 CW', 'Rotate 90 CW', 'Mirror horizontal and rotate 90 CW',
@@ -189,18 +190,23 @@ def getexif(source, args=None, separator=': '):
     return meta
 
 
+def comparexif_dict(meta_source,meta_target):
+    diff = {}
+    if meta_source is not None:
+        for k, sv in meta_source.iteritems():
+            if meta_target is not None and k in meta_target:
+                tv = meta_target[k]
+                if tv != sv:
+                    diff[k] = ('change', sv, tv)
+            else:
+                diff[k] = ('delete', sv)
+    if meta_target is not None:
+        for k, tv in meta_target.iteritems():
+            if k not in meta_source:
+                diff[k] = ('add', tv)
+    return diff
+
 def compareexif(source, target):
     meta_source = getexif(source)
     meta_target = getexif(target)
-    diff = {}
-    for k, sv in meta_source.iteritems():
-        if k in meta_target:
-            tv = meta_target[k]
-            if tv != sv:
-                diff[k] = ('change', sv, tv)
-        else:
-            diff[k] = ('delete', sv)
-    for k, tv in meta_target.iteritems():
-        if k not in meta_source:
-            diff[k] = ('add', tv)
-    return diff
+    return comparexif_dict(meta_source,meta_target)

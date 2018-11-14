@@ -14,6 +14,7 @@ from json import JSONEncoder
 
 from maskgen.config import global_config
 from maskgen_loader import MaskGenLoader
+from maskgen.support import getValue
 
 
 class OperationEncoder(JSONEncoder):
@@ -36,6 +37,16 @@ def getFileName(fileName, path=None):
         if os.path.exists(newNanme):
             logging.getLogger('maskgen').info( 'Loading ' + newNanme)
             return newNanme
+
+
+def extract_default_values(operation_arguments):
+    """
+    given argument definitions, return operation name: default value if default is present
+    :param operation_arguments:
+    :return:
+     @type dict
+    """
+    return {k:v['defaultvalue'] for k,v in operation_arguments.iteritems() if 'defaultvalue' in v}
 
 class ProjectProperty:
     description = None
@@ -96,6 +107,7 @@ class Operation:
     maskTransformFunction = None
     compareOperations = None
     parameter_dependencies = None
+    donor_processor = None
     """
     parameter_dependencies is a dictionary: { 'parameter name' : { 'parameter value' : 'dependenent parameter name'}}
     If the parameter identitied by parameter name has a value if 'parameter value' then the parameter identified by
@@ -149,12 +161,13 @@ class Operation:
     @type compareparameters: dict
     @type parameter_dependencies: dict
     @type maskTransformFunction:dict
+    @type donor_processor: str
     """
 
     def __init__(self, name='', category='', includeInMask={"default": False}, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=None,parameter_dependencies = None, qaList=None):
+                 maskTransformFunction=None,parameter_dependencies = None, qaList=None,donor_processor=None):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -171,6 +184,21 @@ class Operation:
         self.maskTransformFunction = maskTransformFunction
         self.parameter_dependencies = parameter_dependencies
         self.qaList = qaList
+        self.donor_processor = donor_processor
+        self.trigger_arguments = self._getTriggerUpdateArguments()
+
+    def _getTriggerUpdateArguments(self):
+        names = set()
+        for k,v in self.mandatoryparameters.iteritems():
+            if getValue(v,'trigger mask',False):
+                names.add(k)
+        for k,v in self.optionalparameters.iteritems():
+            if getValue(v,'trigger mask',False):
+                names.add(k)
+        return names
+
+    def getTriggerUpdateArguments(self):
+        return self.trigger_arguments
 
     def recordMaskInComposite(self,filetype):
         if filetype in self.includeInMask :
@@ -178,6 +206,11 @@ class Operation:
         if 'default' in self.includeInMask :
             return 'yes' if self.includeInMask ['default'] else 'no'
         return 'no'
+
+    def getDonorProcessor(self, default_processor = None):
+        if  self.donor_processor is not None:
+            return getRule(self.donor_processor)
+        return getRule(default_processor)
 
     def getConvertFunction(self):
         if 'convert_function' in self.compareparameters:
@@ -244,7 +277,7 @@ def getPropertiesBySourceType(source):
     return getMetDataLoader().node_properties[source]
 
 def getSoftwareSet():
-    return getMetDataLoader().softwareset
+    return getMetDataLoader().software_set
 
 
 def saveJSON(filename):
@@ -292,13 +325,14 @@ def loadOperationJSON(fileName):
     :return:
     @rtype: dict of str:Operation
     """
-    operations = {}
+    from collections import OrderedDict
+    operations = OrderedDict()
     fileName = getFileName(fileName)
     with open(fileName, 'r') as f:
         ops = json.load(f)
         for op in ops['operations']:
             operations[op['name']] = Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
-                                        rules=op['rules'], optionalparameters=op['optionalparameters'],
+                                        rules=op['rules'], optionalparameters=op['optionalparameters'] if 'optionalparameters' in op else {},
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
                                         generateMask=op['generateMask'] if 'generateMask' in op else "all",
@@ -309,7 +343,8 @@ def loadOperationJSON(fileName):
                                             'compareparameters'] if 'compareparameters' in op else dict(),
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None,
                                         parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None,
-                                        qaList=op['qaList'] if 'qaList' in op else None)
+                                        qaList=op['qaList'] if 'qaList' in op else None,
+                                        donor_processor=op['donor_processor'] if 'donor_processor' in op else None)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 
@@ -375,9 +410,10 @@ def getFilters(filtertype):
     else:
         return {}
 
-def _loadSoftware( fileName):
+def _load_software_from_resource(fileName):
     fileName = getFileName(fileName)
-    softwareset = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
+    software_set = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
+    category_set = {'gan': [], 'other': []}
     with open(fileName) as f:
         line_no = 0
         for l in f.readlines():
@@ -390,8 +426,9 @@ def _loadSoftware( fileName):
                 logging.getLogger('maskgen').error(
                     'Invalid software description on line ' + str(line_no) + ': ' + l)
             software_type = columns[0].strip()
-            software_name = columns[1].strip()
-            versions = [strip_version(x.strip()) for x in columns[2:] if len(x) > 0]
+            software_name = columns[2].strip()
+            software_category = columns[1].strip().lower()
+            versions = [strip_version(x.strip()) for x in columns[3:] if len(x) > 0]
             if software_type not in ['both', 'image', 'video', 'audio', 'all']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
@@ -400,36 +437,41 @@ def _loadSoftware( fileName):
                 types = ['video', 'audio'] if software_type == 'audio' else types
                 types = ['zip'] if software_type == 'zip' else types
                 for stype in types:
-                    softwareset[stype][software_name] = versions
-    return softwareset
+                    software_set[stype][software_name] = versions
+            category_set[software_category].append(software_name)
+    return {'software_set': software_set, 'category_set': category_set}
 
 class MetaDataLoader:
     version = ''
-    softwareset = {}
+    software_set = {}
+    software_category_set = {}
     operations = {}
     filters = {}
     operationsByCategory = {}
+    node_properties = {}
 
     def __init__(self):
         self.reload()
 
     def reload(self):
-        self.operations, self.filters, self.operationsByCategory = self.loadOperations('operations.json')
-        self.softwareset = self.loadSoftware('software.csv')
-        self.projectProperties = self.loadProjectProperties('project_properties.json')
-        self.manipulator_names = self.loadManipulators('ManipulatorCodeNames.txt')
+        self.operations, self.filters, self.operationsByCategory, self.node_properties = self._load_operations('operations.json')
+        self.software_set, self.software_category_set = self._load_software('software.csv')
+        self.projectProperties = self._load_project_properties('project_properties.json')
+        self.manipulator_names = self._load_manipulators('ManipulatorCodeNames.txt')
 
-    def loadSoftware(self, fileName):
-        self.softwareset = _loadSoftware(fileName)
-        return self.softwareset
+    def _load_software(self, fileName):
+        sets = _load_software_from_resource(fileName)
+        softwareset = sets['software_set']
+        categoryset = sets['category_set']
+        return softwareset, categoryset
 
     def merge(self,fileName):
-        softwareset = _loadSoftware(fileName)
+        softwareset = _load_software_from_resource(fileName)['software_set']
         bytesOne = {}
         bytesTwo = {}
         namesOne = {}
         namesTwo = {}
-        for atype,names in self.softwareset.iteritems():
+        for atype,names in self.software_set.iteritems():
             for name in names:
                 bytesOne[name] = atype
             for name,versions in names.iteritems():
@@ -451,14 +493,14 @@ class MetaDataLoader:
                 logging.getLogger('maskgen').warn( 'missing ' + str(atype) + ' in ' + name)
 
 
-    def loadManipulators(self,filename):
+    def _load_manipulators(self, filename):
         file = getFileName(filename)
         if file is not None:
             if os.path.exists(file):
                 with open(file, 'r') as fp:
                     return [name.strip() for name in fp.readlines() if len(name) > 1]
 
-    def loadProjectProperties(self, fileName):
+    def _load_project_properties(self, fileName):
         """
 
         :param fileName:
@@ -466,19 +508,19 @@ class MetaDataLoader:
         @rtype: list ProjectProperty
         """
         loadCustomRules()
-        self.projectProperties = loadProjectPropertyJSON(fileName)
-        return self.projectProperties
+        projectProperties = loadProjectPropertyJSON(fileName)
+        return projectProperties
 
-    def loadOperations(self,fileName):
-        self.operations, self.filters, self.version, self.node_properties = loadOperationJSON(fileName)
-        logging.getLogger('maskgen').info('Loaded operation version ' + self.version)
-        self.operationsByCategory = {}
-        for op, data in self.operations.iteritems():
+    def _load_operations(self, fileName):
+        operations, filters, version, node_properties = loadOperationJSON(fileName)
+        logging.getLogger('maskgen').info('Loaded operation version ' + version)
+        operationsByCategory = {}
+        for op, data in operations.iteritems():
             category = data.category
-            if category not in self.operationsByCategory:
-                self.operationsByCategory[category] = []
-            self.operationsByCategory[category].append(op)
-        return self.operations, self.filters, self.operationsByCategory
+            if category not in operationsByCategory:
+                operationsByCategory[category] = []
+            operationsByCategory[category].append(op)
+        return operations, filters, operationsByCategory, node_properties
 
     def propertiesToCSV(self, filename):
         import csv
@@ -564,7 +606,7 @@ def operationVersion():
     return getMetDataLoader().version
 
 def validateSoftware(softwareName, softwareVersion):
-    for software_type, typed_software_set in getMetDataLoader().softwareset.iteritems():
+    for software_type, typed_software_set in getMetDataLoader().software_set.iteritems():
         if softwareName in typed_software_set and softwareVersion in typed_software_set[softwareName]:
             return True
     return False
@@ -624,12 +666,12 @@ class SoftwareLoader:
     def get_names(self, software_type):
         if software_type is None:
             return []
-        return list(getMetDataLoader().softwareset[software_type].keys())
+        return list(getMetDataLoader().software_set[software_type].keys())
 
     def get_versions(self, name, software_type=None, version=None):
-        types_to_check = getMetDataLoader().softwareset.keys() if software_type is None else [software_type]
+        types_to_check = getMetDataLoader().software_set.keys() if software_type is None else [software_type]
         for type_to_check in types_to_check:
-            versions = getMetDataLoader().softwareset[type_to_check][name] if name in getMetDataLoader().softwareset[type_to_check] else None
+            versions = getMetDataLoader().software_set[type_to_check][name] if name in getMetDataLoader().software_set[type_to_check] else None
             if versions is None:
                 continue
             if version is not None and strip_version(version) not in versions:

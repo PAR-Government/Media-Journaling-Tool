@@ -873,7 +873,7 @@ class PluginOperation(BatchOperation):
             self.logger.debug('Execute plugin {} on {} with {}'.format(plugin_name,
                                                                        filename,
                                                                        str(args)))
-        errors, pairs = local_state['model'].imageFromPlugin(plugin_name, **args)
+        errors, pairs = local_state['model'].mediaFromPlugin(plugin_name, **args)
         if errors is not None or (type(errors) is list and len(errors) > 0):
             real_error = None
             for error in errors:
@@ -1664,7 +1664,7 @@ class BatchExecutor:
         logging.getLogger('maskgen').info('Thread termination complete')
 
 
-def main():
+def main(argv=sys.argv[1:]):
     global threadGlobalState
     parser = argparse.ArgumentParser()
     parser.add_argument('--specification', required=True, help='JSON File')
@@ -1678,13 +1678,13 @@ def main():
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
     parser.add_argument('--from_state', required=False, help='permutation state file')
-    parser.add_argument('--export',required=False)
+    parser.add_argument('--export',required=False, help='export to given s3 url')
     parser.add_argument('--keep_failed',required=False,action='store_true')
     parser.add_argument('--stop_on_error', required=False, action='store_true')
     parser.add_argument('--test', required=False, action='store_true')
     parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
     parser.add_argument('--redactions', required=False, default='', help='comma separated list of file argument to exclude from export')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     batchProject = loadJSONGraph(args.specification)
     be = BatchExecutor(args.projects,
@@ -1713,4 +1713,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
