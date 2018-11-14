@@ -30,6 +30,20 @@ from maskgen.ui.semantic_frame import *
 from maskgen.ui.ui_tools import SelectDialog, EntryDialog, TimeWidget
 
 
+def resolve_argument_type(arg_type, source_type):
+    """
+    Alter type based on source file type
+    :param arg_type:
+    :param source_type:
+    :return:
+    """
+    if arg_type == "frame_or_time":
+        if source_type == "audio":
+           return "time"
+        else:
+            return "int[0:1000000000]"  # Frame Number
+    return arg_type
+
 def checkMandatory(grpLoader, operationName, sourcefiletype, targetfiletype, argvalues):
     """
 
@@ -481,16 +495,10 @@ class DescriptionCaptureDialog(Toplevel):
                 'defaultvalue' in argumentTuple[1]:
                 self.argvalues[argumentTuple[0]] = argumentTuple[1]['defaultvalue']
 
-            if argumentTuple[1]['type'] == "frame_or_time":
-                if self.sourcefiletype == "audio":
-                    argumentTuple[1]['type'] = "time"
-                else:
-                    argumentTuple[1]['type'] = "int[0:1000000000]"  # Frame Number
-
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
-                                      type=argumentTuple[1]['type'],
+                                      type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
@@ -727,7 +735,7 @@ class ItemDescriptionCaptureDialog(Toplevel):
     Edit properties of a graph item (node, edge, etc.)
     """
 
-    def __init__(self, parent,  dictionary, properties, name):
+    def __init__(self, parent,  dictionary, properties, name, sourcefiletype=None):
         """
 
        :param parent: parent frame
@@ -740,6 +748,7 @@ class ItemDescriptionCaptureDialog(Toplevel):
         self.cancelled = True
         self.argvalues = {}
         self.properties = properties
+        self.sourcefiletype=sourcefiletype
         for prop_name in self.properties:
             if prop_name in dictionary:
                 self.argvalues[prop_name] = dictionary[prop_name]
@@ -792,7 +801,7 @@ class ItemDescriptionCaptureDialog(Toplevel):
         disp_properties = [ProjectProperty(name=prop_name,
                                       description=prop_name,
                                       information=prop_def['description'],
-                                      type=prop_def['type'],
+                                      type=resolve_argument_type(prop_def['type'],self.sourcefiletype),
                                       values=prop_def['values'] if 'values' in prop_def else [],
                                       value=self.argvalues[prop_name] if prop_name in self.argvalues else None) \
                       for prop_name, prop_def in self.properties.iteritems()]
@@ -1195,7 +1204,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
-                                      type=argumentTuple[1]['type'],
+                                      type=resolve_argument_type(argumentTuple[1]['type'],self.sourcefiletype),
                                       values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
@@ -2206,10 +2215,10 @@ class PropertyFrame(VerticalScrolledFrame):
                widget = Label(master, takefocus=(row==0), width=80, text=prop.information)
                widget.grid(row=row, column=0, columnspan=12, sticky=E + W)
            elif prop.type == 'time':
-                widget = TimeWidget(master)
+                widget = TimeWidget(master, textvariable=self.values[row])
                 widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            else:
-               widget = Entry(master, takefocus=(row == 0), width=80,textvariable=self.values[row])
+               widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
            self.widgets[row] = widget
            if prop.readonly:

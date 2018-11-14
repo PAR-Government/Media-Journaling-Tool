@@ -139,7 +139,8 @@ class AddRemove(SelectDialog):
 
 
 class TimeWidget(Frame):
-    def __init__(self, master):
+    def __init__(self, master, textvariable):
+        self.time_text_variable = textvariable
         Frame.__init__(self, master)
         self.master = master
         self.entries = {}
@@ -147,11 +148,23 @@ class TimeWidget(Frame):
         self.bind_all("<Control-v>", lambda e: self.paste())
 
     def create_widgets(self):
+        initialvalues = self.time_text_variable.get().split(':')
+        if len(initialvalues) > 0:
+            micro = 0 if '.' not in initialvalues[-1] else initialvalues[-1].split('.')[1]
+            second  = int(initialvalues[-1]) if  '.' not in initialvalues[-1] else initialvalues[-1].split('.')[0]
+            minute = initialvalues[1]
+            hour = initialvalues[0]
+        else:
+            micro="microsecond"
+            second = "seconds"
+            minute = "minute"
+            hour = "hour"
+
         font = ("TkDefaultFont", 14)  # Increase font size
 
         # Setup fields
         self.entries['hour'] = w = Entry(self, width=3, font=font)
-        w.insert(0, "HH")
+        w.insert(0, hour)
         w.bind('<KeyRelease>', lambda e: self.track('hour', 'minute', 2, 99))
         w.bind('<FocusIn>', lambda e: self.get_focus('hour'))
         w.bind('<FocusOut>', lambda e: self.lose_focus('hour', 2))
@@ -161,7 +174,7 @@ class TimeWidget(Frame):
         w.grid(row=0, column=1)
 
         self.entries['minute'] = w = Entry(self, width=3, font=font)
-        w.insert(0, "MM")
+        w.insert(0, minute)
         w.bind('<KeyRelease>', lambda e: self.track('minute', 'second', 2, 59))
         w.bind('<FocusIn>', lambda e: self.get_focus('minute'))
         w.bind('<FocusOut>', lambda e: self.lose_focus('minute', 2))
@@ -171,7 +184,7 @@ class TimeWidget(Frame):
         w.grid(row=0, column=3)
 
         self.entries['second'] = w = Entry(self, width=3, font=font)
-        w.insert(0, "SS")
+        w.insert(0, second)
         w.bind('<KeyRelease>', lambda e: self.track('second', 'microsecond', 2, 59))
         w.bind('<FocusIn>', lambda e: self.get_focus('second'))
         w.bind('<FocusOut>', lambda e: self.lose_focus('second', 2))
@@ -181,7 +194,7 @@ class TimeWidget(Frame):
         w.grid(row=0, column=5)
 
         self.entries['microsecond'] = w = Entry(self, width=10, font=font)
-        w.insert(0, "microsecond")
+        w.insert(0, micro)
         w.bind('<KeyRelease>', lambda e: self.track('microsecond', None, 6, 999999))
         w.bind('<FocusIn>', lambda e: self.get_focus('microsecond'))
         w.bind('<FocusOut>', lambda e: self.lose_focus('microsecond', 6, prepend=False))
@@ -194,8 +207,9 @@ class TimeWidget(Frame):
         :param field: Field name that gained focus
         :return:
         """
-        # Clear default text, and unbind this function
-        self.entries[field].delete(0, END)
+        # Clear default text, if any, and unbind this function
+        if any([l.isalpha() for l in self.entries[field].get()]):
+            self.entries[field].delete(0, END)
         self.entries[field].unbind('<FocusIn>')
 
     def lose_focus(self, field, max_length, prepend=True):
@@ -222,6 +236,8 @@ class TimeWidget(Frame):
             tkMessageBox.showerror("Error", "The {0}s field cannot contain letters.  Re-enter the {0}s.".format(field))
             self.entries[field].delete(0, END)
             self.entries[field].insert(0, "0" * max_length)
+        else:
+            self.update_variable()
 
     def track(self, field, next_field, max_length, max_digit):
         """
@@ -334,6 +350,9 @@ class TimeWidget(Frame):
         self.lose_focus("microsecond", 6, prepend=FALSE)
         self.track("microsecond", None, 6, 999999)
 
+    def update_variable(self):
+        self.time_text_variable.set(self.__str__())
+
     def __str__(self):
         return "{0}:{1}:{2}.{3}".format(self.entries['hour'].get(), self.entries['minute'].get(),
                                         self.entries['second'].get(), self.entries['microsecond'].get())
@@ -344,6 +363,7 @@ class TimeWidget(Frame):
             int(self.entries['minute'].get())
             int(self.entries['second'].get())
             int(self.entries['microsecond'].get())
+            self.update_variable()
         except ValueError:
             tkMessageBox.showerror("Data Error", "Hours, minutes, seconds, and microseconds must all be integers.")
             return ""
