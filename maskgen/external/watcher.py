@@ -14,14 +14,14 @@ class ExportWatcherDialog(Toplevel):
         """
         self.parent = parent
         self.export_manager = export_manager
-        self.export_manager.set_notifier(self)
+        self.export_manager.add_notifier(self)
         Toplevel.__init__(self, parent)
         self.progress = {}
         self.createWidgets()
 
     def _delete_window(self):
         print "delete_window"
-        self.export_manager.set_notifier()
+        self.export_manager.remove_notifier(self)
         Toplevel.destroy(self)
 
     def createWidgets(self):

@@ -203,9 +203,9 @@ class ExportManager:
     """
     @type processes: {str: ProcessInfo}
     """
-    def __init__(self, notifier=lambda x,y: True, altenate_directory=None, queue_size=5, export_tool = S3ExportTool):
+    def __init__(self, notifier=None, altenate_directory=None, queue_size=5, export_tool = S3ExportTool):
         from threading import Lock, Thread, Condition
-        self.notifier = notifier
+        self.notifiers = [notifier] if notifier is not None else []
         self.queue_size = queue_size
         #NOTE: not used at the moment.  Did not evaluate to race conditions
         # Intent for queue_wait is to throttle number of active exports
@@ -263,14 +263,27 @@ class ExportManager:
     def _update_status(self, name, msg):
         self.processes[name].status = msg
 
-    def set_notifier(self, notifier=lambda x,y: True):
+    def _call_notifier(self, *args):
+        for n in self.notifiers:
+            n(*args)
+
+    def add_notifier(self, notifier=lambda x, y: True):
         """
         Register external notifier interest in updates
         Notifier is a funciton that accepts a name and status.
         :param notifier:
         :return:
         """
-        self.notifier = notifier
+        self.notifiers.append(notifier)
+
+    def remove_notifier(self, notifier=lambda x, y: True):
+        """
+        Register external notifier interest in updates
+        Notifier is a funciton that accepts a name and status.
+        :param notifier:
+        :return:
+        """
+        self.notifiers = [n for n in self.notifiers if n !=  notifier]
 
     def _listen_thread(self):
         """
@@ -293,7 +306,7 @@ class ExportManager:
                     try:
                         if process_info.pipe.poll(self.poll_time):
                             process_info.status = process_info.pipe.recv()
-                            self.notifier(k, process_info.status)
+                            self._call_notifier(k, process_info.status)
                     except Exception as e:
                         logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
                 if process_info.status in ['DONE', 'FAIL'] or not process_info.process.is_alive():
@@ -304,7 +317,7 @@ class ExportManager:
                     if process_info.status not in ['DONE', 'FAIL']:
                         process_info.status = 'FAIL'
                     # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-                    self.notifier(k, process_info.status)
+                    self._call_notifier(k, process_info.status)
                     # self.queue_wait.acquire()
                     # self.queue_wait.notifyAll()
                     # self.queue_wait.release()
@@ -396,7 +409,7 @@ class ExportManager:
             self.semaphore.release()
         logging.getLogger('maskgen').info('START upload {}'.format(name))
         # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-        self.notifier(name, 'START')
+        self._call_notifier(name, 'START')
 
     def sync_upload(self, pathname, location, remove_when_done=True):
         """
@@ -424,7 +437,7 @@ class ExportManager:
         finally:
             self.semaphore.release()
         # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-        self.notifier(name, 'START')
+        self._call_notifier(name, 'START')
         logging.getLogger('maskgen').info('START synchronous upload {}'.format(name))
         _perform_upload(self.directory, os.path.abspath(pathname), location, pipe, remove_when_done, self.export_tool)
 

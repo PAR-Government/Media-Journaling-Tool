@@ -395,6 +395,7 @@ class MakeGenUI(Frame):
                 if len(errorlist) > 0:
                     ValidationListDialog(self, errorlist, "Export Errors")
                 else:
+                    self._update_export_state(location=val,pathname=path, additional_message=message)
                     self.openManager()
                     self.exportManager.upload(path, val)
 
@@ -936,6 +937,21 @@ class MakeGenUI(Frame):
         self.drawState()
         self.setSelectState('normal')
 
+    def _update_export_state(self, location='', pathname='', additional_message=''):
+        s3 = 's3:// ' + location + ('' if location.endswith('/') else '/') +  os.path.basename(pathname)
+        qacomment = self.scModel.getProjectData('qacomment')
+        validation_person = self.scModel.getProjectData('validatedby')
+        comment = 'Exported by ' + self.prefLoader.get_key('username')
+        comment = comment + '\n {}: {}'.format('location', s3)
+        comment = comment + '\n {}: {}'.format('additional_message', additional_message)
+        comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+        if validation_person is not None:
+            comment = comment + '\n Validated By: ' + validation_person
+        return self.notifiers.update_journal_status(self.scModel.getName(),
+                                                    self.scModel.getGraph().getCreator().lower(),
+                                                    comment,
+                                                    self.scModel.getGraph().get_project_type())
+
     def changeEvent(self, recipient, eventType, **kwargs):
         # UI not setup yet.  Occurs when project directory is used at command line
         if self.canvas is None:
@@ -949,20 +965,7 @@ class MakeGenUI(Frame):
                     self.scModel.save()
                 except Exception as e:
                     logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
-        elif eventType == 'export':
-            qacomment = self.scModel.getProjectData('qacomment')
-            validation_person = self.scModel.getProjectData('validatedby')
-            comment = 'Exported by ' + self.prefLoader.get_key('username')
-            for k,v in kwargs.iteritems():
-                comment = comment + '\n {}: {}'.format(k,v)
-            comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
-            if validation_person is not None:
-                comment = comment + '\n Validated By: ' + validation_person
-            return self.notifiers.update_journal_status(self.scModel.getName(),
-                                                 self.scModel.getGraph().getCreator().lower(),
-                                                 comment,
-                                                 self.scModel.getGraph().get_project_type())
-        if eventType == 'connect':
+        elif eventType == 'connect':
             self.canvas.add(recipient[0],recipient[1])
         elif eventType == 'add':
             self.canvas.addNew(recipient)
