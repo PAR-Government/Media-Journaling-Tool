@@ -23,19 +23,19 @@ class TestExporter(TestSupport):
 
     def tearDown(self):
         import shutil
-       # altenate_directory = os.path.join(os.path.expanduser('~'), 'TESTJTEXPORT')
-        #shutil.rmtree(altenate_directory)
+        altenate_directory = os.path.join(os.path.expanduser('~'), 'TESTJTEXPORT')
+        shutil.rmtree(altenate_directory)
 
     def notify_status(self,who,what):
-        print (who + ' ' + what)
+        print ('export manager notify ' + who + ' ' + what)
         self.condition.acquire()
-        self.notified = True
+        self.notified = what == 'DONE'
         self.condition.notifyAll()
         self.condition.release()
 
     def check_status(self):
         self.condition.acquire()
-        if not self.notified:
+        while not self.notified:
             self.condition.wait()
         self.condition.release()
 
@@ -50,7 +50,6 @@ class TestExporter(TestSupport):
         self.assertTrue(what in current)
         self.check_status()
         history = self.exportManager.get_history()
-        print history
         self.assertTrue(history[what][1] == 'DONE')
 
     def test_export_sync(self):
@@ -61,7 +60,6 @@ class TestExporter(TestSupport):
         pathname = self.locateFile('tests/data/camera_sizes.json')
         self.exportManager.sync_upload(pathname, 'medifor/par/journal/shared/', remove_when_done=False)
         history = self.exportManager.get_history()
-        print history
         self.assertTrue(history[what][1] == 'DONE')
 
 

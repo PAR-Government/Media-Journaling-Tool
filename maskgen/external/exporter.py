@@ -6,7 +6,6 @@ from time import sleep
 
 from maskgen.tool_set import S3ProgressPercentage
 
-
 #-------------------------------------------------------------------------------------------------------------
 # Export Tools - export to remote location
 #-------------------------------------------------------------------------------------------------------------
@@ -294,8 +293,7 @@ class ExportManager:
                         if process_info.pipe.poll(5):
                             process_info.status = process_info.pipe.recv()
                     except Exception as e:
-                        print "ex {}".format(type(e))
-
+                        logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
                 if process_info.status in ['DONE', 'FAIL'] or not process_info.process.is_alive():
                     try:
                         process_info.process.join()
@@ -303,6 +301,7 @@ class ExportManager:
                         pass
                     if process_info.status not in ['DONE', 'FAIL']:
                         process_info.status = 'FAIL'
+                    # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
                     self.notifier(k, process_info.status)
                     # self.queue_wait.acquire()
                     # self.queue_wait.notifyAll()
@@ -394,6 +393,7 @@ class ExportManager:
         finally:
             self.semaphore.release()
         logging.getLogger('maskgen').info('START upload {}'.format(name))
+        # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
         self.notifier(name, 'START')
 
     def sync_upload(self, pathname, location, remove_when_done=True):
@@ -421,6 +421,7 @@ class ExportManager:
             self.semaphore.notifyAll()
         finally:
             self.semaphore.release()
+        # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
         self.notifier(name, 'START')
         logging.getLogger('maskgen').info('START synchronous upload {}'.format(name))
         _perform_upload(self.directory, os.path.abspath(pathname), location, pipe, remove_when_done, self.export_tool)
