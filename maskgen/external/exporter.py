@@ -222,6 +222,7 @@ class ExportManager:
         self.listen_thread.daemon = True
         self.listen_thread.start()
         self.export_tool = export_tool()
+        self.poll_time = 2
 
     def get_current(self):
         from time import time
@@ -290,8 +291,9 @@ class ExportManager:
             for k, process_info in processes.iteritems():
                 if process_info.pipe is not None:
                     try:
-                        if process_info.pipe.poll(5):
+                        if process_info.pipe.poll(self.poll_time):
                             process_info.status = process_info.pipe.recv()
+                            self.notifier(k, process_info.status)
                     except Exception as e:
                         logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
                 if process_info.status in ['DONE', 'FAIL'] or not process_info.process.is_alive():

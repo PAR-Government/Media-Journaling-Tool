@@ -118,4 +118,5 @@ class ExportProgress(Frame):
         else:
             if not self.parent.export_manager.restart(self.name):
                 tkMessageBox.showerror('Restart','Cannot restart {}. File cannot be found.'.format(self.name))
+                self.parent.forget(self.name)
 

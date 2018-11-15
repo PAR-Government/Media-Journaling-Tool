@@ -392,7 +392,6 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             try:
                 path, errorlist = self.scModel.export(tempfile.tempdir,notifier=self.progress_bar.postChange)
-                #path, errorlist = '/Users/ericrobertson/Downloads/MSR_original.tgz',[]
                 if len(errorlist) > 0:
                     ValidationListDialog(self, errorlist, "Export Errors")
                 else:
