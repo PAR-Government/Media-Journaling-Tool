@@ -46,8 +46,8 @@ def set_logging_level(level):
         handler.setLevel(level)
 
 
-def set_logging(directory=None, filename='maskgen.log'):
-    logger = logging.getLogger('maskgen')
+def set_logging(directory=None, filename='maskgen.log',skip_config=False,logger_name = 'maskgen'):
+    logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
     for handler in logger.handlers:
@@ -76,7 +76,7 @@ def set_logging(directory=None, filename='maskgen.log'):
     # add ch to logger
     logger.addHandler(fh)
 
-    if os.path.exists('logging.config'):
+    if not skip_config and os.path.exists('logging.config'):
         print('Establishing logging configuration from file')
         config.fileConfig('logging.config')
 

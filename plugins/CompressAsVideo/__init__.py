@@ -8,6 +8,7 @@
 
 from os import path
 import maskgen.video_tools
+import maskgen.ffmpeg_api
 import shlex # For handling paths with spaces
 import logging
 from collections import OrderedDict
@@ -79,8 +80,8 @@ def compare_codec_tags(donor_path, output_path):
     :param donor_path: Path to the donor video file
     :param output_path: Path to the output video file
     """
-    donor_data = maskgen.video_tools.getMeta(donor_path, show_streams=True)[0]
-    output_data = maskgen.video_tools.getMeta(output_path, show_streams=True)[0]
+    donor_data = maskgen.ffmpeg_api.get_meta_from_video(donor_path, show_streams=True)[0]
+    output_data = maskgen.ffmpeg_api.get_meta_from_video(output_path, show_streams=True)[0]
 
     donor_video_data = get_channel_data(donor_data, 'video')
     donor_audio_data = get_channel_data(donor_data, 'audio')
@@ -115,9 +116,8 @@ def get_channel_data(source_data, codec_type):
     pos = 0
     for data in source_data:
         if data['codec_type'] == codec_type:
-            return data,pos
+            return data, pos
         pos+=1
-
 
 def orient_rotation_positive(rotate):
     rotate = -rotate
@@ -150,8 +150,11 @@ def parse_override_command(command, source, target):
     """
     command = command.lower()
     args = shlex.split(command, r"'")
+    y_index = args.index('-y') if '-y' in args else None
+    if y_index == None:
+        args.append('-y')
     if not path.exists(args[-1]):
-        args.insert(-1,target)
+        args.append(target)
     try:
         inp = args.index('-i')
     except ValueError:
@@ -186,8 +189,8 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
     """
     ffmpeg_version = maskgen.video_tools.get_ffmpeg_version()
     skipRotate = ffmpeg_version[0:3] == '3.3' or not apply_rotate
-    source_data = maskgen.video_tools.getMeta(source, show_streams=True)[0]
-    donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
+    source_data = maskgen.ffmpeg_api.get_meta_from_video(source, show_streams=True)[0]
+    donor_data = maskgen.ffmpeg_api.get_meta_from_video(donor, show_streams=True)[0]
 
     video_settings = {'-codec:v': 'codec_name', '-b:v': 'bit_rate', '-r': 'r_frame_rate', '-pix_fmt': 'pix_fmt',
                       '-profile:v': 'profile'}
@@ -235,11 +238,14 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                 ffargs.extend(['-vsync', '2'])
                 data['r_frame_rate'] = 'N/A'
             for option, setting in video_settings.iteritems():
-                if setting == 'profile' and setting in data:
-                    for tup in profile_map:
-                        if data[setting].find(tup[0]) >= 0:
-                            ffargs.extend([option, tup[1]])
-                            break
+                if setting == 'profile':
+                    if setting in data and video_codec.lower() == 'use donor':
+                        for tup in profile_map:
+                            if data[setting].find(tup[0]) >= 0:
+                                ffargs.extend([option, tup[1]])
+                                ffargs.extend(['-level', data['level']])
+                                break
+                    continue
                 elif setting in data and data[setting] not in ['unknown', 'N/A']:
                     ffargs.extend([option, data[setting]])
 
@@ -269,25 +275,21 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                         height = old_width
                     if source_height != width or source_width != height:
                         video_size = width + ':' + height
-                        try:
-                            if 'display_aspect_ratio' in data:
-                                aspect_ratio = ',setdar=' + data['display_aspect_ratio']
-                            else:
-                                aspect_ratio = ''
-                        except KeyError:
-                            aspect_ratio = ''
+                        dar = get_item(data, 'display_aspect_ratio', 'N/A')
+                        if dar != 'N/A':
+                            aspect_ratio = ',setdar=' + dar.replace(':', '/')
+                        else:
+                            aspect_ratio = width/height
                         filters += (',scale=' + video_size + aspect_ratio)
                 else:
                     if (abs(diff_rotation) == 90 and (source_height != width or source_width != height)) or \
                             (abs(diff_rotation) != 90 and (source_height != height or source_width != width)):
                         video_size = width + ':' + height
-                        try:
-                            if 'display_aspect_ratio' in data:
-                                aspect_ratio = ',setdar=' + data['display_aspect_ratio']
-                            else:
-                                aspect_ratio = ''
-                        except KeyError:
-                            aspect_ratio = ''
+                        dar = get_item(data, 'display_aspect_ratio', 'N/A')
+                        if dar != 'N/A':
+                            aspect_ratio = ',setdar=' + dar.replace(':', '/')
+                        else:
+                            aspect_ratio = width/height
                         filters += (',scale=' + video_size + aspect_ratio)
                     if rotation_filter is not None and  len(rotation_filter) > 0:
                         filters += (',' + rotation_filter)
@@ -328,7 +330,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
     # Check Codec names before running
     validate_codecs(ffargs)
 
-    maskgen.video_tools.runffmpeg(ffargs, False)
+    maskgen.ffmpeg_api.run_ffmpeg(ffargs, False)
 
     maskgen.exif.runexif(['-overwrite_original', '-all=', target], ignoreError=True)
     maskgen.exif.runexif(['-P', '-m', '-tagsFromFile', donor,  target], ignoreError=True)

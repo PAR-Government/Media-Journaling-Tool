@@ -1,5 +1,6 @@
 import maskgen.video_tools
 import maskgen.tool_set
+import maskgen.ffmpeg_api
 
 """
 Concatentate or Replace donor audio to video.
@@ -9,7 +10,7 @@ Concatentate or Replace donor audio to video.
 def transform(img, source, target, **kwargs):
     whichones = kwargs['Stream'] if 'Stream' in kwargs else 'both'
     donor = kwargs['donor']
-    donor_data = maskgen.video_tools.getMeta(donor, show_streams=True)[0]
+    donor_data = maskgen.ffmpeg_api.get_meta_from_video(donor, show_streams=True)[0]
     milli, frame = maskgen.tool_set.getMilliSecondsAndFrameCount(kwargs['Start Time'])
     channelspecifier = ':1' if whichones == 'right' else (':0' if whichones == 'left' else '')
     streamno = 0
@@ -42,7 +43,7 @@ def transform(img, source, target, **kwargs):
     else:
         command.extend(['-map', '0:v', '-map', '1:' + str(streamno) + channelspecifier, '-c', 'copy', target])
 
-    maskgen.video_tools.runffmpeg(command, noOutput=True)
+    maskgen.ffmpeg_api.run_ffmpeg(command, noOutput=True)
     return {'add type': 'replace', 'synchronization': 'none'}, None
 
 

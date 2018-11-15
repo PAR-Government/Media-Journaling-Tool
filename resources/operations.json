@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0515.afee2e2e08",
+  "version": "0.10.01.b370476d40",
   "operations": [
     {
       "category": "Audio",
@@ -46,10 +46,12 @@
         },
         "Copy Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Insertion Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Replace insertion time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -62,14 +64,17 @@
         "checkAddFrameTime",
         "checkSameChannels",
         "checkUncompressed",
+        "checkSampleRate",
         "checkAudioOnly"
       ],
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.add_audio"
+        "video": "maskgen.mask_rules.add_audio",
+        "audio": "maskgen.mask_rules.add_audio"
       },
       "optionalparameters": {
         "Copy End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -97,6 +102,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Copy Stream": {
@@ -111,23 +117,25 @@
       },
       "rules": [
         "checkFrameTimes",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkSampleRate"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": [
-        "checkFrameTimes",
-        "checkAudioChannels"
-      ],
       "analysisOperations": [],
       "description": "Extract audio stream(s) from a video",
       "generateMask": "all",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioSample"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "includeInMask": {
         "default": true
@@ -147,6 +155,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
@@ -171,20 +180,22 @@
       },
       "rules": [
         "checkSize",
-        "checkHasVideoChannel",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAudioTimeFormat",
+        "checkSampleRate",
         "checkAudioOnly"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.delete_audio"
+        "video": "maskgen.mask_rules.delete_audio",
+        "audio": "maskgen.mask_rules.delete_audio"
       },
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
@@ -193,7 +204,9 @@
       },
       "generateMask": "frames",
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio",
+        "video.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -228,6 +241,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream": {
@@ -244,6 +258,7 @@
           "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "rules": [
         "checkForDonorAudio",
         "checkOverlay",
@@ -251,20 +266,20 @@
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
-        "checkForAudio",
+        "checkSampleRate",
+        "checkForVideoRetainment",
         "checkUncompressed",
         "checkChannelLoss",
         "checkAudioTimeFormat",
         "checkOverlay",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkAudioAdd",
+        "checkAudioSameorLonger"
       ],
-      "maskTransformFunction": {
-        "video": "maskgen.mask_rules.add_audio",
-        "audio": "maskgen.mask_rules.add_audio"
-      },
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -277,6 +292,10 @@
         "default": true
       },
       "generateMask": "audio",
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.add_audio",
+        "audio": "maskgen.mask_rules.add_audio"
+      },
       "transitions": [
         "video.video",
         "audio.audio",
@@ -304,6 +323,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -313,8 +333,10 @@
         "checkFrameTimeAlignment",
         "checkSameChannels",
         "checkUncompressed",
+        "checkSampleRate",
         "checkAudioTimeFormat",
-        "checkDurationAudio"
+        "checkDurationAudio",
+        "checkAudioLength"
       ],
       "parameter_dependencies": {
         "Effects Type": {
@@ -378,6 +400,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -389,6 +412,10 @@
       "generateMask": "audio",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "transitions": [
         "video.video",
@@ -420,6 +447,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Smoothing": {
@@ -434,8 +462,11 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkAudioTimeFormat",
+        "checkSampleRate",
         "checkDurationAudio",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "parameter_dependencies": {
         "Filter Type": {
@@ -465,6 +496,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Noise Reduction": {
@@ -492,6 +524,10 @@
       "generateMask": "audio",
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "transitions": [
         "video.video",
@@ -532,6 +568,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -542,7 +579,10 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
-        "checkAudioOnly"
+        "checkSampleRate",
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -560,6 +600,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -573,6 +614,10 @@
         "audio.audio",
         "video.video"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
@@ -610,6 +655,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Subtype": {
@@ -627,9 +673,12 @@
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkSameChannels",
+        "checkSampleRate",
         "checkUncompressed",
         "checkDurationAudio",
-        "checkAudioTimeFormat"
+        "checkAudioTimeFormat",
+        "checkAudioLength",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Pre-Delay": {
@@ -642,6 +691,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -657,6 +707,10 @@
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "qaList": [
         "Time Stamps Ok?"
@@ -688,6 +742,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": "00:00:00",
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         }
@@ -699,7 +754,10 @@
         "checkSameChannels",
         "checkUncompressed",
         "checkDurationAudio",
-        "checkAudioTimeFormat"
+        "checkSampleRate",
+        "checkAudioTimeFormat",
+        "checkAudioLength",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Stream": {
@@ -713,6 +771,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -722,6 +781,10 @@
         "default": true
       },
       "generateMask": "audio",
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "audio.audio",
         "video.video"
@@ -752,6 +815,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": "00:00:00",
+          "trigger mask": true,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "Stream": {
@@ -773,11 +837,14 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
-        "checkAudioOnly"
+        "checkAudioOnly",
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -785,6 +852,7 @@
         "audio": "maskgen.mask_rules.replace_audio",
         "video": "maskgen.mask_rules.replace_audio"
       },
+      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
       "description": "Replacing with a donor audio stream to a video",
       "includeInMask": {
@@ -809,7 +877,9 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         },
         "Camera Effect": {
           "type": "list",
@@ -825,7 +895,7 @@
             "Crop",
             "Other"
           ],
-          "description":"Cropping for Drone Shake or Other"
+          "description": "Cropping for Drone Shake or Other"
         }
       },
       "rules": [
@@ -834,12 +904,14 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
           "source": "video",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -864,7 +936,9 @@
         "Start Time": {
           "type": "time",
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -875,7 +949,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -884,6 +959,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -908,8 +984,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         },
         "Vertical Block Number": {
           "type": "int[1:400000]",
@@ -931,11 +1009,13 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -962,8 +1042,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -981,6 +1063,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1005,6 +1088,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -1030,7 +1114,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        ""
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -1039,6 +1124,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1066,8 +1152,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         },
         "Blur Type": {
           "type": "list",
@@ -1103,6 +1191,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -1192,6 +1281,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "defaultValue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -1215,6 +1305,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1243,6 +1334,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1257,6 +1349,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1279,7 +1372,8 @@
       "rules": [
         "checkSizeAndExif",
         "checkFileTypeChangeForDonor",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkTimeStamp"
       ],
       "optionalparameters": {
         "rotate": {
@@ -1288,7 +1382,7 @@
         }
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [
@@ -1327,7 +1421,7 @@
       "optionalparameters": {
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "analysisOperations": [
@@ -1354,9 +1448,9 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkMetaDate"
+        "checkMetaDate",
+        "checkTimeStamp"
       ],
-      "optionalparameters": {},
       "description": "Alter image metadata.",
       "includeInMask": {
         "default": false
@@ -1422,11 +1516,12 @@
       "rules": [
         "checkSizeAndExif",
         "checkForDonor",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkTimeStamp"
       ],
       "optionalparameters": {},
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.copy_exif",
+        "video": "maskgen.mask_rules.video_copy_exif",
         "image": "maskgen.mask_rules.exif_transform"
       },
       "description": "Alter Image to be compliant with another images quantization and EXIF",
@@ -1486,7 +1581,6 @@
         "check_eight_bit",
         "checkEmpty"
       ],
-      "optionalparameters": {},
       "description": "Apply artificial lens distortion",
       "includeInMask": {
         "default": false
@@ -1503,7 +1597,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1527,7 +1622,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Capture Camera ID": {
@@ -1555,10 +1651,9 @@
       },
       "rules": [
         "checkSize",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkFrameRateChange_Strict"
       ],
-      "optionalparameters": {
-      },
       "description": "Add PRNU fingerprint trace, generated from a set of images.",
       "includeInMask": {
         "default": false
@@ -1599,7 +1694,8 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {},
       "description": "Remove effects of manipulations depending on the GAN model and architecture",
@@ -1619,9 +1715,9 @@
       "rules": [
         "checkSize",
         "check_eight_bit",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
-      "optionalparameters": {},
       "description": "Chromatic Aberration Correction",
       "includeInMask": {
         "default": true
@@ -1637,6 +1733,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1660,6 +1757,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1687,6 +1785,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1708,6 +1807,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1734,6 +1834,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1756,6 +1857,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1794,6 +1896,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1816,6 +1919,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1838,6 +1942,133 @@
       ]
     },
     {
+      "category": "CGI",
+      "name": "DeepFakeFaceSwap",
+      "mandatoryparameters": {
+        "urls": {
+          "type": "urls",
+          "description": "Urls to training videos if available"
+        },
+        "Start Time": {
+          "type": "time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "check_local_warn",
+        "checkSameChannels",
+        "checkVideoMasks",
+        "checkFrameTimeAlignment",
+        "checkUncompressed",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+        "Trainer": {
+          "type": "list",
+          "values": [
+            "GAN",
+            "GAN128",
+            "Original",
+            "IAE"
+          ],
+          "description": "Trainer used.",
+          "defaultvalue": "Original"
+        },
+        "Detector": {
+          "type": "list",
+          "values": [
+            "all",
+            "hog",
+            "cnn"
+          ],
+          "description": "Face Detector used.",
+          "defaultvalue": "all"
+        },
+        "Batch Size": {
+          "type": "int[1:100000000]",
+          "description": "micro batches.",
+          "defaultvalue": 32
+        },
+        "Epochs": {
+          "type": "int[1:100000000]",
+          "description": "Training epochs.",
+          "defaultvalue": 10000
+        },
+        "Converter": {
+          "type": "list",
+          "values": [
+            "Masked",
+            "Adjust"
+          ],
+          "description": "Trainer used.",
+          "defaultvalue": "Masked"
+        },
+        "Mask Blur": {
+          "type": "yesno",
+          "description": "Trainer used.",
+          "defaultvalue": "no"
+        },
+        "Mask Seamless": {
+          "type": "yesno",
+          "description": "Algorithm to erase seams.",
+          "defaultvalue": "no"
+        },
+        "Mask Erode": {
+          "type": "yesno",
+          "description": "Erode edges (may reduce the fit).",
+          "defaultvalue": "no"
+        },
+        "Adjust Smooth": {
+          "type": "yesno",
+          "description": "Smooth edges.",
+          "defaultvalue": "no"
+        },
+        "Adjust Color": {
+          "type": "yesno",
+          "description": "Match color intensity.",
+          "defaultvalue": "no"
+        },
+        "Histogram Color Match": {
+          "type": "yesno",
+          "description": "Match color with histogram (may be the same as adjust color).",
+          "defaultvalue": "yes"
+        },
+        "Blur Size": {
+          "type": "int[1:1000]",
+          "description": "Blur Kernel Size.",
+          "defaultvalue": "40"
+        },
+        "End Time": {
+          "type": "time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
+      "description": "Face Swap with Deep Fake algorithms.",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image",
+        "video.video"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Confirm URL(s) {urls} lead to training data"
+      ]
+    },
+    {
       "category": "Layer",
       "name": "LayerOpacity",
       "mandatoryparameters": {
@@ -1847,6 +2078,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1868,6 +2100,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1894,6 +2127,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1916,6 +2150,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -1944,6 +2179,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -1994,6 +2230,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2076,8 +2313,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2097,6 +2336,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2124,6 +2364,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2144,11 +2385,12 @@
           "description": "An image file containing a mask describing the areas affected."
         },
         "lookuptable": {
-          "type": "string",
+          "type": "text",
           "description": "Name of the lookup table (LUT) to color grade layers of footage"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2176,6 +2418,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -2208,6 +2451,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2229,47 +2473,49 @@
       ]
     },
     {
-      "category":"CGI",
-      "name":"SynthesizeGAN",
-      "description" : "Synthesize an image using a trained GAN model and provided input",
-      "mandatoryparameters":{
+      "category": "CGI",
+      "name": "SynthesizeGAN",
+      "description": "Synthesize an image using a trained GAN model and provided input",
+      "mandatoryparameters": {
         "urls": {
           "type": "urls",
-          "description" : "URL of GAN"
+          "description": "URL of GAN"
         },
-        "Name" : {
-          "type" : "text",
-          "description" : "Name of GAN"
+        "Name": {
+          "type": "text",
+          "description": "Name of GAN"
         }
       },
-      "optionalparameters":{
+      "optionalparameters": {
         "Random seed value": {
-          "type" : "float",
-          "description" : "The random fed to the GAN to produce the output"
+          "type": "float",
+          "description": "The random fed to the GAN to produce the output"
         }
       },
-      "includeInMask": {"default" : false},
+      "includeInMask": {
+        "default": false
+      },
       "transitions": [
         "image.image",
         "video.video"
       ],
-      "rules" : [
+      "rules": [
         "checkSize",
         "checkFileTypeChange"
       ],
-       "qaList": [
+      "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate."
       ]
     },
     {
-      "category":"CGI",
-      "name":"SynthesizeVideo",
-      "description" : "Synthesize an video scene using a trained GAN model and provided input",
-      "mandatoryparameters":{
+      "category": "CGI",
+      "name": "SynthesizeVideo",
+      "description": "Synthesize an video scene using a trained GAN model and provided input",
+      "mandatoryparameters": {
         "urls": {
           "type": "urls",
-          "description" : "URL used to create the flight path simulate"
+          "description": "URL used to create the flight path simulate"
         },
         "Recording Software": {
           "type": "text",
@@ -2280,24 +2526,33 @@
           "description": "Name of KML File"
         },
         "Rendering Software": {
-          "type" : "text",
-          "description" : "Name of software used to render the video"
+          "type": "text",
+          "description": "Name of software used to render the video"
         }
       },
-      "optionalparameters":{
+      "optionalparameters": {
         "Time Settings": {
-          "type" : "list",
-          "values" : ["Default time", "Morning","Evening","Night","Early Morning","Late Morning", "Late Evening", "Early Evening"],
-          "description" : "The time setting used if changed",
-          "defaultvalue" : "Default time"
+          "type": "list",
+          "values": [
+            "Default time",
+            "Morning",
+            "Evening",
+            "Night",
+            "Early Morning",
+            "Late Morning",
+            "Late Evening",
+            "Early Evening"
+          ],
+          "description": "The time setting used if changed",
+          "defaultvalue": "Default time"
         },
         "Video Location": {
-          "type" : "text",
+          "type": "text",
           "description": "Where the video is supposed to take place"
         },
         "Time of Sun": {
-          "type" : "text",
-          "description" : "Time of day video was taken if unknown leave blank"
+          "type": "text",
+          "description": "Time of day video was taken if unknown leave blank"
         }
       },
       "includeInMask": {
@@ -2307,7 +2562,7 @@
         "image.image",
         "video.video"
       ],
-      "rules" : [
+      "rules": [
         "checkSize",
         "checkFileTypeChange"
       ],
@@ -2331,8 +2586,10 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2352,6 +2609,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2387,8 +2645,10 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2408,6 +2668,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2486,12 +2747,17 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file recording meta-data."
         }
       },
       "analysisOperations": [
@@ -2528,8 +2794,10 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2550,6 +2818,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2559,7 +2828,11 @@
       ],
       "description": "Synthesize nearby content for seamless blending with the surrounding content.",
       "compareparameters": {
-        "tolerance": 0.0001
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.ca_fill"
       },
       "includeInMask": {
         "default": true
@@ -2578,7 +2851,6 @@
       "category": "Paste",
       "name": "GANFill",
       "mandatoryparameters": {
-
       },
       "rules": [
         "checkLengthSame",
@@ -2604,6 +2876,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -2613,6 +2886,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2622,7 +2896,8 @@
       ],
       "description": "Use a GAN to fill in a selected region of an image.",
       "compareparameters": {
-        "tolerance": 0.0001
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "includeInMask": {
         "default": true
@@ -2641,11 +2916,13 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2692,12 +2969,14 @@
           "values": [
             "remove",
             "clone",
-            "heal"
+            "heal",
+            "stacking"
           ],
-          "description": "Purpose: remove an object, clone (combination of add and remove), or healing using sampled pixels."
+          "description": "Purpose: remove an object, clone (combination of add and remove), healing using sampled pixels, layer stacking to create new paste"
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2712,7 +2991,8 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2720,11 +3000,30 @@
           "source": "image",
           "description": "An image file with a transparency highlighting the sampled areas of the image.",
           "rule": {
-            "purpose": "clone"
+            "purpose": [
+              "clone",
+              "stacking"
+            ]
+          }
+        },
+        "Blend Mode": {
+          "type": "list",
+          "values": [
+            "Minimum",
+            "Maximum",
+            "Mean",
+            "Median",
+            "Other"
+          ],
+          "rule": {
+            "purpose": [
+              "stacking"
+            ]
           }
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2735,6 +3034,10 @@
       "description": "Use sampled imagery from a given area to fill an area on the canvas.",
       "includeInMask": {
         "default": true
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.paste_sampled"
@@ -2766,7 +3069,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "type": {
@@ -2805,6 +3109,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2817,7 +3122,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2826,6 +3132,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2847,52 +3154,12 @@
     },
     {
       "category": "Filter",
-      "name": "CameraRawFilter",
-      "mandatoryparameters": {},
-      "rules": [
-        "checkSize",
-        "checkLengthSame",
-        "checkFileTypeChange",
-        "checkForRawFile",
-        "checkSameChannels",
-        "checkEmpty"
-      ],
-      "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-        },
-        "XMP File Name": {
-          "type": "file:xmp",
-          "description": "XMP file recording meta-data."
-        }
-      },
-      "analysisOperations": [
-        "maskgen.tool_set.globalTransformAnalysis"
-      ],
-      "description": "Make edits to raw imagery in a raw processor.",
-      "includeInMask": {
-        "default": true
-      },
-      "transitions": [
-        "image.image",
-        "video.video"
-      ],
-      "qaList": [
-        "Confirm highlighted area represents the region that was affected by the operation",
-        "Are all relevant semantic groups assigned? More than one may be appropriate.",
-        "This operation includes the corresponding xmp file that details the changes if possible",
-        "This operation was used during output between a raw file and a png as an initial step to do custom raw image processing",
-        "This operation was used because it was impossible to break it up into other discrete steps."
-      ]
-    },
-    {
-      "category": "Filter",
       "name": "FilterKeying",
       "mandatoryparameters": {},
       "rules": [
         "checkLengthSame",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange"
       ],
       "optionalparameters": {},
       "description": "Remove a color from a layer of video.",
@@ -2910,8 +3177,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2922,7 +3191,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "gamma": {
@@ -2940,6 +3210,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -2967,8 +3238,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -2979,11 +3252,13 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3011,8 +3286,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3024,11 +3301,13 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3065,8 +3344,10 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3076,7 +3357,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3107,8 +3389,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip ( frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3119,7 +3403,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3128,6 +3413,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3155,8 +3441,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -3167,7 +3455,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -3176,6 +3465,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3203,6 +3493,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3217,11 +3508,13 @@
         "checkVideoMasks",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3229,6 +3522,10 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Use the pencil or brush tool to add a pixel overlay to an image or selection.",
       "includeInMask": {
         "default": true
@@ -3248,6 +3545,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3261,14 +3559,20 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3293,6 +3597,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -3308,14 +3613,20 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3340,6 +3651,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -3354,14 +3666,20 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
+      },
+      "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -3381,12 +3699,54 @@
     },
     {
       "category": "Output",
+      "name": "OutputPng",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        },
+        "Lens Distortion Applied":{
+          "type":"yesno",
+          "description":"Len Distortion Algorithms Applied?"
+        }
+      },
+      "rules": [
+        "checkSizeAndExifPNG",
+        "checkOutputType"
+      ],
+      "optionalparameters": {
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file provided when exporting from a raw image."
+        }
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "description": "Export the image in the png format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm that the file was transformed into a png",
+        "The file was compressed in a lossless fashion"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputCopy",
       "mandatoryparameters": {
       },
       "rules": [
         "checkSize",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFileTypeUnchanged"
       ],
       "optionalparameters": {
       },
@@ -3415,7 +3775,8 @@
         }
       },
       "rules": [
-        "checkSize"
+        "checkSize",
+        "checkOutputType"
       ],
       "optionalparameters": {
         "XMP File Name": {
@@ -3443,10 +3804,16 @@
       "mandatoryparameters": {
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkAudioOutputType",
+        "checkAudioLength"
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "optionalparameters": {
       },
@@ -3466,12 +3833,17 @@
       "mandatoryparameters": {
       },
       "rules": [
-        "checkLengthSame"
+        "checkLengthSame",
+        "checkAudioOutputType"
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": {
@@ -3487,7 +3859,8 @@
       "name": "OutputDng",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSize",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the DNG format.",
@@ -3503,7 +3876,8 @@
       "name": "OutputJpg",
       "mandatoryparameters": {},
       "rules": [
-        "checkSize"
+        "checkSize",
+        "checkJpgOutputType"
       ],
       "optionalparameters": {
         "XMP File Name": {
@@ -3524,39 +3898,42 @@
     },
     {
       "category": "Output",
-      "name": "OutputPng",
-      "mandatoryparameters": {
-        "Image Rotated": {
-          "type": "yesno",
-          "description": "Did the software rotate the image when removing the EXIF Orientation?"
-        }
-      },
+      "name": "OutputJp2",
+      "mandatoryparameters": {},
+      "optionalparameters": {},
       "rules": [
-        "checkSizeAndExifPNG",
-        "rotationCheck"
+        "checkSize",
+        "checkOutputType"
       ],
-      "optionalparameters": {
-        "XMP File Name": {
-          "type": "file:xmp",
-          "description": "XMP file provided when exporting from a raw image."
-        }
-      },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.output_transform"
       },
-      "compareparameters": {
-        "function": "maskgen.tool_set.convertCompare"
-      },
-      "description": "Export the image in the png format.",
+      "description": "Export the image in the jp2 format.",
       "includeInMask": {
         "default": false
       },
       "transitions": [
         "image.image"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputNITF",
+      "mandatoryparameters": {},
+      "optionalparameters": {},
+      "rules": [
+        "checkSize",
+        "checkOutputType"
       ],
-      "qaList": [
-        "Confirm that the file was transformed into a png",
-        "The file was compressed in a lossless fashion"
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "description": "Export the image in the NITF format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
       ]
     },
     {
@@ -3564,11 +3941,16 @@
       "name": "OutputPDF",
       "mandatoryparameters": {
         "resolution": {
-          "type": "int",
+          "type": "int[0:10000000]",
           "description": "DPI"
         }
       },
+
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
       "rules": [
+        "checkOutputType"
       ],
       "optionalparameters": {
       },
@@ -3591,7 +3973,8 @@
       },
       "rules": [
         "checkSizeAndExif",
-        "rotationCheck"
+        "rotationCheck",
+        "checkTifOutputType"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.output_transform"
@@ -3617,10 +4000,6 @@
       "category": "Output",
       "name": "OutputXVID",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3633,13 +4012,16 @@
             "Anamorphic 2:1 (2.0)",
             "HD Anamorphic 1080 (1.333)",
             "DVCPRO HD (1.5)",
-            "Custom"
+            "Custom",
+            "Unchanged"
           ],
+          "defaultvalue": "Unchanged",
           "description": "."
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the xvid format.",
@@ -3647,7 +4029,7 @@
         "default": false
       },
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -3658,10 +4040,6 @@
       "category": "Output",
       "name": "OutputMOV",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3680,7 +4058,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputType"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MOV format.",
@@ -3688,7 +4067,7 @@
         "default": false
       },
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -3699,10 +4078,6 @@
       "category": "Output",
       "name": "OutputMP4",
       "mandatoryparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight: 1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3721,7 +4096,9 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkMp4OutputType",
+        "checkResolution"
       ],
       "optionalparameters": {},
       "description": "Export the image in the MP4 format.",
@@ -3742,13 +4119,17 @@
       "name": "OutputM4",
       "mandatoryparameters": {},
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkOutputTypeM4",
+        "checkAudioLength"
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
-      "includeInMask": false,
+      "includeInMask": {
+        "default": false
+      },
       "generateMask": "meta",
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
@@ -3767,13 +4148,10 @@
       },
       "rules": [
         "checkSameChannels",
-        "checkResolution"
+        "checkResolution",
+        "checkOutputType"
       ],
       "optionalparameters": {
-        "resolution": {
-          "type": "string",
-          "description": "Format widthxheight:  1280x960"
-        },
         "pixel aspect": {
           "type": "list",
           "source": "video",
@@ -3822,6 +4200,11 @@
           "type": "yesno",
           "description": "Enter yes if the donor is cropped the paste operation. Ideally, crop should occur as a SelectRegion operation just prior to donation."
         },
+        "donor flipped": {
+          "type": "yesno",
+          "description": "Enter yes if the donor is flipped the paste operation.",
+          "defaultvalue": "no"
+        },
         "purpose": {
           "type": "list",
           "values": [
@@ -3850,6 +4233,7 @@
           "description": "Subject catgeory pasted to image"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.image_interpolate",
       "rules": [
         "checkSize",
         "checkSIFT",
@@ -3857,7 +4241,8 @@
         "checkFileTypeChange",
         "check_local",
         "check_pastemask",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "mode": {
@@ -3892,7 +4277,9 @@
           ],
           "description": "Blend Mode",
           "rule": {
-            "purpose": "blend"
+            "purpose": [
+              "blend"
+            ]
           }
         }
       },
@@ -3929,6 +4316,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -3936,7 +4324,9 @@
         "checkForDonor",
         "checkPasteFrameLength",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkDonorTimesMatch",
+        "checkSameChannels",
+        "checkFrameRateChange_Strict"
       ],
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.paste_add_frames",
@@ -3945,9 +4335,16 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "kernel": {
+          "type":"int[1:27]",
+          "defaultvalue": 3,
+          "description": "Size of kernel to remove noise"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.video_donor",
       "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
       },
@@ -3970,6 +4367,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
@@ -3988,6 +4386,7 @@
       },
       "rules": [
         "checkForDonor",
+        "checkForSelectFrames",
         "checkLengthSame",
         "checkFrameTimes",
         "check_local",
@@ -3995,17 +4394,23 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "donor_processor":"maskgen.masks.donor_rules.video_donor",
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": {
         "default": true
+      },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "generateMask": "all",
       "transitions": [
@@ -4023,6 +4428,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "subject": {
@@ -4056,6 +4462,9 @@
           "description": "Purpose: remove an object, add an object."
         }
       },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "rules": [
         "checkSize",
         "checkForDonorWithRegion",
@@ -4065,11 +4474,13 @@
         "checkSameChannels",
         "checkVideoMasks",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4092,6 +4503,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
@@ -4100,18 +4512,21 @@
         },
         "Dest Paste Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Position in the video where the copied frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
         "checkLengthBigger",
         "checkSameChannels",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
-      "optionalparameters": {},
+      "optionalparameters": {
+      },
       "description": "Copy & Paste a series of frames within the same video",
       "includeInMask": {
         "default": true
@@ -4129,6 +4544,7 @@
       "mandatoryparameters": {
         "Select Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the cut video clip (HH:MI:SS.micro or frame number)"
         },
         "Number of Frames": {
@@ -4137,14 +4553,17 @@
         },
         "Dest Paste Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Position in the video where the cut frames were pasted(HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
         "checkLengthSame",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Strict"
       ],
-      "optionalparameters": {},
+      "optionalparameters": {
+      },
       "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": {
         "default": true
@@ -4262,7 +4681,7 @@
         "subject": {
           "type": "list",
           "values": [
-          "people",
+            "people",
             "face",
             "gan-face",
             "natural object",
@@ -4326,17 +4745,20 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": 1,
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "rules": [
         "checkFrameTimes",
         "checkSameChannels",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "key insertion": {
@@ -4361,6 +4783,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4369,11 +4792,13 @@
         "checkFrameTimes",
         "checkSameChannels",
         "checkEmpty",
-        "checkCutFrames"
+        "checkCutFrames",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4395,6 +4820,38 @@
       ]
     },
     {
+      "category": "Transform",
+      "name": "FrameBlend",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [
+        "checkFrameTimes",
+        "checkSameChannels",
+        "checkEmpty",
+        "checkFrameRateChange_Strict",
+        "checkLengthSame"
+      ],
+      "optionalparameters": {
+         "End Time": {
+          "type": "time",
+           "trigger mask": true,
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "description": "An interpolation that changes a selection of frames without changing the total number of frames",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "video.video"
+      ]
+    },
+    {
       "category": "PostProcessing",
       "name": "DuplicateFrameDrop",
       "mandatoryparameters": {
@@ -4406,7 +4863,8 @@
       "rules": [
         "checkLengthSmaller",
         "checkEmpty",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
       },
@@ -4427,6 +4885,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4434,11 +4893,13 @@
         "checkLengthSmaller",
         "checkFrameTimes",
         "checkSameChannels",
-        "checkCropLength"
+        "checkCropLength",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4446,9 +4907,11 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+      "generateMask": "all",
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.select_crop_frames"
+        "video": "maskgen.mask_rules.select_crop_frames",
+        "audio_preprocess": "maskgen.mask_rules.select_crop_frames_preprocess",
+        "video_preprocess": "maskgen.mask_rules.select_crop_frames_preprocess"
       },
       "transitions": [
         "video.video"
@@ -4490,11 +4953,11 @@
       "mandatoryparameters": {
         "Frame Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Presentation time of the select frame (HH:MI:SS.micro or frame number)"
         }
       },
-      "rules": [
-      ],
+      "rules": [],
       "optionalparameters": {
       },
       "description": "Select a single frame into an image.",
@@ -4511,12 +4974,58 @@
     },
     {
       "category": "Output",
+      "name": "MediaStacking",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
+      "rules": [
+        "rotationCheck"
+      ],
+      "optionalparameters": {
+        "XMP File Name": {
+          "type": "file:xmp",
+          "description": "XMP file provided when exporting from a raw image."
+        },
+        "Start Time": {
+          "type": "time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "Start frame",
+          "defaultvalue": 1
+        },
+        "End Time": {
+          "type": "time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "End frame"
+        }
+      },
+      "description": "Produce a single image from stacking frames or images in a zip.",
+      "includeInMask": {
+        "default": true
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.median_stacking",
+        "video_preprocess": "maskgen.mask_rules.median_stacking_preprocess"
+      },
+      "transitions": [
+        "video.image",
+        "zip.image"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputMosaic",
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -4525,6 +5034,7 @@
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4559,6 +5069,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "defaultvalue": 1,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4566,11 +5077,13 @@
       "rules": [
         "checkLengthSame",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4584,7 +5097,7 @@
     },
     {
       "category": "TimeAlteration",
-      "name": "TimeAlterationPosterizeTime",
+      "name": "TimeAlterationFrameRate",
       "mandatoryparameters": {
         "Frame Rate": {
           "type": "float[0:1000000]",
@@ -4596,17 +5109,23 @@
         "checkFrameTimes",
         "checkSameChannels"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.framerate_change"
+      },
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Lock a layer to a specific frame rate.",
+      "description": "Lock a layer to a specific frame rate. May change the number of frames in the video, but not necessarily the length of the video",
       "includeInMask": {
         "default": false
       },
@@ -4646,15 +5165,19 @@
       "rules": [
         "checkLengthSame",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Start Time": {
           "type": "time",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4683,15 +5206,18 @@
       "rules": [
         "checkLengthSame",
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4720,6 +5246,7 @@
         "Start Time": {
           "type": "time",
           "defaultvalue": 1,
+          "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "Vector Detail": {
@@ -4729,7 +5256,8 @@
       },
       "rules": [
         "checkFrameTimes",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "Smoothing": {
@@ -4751,6 +5279,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -4776,11 +5305,13 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4793,7 +5324,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -4819,6 +5351,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4831,7 +5364,8 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -4852,6 +5386,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4877,6 +5412,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4889,7 +5425,8 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "homography": {
@@ -4921,6 +5458,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4948,7 +5486,9 @@
         "checkFileTypeChange",
         "checkCropSize",
         "check_eight_bit",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Strict",
+        "checkCropMask"
       ],
       "optionalparameters": {
         "location": {
@@ -4967,7 +5507,7 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+      "generateMask": "all",
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.crop_transform",
         "video": "maskgen.mask_rules.video_crop_transform"
@@ -4978,11 +5518,43 @@
       ]
     },
     {
+      "category": "Steganography",
+      "name": "EncodeMessage",
+      "mandatoryparameters": {
+        "message": {
+          "type": "file:txt",
+          "description": "Filename for the message text"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkFileTypeChange",
+        "check_local_warn",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+      },
+      "compareparameters": {
+        "tolerance": 0.0001
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.localTransformAnalysis"
+      ],
+      "description": "Embed text into an Image",
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
       "category": "Transform",
       "name": "TransformDistort",
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -4995,7 +5567,8 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5020,6 +5593,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5059,7 +5633,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkUncompressed"
+        "checkUncompressed",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5068,6 +5643,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5099,6 +5675,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5111,7 +5688,8 @@
         "checkFrameTimeAlignment",
         "checkEmpty",
         "checkMoveMask",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -5143,6 +5721,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5183,8 +5762,10 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -5192,7 +5773,8 @@
         "checkResizeInterpolation",
         "check_local_warn",
         "checkSameChannels",
-        "checkFrameTimeAlignment"
+        "checkFrameTimeAlignment",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5239,6 +5821,43 @@
     },
     {
       "category": "Transform",
+      "name": "TransformCropResize",
+      "mandatoryparameters": {
+          "crop width": {
+            "type": "int[0:100000]",
+            "description": "The width of the crop image prior to resize"
+          },
+         "crop height": {
+            "type": "int[0:100000]",
+            "description": "The height of the crop image prior to resize"
+          }
+      },
+      "rules": [],
+      "optionalparameters": {
+         "Position Mapping": {
+          "type": "boxpair",
+          "description": "Maps the bounding regions of each image"
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.globalTransformAnalysis"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.crop_resize_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.cropResizeCompare"
+      },
+      "description": "Crop image and then resize image back to original image size.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ]
+    },
+    {
+      "category": "Transform",
       "name": "TransformRotate",
       "mandatoryparameters": {
         "rotation": {
@@ -5251,6 +5870,7 @@
         },
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5260,7 +5880,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
         "homography": {
@@ -5282,6 +5903,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5311,8 +5933,10 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "defaultvalue": 1
         }
       },
       "rules": [
@@ -5323,7 +5947,8 @@
         "checkFrameTimeAlignment",
         "checkUncompressed",
         "checkEmpty",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "homography": {
@@ -5345,6 +5970,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5374,7 +6000,8 @@
         "checkFileTypeChange",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkEmpty"
+        "checkEmpty",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5453,6 +6080,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5462,7 +6090,8 @@
         "checkFileTypeChange",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5488,6 +6117,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5513,6 +6143,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5523,7 +6154,8 @@
         "check_local_warn",
         "checkSameChannels",
         "checkFrameTimeAlignment",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5549,6 +6181,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5574,6 +6207,7 @@
       "mandatoryparameters": {
         "Start Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5585,7 +6219,8 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkEmpty",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -5613,6 +6248,7 @@
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
@@ -5659,7 +6295,8 @@
         }
       },
       "rules": [
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkFrameRateChange_Lenient"
       ],
       "optionalparameters": {
         "interlacing": {
@@ -5674,11 +6311,13 @@
         },
         "Start Time": {
           "type": "time",
-          "defaultvalue": "00:00:00",
+          "trigger mask": true,
+          "defaultvalue": 1,
           "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
         },
         "End Time": {
           "type": "time",
+          "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5708,7 +6347,9 @@
       },
       "rules": [
         "checkSameChannels",
-        "checkHomography"
+        "checkHomography",
+        "checkFrameRateChange_Strict",
+        "checkAudioLength"
       ],
       "optionalparameters": {
         "Homography": {
@@ -5813,19 +6454,19 @@
       }
     },
     "image": {
-       "subject": {
-          "type": "list",
-          "values": [
-            "people",
-            "face",
-            "natural object",
-            "man-made object",
-            "large man-made object",
-            "landscape",
-            "other"
-          ],
-          "description": "Primary subject of image"
-       },
+      "subject": {
+        "type": "list",
+        "values": [
+          "people",
+          "face",
+          "natural object",
+          "man-made object",
+          "large man-made object",
+          "landscape",
+          "other"
+        ],
+        "description": "Primary subject of image"
+      },
       "cgi": {
         "type": "yesno",
         "description": "Is CGI?"
@@ -5836,8 +6477,20 @@
       },
       "objecturls": {
         "type": "urls",
-        "description": "CGI Object files"
-      }
+        "description": "CGI Object files",
+        "save_to_defaults": true
+      },
+      "Crop": {
+          "type": "yesno",
+          "defaultvalue":"yes",
+          "description": "Cropped according to camera?"
+        },
+      "White Balance":{
+          "type":"list",
+          "defaultvalue":"camera",
+          "values":["camera","auto","none"],
+          "description":"As Shot (camera) White Balance?"
+        }
     }
   }
 }

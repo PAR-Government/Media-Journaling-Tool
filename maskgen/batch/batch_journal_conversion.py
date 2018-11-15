@@ -12,6 +12,7 @@ from maskgen.support import getValue
 from maskgen.image_graph import ImageGraph
 import json
 import argparse
+import sys
 
 
 class BatchConverter:
@@ -193,12 +194,12 @@ class BatchConverter:
             "is_multigraph": False
         }
 
-def main():
+def main(argv=sys.argv[1:]):
     from maskgen.batch.batch_project import BatchProject
     parser = argparse.ArgumentParser()
     parser.add_argument('--json', required=True, help='JSON of Journal Project')
     parser.add_argument('--name', required=False, help='Name for Batch Project')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     model = ImageProjectModel(args.json)
     converter = BatchConverter(model)
     batch = converter.convertAndSave(name=args.name)
@@ -206,4 +207,4 @@ def main():
     bp.saveGraphImage('.',use_id=True)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

@@ -4,7 +4,8 @@ from tests.test_support import TestSupport
 import os
 from maskgen.image_wrap import ImageWrapper, openImageFile
 import numpy as np
-import colorcorrect.algorithm
+#import colorcorrect.algorithm
+
 
 from maskgen.image_wrap import ImageWrapper
 

@@ -6,26 +6,27 @@
 # All rights reserved.
 # ==============================================================================
 
-import math
-from datetime import datetime
-from skimage.measure import compare_ssim
-import warnings
-from scipy import ndimage
-import re
 import imghdr
-import sys
-from image_wrap import *
-from maskgen.export.lock_handler import get_lock_handler
-from maskgen_loader import MaskGenLoader
-from subprocess import Popen, PIPE
-import threading
-import loghandling
-import cv2api
-from maskgen.support import removeValue,getValue
+import math
 import os
-from maskgen.userinfo import get_username
-
 import platform
+import re
+import sys
+import threading
+import warnings
+from datetime import datetime
+from subprocess import Popen, PIPE
+
+import cv2api
+import loghandling
+import maskgen.exif
+from ffmpeg_api import get_ffprobe_tool
+from image_wrap import *
+from maskgen.support import removeValue, getValue
+from maskgen.userinfo import get_username
+from maskgen_loader import MaskGenLoader
+from scipy import ndimage
+from skimage.measure import compare_ssim
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
@@ -44,19 +45,40 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
 zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+
+textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log file","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
             ".raf", ".ptx", ".pef", ".mrw",".dng", ".zip",".gz", ".cr2",".jp2",
             ".wav", ".wma", ".m4p", ".mp3", ".m4a", ".raw", ".asf", ".mts",".tif",".arw",".orf",".raw",".rw2",".crw"]
 maskfiletypes = [("png files", "*.png"), ("zipped masks", "*.tgz")]
 
+modelfiletypes = [('3D Studio', '*.3ds'), ('Blender', '*.blen'), ('Collada', '*.dae'), ('AutoCAD', '*.dxf'),
+                  ('Autodesk Exchange', '*.fbx'), ('geoTIFF', '*.tif'), ('gITF', '*.gITF'), ('Lightwave', '*.lwo'),
+                  ('OBJ Files', '*.obj'), ('OFF File', '*.off'), ('PLY Files', '*.ply'), ('PTS Files', '*.pts'),
+                  ('PTX Files', '*.ptx'), ('Sculptris', '*.sc1'), ('Pro/ENGINEER', '*.scl'),
+                  ('Google Sketchup', '*.skp'), ('STL File', '*.stl'), ('TRI Files', '*.tri'), ('V3D Files', '*.v3d'),
+                  ('VRML (WRL Files)', '*.wrl'), ('X3D Files', '*.x3d'), ('X3DV Files', '*.x3dv'),
+                  ('SoftImage', '*.xsi'), ('ZBrush', '*.ztl'), ('XYZ Files', '*.xyz')]
+
+
+class S3ProgessComposite(object):
+
+    def __init__(self,progress_monitors = []):
+        self.progress_monitors = progress_monitors
+
+    def __call__(self, bytes_amount):
+        for pm in self.progress_monitors:
+            pm(bytes_amount)
+
 
 class S3ProgressPercentage(object):
+
     def __init__(self, filename, log =logging.getLogger('maskgen').info):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._percentage_so_far = 0
-        self._lock = get_lock_handler().new(os.path.split(filename)[1])
+        self._lock = threading.Lock()
         self.log = log if log is not None else logging.getLogger('maskgen').info
 
     def __call__(self, bytes_amount):
@@ -155,30 +177,39 @@ def fileTypeChanged(file_one, file_two):
      Return: True if the file types of the two provided files do not match
     """
     try:
-        one_type = imghdr.what(file_one)
-        two_type = imghdr.what(file_two)
+        one_type = fileType(file_one)
+        two_type = fileType(file_two)
         return one_type != two_type
     except:
         return os.path.splitext(file_one)[1].lower() != os.path.splitext(file_two)[1].lower()
 
 
-def getFFmpegTool():
-    return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
-
-
-def getFFprobeTool():
-    return os.getenv('MASKGEN_FFPROBETOOL', 'ffprobe');
-
+def runCommand(command,outputCollector=None):
+    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    errors = []
+    if p.returncode == 0:
+        if outputCollector is not None:
+            for line in stdout.splitlines():
+                outputCollector.append(line)
+    if p.returncode != 0:
+        try:
+            if stderr is not None:
+                for line in stderr.splitlines():
+                    if len(line) > 2:
+                        errors.append(line)
+        except OSError as e:
+            errors.append(str(e))
+    return errors
 
 def isVideo(filename):
-    ffmpegcommand = [getFFprobeTool(), filename]
+    ffmpegcommand = [get_ffprobe_tool(), filename]
     try:
         p = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
         return stderr.find('Invalid data') < 0
     except:
         return False
-
 
 def getMimeType(filename):
     import subprocess
@@ -207,6 +238,8 @@ def fileType(fileName):
         file_type = 'audio'
     elif suffix in ['*.zip', '*.gz']:
         file_type = 'zip'
+    elif suffix in [x[1] for x in textfiletypes]:
+        file_type = 'text'
     return getMimeType(fileName) if file_type is None else file_type
 
 
@@ -255,16 +288,6 @@ def imageResize(img, dim):
     return img.resize(dim, Image.ANTIALIAS).convert('RGBA')
 
 
-def isCompressed(media_file):
-    """
-    TODO: Need to figure this one out more efficiently and accurately
-    :param media_file:
-    :return:
-    """
-    import exif
-    data = exif.getexif(media_file)
-    return getValue(data,'File Type') not in ['AVI','PNG','WAV']
-
 def imageResizeRelative(img, dim, otherImDim):
     """
     Preserves the dimension ratios_
@@ -303,14 +326,8 @@ def sumMask(mask):
 
 
 class VidTimeManager:
-    stopTimeandFrame = None
-    startTimeandFrame = None
-    frameCountSinceStart = 0
-    frameCountSinceStop = 0
-    frameSinceBeginning = 0
-    frameCountWhenStarted = 0
-    frameCountWhenStopped = 0
-    milliNow = 0
+
+
     """
     frameCountWhenStarted: record the frame at start
     frameCountWhenStopped: record the frame at finish
@@ -319,8 +336,19 @@ class VidTimeManager:
     def __init__(self, startTimeandFrame=None, stopTimeandFrame=None):
         self.startTimeandFrame = startTimeandFrame
         self.stopTimeandFrame = stopTimeandFrame
+        #if startTimeandFrame is not None and startTimeandFrame[1] > 0  and startTimeandFrame[0] > 0:
+        #    self.startTimeandFrame = (startTimeandFrame[0],startTimeandFrame[1]+1)
+        #if stopTimeandFrame is not None and stopTimeandFrame[1] > 0  and stopTimeandFrame[0] > 0:
+        #    self.stopTimeandFrame = (stopTimeandFrame[0],stopTimeandFrame[1]+1)
         self.pastEndTime = False
         self.beforeStartTime = True if startTimeandFrame else False
+        self.reachedEnd = False
+        self.milliNow = 0
+        self.frameCountWhenStopped = 0
+        self.frameCountWhenStarted = 0
+        self.frameSinceBeginning = 0
+        self.frameCountSinceStart = 0
+        self.frameCountSinceStop = 0
 
     def isAtBeginning(self):
         return self.startTimeandFrame is None or (self.startTimeandFrame[0] < 0 and self.startTimeandFrame[1] < 2)
@@ -348,29 +376,43 @@ class VidTimeManager:
         return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
 
     def updateToNow(self, milliNow, frames=1):
+        """
+
+        :param milliNow: time after the frame is to be displayed or sound emitted
+        :param frames:
+        :return:
+        """
         self.milliNow = milliNow
         self.frameSinceBeginning += frames
         if self.stopTimeandFrame:
             if self.milliNow > self.stopTimeandFrame[0]:
                 self.frameCountSinceStop += frames
-                if self.frameCountSinceStop > self.stopTimeandFrame[1]:
-                    if not self.pastEndTime:
+                if self.frameCountSinceStop >= self.stopTimeandFrame[1]:
+                    self.frameCountWhenStopped = self.frameSinceBeginning
+                    self.reachedEnd = True
+                    if not self.pastEndTime and self.frameCountSinceStop > self.stopTimeandFrame[1]:
                         self.pastEndTime = True
                         self.frameCountWhenStopped = self.frameSinceBeginning - 1
 
         if self.startTimeandFrame:
-            if self.milliNow >= self.startTimeandFrame[0]:
+            if self.milliNow > self.startTimeandFrame[0]:
                 self.frameCountSinceStart += frames
                 if self.frameCountSinceStart >= self.startTimeandFrame[1]:
                     if self.beforeStartTime:
                         self.frameCountWhenStarted = self.frameSinceBeginning
                         self.beforeStartTime = False
 
+    def setStopFrame(self, frame):
+        ""
+        if self.stopTimeandFrame[0] > 0:
+            self.frameCountSinceStop = self.frameSinceBeginning
+        self.stopTimeandFrame = (0,frame)
+
     def isOpenEnded(self):
         return self.stopTimeandFrame is None
 
-    def isPastTime(self):
-        return self.pastEndTime
+    def isEnd(self):
+        return self.reachedEnd
 
     def isPastTime(self):
         return self.pastEndTime
@@ -417,12 +459,11 @@ def getSecondDurationStringFromMilliseconds(millis):
 
 def getDurationStringFromMilliseconds(millis):
     sec = int(millis / 1000)
-    ms = int(millis - (sec * 1000))
+    ms = int((millis - (sec * 1000)) * 1000.0)
     hr = sec / 3600
     mi = sec / 60 - (hr * 60)
     ss = sec - (hr * 3600) - mi * 60
     return '{:=02d}:{:=02d}:{:=02d}.{:=06d}'.format(hr, mi, ss, ms)
-
 
 def addTwo(num_string):
     return int(num_string) + 2
@@ -433,12 +474,12 @@ def sutractOne(num_string):
 
 
 def addOneFrame(time_string):
-    time_val = getMilliSecondsAndFrameCount(time_string)
+    time_val = getMilliSecondsAndFrameCount(time_string, defaultValue=(0,0))
     return str(time_val[1] + 1)
 
 
 def subtractOneFrame(time_string):
-    time_val = getMilliSecondsAndFrameCount(time_string)
+    time_val = getMilliSecondsAndFrameCount(time_string, defaultValue=(0,1))
     return str(time_val[1] - 1) if time_val[1] > 1 else '0'
 
 
@@ -469,6 +510,8 @@ def getMilliSeconds(v):
     if coloncount == 0:
         return int(float(v) * 1000.0)
     try:
+        if '.' in v and len(v) > 15:
+            v = v[:15]
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
@@ -479,9 +522,9 @@ def getMilliSeconds(v):
     return millis
 
 
-def getMilliSecondsAndFrameCount(v, rate=None):
+def getMilliSecondsAndFrameCount(v, rate=None, defaultValue=None):
     if v is None:
-        return None, 0
+        return defaultValue
     if type(v) == int:
         return (float(v) / rate * 1000, 0) if rate is not None else (0, 1 if v == 0 else v)
     frame_count = 0
@@ -491,25 +534,30 @@ def getMilliSecondsAndFrameCount(v, rate=None):
             frame_count = int(v[v.rfind(':') + 1:])
             v = v[0:v.rfind(':')]
         except:
-            return None, 1
+            return defaultValue
     elif coloncount == 0:
         return (float(v) / rate * 1000.0, 0) if rate is not None else (0, 1 if v == 0 else int(v))
     try:
+        if '.' in v and len(v) > 15:
+            v = v[:15]
         dt = datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
         try:
             dt = datetime.strptime(v, '%H:%M:%S')
         except ValueError:
-            return None, 1
+            return defaultValue
     millis = dt.hour * 360000 + dt.minute * 60000 + dt.second * 1000 + dt.microsecond / 1000
     if rate is not None:
         millis += float(frame_count) / rate * 1000.0
-        frame_count = 1
+        frame_count = 0
     return (millis, frame_count) if (millis, frame_count) != (0, 0) else (0, 1)
 
 
 def validateTimeString(v):
-    if v.count(':') > 3:
+    if type(v) == int:
+        return True
+
+    if v.count(':') > 2:
         return False
 
     if v.count(':') == 0:
@@ -518,13 +566,6 @@ def validateTimeString(v):
         except:
             return False
         return True
-
-    if v.count(':') > 2:
-        try:
-            int(v[v.rfind(':') + 1:])
-            v = v[0:v.rfind(':')]
-        except:
-            return False
     try:
         datetime.strptime(v, '%H:%M:%S.%f')
     except ValueError:
@@ -642,6 +683,93 @@ def outputVideoFrame(filename, outputName=None, videoFrameTime=None, isMask=Fals
         raise e
     return openImage(outfilename, isMask=isMask)
 
+class ZipWriter:
+
+    def __init__(self, filename,fps=30):
+        from zipfile import ZipFile
+        self.filename = filename
+        self.myzip = ZipFile(filename, 'w')
+        self.count = 0
+        self.fps = fps
+        self.prefix = os.path.basename(os.path.splitext(filename)[0])
+        #self.names = []
+
+    def isOpened(self):
+        #TODO: check names, what else
+        return True
+
+    def get(self,prop):
+        if prop == cv2api.cv2api_delegate.prop_fps:
+            return self.fps
+        if prop == cv2api.cv2api_delegate.prop_frame_count:
+            return self.count
+        if prop == cv2api.cv2api_delegate.prop_pos_msec:
+            return self.count * self.fps
+
+    def write(self, frame):
+        fname = "{}_{}.png".format(self.prefix, self.count)
+        ImageWrapper(frame,filename=fname).save(fname)
+        self.myzip.write(fname,fname)
+        self.count+=1
+        os.remove(fname)
+
+    def release(self):
+        self.myzip.close()
+
+class ZipCapture:
+
+    def __init__(self, filename, fps=30, filetypes=imagefiletypes):
+        from zipfile import ZipFile
+        import uuid
+        self.filename = filename
+        self.myzip = ZipFile(filename, 'r')
+        file_type_matcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+        self.fps = fps
+        self.count = 0
+        self.dir = os.path.join(os.path.dirname(os.path.abspath(self.filename)) ,  uuid.uuid4().__str__())
+        os.mkdir(self.dir)
+        self.names = [name for name in self.myzip.namelist() if len(file_type_matcher.findall(name.lower())) > 0 and  \
+                      os.path.basename(name) == name]
+
+    def isOpened(self):
+        #TODO: check names, what else
+        return True
+
+    def get(self,prop):
+        if prop == cv2api.cv2api_delegate.prop_fps:
+            return self.fps
+        if prop == cv2api.cv2api_delegate.prop_frame_count:
+            return self.count
+        if prop == cv2api.cv2api_delegate.prop_pos_msec:
+            return self.count* self.fps
+
+    def grab(self):
+        self.count+=1
+        return self.count <= len(self.names)
+
+    def get_exif(self):
+        name = self.names[self.count - 1]
+        extracted_file = os.path.join(self.dir,name)
+        if not os.path.exists(extracted_file):
+            extracted_file = self.myzip.extract(name, self.dir)
+        return exif.getexif(extracted_file)
+
+    def retrieve(self):
+        if self.count > len(self.names):
+            return False, None
+        name = self.names[self.count-1]
+        extracted_file = self.myzip.extract(name, self.dir)
+        return True, openImage(extracted_file, isMask=False).to_array()
+
+    def read(self):
+        self.grab()
+        return self.retrieve()
+
+    def release(self):
+        import shutil
+        shutil.rmtree(self.dir)
+        self.myzip.close()
+
 
 def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
     from zipfile import ZipFile
@@ -668,7 +796,7 @@ def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=
 
 
 def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFileName=None):
-    cap = cv2api.cv2api_delegate.videoCapture(filename)
+    cap = cv2api.cv2api_delegate.videoCapture(filename, useFFMPEGForTime=False)
 
     bestSoFar = None
     bestVariance = -1
@@ -733,9 +861,9 @@ class ImageOpener:
     def __init__(self):
         pass
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         try:
-            img = openImageFile(filename, isMask=isMask)
+            img = openImageFile(filename, isMask=isMask, args=args)
             return img if img is not None else openImage(get_icon('RedX.png'))
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
@@ -746,7 +874,7 @@ class AudioOpener(ImageOpener):
     def __init__(self):
         ImageOpener.__init__(self)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         return ImageOpener.openImage(self, get_icon('audio.png'))
 
 class VideoOpener(ImageOpener):
@@ -760,7 +888,7 @@ class VideoOpener(ImageOpener):
         return os.path.exists(snapshotFileName) and \
                os.stat(snapshotFileName).st_mtime >= os.stat(filename).st_mtime
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         if not ('video' in getFileMeta(filename)):
             return ImageOpener.openImage(self, get_icon('audio.png'))
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
@@ -777,7 +905,7 @@ class ZipOpener(VideoOpener):
     def __init__(self, videoFrameTime=None, preserveSnapshot=True):
         VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename, snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
@@ -835,7 +963,7 @@ def condenseZip(filename, outputfile=None, filetypes=None, keep=2):
                 os.remove(filename)
 
 
-def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
+def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False, args=None):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
     videoFrameTime, integer time in milliseconds, is provided, then find the frame after that point in time
@@ -859,7 +987,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 
-    return opener.openImage(filename, isMask=isMask)
+    return opener.openImage(filename, isMask=isMask, args=args)
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
@@ -1374,7 +1502,6 @@ def _remap(img, mask, src_pts, dst_pts):
 
 
 def __grid(img1, img2, compositeMask, edgeMask=None, arguments=None):
-    from scipy.interpolate import griddata
     """
     Compute sparse maps from points between img1 to img2
     :param img1:
@@ -1671,13 +1798,13 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask, expectedDims, loca
 
 
 def isHomographyOk(transform_matrix, h, w):
-    from shapely.geometry import Point
-    from shapely.geometry.polygon import Polygon
     # convert cornore to homogenous coordinates
     ll = np.array([0, 0, 1])
     ul = np.array([0, w, 1])
     lr = np.array([h, 0, 1])
     ur = np.array([h, w, 1])
+    if transform_matrix.shape == (2,3):
+        transform_matrix = np.vstack([transform_matrix,[0,0,1.0]])
 
     a_ll = np.matmul(transform_matrix, ll)
     a_ul = np.matmul(transform_matrix, ul)
@@ -1756,17 +1883,27 @@ def applyTransform(compositeMask, mask=None, transform_matrix=None, invert=False
     newMask = newMask | compositeMask * maskAltered
     return newMask
 
+def cropResize(img,location, wh):
+    img_crop = img[location[0]:wh[0],location[1]:wh[1],:]
+    return cv2.resize(img_crop, (img.shape[1],img.shape[0]))
+
+def cropResizeCompare(img1, img2, arguments=dict()):
+    width_and_height = (int(arguments['crop width']), int(arguments['crop height']))
+    pre_resize_img = cv2.resize(img2, width_and_height)
+    return composeCropImageMask(img1, pre_resize_img, location=None)
 
 def cropCompare(img1, img2, arguments=dict()):
     from maskgen.image_wrap import ImageWrapper
     if (sum(img1.shape) > sum(img2.shape)):
         img1_m, img2_m = __alignChannels(ImageWrapper(img1), ImageWrapper(img2))
         analysis = {'shape change': sizeDiff(ImageWrapper(img1_m), ImageWrapper(img2_m))}
-        mask, analysis_d = composeCropImageMask(img1_m, img2_m)
+        location = getValue(arguments,'location',None)
+        if type(location) == str:
+            location = toIntTuple(location)
+        mask, analysis_d = composeCropImageMask(img1_m, img2_m,location=location)
         analysis.update(analysis)
         return mask, analysis_d
     return None, {}
-
 
 def _composeLCS(img1, img2):
     from scipy import sparse
@@ -1902,6 +2039,58 @@ def resizeCompare(img1, img2, arguments=dict()):
     return __diffMask(img1, new_img2, False, args=arguments)
 
 
+def moving_average(a, n=3):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
+def morphologyCompare(img_one, img_two, **kwargs):
+    kernel_size = getValue(kwargs, 'kernel', 3)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    diff = (np.abs(img_one - img_two)).astype('uint16')
+    mask = np.sum(diff, 2)
+    difference = float(kwargs['tolerance']) if kwargs is not None and 'tolerance' in kwargs else 0.00390625
+    difference = difference * 256
+    mask[np.where(mask < difference)] = 0  # set to black if less than threshold
+    mask[np.where(mask > 0)] = 255
+    mask = mask.astype('uint8')
+    mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)# filter out noise in the mask
+    return mask, {}
+
+def mediatedCompare(img_one, img_two, **kwargs):
+    kernel_size=getValue(kwargs,'kernel',3)
+    smoothing = getValue(kwargs, 'smoothing', 3)
+    algorithm = getValue(kwargs, 'filling', 'morphology')
+    aggregate = getValue(kwargs, 'aggregate', 'sum')
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    from scipy import signal
+    # compute diff in 3 colors
+    diff = (np.abs(img_one - img_two)).astype('uint16')
+    if aggregate == 'max':
+        mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+        bins=256
+    else:
+        mask = np.sum(diff, 2)
+        bins=768
+    hist, bin_edges = np.histogram(mask, bins=bins, density=False)
+    hist = moving_average(hist,n=smoothing)  # smooth out the histogram
+    minima = signal.argrelmin(hist, order=2)  # find local minima
+    if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
+        threshold = 2
+    else:
+        threshold = minima[0][0]  # Use first minima
+
+    mask[np.where(mask < threshold)] = 0  # set to black if less than threshold
+    mask[np.where(mask > 0)] = 255
+    mask = mask.astype('uint8')
+    if algorithm == 'morphology':
+        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    else:
+        mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
+    return mask, {'minima': threshold}
+
 def convertCompare(img1, img2, arguments=dict()):
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
@@ -1911,7 +2100,6 @@ def convertCompare(img1, img2, arguments=dict()):
     else:
         new_img2 = img2
     return __diffMask(img1, new_img2, False, args=arguments)
-
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """
@@ -2091,17 +2279,26 @@ def __findRotation(img1, img2, range):
 #        res = res[diff[0]/2:res.shape[0]-((diff[0]/2) -diff[0]),diff[1]/2:res.shape[1]-((diff[1]/2) - diff[1])]
 
 def extractAlpha(rawimg1, rawimg2):
+    """
+    If rawimg2 has an alpha channel, then the pixels then the high alpha value is the pixels that did not change
+    :param rawimg1:
+    :param rawimg2:
+    :return:
+    """
     img2_array = rawimg2.to_array()
     img1_array = rawimg1.to_array()
     ii16 = np.iinfo(np.uint16)
     if len(img2_array.shape) == 3 and img2_array.shape[2] == 4:
         img2_array = img2_array[:, :, 3]
     if len(img2_array.shape) == 2:
-        all = np.ones((img2_array.shape[0], img2_array.shape[1])).astype('uint16')
-        all[img2_array > 0] = ii16.max
+        all = np.zeros((img2_array.shape[0], img2_array.shape[1])).astype('uint16')
+        all[img2_array == 0] = ii16.max
         return np.zeros((img1_array.shape[0], img1_array.shape[1])).astype('uint16'), all
     return rawimg1.to_16BitGray().to_array(), rawimg2.to_16BitGray().to_array()
 
+
+def convert16bitcolor(rawimg1, rawimg2):
+    return rawimg1.to_array().astype('int16'), rawimg2.to_array().astype('int16')
 
 def __alignChannels(rawimg1, rawimg2, convertFunction=None):
     """
@@ -2161,7 +2358,7 @@ def composeCropImageMask(img1, img2, location=None):
     analysis = {}
     analysis['location'] = '(0,0)'
     if location is not None:
-        matched_tuple = (location[0],img2.shape[0]+location[0],location[1],img2.shape[1]+location[1])
+        matched_tuple = (location[0],location[1],img2.shape[0]+location[0],img2.shape[1]+location[1])
     else:
         matched_tuple = __findBestMatch(img1, img2)
     if matched_tuple is not None:
@@ -2414,7 +2611,7 @@ def mergeMask(compositeMask, newMask, level=0):
 
 
 def ssim(X, Y, MASK, **kwargs):
-    from scipy.ndimage import uniform_filter, gaussian_filter
+    from scipy.ndimage import gaussian_filter
 
     K1 = kwargs.pop('K1', 0.01)
     R = kwargs.pop('R', 255)
@@ -2468,11 +2665,11 @@ def img_analytics(z1, z2, mask=None):
 
 
 def __diffMask(img1, img2, invert, args=None):
-    dst = np.abs(np.subtract(img1, img2))
+    itype = np.iinfo(img1.dtype)
+    dst = np.abs(np.subtract(img1.astype('int32'), img2.astype('int32')))
     gray_image = np.zeros(img1.shape).astype('uint8')
-    ii16 = np.iinfo(dst.dtype)
     difference = float(args['tolerance']) if args is not None and 'tolerance' in args else 0.0001
-    difference = difference * ii16.max
+    difference = difference * (itype.max - itype.min)
     gray_image[dst > difference] = 255
     analysis = img_analytics(img1, img2, mask=gray_image)
     return (gray_image if invert else (255 - gray_image)), analysis
@@ -2557,36 +2754,63 @@ def execute_every(interval, worker_func, start=True, **kwargs):
         worker_func(**kwargs)
 
 
-def getSingleFrameFromMask(video_masks, directory=None):
-    """
-    Read a single frame
-    :param start_time: insertion start time.
-    :param end_time:insertion end time.
-    :param directory:
-    :param video_masks:
-    :return: new set of video masks
-    """
-    mask = None
-    for mask_set in video_masks:
-        if 'videosegment' not in mask_set:
-            continue
-        reader = GrayBlockReader(os.path.join(directory,
-                                              mask_set['videosegment'])
-                                 if directory is not None else mask_set['videosegment'])
-        try:
-            while True:
-                mask = reader.read()
-                break
-        finally:
-            reader.close()
-        if mask is not None:
-            break
-    return ImageWrapper(mask) if mask is not None else None
+class GrayBlockFrameFirstLayout():
 
+    name = 'framefirst'
+
+    @staticmethod
+    def is_end(reader):
+        return reader.pos >= reader.dset.shape[0]
+
+    @staticmethod
+    def get_frame(reader):
+        return reader.dset[reader.pos, :, :]
+
+    @staticmethod
+    def initial_shape(shape, size = None):
+        return (size, shape[0], shape[1])
+
+    @staticmethod
+    def resize(shape, writer):
+        if writer.dset.shape[0] < (writer.pos + 1):
+            writer.dset.resize((writer.pos + 1, shape[0], shape[1]))
+
+    @staticmethod
+    def set(writer,mask):
+        writer.dset[ writer.pos, :, :] = mask
+
+class GrayBlockFrameLastLayout():
+
+    name = 'framelast'
+
+    @staticmethod
+    def is_end(reader):
+        return reader.pos >= reader.dset.shape[2]
+
+    @staticmethod
+    def get_frame(reader):
+        return reader.dset[:, :, reader.pos]
+
+    @staticmethod
+    def initial_shape(shape, size=None):
+        return (shape[0], shape[1],size)
+
+    @staticmethod
+    def resize(shape, writer):
+        if writer.dset.shape[2] < (writer.pos + 1):
+            writer.dset.resize((shape[0], shape[1], writer.pos + 1))
+
+    @staticmethod
+    def set(writer,mask):
+        writer.dset[:, :, writer.pos] = mask
+
+
+MASKFORMATS = {GrayBlockFrameFirstLayout.name:GrayBlockFrameFirstLayout(),
+               GrayBlockFrameLastLayout.name:GrayBlockFrameLastLayout()}
 
 class GrayBlockReader:
 
-    def __init__(self, filename, convert=False, preferences=None):
+    def __init__(self, filename, convert=False, preferences=None, start_time=0, start_frame=1):
         import h5py
         self.pos = 0
         self.writer = None
@@ -2594,12 +2818,20 @@ class GrayBlockReader:
         self.h_file = h5py.File(filename, 'r')
         self.dset = self.h_file.get('masks').get('masks')
         self.fps = self.h_file.attrs['fps']
-        self.start_time = self.h_file.attrs['start_time']
-        self.start_frame = self.h_file.attrs['start_frame']
+        self.start_time = self.h_file.attrs['start_time'] if 'start_time' in self.h_file.attrs else start_time
+        self.start_frame = self.h_file.attrs['start_frame'] if 'start_frame' in self.h_file.attrs else start_frame
+        last_frame= self.h_file.attrs['end_frame'] if 'end_frame' in self.h_file.attrs else 0
+        self.mask_format = MASKFORMATS[self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
         self.convert = convert
         self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
                                       self.fps,
                                       preferences=preferences) if self.convert else DummyWriter()
+
+    def create_writer(self):
+        import time
+        dir = os.path.dirname(self.filename)
+        prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
+        return GrayBlockWriter(prefix + str(time.clock()), self.fps)
 
     def current_frame_time(self):
         return self.start_time + (self.pos * (1000 / self.fps))
@@ -2610,10 +2842,10 @@ class GrayBlockReader:
     def read(self):
         if self.dset is None:
             return None
-        if self.pos >= self.dset.shape[0]:
+        if self.mask_format.is_end(self):
             self.dset = None
             return None
-        mask = self.dset[self.pos, :, :]
+        mask = self.mask_format.get_frame(self)
         mask = mask.astype('uint8')
         self.writer.write(mask, self.current_frame_time())
         self.pos += 1
@@ -2641,7 +2873,7 @@ class GrayBlockWriter:
       Write Gray scale (Mask) images to a compressed block file
     """
 
-    def __init__(self, mask_prefix, fps):
+    def __init__(self, mask_prefix, fps, layout=GrayBlockFrameFirstLayout()):
         self.fps = fps
         self.dset = None
         self.grp = None
@@ -2650,6 +2882,9 @@ class GrayBlockWriter:
         self.suffix = 'hdf5'
         self.filename = None
         self.mask_prefix = mask_prefix
+        self.mask_format = layout
+        self.last_frame = 1
+        self.last_time = 0
 
     def write(self, mask, mask_time, frame_number):
         import h5py
@@ -2659,24 +2894,26 @@ class GrayBlockWriter:
                 os.remove(self.filename)
             self.h_file = h5py.File(self.filename, 'w')
             self.h_file.attrs['fps'] = self.fps
-            self.h_file.attrs['prefix'] = self.mask_prefix
+            self.h_file.attrs['prefix'] = os.path.basename(self.mask_prefix)
             self.h_file.attrs['start_time'] = mask_time
             self.h_file.attrs['start_frame'] = frame_number
+            self.h_file.attrs['mask_format'] = self.mask_format.name
             self.grp = self.h_file.create_group('masks')
             self.dset = self.grp.create_dataset("masks",
-                                                (10, mask.shape[0], mask.shape[1]),
+                                                self.mask_format.initial_shape(mask.shape, size=10),
                                                 compression="gzip",
                                                 chunks=True,
-                                                maxshape=(None, mask.shape[0], mask.shape[1]))
+                                                maxshape=self.mask_format.initial_shape(mask.shape))
             self.pos = 0
-        if self.dset.shape[0] < (self.pos + 1):
-            self.dset.resize((self.pos + 1, mask.shape[0], mask.shape[1]))
+        self.mask_format.resize(mask.shape, self)
         new_mask = mask
         if len(mask.shape) > 2:
             new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
             for i in range(mask.shape[2]):
                 new_mask[mask[:, :, i] > 0] = 0
-        self.dset[self.pos, :, :] = new_mask
+        self.last_frame = frame_number
+        self.last_time = mask_time
+        self.mask_format.set(self, new_mask)
         self.pos += 1
 
     def get_file_name(self):
@@ -2689,6 +2926,8 @@ class GrayBlockWriter:
         self.grp = None
         self.dset = None
         if self.h_file is not None:
+            self.h_file.attrs['end_time'] = self.last_time
+            self.h_file.attrs['end_frame'] = self.last_frame
             self.h_file.close()
         self.h_file = None
 
@@ -2809,9 +3048,46 @@ def selfVideoTest():
     if not os.path.exists(vidfn):
         return 'Video Writing Failed'
     try:
-        size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01:2')).size
+        size = openImage(vidfn, getMilliSecondsAndFrameCount('00:00:01')).size
         if size != (1920, 1090):
             return 'Video Writing Failed: Frame Size inconsistent'
     except:
         return 'Video Writing Failed'
     return None
+
+def dateTimeStampCompare(v1, v2):
+    def get_defaults(source):
+        exifdata = maskgen.exif.getexif(source)
+        rd = {}
+        for e in exifdata:
+            if "date" in str(e).lower() or "time" in str(e).lower():
+                rd[e] = exifdata[e]
+        return rd
+        #date_time_stamp = exifdata['Create Date'] if 'Create Date' in exifdata else exifdata['File Creation Date/Time']
+
+    stamp1 = get_defaults(v1)
+    rgexdict = {}
+    for e in stamp1:
+        st = stamp1[e]
+        rgexf = "\\A"
+        for x in st:
+            if x.isdigit():
+                rgexf += '[0-9]'
+            elif x.isalpha():
+                rgexf += '[a-zA-z]*'
+            else:
+                rgexf += x
+        rgexf+= "\\Z"
+        rgexdict[e] = rgexf
+
+    stamp2 = get_defaults(v2)
+    nonmatches = []
+    for e in stamp2:
+        if e in rgexdict:
+            mo = re.match(rgexdict[e],stamp2[e])
+            if mo is None:
+                nonmatches.append(e)
+        else:
+            pass
+            #nonmatches.append(e)
+    return nonmatches

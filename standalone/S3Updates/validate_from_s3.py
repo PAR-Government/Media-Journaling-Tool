@@ -3,14 +3,12 @@ import argparse
 import os
 import maskgen.scenario_model
 from maskgen.tool_set import *
-from maskgen.userinfo import get_username, CustomPwdX, setPwdX
-from maskgen import video_tools
+from maskgen import ffmpeg_api
 import tempfile
 from maskgen.scenario_model import ImageProjectModel
 from maskgen import maskGenPreferences
 from maskgen.validation import code_name_s3_api
 from maskgen.image_graph import extract_archive
-from maskgen.graph_rules import processProjectProperties
 from maskgen.batch import BatchProcessor, pick_projects
 import hashlib
 import shutil
@@ -19,6 +17,7 @@ import csv
 import time
 from functools import partial
 from maskgen import plugins
+import logging
 
 
 def reproduceMask(scModel):
@@ -148,8 +147,8 @@ def missingVideo(scModel):
         if currentLink['op'] == 'AddAudioSample':
             sourceim, source = scModel.getGraph().get_image(edge[0])
             im, dest = scModel.getGraph().get_image(edge[1])
-            sourcemetadata = video_tools.getMeta(source,show_streams=True)[0]
-            destmetadata = video_tools.getMeta(dest,show_streams=True)[0]
+            sourcemetadata = ffmpeg_api.get_meta_from_video(source, show_streams=True)[0]
+            destmetadata = ffmpeg_api.get_meta_from_video(dest, show_streams=True)[0]
             if len(sourcemetadata) > 0:
                 sourcevidcount = len([idx for idx, val in enumerate(sourcemetadata) if val['codec_type'] != 'audio'])
             if len(destmetadata) > 0:
@@ -191,8 +190,17 @@ def recompressAsVideo(scModel):
             scModel.selectImage(edge[1])
             scModel.remove()
             scModel.selectImage(edge[0])
-            scModel.imageFromPlugin('CompressAsVideo',donor=donor)
+            scModel.mediaFromPlugin('CompressAsVideo', donor=donor)
 
+def run_auto_update(project):
+    from maskgen.graph_auto_updates import updateJournal
+    errors = []
+    scModel = maskgen.scenario_model.ImageProjectModel(project)
+    if not updateJournal(scModel):
+        errors.append('could not update project: ' + project)
+    else:
+        scModel.save()
+    return errors
 
 def perform_update(project, args):
     errors = []
@@ -274,9 +282,16 @@ def processProject(args, file_to_process):
         if fetch:
             fetchfromS3(dir, args.downloadfolder, file_to_process)
             extract_archive(os.path.join(dir, file_to_process), dir)
+            logging.getLogger('maskgen').info(file_to_process + ' downloaded and extracted, proceeding to update')
         for project in pick_projects(dir):
-            log = perform_update(project, args)
-            print(log)
+            log = []
+            if args.autoupdate:
+                log = run_auto_update(project)
+                print(log)
+            if args.functions is not None:
+                log = perform_update(project, args)
+                print(log)
+            #export
             return log
     finally:
         if fetch:
@@ -293,6 +308,7 @@ def main():
     parser.add_argument('-uf', '--uploadfolder', required=True, help='Upload folder')
     #parser.add_argument('-v',  '--validate', required=False, help='QA',action='store_true')
     parser.add_argument('-tf', '--tempfolder', required=False, help='Temp Holder')
+    parser.add_argument('-au', '--autoupdate', required=False, help='Run auto updater first', action='store_true')
     parser.add_argument('-e',  '--functions', required=False, help='List of function')
     parser.add_argument('-cf', '--completefile', required=True, help='Projects to Completed')
     #parser.add_argument('-x', '--export', required=False, action='store_true', help='Export Results')

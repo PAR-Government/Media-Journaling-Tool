@@ -14,6 +14,7 @@ import os
 from maskgen.batch import pick_projects
 from maskgen.preferences_initializer import initialize
 from maskgen import graph_rules
+from maskgen import maskGenPreferences
 
 
 def validate_export(error_writer,project, sm):
@@ -31,9 +32,10 @@ def validate_export(error_writer,project, sm):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-u', '--username', help="optional username", required=False)
     parser.add_argument('--projects', help='Directory of projects')
     args = parser.parse_args()
-    initialize(username=args.username)
+    initialize(maskGenPreferences, username=args.username)
 
     project_list = pick_projects(args.projects)
 

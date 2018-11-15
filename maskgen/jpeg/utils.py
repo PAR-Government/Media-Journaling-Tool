@@ -119,7 +119,6 @@ def estimate_qf(imageFile):
     :param imageFile: string containing jpg image filename
     :return: integer QF from 1 to 100
     """
-
     tables=  parse_tables(imageFile)
     qf = []
     for table in tables:
@@ -127,7 +126,8 @@ def estimate_qf(imageFile):
         if totalnum < 2 or len(qf) == 3:
             break
         total = sum ([table[i]for i in xrange(1,totalnum)])
-        qf.append(100 - total/(totalnum-1))
+        norm = total/(totalnum-1)
+        qf.append(100 - norm)
     if len(qf) == 0:
         return 100
     if len(qf) == 1:

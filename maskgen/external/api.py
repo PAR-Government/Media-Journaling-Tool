@@ -53,13 +53,11 @@ def findAndDownloadImage(apitoken, baseurl, params, directory, exclusions=None,p
             r = json.loads(response.content)
             if 'results' in r:
                 for item in r['results']:
-                    if os.path.exists(os.path.join(directory,item['file_name'])) or \
-                        item['file_name'] in skip:
+                    if os.path.exists(os.path.join(directory,item['file_name'])) or item['file_name'] in skip:
                         continue
                     return get_image(apitoken, item['file_name'], directory, baseurl,prefix=prefix)
     except:
         pass
-
 
 
 class BrowserAPI:
@@ -73,6 +71,32 @@ class BrowserAPI:
         url = self.loader.get_key('apiurl')
         return findAndDownloadImage(token, url, params,directory, exclusions=exclusions,prefix=prefix,skip=skip)
 
+    def get_url(self, filename):
+        """
+        Find Remote URL for given filename
+        :param filename:
+        :return:
+        """
+        def remove_api(url):
+            return url[:(-5 if url.endswith("/api/") else -4)]
+
+        token = self.loader.get_key('apitoken')
+        url = self.loader.get_key('apiurl')
+
+        headers = {'Authorization': 'Token ' + token, 'Content-Type': 'application/json'}
+        call_url = url + '/images/filters/?fields=manipulation_journal,high_provenance'
+        data = {"file_name": {"type": "exact", "value": filename}}
+        response = requests.post(call_url, json=data, headers=headers)
+        try:
+            if response.status_code == requests.codes.ok:
+                r = json.loads(response.content)
+                img_id = str(r['results'][0]['id'])
+            else:
+                return ""
+        except Exception:
+            return ""
+
+        return "/".join([remove_api(url), 'image', img_id])
 
 
 

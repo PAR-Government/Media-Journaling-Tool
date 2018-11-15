@@ -270,7 +270,7 @@ def delete_video(client, **kwargs):
 
 def get_valid_resolution(source, target_resolution):
     resolutions = ['2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']
-    width, height = video_tools.getShape(source)
+    width, height = video_tools.get_shape_of_video(source)
     orientation = 'landscape' if width > height else 'portrait'
     src_resolution = height if orientation == 'landscape' else width
     if int(target_resolution[:-1]) > src_resolution:
@@ -283,7 +283,7 @@ def get_valid_resolution(source, target_resolution):
 
 def waitForProcessing(youtube, youtubeID, source, quality):
     #scale the wait time by duration and wait longer if we target better quality
-    waitTime = int((video_tools.getDuration(source)/1000))
+    waitTime = int((video_tools.get_duration(video_tools.FileMetaDataLocator(source))/1000))
     target_res = int(quality[:-1])
     #Just guessing on most of these, might need to wait even longer for 1440 and 4k
     if target_res >= 2160:
@@ -317,8 +317,8 @@ def compare_dimensions(pathOne='',pathTwo=''):
     try:
         if os.path.exists(pathOne) and os.path.exists(pathTwo):
             #return best resolution video of the two
-            heightOne = video_tools.getShape(pathOne)[1]
-            heightTwo = video_tools.getShape(pathTwo)[1]
+            heightOne = video_tools.get_shape_of_video(pathOne)[1]
+            heightTwo = video_tools.get_shape_of_video(pathTwo)[1]
             path = pathOne if heightOne > heightTwo else pathTwo
         elif not os.path.exists(pathOne) and not os.path.exists(pathTwo):
             raise ValueError('Requested quality file not available- try again with a different max_resolution')

@@ -31,10 +31,10 @@ def append_segment(row, segment):
     @type segment: VideoSegment
     """
     if segment is None:
-        return row + ['', '', '', '', '', '', '', '']
+        return row + ['', '', '', '', '', '', '', '','']
     return row + [segment.media_type, '' if segment.filename is None else os.path.basename(segment.filename),
                   segment.startframe, segment.endframe, segment.frames,
-                  segment.starttime, segment.endtime, segment.rate]
+                  segment.starttime, segment.endtime, segment.rate, segment.error]
 
 
 def archive_probes(project, directory='.', archive=True, reproduceMask= True):
@@ -81,7 +81,7 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
                                                edge['op'],
                                                base_node['file'],
                                                final_node['file'],
-                                               '' if probe.donorMaskFileName is None else os.path.basename(
+                                               '' if probe.targetMaskFileName is None else os.path.basename(
                                                    probe.targetMaskFileName),
                                                '' if donor_node is None else donor_node['file'],
                                                '' if probe.donorMaskFileName is None else os.path.basename(

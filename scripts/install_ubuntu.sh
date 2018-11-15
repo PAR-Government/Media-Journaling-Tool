@@ -180,9 +180,6 @@ sudo pip install --upgrade awscli
 cd ..
 python setup.py sdist
 sudo pip install -e .
-cd ./wrapper_plugins/rawphoto_wrapper
-python setup.py sdist
-sudo pip install -e .
 cd ./wrapper_plugins/jpeg2000_wrapper
 python setup.py sdist
 sudo pip install -e .

@@ -12,6 +12,8 @@ import requests
 from maskgen.maskgen_loader import MaskGenLoader
 from maskgen.tool_set import openImage
 
+from maskgen.image_wrap import openImageFile
+
 matplotlib.use("TkAgg")
 import ttk
 import tkFileDialog
@@ -31,10 +33,11 @@ import sys
 
 class HP_Starter(Frame):
 
-    def __init__(self, settings, master=None):
+    def __init__(self, settings, checker, master=None):
         Frame.__init__(self, master)
         self.master = master
         self.settings = settings
+        self.checker = checker
         self.grid()
         self.oldImageNames = []
         self.newImageNames = []
@@ -95,14 +98,15 @@ class HP_Starter(Frame):
         self.update_model()
 
         try:
-            if not (self.master.lenient or self.master.cameras[self.localID.get()]['calibrations']):
+            if not self.checker.check_calibrations(self.localID.get()):
                 tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
                                                 'and uploaded for a device prior to HP uploads.')
                 return
         except KeyError:
-            tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
-                                            'and uploaded for a device prior to HP uploads.')
-            return
+            if self.localID.get() != "":
+                tkMessageBox.showerror('Error', 'PRNU has not yet been uploaded for this device.  PRNU must be collected '
+                                                'and uploaded for a device prior to HP uploads.')
+                return
 
         if not self.master.cameras:
             input_dir_files = [os.path.join(self.inputdir.get(), x) for x in os.listdir(self.inputdir.get())]
@@ -253,6 +257,7 @@ class HP_Starter(Frame):
 
     def update_model(self, *args):
         self.master.load_ids(self.localID.get())
+        self.checker.camera_list = self.master.cameras
         if self.localID.get() in self.master.cameras:
             self.attributes['Camera Model'].config(state=NORMAL)
             self.camModel.set(self.master.cameras[self.localID.get()]['hp_camera_model'])
@@ -273,9 +278,10 @@ class PRNU_Uploader(Frame):
     Handles the checking and uploading of PRNU data
     """
 
-    def __init__(self, settings, master=None):
+    def __init__(self, settings, checker, master=None):
         Frame.__init__(self, master)
         self.master = master
+        self.checker = checker
         self.settings = settings
         self.root_dir = StringVar()
         self.localID = StringVar()
@@ -412,7 +418,7 @@ class PRNU_Uploader(Frame):
                 for sub in dirs:
                     if sub.lower() not in self.vocab:
                         msgs.append('Invalid reference type: ' + sub)
-                    elif sub.lower().startswith('rgb_no_lens') or sub.lower().startswith('roof_tile'):
+                    elif sub.lower().startswith('rgb_no_lens') or sub.lower().startswith('roof_tile') or sub.lower().startswith('lens_cap'):
                         luminance_folders.append(os.path.join(path, sub))
                 if files:
                     for f in files:
@@ -441,7 +447,7 @@ class PRNU_Uploader(Frame):
         # software_whitelist = csv.reader() 
 
         for folder in luminance_folders:
-            res = self.check_luminance(folder)
+            res = self.checker.check_luminance(folder)
             if res is not None:
                 msgs.append(res)
             organization_errors = self.organize_prnu_dir(folder)
@@ -549,52 +555,6 @@ class PRNU_Uploader(Frame):
                 copy_to_res(width_height[i], luminance_dir)
         return warning_res if warning_res else None
 
-    def check_luminance(self, foldername):
-        """
-        Verifies luminance of PRNU data folder
-        :param foldername: Full absolute path of folder to check. Last 
-        :return: list of error messages
-        """
-        standard_files = ['.png', '.jpg', '.jpeg', '.tif', '.tiff']
-        raw_files = ['.cr2', '.nef', '.raf', '.crw', '.dng', '.arw', '.srf', '.raf']
-        reds = []
-        greens = []
-        blues = []
-
-        try:
-            target = int(foldername.split("_")[-1])
-        except ValueError:
-            return 'Warning: Luminance of ' + foldername + ' could not be verified.'
-        min_value = target - 10
-        max_value = target + 10
-
-        for f in os.listdir(foldername):
-            ext = os.path.splitext(f.lower())[1]
-            if ext in standard_files:
-                with Image.open(os.path.join(foldername, f)) as image:
-                    data = np.asarray(image)
-            elif ext in raw_files:
-                with rawpy.imread(os.path.join(foldername, f)) as image:
-                    data = image.postprocess()
-            else:
-                continue
-
-            red = data[:, :, 0]
-            green = data[:, :, 1]
-            blue = data[:, :, 2]
-            reds.append((np.mean(red) / 255) * 100)
-            greens.append((np.mean(green) / 255) * 100)
-            blues.append((np.mean(blue) / 255) * 100)
-
-        if reds and greens and blues:
-            red_per = int(np.mean(reds))
-            green_per = int(np.mean(greens))
-            blue_per = int(np.mean(blues))
-
-            if not all(rgb in range(min_value, max_value) for rgb in (red_per, green_per, blue_per)):
-                results = "Warning: {0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where it appears " \
-                          "the target was {4}".format(foldername, red_per, green_per, blue_per, target)
-                return results
 
     def has_same_contents(self, list1, list2):
         # set both lists to lowercase strings and checks if they have the same items, in any order
@@ -739,13 +699,13 @@ class HPGUI(Frame):
     The main HP GUI Window. Contains the initial UI setup, the camera list updating, and the file menu options.
     """
 
-    def __init__(self, master=None, lenient=False, **kwargs):
+    def __init__(self, checker, master=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
+        self.checker = checker
         self.master = master
         self.trello_key = data_files._TRELLO['app_key']
         self.settings = MaskGenLoader()
         self.cam_local_id = ""
-        self.lenient = lenient
         self.create_widgets()
         self.statusBox.println('See terminal/command prompt window for progress while processing.')
         try:
@@ -782,8 +742,8 @@ class HPGUI(Frame):
 
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill=BOTH, expand=1)
-        f1 = HP_Starter(self.settings, master=self)
-        f2 = PRNU_Uploader(self.settings, master=self)
+        f1 = HP_Starter(self.settings, self.checker, master=self)
+        f2 = PRNU_Uploader(self.settings, self.checker, master=self)
         self.nb.add(f1, text='Process HP Data')
         self.nb.add(f2, text='Export PRNU Data')
 
@@ -993,6 +953,84 @@ class ReadOnlyText(Text):
         self.config(state='disabled')
 
 
+class Checker:
+    def __init__(self):
+        self.camera_list = {}
+
+    def update_camera_list(self, camera_list):
+        self.camera_list = camera_list
+        return
+
+    def check_calibrations(self, local_id):
+        try:
+            ret = True if self.camera_list[local_id]['calibrations'] else False
+        except KeyError:
+            ret = False
+        return ret
+
+    def check_luminance(self, foldername):
+        """
+        Verifies luminance of PRNU data folder
+        :param foldername: Full absolute path of folder to check. Last
+        :return: list of error messages
+        """
+        reds = []
+        greens = []
+        blues = []
+
+        def calc_mean(filepath):
+            image_data = openImageFile(filepath).image_array
+            if image_data is None:
+                return
+
+            red = image_data[:, :, 0]
+            green = image_data[:, :, 1]
+            blue = image_data[:, :, 2]
+            reds.append((np.mean(red) / 255) * 100)
+            greens.append((np.mean(green) / 255) * 100)
+            blues.append((np.mean(blue) / 255) * 100)
+            return
+
+        try:
+            target = int(foldername.split("_")[-1])
+        except ValueError:
+            return 'Warning: Luminance of ' + foldername + ' could not be verified.' if not \
+                os.path.split(foldername)[1].lower() == "lens_cap" else None
+        min_value = target - 10
+        max_value = target + 10
+
+        for res in os.listdir(foldername):
+            if os.path.isdir(os.path.join(foldername, res)):
+                for f in os.listdir(os.path.join(foldername, res)):
+                    calc_mean(os.path.join(foldername, res, f))
+            else:
+                calc_mean(os.path.join(foldername, res))
+
+        if reds and greens and blues:
+            red_per = int(np.mean(reds))
+            green_per = int(np.mean(greens))
+            blue_per = int(np.mean(blues))
+
+            if not all(rgb in range(min_value, max_value) for rgb in (red_per, green_per, blue_per)):
+                results = "Warning: {0} has incorrect luminance values of R:{1}, G:{2}, B:{3} where it appears " \
+                          "the target was {4}".format(foldername, red_per, green_per, blue_per, target)
+                return results
+
+
+class LenientChecker:
+    def __init__(self, *args):
+        pass
+
+    def update_camera_list(self, *args):
+        pass
+
+    def check_calibrations(self, *args):
+        return True
+
+    def check_luminance(self, *args):
+        return None
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -1000,12 +1038,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--lenient', help=argparse.SUPPRESS, required=False, action="store_true")
     args = parser.parse_args(argv[1:])
-    lenient = True if args.lenient else False
+    checker = Checker() if not args.lenient else LenientChecker()
 
     root = Tk()
     root.resizable(width=False, height=False)
     root.wm_title('HP GUI')
-    HPGUI(master=root, lenient=lenient).pack(side=TOP, fill=BOTH, expand=TRUE)
+    HPGUI(checker, master=root).pack(side=TOP, fill=BOTH, expand=TRUE)
     root.mainloop()
 
 
