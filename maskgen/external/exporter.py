@@ -71,12 +71,12 @@ def _get_status_from_last_message(pathname):
     match = exp.match(msg)
     if match:
         return float(match.groups()[0][1:-2])
-    return 'N/A'
+    return 'START'
 
 def _get_path_from_first_message(pathname):
     import re
     msg = _get_first_message(pathname)
-    exp = re.compile('.*(START) (.*) to (.*)')
+    exp = re.compile('.*(START) (.*) to (.*) on (.*)')
     match = exp.match(msg)
     if match is not None:
         return match.groups()
@@ -93,7 +93,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
     bucket = location.split('/')[0].strip()
     dir = location[location.find('/') + 1:].strip()
     dir = dir if dir.endswith('/') else dir + '/'
-    logging.getLogger('jt_export').info('START {} to {}'.format(path, location))
+    logging.getLogger('jt_export').info('START {} to {} on {}'.format(path, location, os.getpid()))
     log = partial(_log_and_update_parent, logging.getLogger('jt_export').info, pipe_to_parent)
     try:
         export_tool.export(path, bucket, dir, log)
@@ -352,7 +352,7 @@ class ExportManager:
         pi = self.stop(name)
         if pi is None:
             logfilename = os.path.join(self.directory, name + '.txt')
-            status, pathname, location = _get_path_from_first_message(logfilename)
+            status, pathname, location, pid = _get_path_from_first_message(logfilename)
         else:
             pathname = pi.pathname
             location = pi.location
@@ -390,6 +390,24 @@ class ExportManager:
                 # ? os.kill(pid, 7)
                 self.processes[name].process.terminate()
                 return self.processes.pop(name)
+            else:
+                logfilename = os.path.join(self.directory, name + '.txt')
+                status, pathname, location, pid = _get_path_from_first_message(logfilename)
+                if pid is not None:
+                    try:
+                        os.kill(pid,9)
+                    except:
+                        pass
+                    if  status is not 'DONE':
+                        p = ProcessInfo(None,
+                                        None,
+                                        status='FAIL',
+                                        location= location,
+                                        pathname=pathname,
+                                        name=name
+                                        )
+                        self._update_process_log(p)
+
 
     def upload(self, pathname, location, remove_when_done=True):
         """
