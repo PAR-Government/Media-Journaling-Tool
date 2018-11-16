@@ -287,9 +287,9 @@ class ExportManager:
         logfilename = process_info.get_log_name(self.directory)
         try:
             with open(logfilename,'a+') as fp:
-                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format([process_info.status,
-                                                                      process_info.pathname,
-                                                                      process_info.location)])
+                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format(process_info.status,
+                                                                     process_info.pathname,
+                                                                     process_info.location)])
         except Exception as e:
             # ten bucks says windows has a problem here
             logging.getLogger('maskgen').error('Cannot update status of process {}'.format(e.message))
@@ -327,7 +327,6 @@ class ExportManager:
                     if process_info.status not in ['DONE', 'FAIL'] and last_recorded_status != 'DONE':
                         process_info.status = 'FAIL'
                     #update the log
-                    print last_recorded_status
                     if last_recorded_status not in ['DONE', 'FAIL', 'N/A']:
                         self._update_process_log(process_info)
                     # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
