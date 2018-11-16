@@ -392,12 +392,13 @@ class MakeGenUI(Frame):
         if (val is not None and len(val) > 0):
             try:
                 path, errorlist = self.scModel.export(tempfile.tempdir,notifier=self.progress_bar.postChange)
+                #path, errorlist = "/Users/ericrobertson/Downloads/a81d4ebbf08afab92d864245020298ac.tgz",[]
                 if len(errorlist) > 0:
                     ValidationListDialog(self, errorlist, "Export Errors")
                 else:
                     self._update_export_state(location=val,pathname=path, additional_message=message)
                     self.openManager()
-                    self.exportManager.upload(path, val)
+                    self.exportManager.upload(path, val, remove_when_done=False)
 
                 uploaded = self.prefLoader.get_key('lastlogupload')
                 uploaded = exportlogsto3(val,uploaded)

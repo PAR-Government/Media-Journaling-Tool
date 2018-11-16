@@ -20,7 +20,6 @@ class ExportWatcherDialog(Toplevel):
         self.createWidgets()
 
     def _delete_window(self):
-        print "delete_window"
         self.export_manager.remove_notifier(self)
         Toplevel.destroy(self)
 
@@ -35,11 +34,10 @@ class ExportWatcherDialog(Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._delete_window)
 
     def __call__(self,*args):
-        current_processes = self.export_manager.get_current()
-        if args[0] not in current_processes or args[0] not in self.progress:
+        if args[0] not in self.progress:
             self.update_data()
         else:
-            self.progress[args[0]].update(*current_processes[args[0]])
+            self.progress[args[0]].update(args[1],args[2])
 
     def update_data(self):
         history = self.export_manager.get_all()
@@ -50,6 +48,7 @@ class ExportWatcherDialog(Toplevel):
                 self.progress[name] = ep
             else:
                 self.progress[name].update(*tuple_)
+        self.after(1000, self.update_data)
 
     def forget(self, name):
         self.export_manager.forget(name)
@@ -72,6 +71,8 @@ class ExportProgress(Frame):
         """
         self.parent = parent
         self.name = name
+        self.timestamp = timestamp
+        self.process_status = status
 
         Frame.__init__(self,parent.mainFrame)
         self.pb = ttk.Progressbar(self)
@@ -89,6 +90,8 @@ class ExportProgress(Frame):
         self.update(timestamp, status)
 
     def update(self, timestamp, status):
+        self.timestamp = timestamp
+        self.process_status = status
         if status == 'DONE':
             self.stoptxt.set('Remove')
             self.percentlbltxt.set('Complete')

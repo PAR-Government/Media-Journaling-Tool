@@ -2,7 +2,7 @@ import logging
 import os
 from functools import partial
 from multiprocessing import Process, Pipe
-from time import sleep
+from time import sleep, time
 
 from maskgen.tool_set import S3ProgressPercentage
 
@@ -45,10 +45,6 @@ def _set_logging(directory,name):
     if os.path.exists(logfile):
         os.remove(logfile)
     set_logging(directory, filename=name + '.txt', skip_config=True,logger_name='jt_export')
-
-def _create_stat_file(directory,data):
-    with open(os.path.join(directory,'stat.dat'),'w') as fp:
-        fp.write(data)
 
 def _get_last_message(pathname):
     try:
@@ -105,7 +101,6 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
         pipe_to_parent.send('DONE')
         if remove_when_done:
             os.remove(path)
-        _create_stat_file(directory, path)
         pipe_to_parent.close()
     except Exception as e:
         logging.getLogger('jt_export').error(str(e))
@@ -140,13 +135,17 @@ class ProcessInfo:
     """
     Active upload process information
     """
-    def __init__(self,process,pipe,status='START',location=None,pathname=None,remove_when_done=True):
+    def __init__(self,process,pipe,status='START',location=None,pathname=None,name= None,remove_when_done=True):
         self.process = process
         self.pipe = pipe
         self.status = status
         self.pathname = pathname
+        self.name = name
         self.location = location
         self.remove_when_done=remove_when_done
+
+    def get_log_name(self, directory):
+        return os.path.join(directory, self.name + '.txt')
 
 #-------------------------------------------------------------------------------------------------------------
 # Synchronous, in process, uploading
@@ -225,25 +224,19 @@ class ExportManager:
         self.poll_time = 2
 
     def get_current(self):
-        from time import time
         with self.lock:
-            return {os.path.splitext(os.path.basename(k))[0]:(time,v.status if v.status is not None else 'START') for k,v in self.processes.iteritems()}
-
-    def _stat_file(self):
-        return os.path.join(self.directory,'stat.dat')
+            return {os.path.splitext(os.path.basename(k))[0]:(time(),v.status if v.status is not None else 'START') for k,v in self.processes.iteritems()}
 
     def  _load_history(self):
-        self.history = {}
         with self.lock:
             for f in os.listdir(self.directory):
                 if f.endswith('.txt'):
                     pathname = os.path.join(self.directory,f)
-                    self.history[os.path.splitext(f)[0]] = (os.stat(pathname).st_mtime,
-                                                            _get_status_from_last_message(pathname))
-        stat_file = self._stat_file()
-        if not os.path.exists(stat_file):
-            _create_stat_file(self.directory, 'x')
-        self.history_date = os.stat(stat_file).st_mtime
+                    st_mtime = os.stat(pathname).st_mtime
+                    name = os.path.splitext(f)[0]
+                    if name not in self.history or self.history[name][0] != st_mtime:
+                        self.history[os.path.splitext(f)[0]] = (st_mtime,
+                                                                _get_status_from_last_message(pathname))
 
     def get_all(self):
         """
@@ -252,12 +245,11 @@ class ExportManager:
         """
         import copy
         history = copy.copy(self.get_history())
-        history.update( self.get_current() )
+        history.update(self.get_current())
         return history
 
     def get_history(self):
-        if os.path.exists(self._stat_file()) and os.stat(self._stat_file()).st_mtime != self.history_date:
-            self._load_history()
+        self._load_history()
         return self.history
 
     def _update_status(self, name, msg):
@@ -279,11 +271,28 @@ class ExportManager:
     def remove_notifier(self, notifier=lambda x, y: True):
         """
         Register external notifier interest in updates
-        Notifier is a funciton that accepts a name and status.
+        Notifier is a function that accepts a name and status.
         :param notifier:
         :return:
         """
         self.notifiers = [n for n in self.notifiers if n !=  notifier]
+
+    def _update_process_log(self, process_info):
+        """
+
+        :param process_info:
+        :return:
+        @type process_info: ProcessInfo
+        """
+        logfilename = process_info.get_log_name(self.directory)
+        try:
+            with open(logfilename,'a+') as fp:
+                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format([process_info.status,
+                                                                      process_info.pathname,
+                                                                      process_info.location)])
+        except Exception as e:
+            # ten bucks says windows has a problem here
+            logging.getLogger('maskgen').error('Cannot update status of process {}'.format(e.message))
 
     def _listen_thread(self):
         """
@@ -306,7 +315,7 @@ class ExportManager:
                     try:
                         if process_info.pipe.poll(self.poll_time):
                             process_info.status = process_info.pipe.recv()
-                            self._call_notifier(k, process_info.status)
+                            self._call_notifier(k, time(), process_info.status)
                     except Exception as e:
                         logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
                 if process_info.status in ['DONE', 'FAIL'] or not process_info.process.is_alive():
@@ -314,10 +323,16 @@ class ExportManager:
                         process_info.process.join()
                     except:
                         pass
-                    if process_info.status not in ['DONE', 'FAIL']:
+                    last_recorded_status = _get_status_from_last_message(process_info.get_log_name(self.directory))
+                    if process_info.status not in ['DONE', 'FAIL'] and last_recorded_status != 'DONE':
                         process_info.status = 'FAIL'
+                    #update the log
+                    print last_recorded_status
+                    if last_recorded_status not in ['DONE', 'FAIL', 'N/A']:
+                        self._update_process_log(process_info)
                     # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-                    self._call_notifier(k, process_info.status)
+                    self._call_notifier(k, time(), process_info.status)
+
                     # self.queue_wait.acquire()
                     # self.queue_wait.notifyAll()
                     # self.queue_wait.release()
@@ -399,7 +414,8 @@ class ExportManager:
             self.processes[name] = ProcessInfo(p, parent_conn,
                                                    status='START',
                                                    location=location,
-                                                   pathname= os.path.abspath(pathname),
+                                                   pathname = os.path.abspath(pathname),
+                                                   name = name,
                                                    remove_when_done=remove_when_done)
             if name in self.history:
                 self.history.pop(name)
@@ -409,7 +425,7 @@ class ExportManager:
             self.semaphore.release()
         logging.getLogger('maskgen').info('START upload {}'.format(name))
         # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-        self._call_notifier(name, 'START')
+        self._call_notifier(name, time(), 'START')
 
     def sync_upload(self, pathname, location, remove_when_done=True):
         """
@@ -430,6 +446,7 @@ class ExportManager:
                                                status='START',
                                                location=location,
                                                pathname=pathname,
+                                               name=name,
                                                remove_when_done=remove_when_done)
             if name in self.history:
                 self.history.pop(name)
@@ -437,7 +454,7 @@ class ExportManager:
         finally:
             self.semaphore.release()
         # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-        self._call_notifier(name, 'START')
+        self._call_notifier(name, time(), 'START')
         logging.getLogger('maskgen').info('START synchronous upload {}'.format(name))
         _perform_upload(self.directory, os.path.abspath(pathname), location, pipe, remove_when_done, self.export_tool)
 
