@@ -3378,7 +3378,7 @@ class HDF5CompositeBuilder(CompositeBuilder):
             frame_time = video_tools.get_start_time_from_segment(segments[0][0])
             reader_managers = [tool_set.GrayBlockReaderManager() for probe in probes]
             while len(segments) > 0:
-                segments = [segment for segment in segments if video_tools.get_stop_frame_from_segment(segment[0]) >= frame_no]
+                segments = [segment for segment in segments if video_tools.get_end_frame_from_segment(segment[0]) >= frame_no]
                 frame = None
                 for segment in segments:
                     if frame_no >= video_tools.get_start_frame_from_segment(segment[0]):

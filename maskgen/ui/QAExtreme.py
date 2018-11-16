@@ -462,7 +462,6 @@ class QAPage(Frame):
         designation = '-'.join(elegibility) if len(elegibility) else 'detect'
         self.master.qaData.set_qalink_designation(self.link, designation)
 
-
 class DummyPage(Frame):
     def __init__(self, master, labeltext = ''):
         Frame.__init__(self, master=master)
@@ -478,8 +477,9 @@ class SpatialReviewDisplay(Frame):
     """
 
     def __init__(self, page):
+        from maskgen.tool_set import composeVideoMaskName
         Frame.__init__(self, master=page.cImgFrame, height=500,width=50)
-
+        self.dialog = self.winfo_toplevel()
         #Add Checkbox for spatial review
         checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
@@ -500,17 +500,48 @@ class SpatialReviewDisplay(Frame):
                  probe.edgeId[1] in page.master.lookup[page.edgeTuple[0]] and probe.donorBaseNodeId in
                  page.master.lookup[
                      page.edgeTuple[1]]][0]
+
+        #TODO: Move overlay gen somewhere more convienent
+        #TODO: Put generated files in a tempdir, clean them up on journal close?
         if probe.targetVideoSegments is not None:
-            overlayFile = os.path.basename(probe.targetBaseNodeId) + '_overlay.avi'
-            if not os.path.exists(overlayFile):
+            to = self.dialog.scModel.G.get_pathname(probe.edgeId[1])
+            path_tuple = os.path.split(to)
+            overlay_file = os.path.join(path_tuple[0], os.path.splitext(path_tuple[1])[0] + '_overlay.avi')
+            meta = self.dialog.meta_extractor.getVideoMeta(source=probe.edgeId[1], media_types=['video'])[0]
+            if not os.path.exists(overlay_file):
                 from maskgen.ffmpeg_api import ffmpeg_overlay
-                from maskgen.tool_set import GrayBlockReader
-                from maskgen.video_tools import get_file_from_segment
-                for segment in probe.targetVideoSegments:
-                    reader = GrayBlockReader(filename=get_file_from_segment(segment))
-                    ffmpeg_overlay(probe.targetBaseNodeId, probe.targetMaskImage)
-                    pass
-            self.playbutton = Button(master=self, text='PLAY: ' + overlayFile, command=lambda: openFile(overlayFile))
+                from maskgen.tool_set import GrayOverlayBlockReader
+                from maskgen.video_tools import get_frame_count_only
+                #inspired by HDF5CompositeBuilder finalize()
+                segments = [segment for segment in probe.targetVideoSegments if segment.media_type == 'video']
+                segments = sorted(segments, key=lambda segment: segment.startframe)
+                segment_index = 0
+                frame_no = 0
+                last_frame = get_frame_count_only(to)
+                segment = segments[segment_index]
+                reader = GrayOverlayBlockReader(filename=segment.filename,
+                                                start_time=segment.starttime,
+                                                start_frame=segment.startframe,
+                                                end_frame=segment.endframe)
+
+                while frame_no < last_frame:
+
+                    if frame_no >= segment.endframe:
+                        segment_index += 1
+                        if segment_index < len(segments):
+                            segment = segments[segment_index]
+                            reader = GrayOverlayBlockReader(filename=segment.filename,
+                                                            start_time=segment.starttime,
+                                                            start_frame=segment.startframe,
+                                                            end_frame=segment.endframe) #replace the reader
+
+                    reader.read() #read and write to the file
+                    frame_no += 1
+
+                reader.writer.close()
+                overlay_file = ffmpeg_overlay(to, reader.writer.filename)
+
+            self.playbutton = Button(master=self, text='PLAY: ' + os.path.split(overlay_file)[1], command=lambda: openFile(overlay_file))
             self.playbutton.grid()
 
 

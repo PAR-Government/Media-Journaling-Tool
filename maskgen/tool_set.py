@@ -2956,6 +2956,9 @@ class GrayBlockReader:
         import h5py
         self.writer = None
 
+        self.start_frame = start_frame
+        self.start_time = start_time
+        self.preferences = preferences
         self.filename = filename
         self.h_file = h5py.File(filename, 'r')
         grp_names = self.h_file.keys()
@@ -3026,6 +3029,41 @@ class GrayBlockReader:
         if self.writer is not None:
             self.writer.close()
 
+class GrayOverlayBlockReader(GrayBlockReader):
+    """
+    Generate mask for whole video, writing blank frames where there is no segment data
+    """
+
+    def __init__(self, filename,
+                 preferences=None,
+                 start_time=0,
+                 start_frame=None,
+                 end_frame=None):
+        GrayBlockReader.__init__(self, filename,
+                 convert=True,
+                 preferences=preferences,
+                 start_time=start_time,
+                 start_frame=start_frame,
+                 end_frame=end_frame)
+        self.pos = -start_frame
+        overlay_mask_name = os.path.join(os.path.split(self.writer.mask_prefix)[0],'_overlay')
+        self.writer.mask_prefix = overlay_mask_name
+
+
+    def read(self):
+        if self.dset is None:
+            return None
+
+        if self.dset.shape[0] > self.pos >= 0:
+            mask = self.mask_format.get_frame(self)
+            mask = mask.astype('uint8')
+        else:
+            mask = np.ones((self.dset.shape[1], self.dset.shape[2]), dtype=np.uint8) * 255
+
+        self.writer.write(mask, self.pos, 0)
+        self.pos += 1
+        return mask
+
 
 class DummyWriter:
     def write(self, mask, mask_number, mask_time):
@@ -3041,6 +3079,7 @@ class GrayBlockWriter:
     """
 
     def __init__(self, mask_prefix, fps, layout=GrayBlockFrameFirstLayout()):
+        import logging
         self.fps = fps
         self.dset = None
         self.pos = 0
@@ -3063,6 +3102,7 @@ class GrayBlockWriter:
 
         if self.h_file is None:
             self.filename = composeVideoMaskName(self.mask_prefix, mask_time, self.suffix)
+            logging.getLogger('maskgen').info('Writing to ' + self.filename)
             if os.path.exists(self.filename):
                 os.remove(self.filename)
             self.h_file = h5py.File(self.filename, 'w')
@@ -3082,6 +3122,7 @@ class GrayBlockWriter:
                                                 chunks=True,
                                                 maxshape=self.mask_format.initial_shape(mask.shape))
             self.pos = 0
+
         self.mask_format.resize(mask.shape, self)
         new_mask = mask
         if len(mask.shape) > 2:
@@ -3108,7 +3149,6 @@ class GrayBlockWriter:
         if self.h_file is not None:
             self.h_file.close()
         self.h_file = None
-
 
 
 
