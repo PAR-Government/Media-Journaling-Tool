@@ -155,10 +155,10 @@ class TimeWidget(Frame):
             minute = initialvalues[1]
             hour = initialvalues[0]
         else:
-            micro="microsecond"
-            second = "seconds"
-            minute = "minute"
-            hour = "hour"
+            micro  = "micros"
+            second = "SS"
+            minute = "MM"
+            hour   = "HH"
 
         font = ("TkDefaultFont", 14)  # Increase font size
 
