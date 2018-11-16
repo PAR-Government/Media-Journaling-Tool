@@ -6,6 +6,7 @@ from time import sleep, time
 
 from maskgen.tool_set import S3ProgressPercentage
 
+
 #-------------------------------------------------------------------------------------------------------------
 # Export Tools - export to remote location
 #-------------------------------------------------------------------------------------------------------------
@@ -38,6 +39,13 @@ def _log_and_update_parent(log, pipe_to_parent, message):
 #
 # status is a float percentage or one of START, FAIL, DONE
 #-------------------------------------------------------------------------------------------------------------
+
+def _is_process_alive(pid):
+    import psutil
+    try:
+        return psutil.Process(pid) is not None
+    except:
+        return False
 
 def _set_logging(directory,name):
     from maskgen.loghandling import set_logging
@@ -135,17 +143,182 @@ class ProcessInfo:
     """
     Active upload process information
     """
-    def __init__(self,process,pipe,status='START',location=None,pathname=None,name= None,remove_when_done=True):
-        self.process = process
-        self.pipe = pipe
+    def __init__(self,status='START',location=None,pathname=None,name= None,log_file_name=None,remove_when_done=True):
+        """
+
+        :param process:
+        :param pipe:
+        :param status:
+        :param location:
+        :param pid:
+        :param pathname:
+        :param name:
+        :param remove_when_done:
+        """
         self.status = status
         self.pathname = pathname
         self.name = name
         self.location = location
         self.remove_when_done=remove_when_done
+        self.log_file_name = log_file_name
 
-    def get_log_name(self, directory):
-        return os.path.join(directory, self.name + '.txt')
+    def is_alive(self):
+        return False
+
+    def is_active(self):
+        return self.status not in ['DONE', 'FAIL']
+
+    def is_owned(self):
+        return False
+
+    def get_log_name(self):
+        return self.log_file_name
+
+    def _update_process_log(self):
+        """
+
+        :param process_info:
+        :return:
+        @type process_info: ProcessInfo
+        """
+        logfilename = self.get_log_name()
+        try:
+            with open(logfilename,'a+') as fp:
+                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format(self.status,
+                                                                     self.pathname,
+                                                                     self.location)])
+        except Exception as e:
+            # ten bucks says windows has a problem here
+            logging.getLogger('maskgen').error('Cannot update status of process {}'.format(e.message))
+
+    def getpid(self):
+        return os.getpid()
+
+    def _update_dead_process_info_status(self):
+        if self.status not in ['DONE', 'FAIL']:
+            last_recorded_status = _get_status_from_last_message(
+                self.get_log_name())
+            if last_recorded_status not in ['DONE', 'FAIL']:
+                self.status = 'FAIL'
+                self._update_process_log()
+            else:
+                self.status=last_recorded_status
+
+class OwnedProcessInfo(ProcessInfo):
+
+    def __init__(self, process, pipe, status='START', location=None, pathname=None, name=None,
+                 log_file_name=None,remove_when_done=True):
+        """
+
+        :param process:
+        :param pipe:
+        :param status:
+        :param location:
+        :param pathname:
+        :param name:
+        :param remove_when_done:
+         @type process: Process
+        """
+        self.process = process
+        self.pipe = pipe
+        ProcessInfo.__init__(self,
+                             status=status,
+                             location=location,
+                             pathname=pathname,
+                             name=name,
+                             log_file_name=log_file_name,
+                             remove_when_done=remove_when_done
+                             )
+
+
+    def is_alive(self):
+        return self.process.is_alive()
+
+    def is_owned(self):
+        return True
+
+    def getpid(self):
+        return self.process.pid()
+
+    def terminate(self):
+        self.process.terminate()
+
+    def update_status(self):
+        status_change = False
+        try:
+            if self.pipe.poll(0.5):
+                self.status = self.pipe.recv()
+                status_change = True
+        except Exception as e:
+                logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
+        # if we own it, wait for it
+        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
+            status_change = True
+            try:
+                self.process.join()
+            except:
+                pass
+            self._update_dead_process_info_status()
+        return status_change
+
+
+class NonOwnedProcessInfo(ProcessInfo):
+
+
+    def __init__(self,
+                 pid=None,
+                 status='START',
+                 location=None,
+                 pathname=None,
+                 name=None,
+                 log_file_name=None,
+                 remove_when_done=True):
+        """
+
+        :param process:
+        :param pipe:
+        :param status:
+        :param location:
+        :param pathname:
+        :param name:
+        :param remove_when_done:
+         @type process: Process
+        """
+        self.process_pid = pid
+        ProcessInfo.__init__(self,
+                             status=status,
+                             location=location,
+                             pathname=pathname,
+                             name=name,
+                             log_file_name=log_file_name,
+                             remove_when_done=remove_when_done
+                             )
+
+    def getpid(self):
+        return self.process_pid
+
+    def terminate(self):
+        pid = self.getpid()
+        if pid is not None:
+            try:
+                os.kill(int(pid), 9)
+            except:
+                pass
+
+    def is_owned(self):
+        return False
+
+    def is_alive(self):
+        return _is_process_alive(self.process_pid) if self.process_pid is not None else False
+
+    def update_status(self):
+        old_status = self.status
+        self.status = _get_status_from_last_message(self.get_log_name())
+        if not self.is_alive() and self.is_active():
+            self.status = 'FAIL'
+            self._update_process_log()
+        return old_status != self.status
+
 
 #-------------------------------------------------------------------------------------------------------------
 # Synchronous, in process, uploading
@@ -170,13 +343,14 @@ class SyncPipe:
     def poll(self,timer):
         sleep(timer)
 
-
-
 class SyncProcess:
 
     def __init__(self, manager, name):
         self.manager = manager
         self.name = name
+
+    def pid(self):
+        return os.getpid()
 
     def update_status(self,msg):
         self.manager._update_status(self.name, msg)
@@ -200,7 +374,7 @@ class SyncProcess:
 class ExportManager:
 
     """
-    @type processes: {str: ProcessInfo}
+    @type processes: dict (str, ProcessInfo)
     """
     def __init__(self, notifier=None, altenate_directory=None, queue_size=5, export_tool = S3ExportTool):
         from threading import Lock, Thread, Condition
@@ -214,43 +388,34 @@ class ExportManager:
         self.directory = os.path.join(os.path.expanduser('~'), 'JTExportLogs') if altenate_directory is None else altenate_directory
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
-        self.history = {}
         self._load_history()
         self.semaphore  = Condition(self.lock)
         self.listen_thread = Thread(target=self._listen_thread, name='ExportManager.listener')
         self.listen_thread.daemon = True
         self.listen_thread.start()
         self.export_tool = export_tool()
-        self.poll_time = 2
-
-    def get_current(self):
-        with self.lock:
-            return {os.path.splitext(os.path.basename(k))[0]:(time(),v.status if v.status is not None else 'START') for k,v in self.processes.iteritems()}
 
     def  _load_history(self):
         with self.lock:
             for f in os.listdir(self.directory):
                 if f.endswith('.txt'):
-                    pathname = os.path.join(self.directory,f)
-                    st_mtime = os.stat(pathname).st_mtime
+                    logfilename = os.path.join(self.directory,f)
                     name = os.path.splitext(f)[0]
-                    if name not in self.history or self.history[name][0] != st_mtime:
-                        self.history[os.path.splitext(f)[0]] = (st_mtime,
-                                                                _get_status_from_last_message(pathname))
+                    status, pathname, location, pid = _get_path_from_first_message(logfilename)
+                    status = _get_status_from_last_message(logfilename)
+                    if name not in self.processes:
+                        self.processes[name] = NonOwnedProcessInfo(pid=pid,
+                                                                   status=status,
+                                                                   location=location,
+                                                                   log_file_name=os.path.join(self.directory,
+                                                                                              name + '.txt'),
+                                                                   pathname=pathname,
+                                                                   name=name)
 
     def get_all(self):
-        """
-        :return: dictionary of name -> (time, message)
-        @rtype dict(name, (float, str))
-        """
-        import copy
-        history = copy.copy(self.get_history())
-        history.update(self.get_current())
-        return history
-
-    def get_history(self):
-        self._load_history()
-        return self.history
+        with self.lock:
+            return {os.path.splitext(os.path.basename(k))[0]: (time(), v.status if v.status is not None else 'START')
+                    for k, v in self.processes.iteritems()}
 
     def _update_status(self, name, msg):
         self.processes[name].status = msg
@@ -277,23 +442,6 @@ class ExportManager:
         """
         self.notifiers = [n for n in self.notifiers if n !=  notifier]
 
-    def _update_process_log(self, process_info):
-        """
-
-        :param process_info:
-        :return:
-        @type process_info: ProcessInfo
-        """
-        logfilename = process_info.get_log_name(self.directory)
-        try:
-            with open(logfilename,'a+') as fp:
-                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format(process_info.status,
-                                                                     process_info.pathname,
-                                                                     process_info.location)])
-        except Exception as e:
-            # ten bucks says windows has a problem here
-            logging.getLogger('maskgen').error('Cannot update status of process {}'.format(e.message))
-
     def _listen_thread(self):
         """
         List to child process messages on status.
@@ -302,44 +450,21 @@ class ExportManager:
         """
         from copy import copy
         while True:
+            sleep_value = 1
             self.semaphore.acquire()
             try:
-                if len(self.processes) == 0:
+                active_count = len([p for p in self.processes.values() if p.is_active()])
+                print active_count
+                if active_count == 0:
+                    sleep_value = 0
                     self.semaphore.wait()
+                processes = copy(self.processes)
             finally:
                 self.semaphore.release()
-
-            processes = copy(self.processes)
+            sleep(sleep_value)
             for k, process_info in processes.iteritems():
-                if process_info.pipe is not None:
-                    try:
-                        if process_info.pipe.poll(self.poll_time):
-                            process_info.status = process_info.pipe.recv()
-                            self._call_notifier(k, time(), process_info.status)
-                    except Exception as e:
-                        logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
-                if process_info.status in ['DONE', 'FAIL'] or not process_info.process.is_alive():
-                    try:
-                        process_info.process.join()
-                    except:
-                        pass
-                    last_recorded_status = _get_status_from_last_message(process_info.get_log_name(self.directory))
-                    if process_info.status not in ['DONE', 'FAIL'] and last_recorded_status != 'DONE':
-                        process_info.status = 'FAIL'
-                    #update the log
-                    if last_recorded_status not in ['DONE', 'FAIL', 'N/A']:
-                        self._update_process_log(process_info)
-                    # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
+                if process_info.update_status():
                     self._call_notifier(k, time(), process_info.status)
-
-                    # self.queue_wait.acquire()
-                    # self.queue_wait.notifyAll()
-                    # self.queue_wait.release()
-            self.semaphore.acquire()
-            try:
-                self.processes = {k: v for k, v in self.processes.iteritems() if v.status not in [ 'DONE', 'FAIL'] }
-            finally:
-                self.semaphore.release()
 
     def restart(self, name):
         """
@@ -375,8 +500,8 @@ class ExportManager:
         if os.path.exists(logfilename):
             os.remove(logfilename)
         with self.lock:
-            if name in self.history:
-                self.history.pop(name)
+            if name in self.processes:
+                self.processes.pop(name)
 
     def stop(self, name):
         """
@@ -387,27 +512,10 @@ class ExportManager:
         """
         with self.lock:
             if name in self.processes:
-                # ? os.kill(pid, 7)
-                self.processes[name].process.terminate()
-                return self.processes.pop(name)
-            else:
-                logfilename = os.path.join(self.directory, name + '.txt')
-                status, pathname, location, pid = _get_path_from_first_message(logfilename)
-                if pid is not None:
-                    try:
-                        os.kill(pid,9)
-                    except:
-                        pass
-                    if  status is not 'DONE':
-                        p = ProcessInfo(None,
-                                        None,
-                                        status='FAIL',
-                                        location= location,
-                                        pathname=pathname,
-                                        name=name
-                                        )
-                        self._update_process_log(p)
-
+                process_info = self.processes[name]
+                process_info.terminate()
+                process_info._update_dead_process_info_status()
+                self._call_notifier(name, time(), process_info.status)
 
     def upload(self, pathname, location, remove_when_done=True):
         """
@@ -418,24 +526,21 @@ class ExportManager:
         :param remove_when_done:
         :return:
         """
-        #self.queue_wait.acquire()
-        #if self.queue_size == len(self.processes):
-        #    self.queue_wait.wait()
-        #self.queue_wait.release()
         parent_conn, child_conn = Pipe()
         p = Process(target=_perform_upload,
                     args=(self.directory, os.path.abspath(pathname), location, child_conn, remove_when_done, self.export_tool))
+
         self.semaphore.acquire()
         try:
             name = os.path.splitext(os.path.basename(pathname))[0]
-            self.processes[name] = ProcessInfo(p, parent_conn,
-                                                   status='START',
-                                                   location=location,
-                                                   pathname = os.path.abspath(pathname),
-                                                   name = name,
-                                                   remove_when_done=remove_when_done)
-            if name in self.history:
-                self.history.pop(name)
+            self.processes[name] = OwnedProcessInfo(p,
+                                                    parent_conn,
+                                                    status='START',
+                                                    location=location,
+                                                    pathname = os.path.abspath(pathname),
+                                                    name = name,
+                                                    log_file_name=os.path.join(self.directory, name + '.txt'),
+                                                    remove_when_done=remove_when_done)
             p.start()
             self.semaphore.notifyAll()
         finally:
@@ -458,15 +563,14 @@ class ExportManager:
         pipe = process.pipe()
         self.semaphore.acquire()
         try:
-            self.processes[name] = ProcessInfo(process,
+            self.processes[name] = OwnedProcessInfo(process,
                                                pipe,
                                                status='START',
                                                location=location,
                                                pathname=pathname,
                                                name=name,
+                                               log_file_name=os.path.join(self.directory,name + '.txt'),
                                                remove_when_done=remove_when_done)
-            if name in self.history:
-                self.history.pop(name)
             self.semaphore.notifyAll()
         finally:
             self.semaphore.release()

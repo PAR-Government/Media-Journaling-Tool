@@ -1,8 +1,8 @@
-import os
 import tkMessageBox
 import ttk
 from Tkinter import *
 from exporter import ExportManager
+from threading import Lock
 
 class ExportWatcherDialog(Toplevel):
     def __init__(self, parent, export_manager):
@@ -17,6 +17,7 @@ class ExportWatcherDialog(Toplevel):
         self.export_manager.add_notifier(self)
         Toplevel.__init__(self, parent)
         self.progress = {}
+        self.lock = Lock()
         self.createWidgets()
 
     def _delete_window(self):
@@ -37,25 +38,31 @@ class ExportWatcherDialog(Toplevel):
         if args[0] not in self.progress:
             self.update_data()
         else:
-            self.progress[args[0]].update(args[1],args[2])
+            with self.lock:
+                self.progress[args[0]].update(args[1],args[2])
 
     def update_data(self):
         history = self.export_manager.get_all()
         for name, tuple_ in history.iteritems():
-            if name not in self.progress:
-                ep = ExportProgress(self, name, tuple_[0], tuple_[1])
+            ep = None
+            with self.lock:
+                if name not in self.progress:
+                    ep = ExportProgress(self, name, tuple_[0], tuple_[1])
+                    self.progress[name] = ep
+                else:
+                    self.progress[name].update(*tuple_)
+            if ep is not None:
                 ep.pack()
-                self.progress[name] = ep
-            else:
-                self.progress[name].update(*tuple_)
-        self.after(1000, self.update_data)
 
     def forget(self, name):
         self.export_manager.forget(name)
-        if name  in self.progress:
-            self.progress[name].grid_forget()
-            self.progress[name].destroy()
-            self.progress.pop(name)
+        frame = None
+        with self.lock:
+            if name in self.progress:
+                frame = self.progress[name]
+                self.progress.pop(name)
+        frame.grid_forget()
+        frame.destroy()
 
 
 class ExportProgress(Frame):

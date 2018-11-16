@@ -59,10 +59,10 @@ class TestExporter(TestSupport):
         what = 'camera_sizes'
         pathname = self.locateFile('tests/data/camera_sizes.json')
         self.exportManager.upload(pathname, 'medifor/par/journal/shared/',remove_when_done=False)
-        current = self.exportManager.get_current()
+        current = self.exportManager.get_all()
         self.assertTrue(what in current)
         self.check_status()
-        history = self.exportManager.get_history()
+        history = self.exportManager.get_all()
         self.assertTrue(history[what][1] == 'DONE')
 
     def test_slow_export(self):
@@ -73,10 +73,10 @@ class TestExporter(TestSupport):
         what = 'camera_sizes'
         pathname = self.locateFile('tests/data/camera_sizes.json')
         self.exportManager.upload(pathname, 'medifor/par/journal/shared/',remove_when_done=False)
-        current = self.exportManager.get_current()
+        current = self.exportManager.get_all()
         self.assertTrue(what in current)
         self.check_status()
-        history = self.exportManager.get_history()
+        history = self.exportManager.get_all()
         self.assertTrue(history[what][1] == 'DONE')
         self.assertTrue(len(self.notifications) == 13)
         self.notifications = []
@@ -89,7 +89,7 @@ class TestExporter(TestSupport):
         what = 'camera_sizes'
         pathname = self.locateFile('tests/data/camera_sizes.json')
         self.exportManager.sync_upload(pathname, 'medifor/par/journal/shared/', remove_when_done=False)
-        history = self.exportManager.get_history()
+        history = self.exportManager.get_all()
         self.assertTrue(history[what][1] == 'DONE')
 
 
