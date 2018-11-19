@@ -18,6 +18,14 @@ class SomePausesExportTool:
             sleep(1)
         log('DONE {} {}/{}'.format(path,bucket,dir))
 
+def notifier_check(foo=0,bar=0):
+    from maskgen import MaskGenLoader
+    prefLoader = MaskGenLoader()
+    from maskgen.notifiers import getNotifier
+    notifiers = getNotifier(prefLoader)
+    logging.getLogger('jt_export').info ('status = {}'.format(notifiers.check_status()))
+    logging.getLogger('jt_export').info ('foo = {} bar = {}'.format(foo, bar))
+
 class TestExporter(TestSupport):
 
     def setUp(self):
@@ -58,12 +66,20 @@ class TestExporter(TestSupport):
         #what = 'a81d4ebbf08afab92d864245020298ac'
         what = 'camera_sizes'
         pathname = self.locateFile('tests/data/camera_sizes.json')
-        self.exportManager.upload(pathname, 'medifor/par/journal/shared/',remove_when_done=False)
+        self.exportManager.upload(pathname, 'medifor/par/journal/shared/',
+                                  remove_when_done=False,
+                                  finish_notification=notifier_check,
+                                  finish_notification_args={'foo':1,'bar':'2'})
         current = self.exportManager.get_all()
         self.assertTrue(what in current)
         self.check_status()
         history = self.exportManager.get_all()
         self.assertTrue(history[what][1] == 'DONE')
+        with open (os.path.join(self.altenate_directory,'camera_sizes.txt')) as log:
+            lines = log.readlines()
+            print lines[-2:]
+        self.assertTrue('foo = 1 bar = 2' in lines[-1])
+        self.assertTrue('status = None' in lines[-2])
 
     def test_slow_export(self):
         self.notified = False

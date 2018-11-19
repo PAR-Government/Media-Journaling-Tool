@@ -31,7 +31,6 @@ from maskgen.ui.mask_frames import HistoryDialog
 from maskgen.ui.plugin_builder import PluginBuilder
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.ui.CompositeViewer import CompositeViewDialog
-from maskgen.notifiers import  getNotifier
 import logging
 from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from maskgen.graph_output import check_graph_status
@@ -111,6 +110,26 @@ class UserPropertyChange(ProperyChangeAction):
         if oldvalue != newvalue:
             if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
                 self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+
+
+def _external_export_notify(name=None,
+                            exporter=None,
+                            location=None,
+                            creator=None,
+                            additional_message=None,
+                            qacomment=None,
+                            project_type=None):
+    prefLoader = MaskGenLoader()
+    from maskgen.notifiers import getNotifier
+    notifiers = getNotifier(prefLoader)
+    comment = 'Exported by ' + exporter
+    comment = comment + '\n {}: {}'.format('location', location)
+    comment = comment + '\n {}: {}'.format('additional_message', additional_message)
+    comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+    notifiers.notifier.update_journal_status(name,
+                                             creator,
+                                             comment,
+                                             project_type)
 
 class MakeGenUI(Frame):
     prefLoader = maskGenPreferences

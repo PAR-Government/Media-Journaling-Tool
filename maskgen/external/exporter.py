@@ -94,7 +94,9 @@ def _get_path_from_first_message(pathname):
 # Upload Processing - Child Process UpLoader
 #-------------------------------------------------------------------------------------------------------------
 
-def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done , export_tool):
+
+def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done , export_tool,
+                    client_notification=None, client_args=None):
 
     _set_logging(directory, os.path.splitext(os.path.basename(path))[0])
 
@@ -110,6 +112,8 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
         if remove_when_done:
             os.remove(path)
         pipe_to_parent.close()
+        if client_notification is not None:
+            client_notification(**client_args)
     except Exception as e:
         logging.getLogger('jt_export').error(str(e))
         logging.getLogger('jt_export').info('FAIL {} to {}'.format(path, location))
@@ -517,7 +521,7 @@ class ExportManager:
                 process_info._update_dead_process_info_status()
                 self._call_notifier(name, time(), process_info.status)
 
-    def upload(self, pathname, location, remove_when_done=True):
+    def upload(self, pathname, location, remove_when_done=True, finish_notification=None, finish_notification_args=None):
         """
         Upload file to location in-process asynchonously
 
@@ -528,7 +532,13 @@ class ExportManager:
         """
         parent_conn, child_conn = Pipe()
         p = Process(target=_perform_upload,
-                    args=(self.directory, os.path.abspath(pathname), location, child_conn, remove_when_done, self.export_tool))
+                    args=(self.directory,
+                          os.path.abspath(pathname),
+                          location, child_conn,
+                          remove_when_done,
+                          self.export_tool,
+                          finish_notification,
+                          finish_notification_args))
 
         self.semaphore.acquire()
         try:
