@@ -25,6 +25,7 @@ import datetime
 import threading
 import data_files
 from camera_handler import ValidResolutions, API_Camera_Handler
+from FormHandler import FormSelector
 
 RVERSION = hp_data.RVERSION
 
@@ -44,6 +45,8 @@ class HPSpreadsheet(Toplevel):
             self.modelDir = os.path.join(self.dir, 'model')
             self.thumbnailDir = os.path.join(self.dir, 'thumbnails')
             self.csvDir = os.path.join(self.dir, 'csv')
+            self.formDir = os.path.join(self.dir, "release_forms")
+            self.release_forms = os.listdir(self.formDir) if os.path.isdir(self.formDir) else []
         self.master = master
         self.ritCSV=ritCSV
         self.trello_key = data_files._TRELLO['app_key']
@@ -119,6 +122,8 @@ class HPSpreadsheet(Toplevel):
         self.fileMenu.add_command(label='Validate', command=self.validate)
         self.fileMenu.add_command(label='Export to S3', command=self.s3export)
         self.fileMenu.add_command(label='Organize Columns', command=self.sort_columns)
+        self.fileMenu.add_command(label="Edit Release Forms", command=lambda: FormSelector(self.formDir,
+                                  self.release_forms, self.get_current_tab(), self))
 
         self.editMenu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=self.editMenu)
@@ -146,16 +151,20 @@ class HPSpreadsheet(Toplevel):
         self.bind('<Control-z>', self.undo)
         self.bind('<Control-y>', self.redo)
 
+    def get_current_tab(self):
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+        return currentTable
+
     def undo(self, event=None):
         """
         Will undo the most recent fill action. Does not undo regular single text entry.
         :param event: event trigger
         :return: None
         """
-        if self.on_main_tab:
-            currentTable = self.pt
-        else:
-            currentTable = self.tabpt
+        currentTable = self.get_current_tab()
         if hasattr(currentTable, 'undo') and currentTable.undo:
             currentTable.redo = []
             # cell: tuple (value, row, column)
@@ -170,10 +179,7 @@ class HPSpreadsheet(Toplevel):
         :param event: event trigger
         :return: None
         """
-        if self.on_main_tab:
-            currentTable = self.pt
-        else:
-            currentTable = self.tabpt
+        currentTable = self.get_current_tab()
         if hasattr(currentTable, 'redo') and currentTable.redo:
             currentTable.undo = []
             for cell in currentTable.redo:
@@ -217,10 +223,7 @@ class HPSpreadsheet(Toplevel):
         :return: None
         """
         import hp.hp_data
-        if self.on_main_tab:
-            row = self.pt.getSelectedRow()
-        else:
-            row = self.tabpt.getSelectedRow()
+        row = self.get_current_tab().getSelectedRow()
         type = self.pt.model.getValueAt(row, 32)
         current_file = str(self.pt.model.getValueAt(row, self.pt.get_col_by_name("ImageFilename")))
 
@@ -300,12 +303,8 @@ class HPSpreadsheet(Toplevel):
         Should be refactored when time allows.
         :return: None
         """
-        if self.on_main_tab:
-            col = self.pt.getSelectedColumn()
-            cols = list(self.pt.model.df)
-        else:
-            col = self.tabpt.getSelectedColumn()
-            cols = list(self.tabpt.model.df)
+        col = self.get_current_tab().getSelectedColumn()
+        cols = list(self.get_current_tab().model.df)
         currentCol = cols[col]
         self.currentColumnLabel.config(text='Current column: ' + currentCol)
         if currentCol in self.booleanColNames:
@@ -358,7 +357,6 @@ class HPSpreadsheet(Toplevel):
             validValues = self.collections
         elif currentCol == 'HP-License':
             validValues = ['CC-0']
-
         elif currentCol in ['ImageWidth', 'ImageHeight', 'BitDepth', 'HP-PolyCount']:
             validValues = {'instructions':'Any integer value'}
         elif currentCol in ['GPSLongitude', 'GPSLatitude']:
@@ -371,18 +369,83 @@ class HPSpreadsheet(Toplevel):
             validValues = {'instructions':'Local ID number (PAR, RIT) of lens'}
         elif currentCol == 'HP-NumberOfSpeakers':
             validValues = {'instructions':'Number of people speaking in recording. Do not count background noise.'}
+        elif currentCol == 'HP-ReleaseForms':
+            validValues = {'values': self.release_forms, 'type': 'multiselect'}
 
         else:
             validValues = {'instructions':'Any string of text'}
 
         self.validateBox.delete(0, END)
         if type(validValues) == dict:
-            self.validateBox.insert(END, validValues['instructions'])
+            types = {"multiselect": self.multi_select_insert,
+                     "additionalaction": lambda *args: self.check_additional(currentCol, *args)}
             self.validateBox.unbind('<<ListboxSelect>>')
+            if 'instructions' in validValues:
+                self.validateBox.insert(END, validValues['instructions'])
+            if 'values' in validValues:
+                for v in validValues['values']:
+                    self.validateBox.insert(END, v)
+            if 'type' in validValues:
+                self.validateBox.bind('<<ListboxSelect>>', types[validValues['type']])
         else:
             for v in validValues:
                 self.validateBox.insert(END, v)
             self.validateBox.bind('<<ListboxSelect>>', self.insert_item)
+
+    def multi_select_insert(self, event):
+        selection = event.widget.curselection()
+
+        try:
+            val = event.widget.get(selection[0])
+        except IndexError:
+            return
+
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+
+        row = currentTable.getSelectedRow()
+        col = currentTable.getSelectedColumn()
+
+        try:
+            if ((row, col) in currentTable.disabled_cells) and not ((row, col) in currentTable.special_cells):
+                return
+        except AttributeError:
+            pass
+
+        current_values = currentTable.model.getValueAt(row, col).split(", ")
+        if "" in current_values:
+            current_values.pop(current_values.index(""))
+
+        if val in current_values:
+            current_values.pop(current_values.index(val))
+        else:
+            current_values.append(val)
+
+        currentTable.undo = [(currentTable.model.getValueAt(row, col), row, col)]
+        currentTable.model.setValueAt(", ".join(sorted(current_values)), row, col)
+        currentTable.redraw()
+
+        if hasattr(currentTable, 'cellentry'):
+            currentTable.cellentry.destroy()
+
+        currentTable.parentframe.focus_set()
+
+
+    def check_additional(self, column_name):
+        if self.on_main_tab:
+            currentTable = self.pt
+        else:
+            currentTable = self.tabpt
+
+        ops = {}
+
+        try:
+            ops[column_name]
+        except KeyError:
+            pass
+        return
 
     def load_device_exif(self, field):
         """
@@ -490,6 +553,7 @@ class HPSpreadsheet(Toplevel):
         GRAY (#c1c1c1) indicates cell is DISABLED
         YELLOW (#f3f315) indicates cell is MANDATORY
         RED (#ff5b5b) indicates an ERROR in that cell
+        BLUE (#66edff) indicates a special entry (No Manual Entry)
         WHITE (#ffffff) is NORMAL
         :param tab: (optional), specify current tab (self.tabpt)
         :return: None
@@ -500,57 +564,49 @@ class HPSpreadsheet(Toplevel):
         else:
             track_highlights = False
         tab.disabled_cells = []
+        tab.special_cells = []
 
         local_id = self.pt.model.getValueAt(0, 9)
-        
+
         if not self.device_type and local_id:
             cam_handler = API_Camera_Handler(self, self.settings.get_key("apiurl"), self.settings.get_key("apitoken"),
                                              local_id)
             self.device_type = cam_handler.get_types()[0] if cam_handler.get_types() else "model"
 
+        props = {"disabled": {"color": "#c1c1c1", "disabled": True},
+                 "mandatory": {"color": "#f3f315", "disabled": False},
+                 "specialentry": {"color": "#66edff", "disabled": True},
+                 "enable": {"color": "#fff", "disabled": False}}
+
         notnans = tab.model.df.notnull()
         tab.delete("all")
         for row in range(0, tab.rows):
             for col in range(0, tab.cols):
-                color_assigned = False
                 colName = list(tab.model.df)[col]
                 fname = self.pt.model.getValueAt(row, 0)
                 currentExt = os.path.splitext(fname)[1].lower()
                 x1, y1, x2, y2 = tab.getCellCoords(row, col)
-                if notnans.iloc[row, col] and not colName.startswith("HP"):
-                    color_assigned = True
-                    rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                fill='#c1c1c1',
-                                                outline='#084B8A',
-                                                tag='cellrect')
+
+                celltype = \
+                    "disabled" if (notnans.iloc[row, col] and not colName.startswith("HP")) or (colName in
+                               self.disabledColNames or (colName == "HP-PrimarySecondary" and self.device_type !=
+                               "CellPhone")) else\
+                    "mandatory" if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
+                              (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
+                              fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and
+                              currentExt in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and
+                              self.pt.model.getValueAt(row, 0).endswith('.3d.zip')) else\
+                    "specialentry" if colName in ["HP-ReleaseForms"] else\
+                    "enable"
+
+                rect = tab.create_rectangle(x1, y1, x2, y2, fill=props[celltype]["color"], outline="#084B8A",
+                                            tag="cellrect")
+
+                if props[celltype]["disabled"]:
                     tab.disabled_cells.append((row, col))
-                if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
-                        (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
-                         fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and currentExt \
-                         in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and \
-                         self.pt.model.getValueAt(row, 0).endswith('.3d.zip')):
-                    color_assigned = True
-                    rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                fill='#f3f315',
-                                                outline='#084B8A',
-                                                tag='cellrect')
-                    if track_highlights:
-                        self.highlighted_cells.append((row, col))
-                    if (row, col) in tab.disabled_cells:
-                        tab.disabled_cells.remove((row, col))
-                if colName in self.disabledColNames or (colName == "HP-PrimarySecondary" and self.device_type != "CellPhone"):
-                    color_assigned = True
-                    rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                fill='#c1c1c1',
-                                                outline='#084B8A',
-                                                tag='cellrect')
-                    if (row, col) not in tab.disabled_cells:
-                        tab.disabled_cells.append((row, col))
-                if not color_assigned:
-                    rect = tab.create_rectangle(x1, y1, x2, y2,
-                                                fill="#fff",
-                                                outline='#084B8A',
-                                                tag='cellrect')
+                if celltype == "specialentry":
+                    tab.special_cells.append((row, col))
+
             image = self.pt.model.df['OriginalImageName'][row]
             if self.processErrors is not None and image in self.processErrors and self.processErrors[image]:
                 for errors in self.processErrors[image]:
@@ -915,12 +971,12 @@ class HPSpreadsheet(Toplevel):
         for root, dirs, files in os.walk(self.dir):
             for f in files:
                 if os.path.splitext(f)[1] not in ['.csv', '.tar']:
-                    if "temp" in os.path.normpath(root).split("\\"):
-                        continue
-                    elif "model" not in os.path.normpath(root).split("\\"):
+                    if any(x in os.path.normpath(root).split("\\") for x in ['image', 'video', 'audio']):
                         files_in_dir.append(f)
-                    elif os.path.normpath(root) not in files_in_dir:
+                    elif 'model' in os.path.normpath(root).split('\\'):
                             files_in_dir.append(os.path.normpath(root))
+                    else:
+                        continue
 
         dif_list = [x for x in files_in_dir if (x not in files_in_csv and "_" not in x and os.path.splitext(x)[1]
                                                 not in ["tar", "gpg"])]
