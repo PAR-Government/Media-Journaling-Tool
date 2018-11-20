@@ -418,7 +418,7 @@ class ExportManager:
 
     def get_all(self):
         with self.lock:
-            return {os.path.splitext(os.path.basename(k))[0]: (time(), v.status if v.status is not None else 'START')
+            return {k: (time(), v.status if v.status is not None else 'START')
                     for k, v in self.processes.iteritems()}
 
     def _update_status(self, name, msg):
@@ -519,7 +519,9 @@ class ExportManager:
                 process_info = self.processes[name]
                 process_info.terminate()
                 process_info._update_dead_process_info_status()
-                self._call_notifier(name, time(), process_info.status)
+            else:
+                return
+        self._call_notifier(name, time(), process_info.status)
 
     def upload(self, pathname, location, remove_when_done=True, finish_notification=None, finish_notification_args=None):
         """
