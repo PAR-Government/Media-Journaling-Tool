@@ -2744,47 +2744,12 @@ class ImageProjectModel:
         #else:
         #    return DonorExtender(self)
 
-    def export(self, location, include=[], notifier=None):
+    def export(self, location, include=[], redacted=[],notifier=None):
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
-            path, errors = self.G.create_archive(location, include=include, notifier=notifier)
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
-
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[],notifier=None):
-        """
-
-        :param location:
-        :param tempdir:
-        :param additional_message:
-        :param redacted: list of file paths to exclude
-        :return:
-        """
-        import boto3
-        from boto3.s3.transfer import S3Transfer, TransferConfig
-        with self.lock:
-            self.clear_validation_properties()
-            self.compress(all=True)
-            #errors = []
-            #path = ''
-            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir,
-                                                 redacted=redacted,
-                                                 notifier=notifier)
-            if len(errors) == 0:
-                config = TransferConfig()
-                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-                BUCKET = location.split('/')[0].strip()
-                DIR = location[location.find('/') + 1:].strip()
-                logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
-                DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
-                os.remove(path)
-                if not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
-                                                               additional_message=additional_message):
-                    errors = [('', '',
-                               'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
+            path, errors = self.G.create_archive(location, include=include, redacted=redacted, notifier=notifier)
+            return path, [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def export_path(self, location, redacted=[]):
         """

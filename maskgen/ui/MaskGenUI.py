@@ -31,7 +31,6 @@ from maskgen.ui.mask_frames import HistoryDialog
 from maskgen.ui.plugin_builder import PluginBuilder
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.ui.CompositeViewer import CompositeViewDialog
-from maskgen.notifiers import  getNotifier
 import logging
 from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from maskgen.graph_output import check_graph_status
@@ -42,6 +41,8 @@ from maskgen.software_loader import getMetDataLoader
 from cachetools import LRUCache
 from maskgen.ui.ui_tools import ProgressBar, AddRemove
 from maskgen.services.probes import archive_probes
+from maskgen.external.watcher import ExportWatcherDialog
+from maskgen.external.exporter import ExportManager
 import wrapt
 from maskgen.ui.QAExtreme import QAProjectDialog
 from maskgen.qa_logic import ValidationData
@@ -109,6 +110,26 @@ class UserPropertyChange(ProperyChangeAction):
         if oldvalue != newvalue:
             if tkMessageBox.askyesno("Username", "Retroactively apply to this project?"):
                 self.scModel.getGraph().replace_attribute_value('username', oldvalue, newName)
+
+
+def _external_export_notify(name=None,
+                            exporter=None,
+                            location=None,
+                            creator=None,
+                            additional_message=None,
+                            qacomment=None,
+                            project_type=None):
+    prefLoader = MaskGenLoader()
+    from maskgen.notifiers import getNotifier
+    notifiers = getNotifier(prefLoader)
+    comment = 'Exported by ' + exporter
+    comment = comment + '\n {}: {}'.format('location', location)
+    comment = comment + '\n {}: {}'.format('additional_message', additional_message)
+    comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+    notifiers.notifier.update_journal_status(name,
+                                             creator,
+                                             comment,
+                                             project_type)
 
 class MakeGenUI(Frame):
     prefLoader = maskGenPreferences
@@ -367,16 +388,20 @@ class MakeGenUI(Frame):
     def export(self):
         status, message = self._preexport()
         if not status:
-            return
+            return None
         val = tkFileDialog.askdirectory(initialdir='.', title="Export To Directory")
         if (val is not None and len(val) > 0):
-            errorList = self.scModel.export(val,notifier=self.progress_bar.postChange)
+            path, errorList = self.scModel.export(val,notifier=self.progress_bar.postChange)
             if len(errorList) > 0:
                 ValidationListDialog(self, errorList, "Export Errors")
+                return None
             else:
                 tkMessageBox.showinfo("Export", "Complete")
+                return path
+        return None
 
     def exporttoS3(self):
+        #status, message = True, 'x'
         status, message = self._preexport()
         if not status:
             return
@@ -385,16 +410,20 @@ class MakeGenUI(Frame):
                                        initialvalue=info if info is not None else '')
         if (val is not None and len(val) > 0):
             try:
-                errorList = self.scModel.exporttos3(val,additional_message=message,notifier=self.progress_bar.postChange)
+                path, errorlist = self.scModel.export(tempfile.tempdir,notifier=self.progress_bar.postChange)
+                #path, errorlist = "/Users/ericrobertson/Downloads/a81d4ebbf08afab92d864245020298ac.tgz",[]
+                if len(errorlist) > 0:
+                    ValidationListDialog(self, errorlist, "Export Errors")
+                else:
+                    self._update_export_state(location=val,pathname=path, additional_message=message)
+                    self.openManager()
+                    self.exportManager.upload(path, val, remove_when_done=False)
+
                 uploaded = self.prefLoader.get_key('lastlogupload')
                 uploaded = exportlogsto3(val,uploaded)
                 # preserve the file uploaded
                 if uploaded is not None:
                     self.prefLoader.save('lastlogupload',uploaded)
-                if len(errorList) > 0:
-                        ValidationListDialog(self, errorList, "Export Errors")
-                else:
-                    tkMessageBox.showinfo("Export to S3", "Complete")
                 self.prefLoader.save('s3info', val)
             except IOError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
@@ -402,6 +431,12 @@ class MakeGenUI(Frame):
             except ClientError as e:
                 logging.getLogger('maskgen').warning("Failed to upload project: " + str(e))
                 tkMessageBox.showinfo("Error", "Failed to upload export")
+
+    def openManager(self):
+        if self.exportWatcher is not None and self.exportWatcher.winfo_exists():
+            self.exportWatcher.lift(self)
+        else:
+            self.exportWatcher = ExportWatcherDialog(self, self.exportManager)
 
     def _promptRotate(self,donor_im,rotated_im, orientation):
         dialog = RotateDialog(self.master, donor_im, rotated_im, orientation)
@@ -922,6 +957,21 @@ class MakeGenUI(Frame):
         self.drawState()
         self.setSelectState('normal')
 
+    def _update_export_state(self, location='', pathname='', additional_message=''):
+        s3 = 's3:// ' + location + ('' if location.endswith('/') else '/') +  os.path.basename(pathname)
+        qacomment = self.scModel.getProjectData('qacomment')
+        validation_person = self.scModel.getProjectData('validatedby')
+        comment = 'Exported by ' + self.prefLoader.get_key('username')
+        comment = comment + '\n {}: {}'.format('location', s3)
+        comment = comment + '\n {}: {}'.format('additional_message', additional_message)
+        comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
+        if validation_person is not None:
+            comment = comment + '\n Validated By: ' + validation_person
+        return self.notifiers.update_journal_status(self.scModel.getName(),
+                                                    self.scModel.getGraph().getCreator().lower(),
+                                                    comment,
+                                                    self.scModel.getGraph().get_project_type())
+
     def changeEvent(self, recipient, eventType, **kwargs):
         # UI not setup yet.  Occurs when project directory is used at command line
         if self.canvas is None:
@@ -935,20 +985,7 @@ class MakeGenUI(Frame):
                     self.scModel.save()
                 except Exception as e:
                     logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
-        elif eventType == 'export':
-            qacomment = self.scModel.getProjectData('qacomment')
-            validation_person = self.scModel.getProjectData('validatedby')
-            comment = 'Exported by ' + self.prefLoader.get_key('username')
-            for k,v in kwargs.iteritems():
-                comment = comment + '\n {}: {}'.format(k,v)
-            comment = comment + '\n Journal Comment: ' + qacomment if qacomment is not None else comment
-            if validation_person is not None:
-                comment = comment + '\n Validated By: ' + validation_person
-            return self.notifiers.update_journal_status(self.scModel.getName(),
-                                                 self.scModel.getGraph().getCreator().lower(),
-                                                 comment,
-                                                 self.scModel.getGraph().get_project_type())
-        if eventType == 'connect':
+        elif eventType == 'connect':
             self.canvas.add(recipient[0],recipient[1])
         elif eventType == 'add':
             self.canvas.addNew(recipient)
@@ -1040,6 +1077,7 @@ class MakeGenUI(Frame):
         exportmenu = Menu(tearoff=0)
         exportmenu.add_command(label="To File", command=self.export, accelerator="Ctrl+E")
         exportmenu.add_command(label="To S3", command=self.exporttoS3)
+        exportmenu.add_command(label="Manager", command=self.openManager)
 
         settingsmenu = Menu(tearoff=0)
         settingsmenu.add_command(label="System Properties", command=self.getsystemproperties)
@@ -1293,6 +1331,8 @@ class MakeGenUI(Frame):
     def __init__(self, dir, master=None, base=None, uiProfile=UIProfile()):
         Frame.__init__(self, master)
         self.uiProfile = uiProfile
+        self.exportManager = ExportManager()
+        self.exportWatcher = None
         plugins.loadPlugins()
         self.gfl = GroupFilterLoader()
         newProject = createProject(dir, base=base,

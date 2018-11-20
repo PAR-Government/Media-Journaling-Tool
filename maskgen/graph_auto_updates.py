@@ -441,7 +441,6 @@ def _emptyMask(scModel, gopLoader):
 
 def _fixTool(scModel,gopLoader):
     """
-
     :param scModel:
     :param gopLoader:
     :return:
