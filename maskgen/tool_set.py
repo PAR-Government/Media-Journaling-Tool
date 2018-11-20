@@ -8,6 +8,7 @@
 
 import math
 from datetime import datetime
+
 from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
@@ -20,11 +21,10 @@ from subprocess import Popen, PIPE
 import threading
 import loghandling
 import cv2api
-from ffmpeg_api import get_ffprobe_tool
+from ffmpeg_api import get_ffprobe_tool, ffmpeg_overlay
 from maskgen.support import removeValue, getValue
 import os
 from maskgen.userinfo import get_username
-
 import platform
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
@@ -2807,12 +2807,97 @@ class GrayBlockFrameLastLayout():
         writer.dset[:, :, writer.pos] = mask
 
 
+class GrayBlockReader:
+
+    def __init__(self, filename,
+                 convert=False,
+                 preferences=None,
+                 start_time=0,
+                 start_frame=None,
+                 end_frame=None):
+        import h5py
+        self.writer = None
+
+        self.start_frame = start_frame
+        self.start_time = start_time
+        self.preferences = preferences
+        self.filename = filename
+        self.h_file = h5py.File(filename, 'r')
+        grp_names = self.h_file.keys()
+        if 'masks' in grp_names:
+            self.grps = ['masks']
+            self.setter = OldFormatGroupSetter()
+        else:
+            self.setter = NewFormatGroupSetter()
+            self.grps = [str(x) for x in sorted([int(x) for x in grp_names])]
+        # group selection
+        self.grp_pos = 0
+        # frame selection in group (relative to start of group)
+        self.pos = 0
+        # the smart numpy array
+        self.dset = None
+        # where to stop
+        self.end_frame = end_frame
+        self.fps = self.h_file.attrs['fps']
+        self.mask_format = MASKFORMATS[
+        self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
+        self.setter.set_group(self, start_time=start_time, start_frame=start_frame, end_frame=end_frame)
+        self.convert = convert
+        self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
+                                      self.fps,
+                                      preferences=preferences) if self.convert else DummyWriter()
+    def create_writer(self):
+        """
+        :return:
+        @rtype: GrayBlockWriter
+        """
+        import time
+        dir = os.path.dirname(self.filename)
+        prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
+        return GrayBlockWriter(prefix + str(time.clock()), self.fps)
+
+    def set_group(self, start_frame=None, start_time=1, end_frame=None):
+        self.setter.set_group(self, start_frame=start_frame,start_time=start_time, end_frame=end_frame)
+
+    def current_frame_time(self):
+        return self.start_time + (self.pos * (1000 / self.fps))
+
+    def current_frame(self):
+        return self.start_frame + self.pos
+
+    def read(self):
+        if self.dset is None:
+            return None
+        if self.end_frame is not None and self.current_frame() == self.end_frame + 1:
+            return None
+        if self.mask_format.is_end(self):
+            self.grp_pos+=1
+            if self.grp_pos < len(self.grps):
+                self.setter.select_group(self, self.grp_pos)
+            else:
+                self.dset = None
+                return None
+        mask = self.mask_format.get_frame(self)
+        mask = mask.astype('uint8')
+        self.writer.write(mask, self.start_frame + self.pos, self.current_frame_time())
+        self.pos += 1
+        return mask
+
+    def release(self):
+        pass
+
+    def close(self):
+        self.h_file.close()
+        if self.writer is not None:
+            self.writer.close()
+
 MASKFORMATS = {GrayBlockFrameFirstLayout.name:GrayBlockFrameFirstLayout(),
                GrayBlockFrameLastLayout.name:GrayBlockFrameLastLayout()}
 
-class GrayBlockReaderManager:
 
-    def __init__(self):
+class GrayBlockReaderManager:
+    def __init__(self, reader_type= GrayBlockReader):
+        self.reader_type = reader_type
         self.reader = None
         self.filename = None
 
@@ -2829,6 +2914,7 @@ class GrayBlockReaderManager:
         @type filename: str
         @rtype: GrayBlockReader
         """
+
         if filename == self.filename:
             self.reader.set_group(start_frame=start_frame,
                                   start_time=start_time,
@@ -2836,10 +2922,10 @@ class GrayBlockReaderManager:
         else:
             if self.reader is not None:
                 self.reader.close()
-            self.reader = GrayBlockReader(filename,
-                                          start_frame=start_frame,
-                                          start_time=start_time,
-                                          end_frame=end_frame)
+            self.reader = self.reader_type(filename,
+                               start_frame=start_frame,
+                               start_time=start_time,
+                               end_frame=end_frame)
         return self.reader
 
     def close(self):
@@ -2945,89 +3031,46 @@ class OldFormatGroupSetter:
     def select_group(reader, grp_pos, start_frame=None, start_time=0,end_frame=None):
         OldFormatGroupSetter.set_group(reader,start_frame=start_frame,start_time=start_time)
 
-class GrayBlockReader:
 
-    def __init__(self, filename,
-                 convert=False,
-                 preferences=None,
-                 start_time=0,
-                 start_frame=None,
-                 end_frame=None):
-        import h5py
-        self.writer = None
+class GrayBlockOverlayGenerator:
 
-        self.start_frame = start_frame
-        self.start_time = start_time
-        self.preferences = preferences
-        self.filename = filename
-        self.h_file = h5py.File(filename, 'r')
-        grp_names = self.h_file.keys()
-        if 'masks' in grp_names:
-            self.grps = ['masks']
-            self.setter = OldFormatGroupSetter()
-        else:
-            self.setter = NewFormatGroupSetter()
-            self.grps = [str(x) for x in sorted([int(x) for x in grp_names])]
-        # group selection
-        self.grp_pos = 0
-        # frame selection in group (relative to start of group)
-        self.pos = 0
-        # the smart numpy array
-        self.dset = None
-        # where to stop
-        self.end_frame = end_frame
-        self.fps = self.h_file.attrs['fps']
-        self.mask_format = MASKFORMATS[
-        self.h_file.attrs['mask_format'] if 'mask_format' in self.h_file.attrs else GrayBlockFrameFirstLayout.name]
-        self.setter.set_group(self, start_time=start_time, start_frame=start_frame, end_frame=end_frame)
-        self.convert = convert
-        self.writer = GrayFrameWriter(os.path.splitext(filename)[0],
-                                      self.fps,
-                                      preferences=preferences) if self.convert else DummyWriter()
-    def create_writer(self):
-        """
-        :return:
-        @rtype: GrayBlockWriter
-        """
-        import time
-        dir = os.path.dirname(self.filename)
-        prefix = os.path.join(dir,os.path.basename(self.h_file.attrs['prefix'])) if 'prefix' in self.h_file.attrs else os.path.splitext(self.filename)[0][:48]
-        return GrayBlockWriter(prefix + str(time.clock()), self.fps)
+    def __init__(self, probe, target_file, locator):
+        from video_tools import getMaskSetForEntireVideo, get_frames_from_segment
 
-    def set_group(self, start_frame=None, start_time=1, end_frame=None):
-        self.setter.set_group(self, start_frame=start_frame,start_time=start_time, end_frame=end_frame)
+        self.target_file = target_file
+        self.manager = GrayBlockReaderManager(reader_type=GrayOverlayBlockReader)
+        self.probe = probe
+        segments = [segment for segment in probe.targetVideoSegments if segment.media_type == 'video']
+        self.segments = sorted(segments, key=lambda segment: segment.startframe)
+        self.segment_index = 0
+        self.segment = probe.targetVideoSegments[self.segment_index]
+        self.manager.create_reader(filename=self.segment.filename,
+                                    start_time=self.segment.starttime,
+                                    start_frame=self.segment.startframe,
+                                    end_frame=self.segment.endframe)
+        self.frame_no = 0
+        self.last_frame = get_frames_from_segment(getMaskSetForEntireVideo(locator)[0])
 
-    def current_frame_time(self):
-        return self.start_time + (self.pos * (1000 / self.fps))
 
-    def current_frame(self):
-        return self.start_frame + self.pos
+    def generate(self):
+        while self.frame_no < self.last_frame:
+            if self.frame_no >= self.segment.endframe:
+                    self.segment_index += 1
+                    if self.segment_index < len(self.segments):
+                        self.segment = self.segments[self.segment_index]
+                        self.manager.create_reader(filename=self.segment.filename,
+                                               start_time=self.segment.starttime,
+                                               start_frame=self.segment.startframe,
+                                               end_frame=self.segment.endframe)
 
-    def read(self):
-        if self.dset is None:
-            return None
-        if self.end_frame is not None and self.current_frame() == self.end_frame + 1:
-            return None
-        if self.mask_format.is_end(self):
-            self.grp_pos+=1
-            if self.grp_pos < len(self.grps):
-                self.setter.select_group(self, self.grp_pos)
-            else:
-                self.dset = None
-                return None
-        mask = self.mask_format.get_frame(self)
-        mask = mask.astype('uint8')
-        self.writer.write(mask, self.start_frame + self.pos, self.current_frame_time())
-        self.pos += 1
-        return mask
-
-    def release(self):
-        pass
-
-    def close(self):
-        self.h_file.close()
-        if self.writer is not None:
-            self.writer.close()
+            self.manager.reader.read()  # read and write to the file
+            self.frame_no += 1
+        self.manager.reader.writer.close()
+        ffmpeg_overlay(self.target_file, self.manager.reader.writer.filename)
+        try:
+            os.remove(self.manager.reader.writer.filename) #clean up the mask file, leave the finished overlay
+        except OSError:
+            pass
 
 class GrayOverlayBlockReader(GrayBlockReader):
     """
@@ -3038,14 +3081,15 @@ class GrayOverlayBlockReader(GrayBlockReader):
                  preferences=None,
                  start_time=0,
                  start_frame=None,
-                 end_frame=None):
+                 end_frame=None,
+                 current_frame = 0):
         GrayBlockReader.__init__(self, filename,
                  convert=True,
                  preferences=preferences,
                  start_time=start_time,
                  start_frame=start_frame,
                  end_frame=end_frame)
-        self.pos = -start_frame
+        self.pos = current_frame - start_frame
         overlay_mask_name = os.path.join(os.path.split(self.writer.mask_prefix)[0],'_overlay')
         self.writer.mask_prefix = overlay_mask_name
 
