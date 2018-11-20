@@ -2,6 +2,7 @@ import csv
 import unittest
 
 import numpy as np
+from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender
 from maskgen.graph_rules import processProjectProperties
 from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 from maskgen.scenario_model import ImageProjectModel
@@ -110,7 +111,10 @@ class TestToolSet(TestSupport):
         scModel = ImageProjectModel(self.locateFile('images/sample.json'))
         processProjectProperties(scModel)
         scModel.assignColors()
-        probeSet = scModel.getProbeSet(compositeBuilders=[Jpeg2000CompositeBuilder,ColorCompositeBuilder])
+        generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel,
+                                                                                compositeBuilders=[Jpeg2000CompositeBuilder,
+                                                                                               ColorCompositeBuilder])])
+        probeSet = generator()
         self.assertTrue(len(probeSet) == 2)
         self.assertTrue(len([x for x in probeSet if x.edgeId == ('input_mod_2','input_mod_2_3')]) == 1)
         scModel.toCSV('test_composite.csv',additionalpaths=[getPathValuesFunc('linkcolor'), 'basenode'])
@@ -132,9 +136,9 @@ class TestToolSet(TestSupport):
         model = ImageProjectModel(self.locateFile('images/sample.json'))
         model.assignColors()
         model.selectEdge('input_mod_1', 'input_mod_2')
-        prior_probes = model.getPathExtender().constructPathProbes(start='input_mod_1')
+        prior_probes = CompositeExtender(model).constructPathProbes(start='input_mod_1')
         prior_composite = prior_probes[-1].composites['color']['image']
-        new_probes = model.getPathExtender().extendCompositeByOne(prior_probes)
+        new_probes = CompositeExtender(model).extendCompositeByOne(prior_probes)
         composite = new_probes[-1].composites['color']['image']
         self.assertTrue(sum(sum(np.all(prior_composite.image_array != [255, 255, 255], axis=2))) -
                         sum(sum(np.all(composite.image_array != [255, 255, 255], axis=2))) < 100)

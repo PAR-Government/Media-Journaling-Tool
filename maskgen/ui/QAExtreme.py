@@ -20,25 +20,84 @@ from maskgen.video_tools import getMaskSetForEntireVideo, get_end_time_from_segm
 import maskgen.tool_set
 import random
 import maskgen.scenario_model
+from maskgen.services.probes import ProbeGenerator, Determine_Task_Designation
 import maskgen.validation
 from maskgen.ui.description_dialog import MaskSetTable
 import webbrowser
 from maskgen.mask_rules import compositeMaskSetFromVideoSegment
 from maskgen.graph_meta_tools import MetaDataExtractor
 
+
+class Chkbox():
+
+    def __init__(self, parent, dialog):
+        self.value = BooleanVar(value=dialog.parent.scModel.getProjectData('validation') == 'yes')
+        self.box = Checkbutton(parent, variable=self.value, command=dialog.check_ok)
+        #self.box.select() if dialog.parent.scModel.getProjectData('validation') == 'yes' else self.box.deselect()
+
+    def __nonzero__(self):
+       return self.value.get()
+
+    def set_value(self, value):
+        self.value.set(value=value)
+
+class CheckboxGroup():
+    """
+    boxes_values: list of wrapped Checkboxes
+    condition: either 'all'- all checkboxes in the group must be true or 'any'- any true value will return true.
+    """
+    boxes = []
+    condition = 'all'
+
+    def __init__(self, boxes = [], condition = 'all'):
+        self.boxes = boxes
+        self.condition = condition
+
+    def __nonzero__(self):
+        if self.condition == 'any':
+            return any(bool(value) for value in self.boxes)
+        else:
+            return all(bool(value) for value in self.boxes)
+
+    def get_checkbox_value(self, checkbox_instance):
+        index = self.boxes.index(checkbox_instance)
+        if index != -1:
+            return bool(self.boxes[index])
+        else:
+            raise KeyError('checkbox not present in group')
+
+    def set_checkbox_value(self, checkbox_instance, value):
+        index = self.boxes.index(checkbox_instance)
+        if index != -1:
+            self.boxes[index].set_value(value)
+        else:
+            raise KeyError('checkbox not present in group')
+
+class QAPage():
+    checkboxes = CheckboxGroup(boxes=[])
+    subplots = []
+    commentbox = {}
+
+
+    def __init__(self, dialog, link):
+        self.frame = Frame(dialog)
+        self.edgetuple = tuple(link.split("<-"))
+        self.qadata = maskgen.qa_logic.ValidationData(dialog.scModel)
+
 class QAProjectDialog(Toplevel):
+    valid = False
+    colors = [[155, 0, 0], [0, 155, 0], [0, 0, 155], [153, 76, 0], [96, 96, 96], [204, 204, 0], [160, 160, 160]]
 
     lookup = {}
     def __init__(self, parent):
-        self.valid = False
-        self.colors = [[155,0,0],[0,155,0],[0,0,155],[153,76,0],[96,96,96],[204,204,0],[160,160,160]]
         self.parent = parent
         self.scModel = parent.scModel
         self.meta_extractor = MetaDataExtractor(parent.scModel.getGraph())
         self.probes = None
         Toplevel.__init__(self, parent)
         self.type = self.parent.scModel.getEndType()
-        self.checkboxvars = {}
+        #self.checkboxes = {} #backing values for the GUI checkboxes
+        self.checkboxes = {} #Checkboxes, keyed by page
         self.backs = {}
         self.subplots ={}
         self.pltdata = {}
@@ -60,7 +119,11 @@ class QAProjectDialog(Toplevel):
 
     def getProbes(self):
         try:
-            self.probes = self.parent.scModel.getProbeSetWithoutComposites(saveTargets=False,keepFailures=True)
+            generator = ProbeGenerator(scModel=self.scModel, processors=[Determine_Task_Designation(scModel=self.scModel)])
+            probes = generator(saveTargets=False, keepFailures=True)
+            for processor in generator.processors:
+                probes = processor.apply(probes)
+            self.probes = probes
         except Exception as e:
             logging.getLogger('maskgen').error(str(e))
             self.probes = None
@@ -93,7 +156,7 @@ class QAProjectDialog(Toplevel):
     def createWidgets(self):
         page1 = Frame(self)
         page1.grid()
-        self.cur = page1
+        self.current_qa_page = page1
         statusLabelText = StringVar()
         statusLabelText.set('Probes Generating')
         Label(page1, text="Welcome to the QA Wizard. Press Next to begin the QA Process or Quit to stop. This is "
@@ -169,7 +232,7 @@ class QAProjectDialog(Toplevel):
             count= 1
             for link in self.crit_links:
                 page = Frame(self)
-                self.cur = page
+                self.current_qa_page = page
                 self.createImagePage(link,page)
                 self.pages.append(page)
                 count += 1
@@ -178,25 +241,23 @@ class QAProjectDialog(Toplevel):
             row = 0
             col = 0
             lastpage = Frame(self)
-            self.cur = lastpage
+            self.current_qa_page = lastpage
             self.infolabel = Label(lastpage, justify=LEFT, text='QA Checklist:').grid(row=row, column=col)
             row += 1
             qa_list = [
                 'Base and terminal node images should be the same format. -If the base was a JPEG, the Create JPEG/TIFF option should be used as the last step.',
                 'All relevant semantic groups are identified.']
-            checkboxes = []
-
-            self.checkboxvars[self.cur] = []
+            checkbox_group = CheckboxGroup(boxes=[])
+            #self.checkboxes[self.current_qa_page] = []
             for q in qa_list:
-                var = BooleanVar()
-                ck = Checkbutton(lastpage, variable=var, command=self.check_ok)
-                ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
-                ck.grid(row=row, column=col)
-                checkboxes.append(ck)
-                self.checkboxvars[self.cur].append(var)
+                #var = BooleanVar()
+                ck = Chkbox(parent=lastpage, dialog=self)
+                #ck.select() if self.parent.scModel.getProjectData('validation') == 'yes' else ck.deselect()
+                ck.box.grid(row=row, column=col)
                 Label(lastpage, text=q, wraplength=600, justify=LEFT).grid(row=row, column=col + 1,
                                                                        sticky='W')
                 row += 1
+            self.checkboxes[self.current_qa_page] = checkbox_group
             Label(lastpage, text='QA Signoff: ').grid(row=row, column=col)
             col += 1
             self.reporterStr = StringVar()
@@ -230,7 +291,7 @@ class QAProjectDialog(Toplevel):
             self.progressBars.append(pb)
             self.check_ok()
             self.pages.append(lastpage)
-            self.cur=page1
+            self.current_qa_page=page1
             statusLabelText.set('Preview Pages Complete. Press Next to Continue.')
             wnext.config(state=NORMAL)
 
@@ -277,7 +338,7 @@ class QAProjectDialog(Toplevel):
             return str
 
     def setUpFrames(self,t):
-        self.pageDisplays[self.cur] = [0,[]]
+        self.pageDisplays[self.current_qa_page] = [0, []]
         self.setUpPlot(t)
         self.setUpMask(t)
         self.frameMove(0)
@@ -310,7 +371,7 @@ class QAProjectDialog(Toplevel):
                                         openColumn=3,
                                         dir=self.scModel.get_dir(), boxheight=389, boxwidth=452)
             self.maskBox.grid()
-            self.pageDisplays[self.cur][1].append(self.displayFrame)
+            self.pageDisplays[self.current_qa_page][1].append(self.displayFrame)
 
     def setUpPlot(self,t):
         ps = [mpatches.Patch(color="red", label="Target Video"),mpatches.Patch(color="blue",label="Current Manipulations"),mpatches.Patch(color="green",label="Other Manipulations")]
@@ -390,9 +451,9 @@ class QAProjectDialog(Toplevel):
             i[0] = low - 1000
             i[1] = high + 1000
             subplot.xaxis.set_view_interval(i[0],i[1])
-        self.pltdata[self.cur] = na
+        self.pltdata[self.current_qa_page] = na
         self.displayFrame = Frame(self.cImgFrame)
-        self.pageDisplays[self.cur][1].append(self.displayFrame)
+        self.pageDisplays[self.current_qa_page][1].append(self.displayFrame)
         canvas = Canvas(self.displayFrame,height=50,width=50)
         imscroll = Scrollbar(self.displayFrame, orient=HORIZONTAL)
         imscroll.grid(row =1,column=0,sticky=EW)
@@ -403,10 +464,10 @@ class QAProjectDialog(Toplevel):
         fcanvas._tkcanvas.grid(row=0, column=0)
         canvas.grid(row=0, column=0)
         canvas.config(height=50,width=50)
-        self.subplots[self.cur] = f
+        self.subplots[self.current_qa_page] = f
 
     def frameMove(self, i):
-        displays = self.pageDisplays[self.cur]
+        displays = self.pageDisplays[self.current_qa_page]
         cur = displays[0]
         frames = displays[1]
         if 0 <= cur+i < len(frames):
@@ -416,21 +477,21 @@ class QAProjectDialog(Toplevel):
 
     def scrollplt(self, *args):
         if (args[0] == 'moveto'):
-            na = self.pltdata[self.cur]
+            na = self.pltdata[self.current_qa_page]
             end = na[-1]
             total = end[3]-end[2] + 20000
-            curframe = self.subplots[self.cur].get_children()[1].xaxis.get_view_interval()
+            curframe = self.subplots[self.current_qa_page].get_children()[1].xaxis.get_view_interval()
             space = curframe[1]-curframe[0]
             total *= float(args[1])
-            self.subplots[self.cur].get_children()[1].xaxis.set_view_interval(total, total+space,ignore=True)
-            self.subplots[self.cur].canvas.draw()
+            self.subplots[self.current_qa_page].get_children()[1].xaxis.set_view_interval(total, total + space, ignore=True)
+            self.subplots[self.current_qa_page].canvas.draw()
         elif (args[0] == 'scroll'):
-            self.subplots[self.cur].get_children()[1].xaxis.pan(int(args[1]))
-            self.subplots[self.cur].canvas.draw()
+            self.subplots[self.current_qa_page].get_children()[1].xaxis.pan(int(args[1]))
+            self.subplots[self.current_qa_page].canvas.draw()
 
 
     def createImagePage(self, t, p):
-
+#Bet this can be simplified
         self.edgeTuple = tuple(t.split("<-"))
         if len(self.edgeTuple) < 2:
             self.finalNodeName = t.split("->")[1]
@@ -448,7 +509,7 @@ class QAProjectDialog(Toplevel):
                  self.edgeTuple[1]]][0]
         success = maskgen.tool_set.get_icon('RedX.png') if probe.failure else maskgen.tool_set.get_icon('check.png')
         iFrame = Frame(p)
-
+#
 
         c = Canvas(iFrame, width=35, height=35)
 
@@ -519,22 +580,19 @@ class QAProjectDialog(Toplevel):
         else:
             self.curOpList = []
         row += 5
-        checkboxes = []
-        self.checkboxvars[self.cur] = []
+        checkbox_group = CheckboxGroup(boxes=[])
         if self.curOpList is None:
             self.qaData.set_qalink_status(t,'yes')
 
         for q in self.curOpList:
-            var = BooleanVar()
-            ck = Checkbutton(p, variable=var, command=self.check_ok)
-            ck.select() if (self.qaData.get_qalink_status(t) == 'yes') else ck.deselect()
-            ck.grid(row=row, column=col-1)
-            checkboxes.append(ck)
-            self.checkboxvars[self.cur].append(var)
+            ck = Chkbox(parent=p, dialog=self)
+            ck.box.grid(row=row, column=col-1)
+            checkbox_group.boxes.append(ck)
+            self.checkboxes[self.current_qa_page] = checkbox_group
             Label(p, text=q, wraplength=250, justify=LEFT).grid(row=row, column=col, columnspan=4,
                                                                    sticky='W')
             row += 1
-
+        self.checkboxes[self.current_qa_page] = checkbox_group
         currentComment = self.qaData.get_qalink_caption(t)
         self.commentBox.delete(1.0,END)
         self.commentBox.insert(END, currentComment if currentComment is not None else '')
@@ -656,15 +714,15 @@ class QAProjectDialog(Toplevel):
 
     def move(self, dir, checked):
 
-        if self.cur in self.edges.keys():
-            self.edges[self.cur][0]['semanticGroups'] = self.edges[self.cur][1].get(0, END)
+        if self.current_qa_page in self.edges.keys():
+            self.edges[self.current_qa_page][0]['semanticGroups'] = self.edges[self.current_qa_page][1].get(0, END)
         finish = True
-        if self.cur in self.checkboxvars.keys():
-            for i in self.checkboxvars[self.cur]:
-                if i.get() is False:
+        if self.current_qa_page in self.checkboxes.keys():
+            for i in self.checkboxes[self.current_qa_page].boxes:
+                if i is False:
                     finish = False
                     break
-        ind = self.pages.index(self.cur)
+        ind = self.pages.index(self.current_qa_page)
         step = 0
         if 0<=ind-1<len(self.crit_links):
             if finish and self.crit_links[ind-1] in self.qaData.keys():
@@ -680,16 +738,16 @@ class QAProjectDialog(Toplevel):
                 self.qaData.set_qalink_caption(self.crit_links[ind - 1], self.commentsBoxes[self.crit_links[ind - 1]].get(1.0, END).strip())
         for p in self.progressBars:
             p.step(step)
-        i = self.pages.index(self.cur) + dir
+        i = self.pages.index(self.current_qa_page) + dir
 
         if not 0<=i<len(self.pages):
             return
-        nex = self.cur
+        nex = self.current_qa_page
         while checked:
             nex = self.pages[i]
             finish = True
-            if nex in self.checkboxvars.keys():
-                for t in self.checkboxvars[nex]:
+            if nex in self.checkboxes.keys():
+                for t in self.checkboxes[nex]:
                     if t.get() is False:
                         finish = False
                         break
@@ -698,9 +756,9 @@ class QAProjectDialog(Toplevel):
             if not finish:
                 break
             i += dir
-        self.cur.grid_forget()
-        self.cur = self.pages[i]
-        self.cur.grid()
+        self.current_qa_page.grid_forget()
+        self.current_qa_page = self.pages[i]
+        self.current_qa_page.grid()
 
     def qa_done(self, qaState):
         self.qaData.update_All(qaState, self.reporterStr.get(), self.commentsBox.get(1.0, END), None)
@@ -717,9 +775,9 @@ class QAProjectDialog(Toplevel):
     def check_ok(self, event=None):
         turn_on_ok = len(self.crit_links) > 0 and len(self.errors) == 0
         if not turn_on_ok:
-            for l in self.checkboxvars:
+            for l in self.checkboxes:
                 if l is not None:
-                    for b in self.checkboxvars[l]:
+                    for b in self.checkboxes[l]:
                         if b.get() is False or turn_on_ok is False:
                             turn_on_ok = False
         if turn_on_ok is True and self.valid is True:
