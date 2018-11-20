@@ -275,12 +275,12 @@ class VideoDonor:
                 "description": "Is Audio Donated."
             },
             "Start Time": {
-                "type": "time",
+                "type": "frame_or_time",
                 "defaultvalue": 1,
                 "description": "Start frame number"
             },
             "End Time": {
-                "type": "time",
+                "type": "frame_or_time",
                 "defaultvalue": 0,
                 "description": "End frame number. Leave 0 if ALL"
             }
@@ -342,12 +342,12 @@ class VideoDonorWithoutAudio(VideoDonor):
     def _base_arguments(self):
         return {
             "Start Time": {
-                "type": "time",
+                "type": "frame_or_time",
                 "defaultvalue": 1,
                 "description": "Start frame number"
             },
             "End Time": {
-                "type": "time",
+                "type": "frame_or_time",
                 "defaultvalue": 0,
                 "description": "End frame number. Leave 0 if ALL"
             }
