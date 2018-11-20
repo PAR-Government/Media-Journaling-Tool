@@ -2836,6 +2836,7 @@ class GrayBlockReaderManager:
         else:
             if self.reader is not None:
                 self.reader.close()
+            self.filename = filename
             self.reader = GrayBlockReader(filename,
                                           start_frame=start_frame,
                                           start_time=start_time,
