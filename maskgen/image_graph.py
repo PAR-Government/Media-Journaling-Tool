@@ -111,7 +111,7 @@ def getPathPartAndValue(path, data):
 
 
 def get_pre_name(file, left=False):
-    pos = file.lfind('.') if left else file.rfind('.')
+    pos = file.find('.') if left else file.rfind('.')
     return file[0:pos] if (pos > 0) else file
 
 
