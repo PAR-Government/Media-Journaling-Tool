@@ -44,7 +44,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("raw audio files", "*.raw"), ("Audio Interchange File", "*.aif"),
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
-zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz'),('zip of images','*.tgz')]
 
 textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log file","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
@@ -794,6 +794,31 @@ def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=
             img.save(snapshotFileName)
         return img
 
+def readFromArchive(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
+    import tarfile
+    import re
+    file_type_matcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+    archive = tarfile.open(filename, "w:gz")
+    try:
+        names = archive.getnames()
+        names.sort()
+        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+        i = 0
+        for name in names:
+            i += 1
+            elapsed_time = i * fps
+            if len(file_type_matcher.findall(name.lower())) == 0:
+                continue
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isPastTime() or videoFrameTime is None:
+                break
+        extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
+        img = openImage(extracted_file, isMask=isMask)
+        if extracted_file != snapshotFileName and snapshotFileName is not None:
+            img.save(snapshotFileName)
+        return img
+    finally:
+        archive.close()
 
 def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFileName=None):
     cap = cv2api.cv2api_delegate.videoCapture(filename, useFFMPEGForTime=False)
@@ -916,6 +941,20 @@ class ZipOpener(VideoOpener):
             return ImageOpener.openImage(self, get_icon('RedX.png'))
         return videoFrameImg
 
+class TgzOpener(VideoOpener):
+    def __init__(self, videoFrameTime=None, preserveSnapshot=True):
+        VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+
+    def openImage(self, filename, isMask=False, args=None):
+        snapshotFileName = os.path.splitext(filename)[0] + '.png'
+        if self.openSnapshot(filename, snapshotFileName):
+            return ImageOpener.openImage(self, snapshotFileName)
+        videoFrameImg = readFromArchive(filename, videoFrameTime=self.videoFrameTime, isMask=isMask,
+                                    snapshotFileName=snapshotFileName if self.preserveSnapshot else None)
+        if videoFrameImg is None:
+            logging.getLogger('maskgen').warning('invalid or corrupted file ' + filename)
+            return ImageOpener.openImage(self, get_icon('RedX.png'))
+        return videoFrameImg
 
 def getContentsOfZip(filename):
     from zipfile import ZipFile
@@ -984,6 +1023,8 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         opener = VideoOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in ['zip', 'gz']:
         opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+    elif prefix in [ 'tgz']:
+        opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 

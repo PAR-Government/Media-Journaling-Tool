@@ -407,3 +407,23 @@ class EntryDialog(tkSimpleDialog.Dialog):
             )
             return 0
         return 1
+
+
+class ScrollableListbox(Frame):
+    def __init__(self, master, height, width):
+        Frame.__init__(self, master)
+        self.master = master
+        self.height = height
+        self.width = width
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.lb = Listbox(self, height=self.height, width=self.width)
+        self.lb.grid(row=0, column=0, sticky=N + S)
+        sb = Scrollbar(self, orient=VERTICAL)
+        sb.grid(row=0, column=1, sticky=N + S)
+        self.lb.config(yscrollcommand=sb.set)
+        sb.config(command=self.lb.yview)
+
+    def get_listbox(self):
+        return self.lb

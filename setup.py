@@ -23,7 +23,6 @@ setup(name='maskgen',
                         'graphviz>=0.8', 'pygraphviz>=1.3.1', 'rawpy>=0.10.1', 'cachetools', 'requests',
                         'matplotlib>=2.0.0,<=2.3', 'pandas>=0.19.2,<0.21.0', 'wave', 'pypng', 'numpngw', 'shapely',
                         'wrapt','PyPDF2>=1.26.0', 'httplib2>=0.11.3','psutil'],
-      # temp removed pyssl require
       test_requires=['python-pptx'],
       entry_points=
       {'gui_scripts': [

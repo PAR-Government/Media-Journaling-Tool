@@ -12,7 +12,6 @@ import logging
 class HelpFrame(Frame):
     def __init__(self, master, itemtype, textvar):
         self.master = master
-        self.r = 0
         self.itemtype = itemtype
         self.slide_size = (960, 540)
         self.loader = getHelpLoader()
@@ -22,17 +21,18 @@ class HelpFrame(Frame):
         self.setup_window()
 
     def setup_window(self):
+        r = 0
         self.info_text = Label(self, wraplength=750)
-        self.info_text.grid(row=self.r, column=0)
-        self.r += 1
+        self.info_text.grid(row=r, column=0)
+        r += 1
 
         self.img_nb = Notebook(self)
-        self.img_nb.grid(row=self.r, column=0)
-        self.r += 1
+        self.img_nb.grid(row=r, column=0)
+        r += 1
 
         Label(self, text="Click through the image tabs to view various available information.  Click on any image "
                          "(even Manny) to open it with your default photo viewer or visit the help link if available.")\
-            .grid(row=self.r, column=0)
+            .grid(row=r, column=0)
 
         self.textvar.trace("w", lambda *args: self.update_choice(self.textvar))
         self.update_choice(self.textvar)
@@ -67,9 +67,8 @@ class HelpFrame(Frame):
         else:
             for n, i in enumerate(imglist):
                 with Image.open(i, "r") as f:
-                    f = f.resize(self.slide_size, Image.ANTIALIAS)
+                    f = f.resize(self.slide_size, Image.BILINEAR)
                     tkimg = ImageTk.PhotoImage(f)
-                item = "semantic group" if self.itemtype == 'semanticgroup' else "operation" if self.itemtype == "operation" else "project property"
                 fr = Frame(self.img_nb)
                 img = Button(fr)
                 self.img_nb.add(fr, text="Image {0}".format(n + 1))
