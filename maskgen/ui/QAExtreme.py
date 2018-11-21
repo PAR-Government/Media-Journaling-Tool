@@ -20,12 +20,10 @@ from maskgen.video_tools import getMaskSetForEntireVideo, get_end_time_from_segm
 import maskgen.tool_set
 import random
 import maskgen.scenario_model
-from maskgen.services.probes import ProbeGenerator, Determine_Task_Designation
+from maskgen.services.probes import ProbeGenerator, Determine_Task_Designation, cleanup_temporary_files
 import maskgen.validation
-from maskgen.ui.description_dialog import MaskSetTable
 from maskgen.tool_set import openFile
 import webbrowser
-from maskgen.mask_rules import compositeMaskSetFromVideoSegment
 from maskgen.graph_meta_tools import MetaDataExtractor
 
 
@@ -233,7 +231,8 @@ class QAPage(Frame):
         self.semanticFrame.grid(row=row + 1, column=0, columnspan=2, sticky=N + W, rowspan=1, pady=10)
         row += 2
         #cImageFrame is used for plot, image and overlay
-        self.cImgFrame = Frame(self)
+        self.cImgFrame = ttk.Notebook(self)
+        self.cImgFrame.bind('<<NotebookTabChanged>>', lambda a: self.frameMove())
         self.cImgFrame.grid(row=row, rowspan=8)
         self.descriptionVar = StringVar()
         self.descriptionLabel = Label(self, textvariable=self.operationVar, justify=LEFT)
@@ -327,11 +326,6 @@ class QAPage(Frame):
         displays = [TemporalReviewDisplay(self), SpatialReviewDisplay(self)]
         self.checkboxes.boxes.append(CheckboxGroup(boxes=[d.checkbox for d in displays], condition='any'))
         self.master.pageDisplays[self] = [0, displays]
-        self.frameMove(0)
-        nextButton = Button(self.cImgFrame, text='Next', command=lambda: self.frameMove(1), width=15)
-        nextButton.grid(row=1, column=2, columnspan=2, sticky='E')
-        prevButton = Button(self.cImgFrame, text='Previous', command=lambda: self.frameMove(-1), width=15)
-        prevButton.grid(row=1, column=0, columnspan=2, sticky='W')
 
     def _add_to_listBox(self, box, string):
         if len(string) < 20:
@@ -415,21 +409,18 @@ class QAPage(Frame):
         self.master.photos[self.link] = ImageTk.PhotoImage(finalResized.toPIL())
         self.image_on_canvas = self.c.create_image(255, 255, image=self.master.photos[self.link], anchor=CENTER, tag='imgc')
 
-    def frameMove(self, i):
+    def frameMove(self):
         """
         change pages on inner display for videos
-        :param i:
         :return:
         """
-        displays = self.master.pageDisplays[self]
-        cur = displays[0]
-        frames = displays[1]
-        if 0 <= cur+i < len(frames):
-            frames[cur].grid_forget()
-            frames[cur].checkbox.grid_remove()
-            frames[cur+i].grid(row=0,column=0,columnspan=3)
-            frames[cur+i].checkbox.grid()
-            displays[0] += i
+        displays = self.master.pageDisplays[self][1]
+        d_index = self.cImgFrame.index('current')
+        displays[d_index].checkbox.grid()
+        for display in displays:
+            if display != displays[d_index]:
+                display.checkbox.grid_remove()
+
 
     def scrollplt(self, *args):
         """
@@ -478,6 +469,7 @@ class SpatialReviewDisplay(Frame):
 
     def __init__(self, page):
         Frame.__init__(self, master=page.cImgFrame, height=500,width=50)
+        page.cImgFrame.add(self, text='Spatial')
         self.dialog = self.winfo_toplevel()
         #Add Checkbox for spatial review
         checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
@@ -521,7 +513,7 @@ class TemporalReviewDisplay(Frame):
 
     def __init__(self, page):
         Frame.__init__(self, master=page.cImgFrame)
-
+        page.cImgFrame.add(self, text='Temporal')
         # Add Checkbox for spatial review
         checkbox_info = page.checkboxes.boxes[-1].grid_info() if len(page.checkboxes.boxes) > 0 else {}
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
@@ -708,6 +700,7 @@ class QAProjectDialog(Toplevel):
 
     def exitProgram(self):
         self.destroy()
+        cleanup_temporary_files(self.probes, self.scModel)
 
     def help(self,event):
         URL = MaskGenLoader.get_key("apiurl")[:-3] + "journal"
@@ -861,6 +854,7 @@ class QAProjectDialog(Toplevel):
         self.qaData.update_All(qaState, self.lastpage.reporterStr.get(), self.lastpage.commentsBox.get(1.0, END), None)
         self.parent.scModel.save()
         self.destroy()
+        cleanup_temporary_files(self.scModel.get_dir(), self.probes, self.scModel.getGraph())
 
     def getPredNode(self, node):
         for pred in self.scModel.G.predecessors(node):

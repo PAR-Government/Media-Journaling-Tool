@@ -3123,7 +3123,6 @@ class GrayBlockWriter:
     """
 
     def __init__(self, mask_prefix, fps, layout=GrayBlockFrameFirstLayout()):
-        import logging
         self.fps = fps
         self.dset = None
         self.pos = 0
