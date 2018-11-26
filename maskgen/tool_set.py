@@ -2148,7 +2148,7 @@ def convertCompare(img1, img2, arguments=dict()):
         dims = getExifDimensions(arguments['source filename'], crop=False)
         if dims_crop[0] != dims[0]:
             analysis['Crop'] = 'yes'
-            if 'location' not in analysis:
+            if 'location' not in arguments:
                 diff_shape = (int(img1.shape[0]-dims_crop[0])/2,int(img1.shape[1]-dims_crop[1])/2)
                 analysis['location'] = str(diff_shape)
                 img1 = img1[diff_shape[0]:-diff_shape[0],diff_shape[1]:-diff_shape[1]]
