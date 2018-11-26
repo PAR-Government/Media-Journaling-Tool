@@ -29,7 +29,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -1295,23 +1295,20 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
-def getDimensions(filename, crop=False):
-    from maskgen import exif
-    meta = exif.getexif(filename)
-    heights= ['Image Height','Exif Image Height','Cropped Image Height'] if crop else ['Image Height','Exif Image Height']
-    widths = ['Image Width','Exif Image Width','Cropped Image Width'] if crop else ['Image Width','Exif Image Width']
-    height_selections = [meta[h] for h in heights if h in meta]
-    width_selections = [meta[w] for w in widths if w in meta]
-    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
-
 def checkSizeAndExifPNG(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
-    frm_shape = frm_img.size
-    to_shape = to_img.size
+    frm_shape = frm_img.image_array.shape
+    to_shape = to_img.image_array.shape
 
-    dims = getExifDimensions(frm_file, crop=getValue(edge,'arguments.Crop',getValue(edge,'Crop',None)) == 'yes')
+    dims = getExifDimensions(frm_file,crop=False)
+    dims = [dims] if dims is not None else []
+    location= toIntTuple(getValue(edge,'location','(0,0)'))
+    dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
+    crop_dims = getExifDimensions(frm_file, crop=True)
+    if crop_dims is not None:
+        dims.append(crop_dims)
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
@@ -1336,10 +1333,11 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
 
     if expect_rotation:
-        acceptable_shapes = [(frm_shape[1],frm_shape[0]), (dims[1], dims[0])] if dims is not None else [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes = [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes.extend([(dim[1], dim[0]) for dim in dims])
     else:
-        acceptable_shapes = [frm_shape, (dims[0], dims[1])] if dims is not None else [frm_shape]
-
+        acceptable_shapes = [frm_shape]
+        acceptable_shapes.extend(dims)
     warnings = 0
     for acceptable_shape_option in acceptable_shapes:
 
