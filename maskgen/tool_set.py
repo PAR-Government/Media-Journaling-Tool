@@ -2146,7 +2146,7 @@ def convertCompare(img1, img2, arguments=dict()):
     if 'source filename' in arguments:
         dims_crop = getExifDimensions(arguments['source filename'], crop=True)
         dims = getExifDimensions(arguments['source filename'], crop=False)
-        if dims_crop[0] != dims[0]:
+        if dims_crop is not None and dims_crop[0] != dims[0]:
             analysis['Crop'] = 'yes'
             if 'location' not in arguments:
                 diff_shape = (int(img1.shape[0]-dims_crop[0])/2,int(img1.shape[1]-dims_crop[1])/2)
@@ -2159,10 +2159,22 @@ def convertCompare(img1, img2, arguments=dict()):
         analysis.update({'rotation': rotation})
         return 255 - mask, {'rotation': rotation}
     if img1.shape != img2.shape:
+        diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
         new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        mask, a = __diffMask(img1, new_img2, False, args=arguments)
+        if 'location' not in arguments and diff_shape[0] >= 0 and diff_shape[1] >= 0:
+            img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
+            analysis['location'] = str(diff_shape)
+            new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+            mask_2, a_2 = __diffMask(img1, new_img2, False, args=arguments)
+            if np.sum(mask_2) > np.sum(mask):
+                mask = mask_2
+                a = a_2
+                analysis['Crop'] = 'yes'
+            else:
+                analysis.pop('location')
     else:
-        new_img2 = img2
-    mask, a = __diffMask(img1, new_img2, False, args=arguments)
+        mask, a = __diffMask(img1, img2, False, args=arguments)
     analysis.update(a)
     return mask, analysis
 

@@ -1302,7 +1302,13 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     frm_shape = frm_img.image_array.shape
     to_shape = to_img.image_array.shape
 
-    dims = getExifDimensions(frm_file, crop=getValue(edge,'arguments.Crop',getValue(edge,'Crop',None)) == 'yes')
+    dims = getExifDimensions(frm_file,crop=False)
+    dims = [dims] if dims is not None else []
+    location= toIntTuple(getValue(edge,'location','(0,0)'))
+    dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
+    crop_dims = getExifDimensions(frm_file, crop=True)
+    if crop_dims is not None:
+        dims.append(crop_dims)
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
@@ -1327,10 +1333,11 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
 
     if expect_rotation:
-        acceptable_shapes = [(frm_shape[1],frm_shape[0]), (dims[1], dims[0])] if dims is not None else [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes = [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes.extend([(dim[1], dim[0]) for dim in dims])
     else:
-        acceptable_shapes = [frm_shape, (dims[0], dims[1])] if dims is not None else [frm_shape]
-
+        acceptable_shapes = [frm_shape]
+        acceptable_shapes.extend(dims)
     warnings = 0
     for acceptable_shape_option in acceptable_shapes:
 
