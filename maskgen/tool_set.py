@@ -2132,15 +2132,36 @@ def mediatedCompare(img_one, img_two, **kwargs):
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
+def getExifDimensions(filename, crop=False):
+    from maskgen import exif
+    meta = exif.getexif(filename)
+    heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
+    widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
+    height_selections = [meta[h] for h in heights if h in meta]
+    width_selections = [meta[w] for w in widths if w in meta]
+    return (int(height_selections[0]), int(width_selections[0])) if height_selections and width_selections else None
+
 def convertCompare(img1, img2, arguments=dict()):
+    analysis = {}
+    if 'source filename' in arguments:
+        dims_crop = getExifDimensions(arguments['source filename'], crop=True)
+        dims = getExifDimensions(arguments['source filename'], crop=False)
+        if dims_crop[0] != dims[0]:
+            analysis['location'] = str((int(dims[0]-dims_crop[0])/2,int(dims[1]-dims_crop[1])/2))
+            analysis['Crop'] = 'yes'
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
+        if rotation in [90,270] and 'location' in analysis:
+            analysis['location'] = str((int(dims[1] - dims_crop[1]) / 2, int(dims[0] - dims_crop[0]) / 2))
+        analysis.update({'rotation': rotation})
         return 255 - mask, {'rotation': rotation}
     if img1.shape != img2.shape:
         new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
     else:
         new_img2 = img2
-    return __diffMask(img1, new_img2, False, args=arguments)
+    mask, a = __diffMask(img1, new_img2, False, args=arguments)
+    analysis.update(a)
+    return mask, analysis
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """
