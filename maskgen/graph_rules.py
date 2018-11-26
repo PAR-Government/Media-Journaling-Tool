@@ -1311,7 +1311,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     frm_shape = frm_img.size
     to_shape = to_img.size
 
-    dims = getDimensions(frm_file, crop=getValue(edge,'arguments.Crop',None) == 'yes')
+    dims = getExifDimensions(frm_file, crop=getValue(edge,'arguments.Crop',getValue(edge,'Crop',None)) == 'yes')
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
