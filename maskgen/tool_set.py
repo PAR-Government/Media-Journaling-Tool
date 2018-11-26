@@ -2124,6 +2124,16 @@ def mediatedCompare(img_one, img_two, **kwargs):
     return mask, {'minima': threshold}
 
 def convertCompare(img1, img2, arguments=dict()):
+    analysis = {}
+    if 'source filename' in arguments:
+        dims_crop = getExifDimensions(arguments['source filename'], crop=True)
+        dims = getExifDimensions(arguments['source filename'], crop=False)
+        if dims_crop[0] != dims[0]:
+            analysis['Crop'] = 'yes'
+            if 'location' not in analysis:
+                diff_shape = (int(img1.shape[0]-dims_crop[0])/2,int(img1.shape[1]-dims_crop[1])/2)
+                analysis['location'] = str(diff_shape)
+                img1 = img1[diff_shape[0]:-diff_shape[0],diff_shape[1]:-diff_shape[1]]
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
         return 255 - mask, {'rotation': rotation}
