@@ -1295,11 +1295,11 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
-def getDimensions(filename):
+def getDimensions(filename, crop=False):
     from maskgen import exif
     meta = exif.getexif(filename)
-    heights= ['Image Height','Exif Image Height','Cropped Image Height']
-    widths = ['Image Width','Exif Image Width','Cropped Image Width']
+    heights= ['Image Height','Exif Image Height','Cropped Image Height'] if crop else ['Image Height','Exif Image Height']
+    widths = ['Image Width','Exif Image Width','Cropped Image Width'] if crop else ['Image Width','Exif Image Width']
     height_selections = [meta[h] for h in heights if h in meta]
     width_selections = [meta[w] for w in widths if w in meta]
     return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
@@ -1311,7 +1311,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     frm_shape = frm_img.size
     to_shape = to_img.size
 
-    dims = getDimensions(frm_file) if getValue(edge,'arguments.Crop',None) == 'yes' else None
+    dims = getDimensions(frm_file, crop=getValue(edge,'arguments.Crop',None) == 'yes')
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
