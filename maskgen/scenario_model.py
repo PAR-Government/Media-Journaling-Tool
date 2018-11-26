@@ -6,37 +6,33 @@
 # All rights reserved.
 # ==============================================================================
 
-from image_graph import createGraph
-from maskgen.video_tools import DummyMemory
-from support import getPathValues
-import exif
-import os
-import numpy as np
-import logging
-from tool_set import *
-import video_tools
-import ffmpeg_api
-from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader, getRule
-import tempfile
-import plugins
-import graph_rules
-from image_wrap import ImageWrapper
-from PIL import Image
-from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
-from graph_auto_updates import updateJournal
-import hashlib
-import shutil
 import collections
+import copy
+import shutil
+import tempfile
+import traceback
 from threading import Lock
+
+import ffmpeg_api
+import graph_rules
 import mask_rules
+import notifiers
+import plugins
+import video_tools
+from PIL import Image
+from graph_auto_updates import updateJournal
+from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
+from image_graph import createGraph
+from image_wrap import ImageWrapper
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
-import copy
 from maskgen.userinfo import get_username
+from maskgen.video_tools import DummyMemory
+from software_loader import Software, getProjectProperties, MaskGenLoader, getRule
+from support import MaskgenThreadPool, StatusTracker
+from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
-import traceback
-from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc
-import notifiers
+
 
 def formatStat(val):
     if type(val) == float:
@@ -1631,7 +1627,7 @@ class ImageProjectModel:
 
 
     def _executeQueue(self,q,results,tracker):
-        from Queue import Queue, Empty
+        from Queue import Empty
         """
         :param q:
         :return:
