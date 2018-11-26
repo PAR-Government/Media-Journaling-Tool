@@ -402,8 +402,8 @@ class MakeGenUI(Frame):
         return None
 
     def exporttoS3(self):
-        status, message = True, 'x'
-        #status, message = self._preexport()
+        #status, message = True, 'x'
+        status, message = self._preexport()
         if not status:
             return
         info = self.prefLoader.get_key('s3info')
@@ -411,8 +411,8 @@ class MakeGenUI(Frame):
                                        initialvalue=info if info is not None else '')
         if (val is not None and len(val) > 0):
             try:
-                #path, errorlist = self.scModel.export(tempfile.tempdir,notifier=self.progress_bar.postChange)
-                path, errorlist = "/Users/Eric Robertson/Documents/c54fe7c293c6d01dc8ed5c520a375f1e.tgz",[]
+                path, errorlist = self.scModel.export(tempfile.tempdir,notifier=self.progress_bar.postChange)
+                #path, errorlist = "/Users/Eric Robertson/Documents/c54fe7c293c6d01dc8ed5c520a375f1e.tgz",[]
                 if len(errorlist) > 0:
                     ValidationListDialog(self, errorlist, "Export Errors")
                 else:
