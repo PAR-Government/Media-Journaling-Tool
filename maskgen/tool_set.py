@@ -73,7 +73,7 @@ class S3ProgessComposite(object):
 
 class S3ProgressPercentage(object):
 
-    def __init__(self, filename, log =logging.getLogger('maskgen').info):
+    def __init__(self, filename, log = None):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0

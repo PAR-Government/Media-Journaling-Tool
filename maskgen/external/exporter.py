@@ -2,24 +2,28 @@ import logging
 import os
 from functools import partial
 from multiprocessing import Process, Pipe
+from multiprocessing.forking import  Popen
 from time import sleep, time
 
 from maskgen.tool_set import S3ProgressPercentage
 
 
-#-------------------------------------------------------------------------------------------------------------
-# Export Tools - export to remote location
-#-------------------------------------------------------------------------------------------------------------
+
+class ExportProcess(Process):
+
+    def __init__(self,target, args=[], kwargs={}):
+        Process.__init__(self, target=target, name='JTExport',args=args)
+
+#    def start(self):
+#        Process.start(self)
 
 class S3ExportTool:
 
-    def __init__(self):
+    def export(self, path, bucket, dir, log):
         import boto3
         from boto3.s3.transfer import S3Transfer, TransferConfig
         config = TransferConfig()
         self.s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-
-    def export(self, path, bucket, dir, log):
         self.s3.upload_file(path, bucket, dir + os.path.split(path)[1], callback=S3ProgressPercentage(path, log))
 
 class DoNothingExportTool:
@@ -53,6 +57,7 @@ def _set_logging(directory,name):
     if os.path.exists(logfile):
         os.remove(logfile)
     set_logging(directory, filename=name + '.txt', skip_config=True,logger_name='jt_export')
+
 
 def _get_last_message(pathname):
     try:
@@ -178,10 +183,10 @@ class ProcessInfo:
     def get_log_name(self):
         return self.log_file_name
 
-    def _update_process_log(self):
+    def _update__log(self):
         """
 
-        :param process_info:
+        :param process_inprocessfo:
         :return:
         @type process_info: ProcessInfo
         """
@@ -533,7 +538,7 @@ class ExportManager:
         :return:
         """
         parent_conn, child_conn = Pipe()
-        p = Process(target=_perform_upload,
+        p = ExportProcess(target=_perform_upload,
                     args=(self.directory,
                           os.path.abspath(pathname),
                           location, child_conn,
@@ -590,9 +595,6 @@ class ExportManager:
         self._call_notifier(name, time(), 'START')
         logging.getLogger('maskgen').info('START synchronous upload {}'.format(name))
         _perform_upload(self.directory, os.path.abspath(pathname), location, pipe, remove_when_done, self.export_tool)
-
-
-
 
 
 
