@@ -2126,9 +2126,17 @@ def getExifDimensions(filename, crop=False):
     meta = exif.getexif(filename)
     heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
     widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
-    height_selections = [meta[h] for h in heights if h in meta]
-    width_selections = [meta[w] for w in widths if w in meta]
-    return (int(height_selections[0]), int(width_selections[0])) if height_selections and width_selections else None
+    height_selections = [(meta[h] if h in meta else None) for h in heights]
+    width_selections =  [(meta[w] if w in meta else None) for w in widths ]
+    if 'png:IHDR.width,height' in meta:
+        try:
+            w,h = [int(x.strip()) for x in meta['png:IHDR.width,height'].split(',')]
+            height_selections.append(h)
+            width_selections.append(w)
+        except:
+            pass
+    return [(int(height_selections[p]), int(width_selections[p]))
+            for p in range(len(width_selections)) if height_selections[p] is not None and width_selections[p] is not None]
 
 def convertCompare(img1, img2, arguments=dict()):
     analysis = {}
@@ -2136,7 +2144,7 @@ def convertCompare(img1, img2, arguments=dict()):
         # see if there is crop information in exif
         dims_crop = getExifDimensions(arguments['source filename'], crop=True)
         dims = getExifDimensions(arguments['source filename'], crop=False)
-        if dims_crop is not None and dims_crop[0] != dims[0]:
+        if len(dims_crop) > 0 and len(dims) > 0 and dims_crop[0] != dims[0]:
             analysis['Crop'] = 'yes'
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])

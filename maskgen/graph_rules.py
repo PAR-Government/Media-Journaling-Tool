@@ -1303,12 +1303,9 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     to_shape = to_img.image_array.shape
 
     dims = getExifDimensions(frm_file,crop=False)
-    dims = [dims] if dims is not None else []
-    location= toIntTuple(getValue(edge,'location','(0,0)'))
+    location = toIntTuple(getValue(edge,'location','(0,0)'))
     dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
-    crop_dims = getExifDimensions(frm_file, crop=True)
-    if crop_dims is not None:
-        dims.append(crop_dims)
+    dims.extend(getExifDimensions(frm_file, crop=True))
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
