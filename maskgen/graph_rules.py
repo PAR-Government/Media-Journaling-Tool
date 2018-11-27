@@ -1296,11 +1296,12 @@ def sizeChanged(op, graph, frm, to):
     return None
 
 def checkSizeAndExifPNG(op, graph, frm, to):
+    from math import ceil
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
-    frm_shape = frm_img.image_array.shape
-    to_shape = to_img.image_array.shape
+    frm_shape = (frm_img.size[1],frm_img.size[0])
+    to_shape = (to_img.size[1],to_img.size[0])
 
     dims = getExifDimensions(frm_file,crop=False)
     location = toIntTuple(getValue(edge,'location','(0,0)'))
@@ -1314,7 +1315,9 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
     orientation = getValue(edge, 'exifdiff.Orientation')
     distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
-    change_allowed = 0.01 if not distortion else 0.02
+    change_allowed = ceil(max(0.01,1.0-(frm_shape[0]-64)/float(frm_shape[0]))*10000.0)/10000.0
+    if distortion:
+        change_allowed*=2
 
     if orientation is not None:
         orientation = str(orientation) if orientation is not None else None
