@@ -55,7 +55,7 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
         for edge_id in scModel.getGraph().get_edges():
             scModel.reproduceMask(edge_id=edge_id)
     generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel, compositeBuilders=[EmptyCompositeBuilder]),
-                                                            Determine_Task_Designation(scModel)])
+                                                            DetermineTaskDesignation(scModel)])
     probes = generator()
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')
@@ -234,7 +234,7 @@ class ProbeSetBuilder(ProbeProcessor):
             compositeBuilder.finalize(probes, save=False)
         return probes
 
-class Determine_Task_Designation(ProbeProcessor):
+class DetermineTaskDesignation(ProbeProcessor):
     """
         Task designation is determined by presence of spatial and temporal components
     """
