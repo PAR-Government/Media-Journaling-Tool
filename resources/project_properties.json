@@ -776,6 +776,26 @@
       "operations": ["SynthesizeGAN","AddCameraModel","DeepFakeFaceSwap","ErasureByGAN","GANFill"],
       "rule": "ganComponentRule",
       "includedonors": true
+    },
+    {
+      "description": "GAN Generated",
+      "name": "gan_generated",
+      "type": "yesno",
+      "readonly": true,
+      "node":true,
+      "information": "Has a GAN provided the base media.",
+      "rule": "ganGeneratedRule",
+      "includedonors": false
+    },
+    {
+      "description": "CGI Generated",
+      "name": "cgi_generated",
+      "type": "yesno",
+      "readonly": true,
+      "node":true,
+      "information": "Has a CGI(model) provided the base media.",
+      "rule": "cgiGeneratedRule",
+      "includedonors": false
     }
   ]
 }
