@@ -2132,36 +2132,35 @@ def getExifDimensions(filename, crop=False):
 
 def convertCompare(img1, img2, arguments=dict()):
     analysis = {}
-    if 'source filename' in arguments:
+    if 'source filename' in arguments and img1.shape != img2.shape:
+        # see if there is crop information in exif
         dims_crop = getExifDimensions(arguments['source filename'], crop=True)
         dims = getExifDimensions(arguments['source filename'], crop=False)
         if dims_crop is not None and dims_crop[0] != dims[0]:
             analysis['Crop'] = 'yes'
-            if 'location' not in arguments:
-                diff_shape = (int(img1.shape[0]-dims_crop[0])/2,int(img1.shape[1]-dims_crop[1])/2)
-                analysis['location'] = str(diff_shape)
-                img1 = img1[diff_shape[0]:-diff_shape[0],diff_shape[1]:-diff_shape[1]]
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
         rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
-        if rotation in [90, 270] and 'location' in analysis:
-            analysis['location'] = str((int(dims[1] - dims_crop[1]) / 2, int(dims[0] - dims_crop[0]) / 2))
         analysis.update({'rotation': rotation})
         return 255 - mask, analysis
     if img1.shape != img2.shape:
         diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
-        new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
-        mask, a = __diffMask(img1, new_img2, False, args=arguments)
+        new_img2a = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
         if 'location' not in arguments and diff_shape[0] > 0 and diff_shape[1] > 0:
-            img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
-            new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
-            mask_2, a_2 = __diffMask(img1, new_img2, False, args=arguments)
-            if np.sum(mask_2) > np.sum(mask):
-                mask = mask_2
-                a = a_2
+            diff1 = (np.abs(img1 - new_img2a)).astype('uint16')
+            new_img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
+            new_img2b = cv2.resize(img2, (new_img1.shape[1], new_img1.shape[0]))
+            diff2 = (np.abs(new_img1 - new_img2b)).astype('uint16')
+            if np.sum(diff1) <= np.sum(diff2) or getValue(analysis,'Crop','no') != 'yes':
+                new_img1 = img1
+                new_img2 = new_img2a
+            else:
+                new_img2 = new_img2b
                 analysis['location'] = str(diff_shape)
                 analysis['Crop'] = 'yes'
+        mask, a = __diffMask(new_img1, new_img2, False, args=arguments)
     else:
         mask, a = __diffMask(img1, img2, False, args=arguments)
+
     analysis.update(a)
     return mask, analysis
 
