@@ -242,9 +242,9 @@ class DetermineTaskDesignation(ProbeProcessor):
     def apply(self, probes = []):
         for probe in probes:
             ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
-            len_all_masks = len(probe.targetVideoSegments if not ftype == 'image' else [])
+            len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
             len_spatial_masks = len([x for x in probe.targetVideoSegments if
-                                     x.filename is not None] if not ftype == 'image' else [])
+                                     x.filename is not None] if probe.targetVideoSegments is not None else [])
             has_video_masks = len_all_masks > 0
             spatial_temporal = has_video_masks and len_spatial_masks > 0
             if ftype == 'image':
