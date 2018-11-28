@@ -2152,23 +2152,19 @@ def convertCompare(img1, img2, arguments=dict()):
         return 255 - mask, analysis
     if img1.shape != img2.shape:
         diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
-        new_img2a = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
         #keep in mind that alterMask, used for composite generation, assumes 'crop' occurs first, followed
         # by final adjustments for size
-        if 'location' not in arguments and diff_shape[0] > 0 and diff_shape[1] > 0:
-            diff1 = (np.abs(img1 - new_img2a)).astype('uint16')
+        if 'location' not in arguments:
+            diff_shape= (max(1,diff_shape[0]),max(1,diff_shape[1]))
+        else:
+            diff_shape = toIntTuple(arguments['location'])
+        if getValue(arguments, 'Crop','yes') == 'no':
+            new_img1 = img1
+        else:
             new_img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
-            new_img2b = cv2.resize(img2, (new_img1.shape[1], new_img1.shape[0]))
-            diff2 = (np.abs(new_img1 - new_img2b)).astype('uint16')
-            #if not an indicated crop and the resize compare has less differences
-            # then use resize, else set for crop
-            if np.sum(diff1) <= np.sum(diff2) and getValue(analysis,'Crop','no') != 'yes':
-                new_img1 = img1
-                new_img2 = new_img2a
-            else:
-                new_img2 = new_img2b
-                analysis['location'] = str(diff_shape)
-                analysis['Crop'] = 'yes'
+        new_img2 = cv2.resize(img2, (new_img1.shape[1], new_img1.shape[0]))
+        if getValue(arguments, 'Crop', 'yes') == 'yes':
+            analysis['location'] = str(diff_shape)
         mask, a = __diffMask(new_img1, new_img2, False, args=arguments)
     else:
         mask, a = __diffMask(img1, img2, False, args=arguments)
