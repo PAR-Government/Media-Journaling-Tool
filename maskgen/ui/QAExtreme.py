@@ -21,6 +21,7 @@ import maskgen.tool_set
 import random
 import maskgen.scenario_model
 from maskgen.services.probes import ProbeGenerator, Determine_Task_Designation, cleanup_temporary_files
+import maskgen.notifiers as notifiers
 import maskgen.validation
 from maskgen.tool_set import openFile
 import webbrowser
@@ -29,8 +30,8 @@ from maskgen.graph_meta_tools import MetaDataExtractor
 
 class Chkbox:
 
-    def __init__(self, parent, dialog, label=None, command=None):
-        self.value = BooleanVar(value=dialog.parent.scModel.getProjectData('validation') == 'yes')
+    def __init__(self, parent, dialog, label=None, command=None, value=False):
+        self.value = BooleanVar(value=value)
         self.box = Checkbutton(parent, variable=self.value, command=dialog.check_ok if command is None else command)
         self.label = label
 
@@ -139,7 +140,7 @@ class FinalPage(Frame):
         self.checkboxes = CheckboxGroup(boxes=[])
         for q in qa_list:
             box_label = Label(self, text=q, wraplength=600, justify=LEFT)
-            ck = Chkbox(parent=self, dialog=master, label=box_label)
+            ck = Chkbox(parent=self, dialog=master, label=box_label, value=master.qaData.get_state())
             ck.box.grid(row=row, column=col)
             ck.label.grid(row=row, column=col + 1, sticky='W')
             self.checkboxes.boxes.append(ck)
@@ -208,7 +209,7 @@ class QAPage(Frame):
              probe.edgeId[1] in master.lookup[self.edgeTuple[0]] and probe.donorBaseNodeId in
              master.lookup[
                  self.edgeTuple[1]]][0]
-
+        self.probe = probe
         iFrame = Frame(self)
         c = Canvas(iFrame, width=35, height=35)
         c.pack()
@@ -281,7 +282,7 @@ class QAPage(Frame):
 
         for q in self.curOpList:
             box_label = Label(self, text=q, wraplength=250, justify=LEFT)
-            ck = Chkbox(parent=self, dialog=master, label=box_label)
+            ck = Chkbox(parent=self, dialog=master, label=box_label, value=master.qaData.get_qalink_status(link=link))
             ck.box.grid(row=row, column=col - 1)
             ck.label.grid(row=row, column=col, columnspan=4, sticky='W')
             self.checkboxes.boxes.append(ck)
@@ -414,12 +415,13 @@ class QAPage(Frame):
         change pages on inner display for videos
         :return:
         """
-        displays = self.master.pageDisplays[self][1]
-        d_index = self.cImgFrame.index('current')
-        displays[d_index].checkbox.grid()
-        for display in displays:
-            if display != displays[d_index]:
-                display.checkbox.grid_remove()
+        if self in self.master.pageDisplays:
+            displays = self.master.pageDisplays[self][1]
+            d_index = self.cImgFrame.index('current')
+            displays[d_index].checkbox.grid()
+            for display in displays:
+                if display != displays[d_index]:
+                    display.checkbox.grid_remove()
 
 
     def scrollplt(self, *args):
@@ -447,10 +449,13 @@ class QAPage(Frame):
         :return:
         """
         self.master.check_ok()
-        displays = self.master.pageDisplays[self][1]
-        validation = {'temporal': bool(displays[0].checkbox), 'spatial': bool(displays[1].checkbox)}
-        elegibility = [key for key in validation.keys() if validation[key] == True]
-        designation = '-'.join(elegibility) if len(elegibility) else 'detect'
+        displays = self.master.pageDisplays[self][1] if self in self.master.pageDisplays else []
+        if len(displays) > 0:
+            validation = {'temporal': bool(displays[0].checkbox), 'spatial': bool(displays[1].checkbox)}
+            elegibility = [key for key in validation.keys() if validation[key] == True]
+            designation = '-'.join(elegibility) if len(elegibility) else 'detect'
+        else:
+             designation = self.probe.taskDesignation
         self.master.qaData.set_qalink_designation(self.link, designation)
 
 class DummyPage(Frame):
@@ -476,7 +481,8 @@ class SpatialReviewDisplay(Frame):
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         spatial_box_label = Label(master=page, text='Spatial Overlay Correct?', wraplength=250, justify=LEFT)
-        self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label, command=page.cache_designation)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label, command=page.cache_designation,
+                               value=page.master.qaData.get_qalink_status(page.link))
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col -1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -495,16 +501,27 @@ class SpatialReviewDisplay(Frame):
         if probe.targetVideoSegments is not None:
             to = self.dialog.scModel.G.get_pathname(probe.edgeId[1])
             path_tuple = os.path.split(to)
+            #TODO: change naming convention so that it works with multiple probes that use the same target file.
             overlay_file = os.path.join(path_tuple[0], os.path.splitext(path_tuple[1])[0] + '_overlay.avi')
             total_range = (probe.targetVideoSegments[0].starttime/1000, probe.targetVideoSegments[-1].endtime/1000)
-            if not os.path.exists(overlay_file):
-                GrayBlockOverlayGenerator(probe=probe, target_file=to, locator=self.dialog.meta_extractor.getMetaDataLocator(probe.edgeId[0])).generate()
-
-            self.playbutton = Button(master=self, text='PLAY: ' + os.path.split(overlay_file)[1], command=lambda: openFile(overlay_file))
+            self.buttonText = StringVar()
+            self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
+            self.playbutton = Button(master=self, textvariable=self.buttonText,
+                                     command=lambda: self.openOverlay(probe=probe,
+                                                                      target_file=to,
+                                                                      overlay_path=overlay_file))
             self.playbutton.grid(row=0, column=0, columnspan=2, sticky='W')
             self.range_label = Label(master=self, text='Range: ' + '{:.2f}'.format(total_range[0]) + 's - ' + '{:.2f}'.format(total_range[1]) + 's')
             self.range_label.grid(row=0, column= 3, columnspan = 1, sticky='W')
 
+    def openOverlay(self, probe=None, target_file = '', overlay_path=''):
+        #TODO: check if overlay needs updating.
+        if not os.path.exists(overlay_path):
+            GrayBlockOverlayGenerator(locator=self.dialog.meta_extractor.getMetaDataLocator(probe.edgeId[0]),
+                                      segments=probe.targetVideoSegments,
+                                      target_file=target_file).generate()
+        self.buttonText.set('PLAY: ' + os.path.split(overlay_path)[1])
+        openFile(overlay_path)
 
 class TemporalReviewDisplay(Frame):
     """
@@ -519,7 +536,8 @@ class TemporalReviewDisplay(Frame):
         chkboxes_row = int(checkbox_info['row']) + 1 if len(checkbox_info) > 0 else 5
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         temporal_box_label = Label(master=page, text='Temporal data correct?', wraplength=250, justify=LEFT)
-        self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label, command=page.cache_designation)
+        self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label, command=page.cache_designation,
+                               value=page.master.qaData.get_qalink_status(page.link))
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col - 1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -700,7 +718,7 @@ class QAProjectDialog(Toplevel):
 
     def exitProgram(self):
         self.destroy()
-        cleanup_temporary_files(self.probes, self.scModel)
+        #cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
 
     def help(self,event):
         URL = MaskGenLoader.get_key("apiurl")[:-3] + "journal"
@@ -819,9 +837,7 @@ class QAProjectDialog(Toplevel):
                     step += 1.0/len(self.crit_links)*100
                 self.qaData.set_qalink_status(self.crit_links[ind-1],'yes')
                 self.qaData.set_qalink_caption(self.crit_links[ind-1],self.commentsBoxes[self.crit_links[ind-1]].get(1.0, END).strip())
-                designation = self.current_qa_page.displays
-                self.qaData.set_qalink_designation(self.crit_links[ind-1], )
-
+                self.current_qa_page.cache_designation()
             if not finish:
                 if self.qaData.get_qalink_status(self.crit_links[ind-1]) == 'yes':
                     step += -1.0/len(self.crit_links)*100
@@ -854,7 +870,7 @@ class QAProjectDialog(Toplevel):
         self.qaData.update_All(qaState, self.lastpage.reporterStr.get(), self.lastpage.commentsBox.get(1.0, END), None)
         self.parent.scModel.save()
         self.destroy()
-        cleanup_temporary_files(self.scModel.get_dir(), self.probes, self.scModel.getGraph())
+        #cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
 
     def getPredNode(self, node):
         for pred in self.scModel.G.predecessors(node):

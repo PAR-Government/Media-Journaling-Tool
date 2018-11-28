@@ -197,37 +197,37 @@ class QaNotifier:
 
 class ProbeMaskMemory:
     def __init__(self):
-        self.basetypeedge={}
+        self.baseTypeEdge={}
 
     def __getitem__(self, item):
         if len(item) == 3:
             if item[0] == 'composite' or item[0] == 'donor':
-                basedic = self.basetypeedge[item[1]] if item[1] in self.basetypeedge else None
+                basedic = self.baseTypeEdge[item[1]] if item[1] in self.baseTypeEdge else None
                 edgedic = basedic[item[0]] if basedic is not None and item[0] in basedic else None
                 value = edgedic[item[2]] if edgedic is not None and item[2] in edgedic else None
                 return value
         elif len(item) == 2:
             if item[0] == 'composite' or item[0] == 'donor':
-                basedic = self.basetypeedge[item[1]] if item[1] in self.basetypeedge else None
+                basedic = self.baseTypeEdge[item[1]] if item[1] in self.baseTypeEdge else None
                 edgedic = basedic[item[0]] if basedic is not None and item[0] in  basedic else None
                 return edgedic
         else:
             if item[0] == 'composite' or item[0] == 'donor':
-                basedic = self.basetypeedge[item[0]] if item[0] in self.basetypeedge else None
+                basedic = self.baseTypeEdge[item[0]] if item[0] in self.baseTypeEdge else None
                 return basedic
 
     def __setitem__(self, key, item):
         if key[0] == 'composite' or key[0] == 'donor':
-            if key[1] not in self.basetypeedge:
-                self.basetypeedge[key[1]] = {}
-            if key[0] not in self.basetypeedge[key[1]]:
-                self.basetypeedge[key[1]][key[0]] = {}
-            self.basetypeedge[key[1]][key[0]][key[2]] = item
+            if key[1] not in self.baseTypeEdge:
+                self.baseTypeEdge[key[1]] = {}
+            if key[0] not in self.baseTypeEdge[key[1]]:
+                self.baseTypeEdge[key[1]][key[0]] = {}
+            self.baseTypeEdge[key[1]][key[0]][key[2]] = item
 
     def forget(self, base, probe_type, references=None):
-        if base in self.basetypeedge and probe_type in self.basetypeedge[base]:
+        if base in self.baseTypeEdge and probe_type in self.baseTypeEdge[base]:
             for edge in references if references is not None else []:
                 try:
-                    self.basetypeedge[base][probe_type].pop(edge)
+                    self.baseTypeEdge[base][probe_type].pop(edge)
                 except:
                     pass

@@ -3034,16 +3034,15 @@ class OldFormatGroupSetter:
 
 class GrayBlockOverlayGenerator:
 
-    def __init__(self, probe, target_file, locator):
+    def __init__(self, locator, segments = [], target_file = None):
         from video_tools import getMaskSetForEntireVideo, get_frames_from_segment
 
         self.target_file = target_file
         self.manager = GrayBlockReaderManager(reader_type=GrayOverlayBlockReader)
-        self.probe = probe
-        segments = [segment for segment in probe.targetVideoSegments if segment.media_type == 'video']
+        segments = [segment for segment in segments if segment.media_type == 'video']
         self.segments = sorted(segments, key=lambda segment: segment.startframe)
         self.segment_index = 0
-        self.segment = probe.targetVideoSegments[self.segment_index]
+        self.segment = segments[self.segment_index]
         self.manager.create_reader(filename=self.segment.filename,
                                     start_time=self.segment.starttime,
                                     start_frame=self.segment.startframe,
