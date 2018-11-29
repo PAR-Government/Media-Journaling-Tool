@@ -41,7 +41,7 @@ import maskgen.preferences_initializer
 from maskgen.software_loader import getMetDataLoader
 from cachetools import LRUCache
 from maskgen.ui.ui_tools import ProgressBar, AddRemove
-from maskgen.services.probes import archive_probes, ProbeGenerator, GetProbeSet, Determine_Task_Designation
+from maskgen.services.probes import archive_probes, ProbeGenerator, ProbeSetBuilder, DetermineTaskDesignation
 import wrapt
 from maskgen.ui.QAExtreme import QAProjectDialog
 from maskgen.qa_logic import ValidationData
@@ -1000,10 +1000,10 @@ class MakeGenUI(Frame):
             archive_probes(self.scModel,reproduceMask=False)
         else:
             generator = ProbeGenerator(scModel=self.scModel,
-                                       processors=[GetProbeSet(scModel=self.scModel,
-                                                               compositeBuilders=[ColorCompositeBuilder,
+                                       processors=[ProbeSetBuilder(scModel=self.scModel,
+                                                                   compositeBuilders=[ColorCompositeBuilder,
                                                                                   Jpeg2000CompositeBuilder]),
-                                                   Determine_Task_Designation(self.scModel)])
+                                                   DetermineTaskDesignation(self.scModel)])
             ps = generator(saveTargets=False, keepFailures=True)
             for probe in ps:
                 logging.getLogger('maskgen').info('{},{},{},{},{}'.format(

@@ -1742,18 +1742,28 @@ def isGAN(edge, edge_id, op):
     if edge['op'] == 'ObjectCGI' and \
             getValue(edge, 'arguments.isGAN', 'no') == 'yes':
         return 'yes'
+    elif edge['op'] == 'PasteSplice' and \
+        'gan' in getValue(edge, 'arguments.subject', 'no'):
+        return 'yes'
     return 'no'
 
 def ganComponentRule(scModel, edges):
     for edgeTuple in edges:
-        if edgeTuple.edge['op'] == 'ObjectCGI' and \
-            getValue(edgeTuple.edge,'arguments.isGAN','no') == 'yes':
+        if isGAN(edgeTuple.edge, None, None) == 'yes':
             return 'yes'
-        elif edgeTuple.edge['op'] == 'PasteSplice' and \
-                'gan' in getValue(edgeTuple.edge, 'arguments.subject', 'no'):
-            return 'yes'
-
     return 'no'
+
+def ganGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"isGAN",'no')
+
+def cgiGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"cgi",'no')
 
 def _cleanEdges(scModel, edges):
     for edgeTuple in edges:

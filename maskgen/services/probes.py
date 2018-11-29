@@ -54,8 +54,8 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
     if reproduceMask:
         for edge_id in scModel.getGraph().get_edges():
             scModel.reproduceMask(edge_id=edge_id)
-    generator = ProbeGenerator(scModel=scModel, processors=[GetProbeSet(scModel, compositeBuilders=[EmptyCompositeBuilder]),
-                                                            Determine_Task_Designation(scModel)])
+    generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel, compositeBuilders=[EmptyCompositeBuilder]),
+                                                            DetermineTaskDesignation(scModel)])
     probes = generator()
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')
@@ -193,7 +193,7 @@ class ProbeProcessor:
     def apply(self, probes = []):
         return probes
 
-class GetProbeSet(ProbeProcessor):
+class ProbeSetBuilder(ProbeProcessor):
 
     def __init__(self, scModel=None, compositeBuilders=[ColorCompositeBuilder]):
         ProbeProcessor.__init__(self, scModel=scModel)
@@ -234,7 +234,7 @@ class GetProbeSet(ProbeProcessor):
             compositeBuilder.finalize(probes, save=False)
         return probes
 
-class Determine_Task_Designation(ProbeProcessor):
+class DetermineTaskDesignation(ProbeProcessor):
     """
         Task designation is determined by presence of spatial and temporal components
     """
@@ -242,9 +242,9 @@ class Determine_Task_Designation(ProbeProcessor):
     def apply(self, probes = []):
         for probe in probes:
             ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
-            len_all_masks = len(probe.targetVideoSegments if not ftype == 'image' else [])
+            len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
             len_spatial_masks = len([x for x in probe.targetVideoSegments if
-                                     x.filename is not None] if not ftype == 'image' else [])
+                                     x.filename is not None] if probe.targetVideoSegments is not None else [])
             has_video_masks = len_all_masks > 0
             spatial_temporal = has_video_masks and len_spatial_masks > 0
             if ftype == 'image':
@@ -292,7 +292,7 @@ class CompositeExtender:
                                                           self.scModel.probeMaskMemory)
         probes = composite_generator.extendByOne(probes,self.scModel.start,self.scModel.end,override_args=override_args)
 
-        return GetProbeSet(self.scModel).apply(probes)
+        return ProbeSetBuilder(self.scModel).apply(probes)
 
     def constructPathProbes(self, start=None, constructDonors=True):
         """
@@ -306,7 +306,7 @@ class CompositeExtender:
             return
         nodeids = results[0][2]
         graph = self.scModel.getGraph().subgraph(nodeids)
-        generator = ProbeGenerator(scModel=self.scModel, processors=[GetProbeSet(self.scModel)])
+        generator = ProbeGenerator(scModel=self.scModel, processors=[ProbeSetBuilder(self.scModel)])
         probes = generator(graph=graph,saveTargets=False,inclusionFunction=isEdgeComposite, constructDonors=constructDonors)
         return probes
 
