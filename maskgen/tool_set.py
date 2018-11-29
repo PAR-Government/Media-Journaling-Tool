@@ -1828,8 +1828,6 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask, expectedDims, loca
 
 
 def isHomographyOk(transform_matrix, h, w):
-    from shapely.geometry import Point
-    from shapely.geometry.polygon import Polygon
     # convert cornore to homogenous coordinates
     ll = np.array([0, 0, 1])
     ul = np.array([0, w, 1])
@@ -2123,15 +2121,63 @@ def mediatedCompare(img_one, img_two, **kwargs):
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
+def getExifDimensions(filename, crop=False):
+    from maskgen import exif
+    meta = exif.getexif(filename)
+    heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
+    widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
+    height_selections = [(meta[h] if h in meta else None) for h in heights]
+    width_selections =  [(meta[w] if w in meta else None) for w in widths ]
+    if 'png:IHDR.width,height' in meta:
+        try:
+            w,h = [int(x.strip()) for x in meta['png:IHDR.width,height'].split(',')]
+            height_selections.append(h)
+            width_selections.append(w)
+        except:
+            pass
+    return [(int(height_selections[p]), int(width_selections[p]))
+            for p in range(len(width_selections)) if height_selections[p] is not None and width_selections[p] is not None]
+
 def convertCompare(img1, img2, arguments=dict()):
+    analysis = {}
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
-        rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
-        return 255 - mask, {'rotation': rotation}
+        if 'source filename' in arguments:
+            orienation = exif.getOrientationFromExif((arguments['source filename']))
+            analysis.update(exif.rotateAnalysis(orienation))
+            img1 = exif.rotateAccordingToExif(img1, orienation,counter=True)
+        else:
+            # assumes crop, but this approach should be improved to use HOG comparisons
+            # since some of these conversions occur with Raw images
+            rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
+            analysis.update({'rotation': rotation})
+            return 255 - mask, analysis
+    if 'source filename' in arguments and img1.shape != img2.shape:
+        # see if there is crop information in exif
+        dims_crop = getExifDimensions(arguments['source filename'], crop=True)
+        dims = getExifDimensions(arguments['source filename'], crop=False)
+        if len(dims_crop) > 0 and len(dims) > 0 and dims_crop[0] != dims[0]:
+            analysis['Crop'] = 'yes'
     if img1.shape != img2.shape:
-        new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
+        #keep in mind that alterMask, used for composite generation, assumes 'crop' occurs first, followed
+        # by final adjustments for size
+        if 'location' not in arguments:
+            diff_shape= (max(1,diff_shape[0]),max(1,diff_shape[1]))
+        else:
+            diff_shape = toIntTuple(arguments['location'])
+        if getValue(arguments, 'Crop','yes') == 'no':
+            new_img1 = img1
+        else:
+            new_img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
+        new_img2 = cv2.resize(img2, (new_img1.shape[1], new_img1.shape[0]))
+        if getValue(arguments, 'Crop', 'yes') == 'yes':
+            analysis['location'] = str(diff_shape)
+        mask, a = __diffMask(new_img1, new_img2, False, args=arguments)
     else:
-        new_img2 = img2
-    return __diffMask(img1, new_img2, False, args=arguments)
+        mask, a = __diffMask(img1, img2, False, args=arguments)
+
+    analysis.update(a)
+    return mask, analysis
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """
