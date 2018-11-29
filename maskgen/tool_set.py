@@ -2140,16 +2140,23 @@ def getExifDimensions(filename, crop=False):
 
 def convertCompare(img1, img2, arguments=dict()):
     analysis = {}
+    if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
+        if 'source filename' in arguments:
+            orienation = exif.getOrientationFromExif((arguments['source filename']))
+            analysis.update(exif.rotateAnalysis(orienation))
+            img1 = exif.rotateAccordingToExif(img1, orienation,counter=True)
+        else:
+            # assumes crop, but this approach should be improved to use HOG comparisons
+            # since some of these conversions occur with Raw images
+            rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
+            analysis.update({'rotation': rotation})
+            return 255 - mask, analysis
     if 'source filename' in arguments and img1.shape != img2.shape:
         # see if there is crop information in exif
         dims_crop = getExifDimensions(arguments['source filename'], crop=True)
         dims = getExifDimensions(arguments['source filename'], crop=False)
         if len(dims_crop) > 0 and len(dims) > 0 and dims_crop[0] != dims[0]:
             analysis['Crop'] = 'yes'
-    if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
-        rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
-        analysis.update({'rotation': rotation})
-        return 255 - mask, analysis
     if img1.shape != img2.shape:
         diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
         #keep in mind that alterMask, used for composite generation, assumes 'crop' occurs first, followed
