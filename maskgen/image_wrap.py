@@ -285,14 +285,14 @@ def proxyOpen(filename, isMask=False):
     return None
 
 # openTiff supports raw files as well
-file_registry = [('png', [readPNG]), ('pdf', [wand_image_extractor, pdf2_image_extractor,  convertToPDF]),
-                 ('cr2',[openRaw]),
-                 ('nef',[openRaw]),
-                 ('dng',[openRaw]),
-                 ('arw',[openRaw]),
-                 ('', [defaultOpen, openTiff]),
-                 ('raf',[openRaw]),
-                 ('', [proxyOpen])]
+file_registry = [('png', [readPNG]),
+                 ('pdf', [wand_image_extractor, pdf2_image_extractor,  convertToPDF]),
+                 ('cr2', [openRaw]),
+                 ('nef', [openRaw]),
+                 ('dng', [openRaw]),
+                 ('arw', [openRaw]),
+                 ('raf', [openRaw]),
+                 ('',    [defaultOpen, openTiff, proxyOpen])]
 file_write_registry = {}
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):

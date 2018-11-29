@@ -110,8 +110,8 @@ def getPathPartAndValue(path, data):
     return getPathPartAndValue(path[0:pos], data)
 
 
-def get_pre_name(file):
-    pos = file.rfind('.')
+def get_pre_name(file, left=False):
+    pos = file.find('.') if left else file.rfind('.')
     return file[0:pos] if (pos > 0) else file
 
 
@@ -241,7 +241,7 @@ class ImageGraph:
         self.filesToRemove = set()
         self.U = list()
         self.lock = RLock()
-        name = get_pre_name(fname)
+        name = get_pre_name(fname, left=True)
         self.dir = os.path.abspath('.')
         self.idc = 0
         self.arg_checker_callback = arg_checker_callback
@@ -862,7 +862,7 @@ class ImageGraph:
     def saveas(self, pathname):
         currentdir = self.dir
         fname = os.path.split(pathname)[1]
-        name = get_pre_name(fname)
+        name = get_pre_name(fname, left=True)
         if os.path.isdir(pathname):
             self.dir = pathname
         else:

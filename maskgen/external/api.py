@@ -10,13 +10,17 @@ def download(file_name, apitoken, directory, url, prefix='images'):
     import requests
     sign_url = url + ('' if url.endswith('/') else '/') + 'sign/'
     headers = {"Content-Type": "application/json", "Authorization": "Token %s" % apitoken}
-    response = requests.get(sign_url + "?file=%s&prefix=%s" % (file_name, prefix), headers=headers)
+    response = requests.get(sign_url + "?file=%s&prefix=%s" % (file_name.lower(), prefix), headers=headers)
     if response.status_code == requests.codes.ok:
         url = response.json()["url"]
         downloadFilename = os.path.join(directory, file_name)
         if os.path.exists(downloadFilename):
             os.remove(downloadFilename)
-        urlretrieve(url, downloadFilename)
+        try:
+            urlretrieve(url, downloadFilename)
+        except:
+            url = url.replace("https://ceph.mediforprogram.com", "http://ceph-s3.medifor.tld:7480")
+            urlretrieve(url, downloadFilename)
         return downloadFilename
     return None
 

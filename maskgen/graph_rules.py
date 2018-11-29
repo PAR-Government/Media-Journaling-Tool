@@ -29,7 +29,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -1295,23 +1295,18 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
-def getDimensions(filename):
-    from maskgen import exif
-    meta = exif.getexif(filename)
-    heights= ['Image Height','Exif Image Height','Cropped Image Height']
-    widths = ['Image Width','Exif Image Width','Cropped Image Width']
-    height_selections = [meta[h] for h in heights if h in meta]
-    width_selections = [meta[w] for w in widths if w in meta]
-    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
-
 def checkSizeAndExifPNG(op, graph, frm, to):
+    from math import ceil
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
-    frm_shape = frm_img.size
-    to_shape = to_img.size
+    frm_shape = (frm_img.size[1],frm_img.size[0])
+    to_shape = (to_img.size[1],to_img.size[0])
 
-    dims = getDimensions(frm_file) if getValue(edge,'arguments.Crop',None) == 'yes' else None
+    dims = getExifDimensions(frm_file,crop=False)
+    location = toIntTuple(getValue(edge,'location','(0,0)'))
+    dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
+    dims.extend(getExifDimensions(frm_file, crop=True))
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
@@ -1320,7 +1315,9 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
     orientation = getValue(edge, 'exifdiff.Orientation')
     distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
-    change_allowed = 0.01 if not distortion else 0.02
+    change_allowed = ceil(max(0.01,1.0-(frm_shape[0]-64)/float(frm_shape[0]))*10000.0)/10000.0
+    if distortion:
+        change_allowed*=2
 
     if orientation is not None:
         orientation = str(orientation) if orientation is not None else None
@@ -1336,10 +1333,11 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
 
     if expect_rotation:
-        acceptable_shapes = [(frm_shape[1],frm_shape[0]), (dims[1], dims[0])] if dims is not None else [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes = [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes.extend([(dim[1], dim[0]) for dim in dims])
     else:
-        acceptable_shapes = [frm_shape, (dims[0], dims[1])] if dims is not None else [frm_shape]
-
+        acceptable_shapes = [frm_shape]
+        acceptable_shapes.extend(dims)
     warnings = 0
     for acceptable_shape_option in acceptable_shapes:
 
