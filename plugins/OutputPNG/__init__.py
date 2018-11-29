@@ -21,7 +21,7 @@ def transform(img,source,target, **kwargs):
     analysis = {}
     if 'Crop' in kwargs and kwargs['Crop'] == 'yes':
         dims = getExifDimensions(source,crop=True)
-        if dims is not None and imarray.shape[0] != dims[0]:
+        if len(dims) > 0 and imarray.shape[0] != dims[0][0]:
             h = int(imarray.shape[0]-dims[0])/2
             w = int(imarray.shape[1]-dims[1])/2
             imarray = imarray[h:-h,w:-w]
