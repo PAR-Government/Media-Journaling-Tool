@@ -38,9 +38,8 @@ def run_ffmpeg(args, noOutput=True, tool=get_ffmpeg_tool()):
         pcommand = Popen(command, stdout=PIPE if not noOutput else None, stderr=PIPE)
         stdout, stderr = pcommand.communicate()
         if pcommand.returncode != 0:
-            print stderr
             error = ' '.join([line for line in str(stderr).splitlines() if line.startswith('[')])
-            error += '\nffmpeg arguments: ' + ' '.join(args)
+            error += '\nffmpeg arguments: ' + str(' '.join(args))
             raise ValueError(error)
         if noOutput == False:
             return stdout
@@ -67,7 +66,7 @@ def __get_channel_data(source_data, codec_type):
 def get_ffmpeg_version():
     try:
         stdout = run_ffmpeg(['-version'], noOutput=False)
-        return  stdout.split()[2][0:3]
+        return stdout.split()[2][0:3]
     except:
         pass
     return "?"
@@ -272,7 +271,10 @@ def get_meta_from_video(file,
         ffmpegcommand = [get_ffprobe_tool(), file]
         if args != None:
             ffmpegcommand.extend(args)
-        stdout, stder = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE).communicate()
+        process = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
+        stdout, stder = process.communicate()
+        if process.returncode != 0:
+            raise ValueError('ffprobe arguments: ' + ' '.join(args))
         return func(StringIO.StringIO(stdout), StringIO.StringIO(stder))
 
     if show_streams or with_frames:

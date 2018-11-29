@@ -116,7 +116,7 @@ class CV2Api:
         index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
         cap = cv2.VideoCapture(filename, preference) if preference is not None else cv2.VideoCapture(filename)
         # is FIXED RATE (with some confidence)
-        if not ffmpeg_api.is_vfr(meta[index]):
+        if not ffmpeg_api.is_vfr(meta[index]) or not useFFMPEGForTime:
             return CAPReader(cap)
         meta, frames = ffmpeg_api.get_meta_from_video(filename, show_streams=True, with_frames=True, media_types=['video'])
         return CAPReaderWithFFMPEG(frames[index], cap)

@@ -7,12 +7,11 @@
 # ==============================================================================
 
 import math
+import re
 from datetime import datetime
-
 from skimage.measure import compare_ssim
 import warnings
 from scipy import ndimage
-import re
 import imghdr
 import sys
 from image_wrap import *
@@ -25,6 +24,8 @@ from ffmpeg_api import get_ffprobe_tool, ffmpeg_overlay
 from maskgen.support import removeValue, getValue
 import os
 from maskgen.userinfo import get_username
+import maskgen.exif
+
 import platform
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
@@ -43,7 +44,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("raw audio files", "*.raw"), ("Audio Interchange File", "*.aif"),
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
-zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz'),('zip of images','*.tgz')]
 
 textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log file","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
@@ -781,9 +782,34 @@ def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=
             img.save(snapshotFileName)
         return img
 
+def readFromArchive(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
+    import tarfile
+    import re
+    file_type_matcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+    archive = tarfile.open(filename, "w:gz")
+    try:
+        names = archive.getnames()
+        names.sort()
+        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+        i = 0
+        for name in names:
+            i += 1
+            elapsed_time = i * fps
+            if len(file_type_matcher.findall(name.lower())) == 0:
+                continue
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isPastTime() or videoFrameTime is None:
+                break
+        extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
+        img = openImage(extracted_file, isMask=isMask)
+        if extracted_file != snapshotFileName and snapshotFileName is not None:
+            img.save(snapshotFileName)
+        return img
+    finally:
+        archive.close()
 
 def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFileName=None):
-    cap = cv2api.cv2api_delegate.videoCapture(filename)
+    cap = cv2api.cv2api_delegate.videoCapture(filename, useFFMPEGForTime=False)
 
     bestSoFar = None
     bestVariance = -1
@@ -848,9 +874,9 @@ class ImageOpener:
     def __init__(self):
         pass
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         try:
-            img = openImageFile(filename, isMask=isMask)
+            img = openImageFile(filename, isMask=isMask, args=args)
             return img if img is not None else openImage(get_icon('RedX.png'))
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
@@ -861,7 +887,7 @@ class AudioOpener(ImageOpener):
     def __init__(self):
         ImageOpener.__init__(self)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         return ImageOpener.openImage(self, get_icon('audio.png'))
 
 class VideoOpener(ImageOpener):
@@ -875,7 +901,7 @@ class VideoOpener(ImageOpener):
         return os.path.exists(snapshotFileName) and \
                os.stat(snapshotFileName).st_mtime >= os.stat(filename).st_mtime
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         if not ('video' in getFileMeta(filename)):
             return ImageOpener.openImage(self, get_icon('audio.png'))
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
@@ -892,7 +918,7 @@ class ZipOpener(VideoOpener):
     def __init__(self, videoFrameTime=None, preserveSnapshot=True):
         VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename, snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
@@ -903,6 +929,20 @@ class ZipOpener(VideoOpener):
             return ImageOpener.openImage(self, get_icon('RedX.png'))
         return videoFrameImg
 
+class TgzOpener(VideoOpener):
+    def __init__(self, videoFrameTime=None, preserveSnapshot=True):
+        VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+
+    def openImage(self, filename, isMask=False, args=None):
+        snapshotFileName = os.path.splitext(filename)[0] + '.png'
+        if self.openSnapshot(filename, snapshotFileName):
+            return ImageOpener.openImage(self, snapshotFileName)
+        videoFrameImg = readFromArchive(filename, videoFrameTime=self.videoFrameTime, isMask=isMask,
+                                    snapshotFileName=snapshotFileName if self.preserveSnapshot else None)
+        if videoFrameImg is None:
+            logging.getLogger('maskgen').warning('invalid or corrupted file ' + filename)
+            return ImageOpener.openImage(self, get_icon('RedX.png'))
+        return videoFrameImg
 
 def getContentsOfZip(filename):
     from zipfile import ZipFile
@@ -950,7 +990,7 @@ def condenseZip(filename, outputfile=None, filetypes=None, keep=2):
                 os.remove(filename)
 
 
-def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
+def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False, args=None):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
     videoFrameTime, integer time in milliseconds, is provided, then find the frame after that point in time
@@ -971,10 +1011,12 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         opener = VideoOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in ['zip', 'gz']:
         opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+    elif prefix in [ 'tgz']:
+        opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 
-    return opener.openImage(filename, isMask=isMask)
+    return opener.openImage(filename, isMask=isMask, args=args)
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
@@ -3319,3 +3361,40 @@ def selfVideoTest():
     except:
         return 'Video Writing Failed'
     return None
+
+def dateTimeStampCompare(v1, v2):
+    def get_defaults(source):
+        exifdata = maskgen.exif.getexif(source)
+        rd = {}
+        for e in exifdata:
+            if "date" in str(e).lower() or "time" in str(e).lower():
+                rd[e] = exifdata[e]
+        return rd
+        #date_time_stamp = exifdata['Create Date'] if 'Create Date' in exifdata else exifdata['File Creation Date/Time']
+
+    stamp1 = get_defaults(v1)
+    rgexdict = {}
+    for e in stamp1:
+        st = stamp1[e]
+        rgexf = "\\A"
+        for x in st:
+            if x.isdigit():
+                rgexf += '[0-9]'
+            elif x.isalpha():
+                rgexf += '[a-zA-z]*'
+            else:
+                rgexf += x
+        rgexf+= "\\Z"
+        rgexdict[e] = rgexf
+
+    stamp2 = get_defaults(v2)
+    nonmatches = []
+    for e in stamp2:
+        if e in rgexdict:
+            mo = re.match(rgexdict[e],stamp2[e])
+            if mo is None:
+                nonmatches.append(e)
+        else:
+            pass
+            #nonmatches.append(e)
+    return nonmatches

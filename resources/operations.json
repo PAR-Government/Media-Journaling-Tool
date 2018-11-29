@@ -180,7 +180,6 @@
       },
       "rules": [
         "checkSize",
-        "checkHasVideoChannel",
         "checkFileTypeChange",
         "checkFrameTimes",
         "checkAudioTimeFormat",
@@ -195,7 +194,8 @@
         }
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.delete_audio"
+        "video": "maskgen.mask_rules.delete_audio",
+        "audio": "maskgen.mask_rules.delete_audio"
       },
       "analysisOperations": [],
       "description": "Remove a portion or all of an audio stream from a video",
@@ -204,7 +204,9 @@
       },
       "generateMask": "frames",
       "transitions": [
-        "video.video"
+        "video.video",
+        "audio.audio",
+        "video.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -1370,7 +1372,8 @@
       "rules": [
         "checkSizeAndExif",
         "checkFileTypeChangeForDonor",
-        "checkSameChannels"
+        "checkSameChannels",
+        "checkTimeStamp"
       ],
       "optionalparameters": {
         "rotate": {
@@ -1445,7 +1448,8 @@
         "checkSize",
         "checkFileTypeChange",
         "checkSameChannels",
-        "checkMetaDate"
+        "checkMetaDate",
+        "checkTimeStamp"
       ],
       "description": "Alter image metadata.",
       "includeInMask": {
@@ -1512,7 +1516,8 @@
       "rules": [
         "checkSizeAndExif",
         "checkForDonor",
-        "check_eight_bit"
+        "check_eight_bit",
+        "checkTimeStamp"
       ],
       "optionalparameters": {},
       "maskTransformFunction": {
@@ -3707,7 +3712,6 @@
       },
       "rules": [
         "checkSizeAndExifPNG",
-        "rotationCheck",
         "checkOutputType"
       ],
       "optionalparameters": {
@@ -3940,6 +3944,10 @@
           "type": "int[0:10000000]",
           "description": "DPI"
         }
+      },
+
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
       },
       "rules": [
         "checkOutputType"
@@ -6471,7 +6479,18 @@
         "type": "urls",
         "description": "CGI Object files",
         "save_to_defaults": true
-      }
+      },
+      "Crop": {
+          "type": "yesno",
+          "defaultvalue":"yes",
+          "description": "Cropped according to camera?"
+        },
+      "White Balance":{
+          "type":"list",
+          "defaultvalue":"camera",
+          "values":["camera","auto","none"],
+          "description":"As Shot (camera) White Balance?"
+        }
     }
   }
 }

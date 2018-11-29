@@ -328,7 +328,7 @@ class TestToolSet(TestSupport):
         mockImage_to.size = (3214, 4878)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
         self.assertTrue(len(r) > 0)
-        self.assertTrue(r[0] == Severity.WARNING)
+        self.assertTrue(r[0] == Severity.ERROR)
 
         mockGraph.get_edge.return_value = {'shape change': '(-30,-30)'}
         mockImage_to.size = (3234, 4898)
@@ -340,7 +340,7 @@ class TestToolSet(TestSupport):
         mockImage_to.size = (3234, 4898)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertTrue(len(r) > 0)
-        self.assertTrue(r[0] == Severity.WARNING)
+        self.assertTrue(r[0] == Severity.ERROR)
 
         mockGraph.get_edge.return_value = {'shape change': '(-100,-100)'}
         mockImage_to.size = (3164, 4828)

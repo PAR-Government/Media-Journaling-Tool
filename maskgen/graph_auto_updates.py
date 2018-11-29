@@ -76,7 +76,8 @@ def updateJournal(scModel):
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
-         ('0.5.0918.19c0afaab7', [_fixTool2])
+         ('0.5.0918.19c0afaab7', [_fixTool2]),
+         ('0.5.1105.665737a167', [])
          ])
 
     versions= list(fixes.keys())
@@ -455,9 +456,9 @@ def _fixTool(scModel,gopLoader):
     if description is not None:
         scModel.setProjectData('projectdescription', description)
     tool_name = 'jtui'
-    if summary.lower().startswith('automate'):
-        tool_name = 'jtproject'
     creator = scModel.getGraph().getDataItem('creator')
+    if summary.lower().startswith('automate') or creator in ['alice', 'dupre']:
+        tool_name = 'jtproject'
     modifier_tools = [tool_name]
     # no easy way to find extensions, since all extensions are plugins
     modified_users = set()

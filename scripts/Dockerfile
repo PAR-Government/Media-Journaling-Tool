@@ -164,9 +164,6 @@ RUN pip install --upgrade awscli
 WORKDIR ..
 RUN python setup.py sdist
 RUN pip install -e .
-WORKDIR wrapper_plugins/rawphoto_wrapper
-RUN python setup.py sdist
-RUN pip install -e .
 WORKDIR ../../wrapper_plugins/jpeg2000_wrapper
 RUN python setup.py sdist
 RUN pip install -e .
