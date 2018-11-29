@@ -5,7 +5,7 @@ from maskgen.tool_set import get_username
 
 class ValidationData:
 
-    def __init__(self, scmodel,qaState=None,qaPerson=None,time=None,qaComment=None,qadata=None):
+    def __init__(self, scmodel, qaState=None, qaPerson=None, time=None, qaComment=None, qadata=None):
         self.scmodel = scmodel
         if qaState is not None:
             self.scmodel.setProjectData('validation', qaState, excludeUpdate=True)

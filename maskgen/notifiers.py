@@ -5,7 +5,8 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 # ==============================================================================
-
+from os import remove
+from tool_set import compose_overlay_name
 from pkg_resources import iter_entry_points
 import qa_logic
 
@@ -132,6 +133,11 @@ class QaNotifier:
                     link = '->'.join([i,fin])
                     if link in critlinks:
                         qadata.set_qalink_status(link,'no')
+                        qadata.set_qalink_designation(link, "")
+                        try:
+                            remove(compose_overlay_name(target_file= self.scmodel.G.get_pathname(args[0][1]), link=link))
+                        except OSError:
+                            pass
 
             edfwd, fwd = self._forwards(modified_edge)
             for i in fwd:
@@ -140,6 +146,11 @@ class QaNotifier:
                     donor = '<-'.join([i,fin])
                     if donor in critlinks:
                         qadata.set_qalink_status(donor,'no')
+                        qadata.set_qalink_designation(donor, "")
+                        try:
+                            remove(compose_overlay_name(target_file= self.scmodel.G.get_pathname(args[0][1]), link=donor))
+                        except OSError:
+                            pass
 
             for back in edback:
                 # all predecessor edges flow through forward

@@ -3031,13 +3031,17 @@ class OldFormatGroupSetter:
     def select_group(reader, grp_pos, start_frame=None, start_time=0,end_frame=None):
         OldFormatGroupSetter.set_group(reader,start_frame=start_frame,start_time=start_time)
 
+def compose_overlay_name(target_file="", link = tuple()):
+    path_tuple = os.path.split(target_file)
+    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.avi')
 
 class GrayBlockOverlayGenerator:
 
-    def __init__(self, locator, segments = [], target_file = None):
+    def __init__(self, locator, segments = [], target_file = None, output_file = ""):
         from video_tools import getMaskSetForEntireVideo, get_frames_from_segment
 
         self.target_file = target_file
+        self.output_file = output_file
         self.manager = GrayBlockReaderManager(reader_type=GrayOverlayBlockReader)
         segments = [segment for segment in segments if segment.media_type == 'video']
         self.segments = sorted(segments, key=lambda segment: segment.startframe)
@@ -3065,7 +3069,7 @@ class GrayBlockOverlayGenerator:
             self.manager.reader.read()  # read and write to the file
             self.frame_no += 1
         self.manager.reader.writer.close()
-        ffmpeg_overlay(self.target_file, self.manager.reader.writer.filename)
+        ffmpeg_overlay(self.target_file, self.manager.reader.writer.filename, self.output_file)
         try:
             os.remove(self.manager.reader.writer.filename) #clean up the mask file, leave the finished overlay
         except OSError:

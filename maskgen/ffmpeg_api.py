@@ -360,9 +360,7 @@ def is_vfr(meta, frames=[]):
         return True
     return False
 
-def ffmpeg_overlay(source, mask):
-    path_tuple = os.path.split(source)
-    output = os.path.join(path_tuple[0], os.path.splitext(path_tuple[1])[0] + '_overlay.avi')
+def ffmpeg_overlay(source, mask, output):
     command = ['-i', source, '-i', mask, '-filter_complex',
                '[1:v]colorkey=white:.1:.9[ckout]; [0:v][ckout]overlay[out]','-map', '[out]', '-y', output]
     run_ffmpeg(command, noOutput=True)

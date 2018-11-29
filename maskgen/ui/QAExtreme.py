@@ -12,7 +12,7 @@ import ttk
 import tkMessageBox
 from PIL import ImageTk
 from maskgen.support import getValue
-from maskgen.tool_set import imageResizeRelative, openImage,get_username, GrayBlockOverlayGenerator
+from maskgen.tool_set import imageResizeRelative, openImage,get_username, GrayBlockOverlayGenerator, compose_overlay_name
 import os
 import numpy as np
 import maskgen.qa_logic
@@ -21,7 +21,6 @@ import maskgen.tool_set
 import random
 import maskgen.scenario_model
 from maskgen.services.probes import ProbeGenerator, Determine_Task_Designation, cleanup_temporary_files
-import maskgen.notifiers as notifiers
 import maskgen.validation
 from maskgen.tool_set import openFile
 import webbrowser
@@ -482,7 +481,7 @@ class SpatialReviewDisplay(Frame):
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         spatial_box_label = Label(master=page, text='Spatial Overlay Correct?', wraplength=250, justify=LEFT)
         self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label, command=page.cache_designation,
-                               value=page.master.qaData.get_qalink_status(page.link))
+                               value=page.master.qaData.get_qalink_designation(page.link) != "")
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col -1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -500,9 +499,7 @@ class SpatialReviewDisplay(Frame):
 
         if probe.targetVideoSegments is not None:
             to = self.dialog.scModel.G.get_pathname(probe.edgeId[1])
-            path_tuple = os.path.split(to)
-            #TODO: change naming convention so that it works with multiple probes that use the same target file.
-            overlay_file = os.path.join(path_tuple[0], os.path.splitext(path_tuple[1])[0] + '_overlay.avi')
+            overlay_file = compose_overlay_name(target_file=to, link=page.link)
             total_range = (probe.targetVideoSegments[0].starttime/1000, probe.targetVideoSegments[-1].endtime/1000)
             self.buttonText = StringVar()
             self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
@@ -515,11 +512,10 @@ class SpatialReviewDisplay(Frame):
             self.range_label.grid(row=0, column= 3, columnspan = 1, sticky='W')
 
     def openOverlay(self, probe=None, target_file = '', overlay_path=''):
-        #TODO: check if overlay needs updating.
         if not os.path.exists(overlay_path):
             GrayBlockOverlayGenerator(locator=self.dialog.meta_extractor.getMetaDataLocator(probe.edgeId[0]),
                                       segments=probe.targetVideoSegments,
-                                      target_file=target_file).generate()
+                                      target_file=target_file, output_file=overlay_path).generate()
         self.buttonText.set('PLAY: ' + os.path.split(overlay_path)[1])
         openFile(overlay_path)
 
@@ -537,7 +533,7 @@ class TemporalReviewDisplay(Frame):
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         temporal_box_label = Label(master=page, text='Temporal data correct?', wraplength=250, justify=LEFT)
         self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label, command=page.cache_designation,
-                               value=page.master.qaData.get_qalink_status(page.link))
+                               value=page.master.qaData.get_qalink_designation(page.link) != "")
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col - 1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -718,7 +714,7 @@ class QAProjectDialog(Toplevel):
 
     def exitProgram(self):
         self.destroy()
-        #cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
+        cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
 
     def help(self,event):
         URL = MaskGenLoader.get_key("apiurl")[:-3] + "journal"
@@ -870,7 +866,7 @@ class QAProjectDialog(Toplevel):
         self.qaData.update_All(qaState, self.lastpage.reporterStr.get(), self.lastpage.commentsBox.get(1.0, END), None)
         self.parent.scModel.save()
         self.destroy()
-        #cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
+        cleanup_temporary_files(probes=self.probes, scModel=self.scModel)
 
     def getPredNode(self, node):
         for pred in self.scModel.G.predecessors(node):
