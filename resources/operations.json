@@ -4506,6 +4506,15 @@
           "trigger mask": true,
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
+        "add type": {
+          "type": "list",
+          "values": [
+            "replace",
+            "overlay",
+            "insert"
+          ],
+          "description": "Insert slides frames.  Replacing or overlaying keeps numbers of frames in video the same."
+        },
         "Number of Frames": {
           "type": "int[0:1000000]",
           "description": "Numbers of frames copy/pasted"
