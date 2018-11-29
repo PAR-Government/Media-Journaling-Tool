@@ -137,6 +137,239 @@ class AddRemove(SelectDialog):
         self.ok()
         self.choice = (self.var1.get(), "remove")
 
+
+class TimeWidget(Frame):
+    def __init__(self, master, textvariable):
+        self.time_text_variable = textvariable
+        Frame.__init__(self, master)
+        self.master = master
+        self.entries = {}
+        self.create_widgets()
+        self.bind_all("<Control-v>", lambda e: self.paste())
+
+    def create_widgets(self):
+        initialvalues = self.time_text_variable.get().split(':')
+        if len(initialvalues) > 0:
+            micro = 0 if '.' not in initialvalues[-1] else initialvalues[-1].split('.')[1]
+            second  = int(initialvalues[-1]) if  '.' not in initialvalues[-1] else initialvalues[-1].split('.')[0]
+            minute = initialvalues[1]
+            hour = initialvalues[0]
+        else:
+            micro  = "micros"
+            second = "SS"
+            minute = "MM"
+            hour   = "HH"
+
+        font = ("TkDefaultFont", 14)  # Increase font size
+
+        # Setup fields
+        self.entries['hour'] = w = Entry(self, width=3, font=font)
+        w.insert(0, hour)
+        w.bind('<KeyRelease>', lambda e: self.track('hour', 'minute', 2, 99))
+        w.bind('<FocusIn>', lambda e: self.get_focus('hour'))
+        w.bind('<FocusOut>', lambda e: self.lose_focus('hour', 2))
+        w.grid(row=0, column=0)
+
+        w = Label(self, text=":", font=font, bg='white')
+        w.grid(row=0, column=1)
+
+        self.entries['minute'] = w = Entry(self, width=3, font=font)
+        w.insert(0, minute)
+        w.bind('<KeyRelease>', lambda e: self.track('minute', 'second', 2, 59))
+        w.bind('<FocusIn>', lambda e: self.get_focus('minute'))
+        w.bind('<FocusOut>', lambda e: self.lose_focus('minute', 2))
+        w.grid(row=0, column=2)
+
+        w = Label(self, text=":", font=font, bg='white')
+        w.grid(row=0, column=3)
+
+        self.entries['second'] = w = Entry(self, width=3, font=font)
+        w.insert(0, second)
+        w.bind('<KeyRelease>', lambda e: self.track('second', 'microsecond', 2, 59))
+        w.bind('<FocusIn>', lambda e: self.get_focus('second'))
+        w.bind('<FocusOut>', lambda e: self.lose_focus('second', 2))
+        w.grid(row=0, column=4)
+
+        w = Label(self, text=".", font=font, bg='white')
+        w.grid(row=0, column=5)
+
+        self.entries['microsecond'] = w = Entry(self, width=10, font=font)
+        w.insert(0, micro)
+        w.bind('<KeyRelease>', lambda e: self.track('microsecond', None, 6, 999999))
+        w.bind('<FocusIn>', lambda e: self.get_focus('microsecond'))
+        w.bind('<FocusOut>', lambda e: self.lose_focus('microsecond', 6, prepend=False))
+        w.grid(row=0, column=6)
+
+    def get_focus(self, field):
+        """
+        Binding to clear field on first entry.  Allows for guidance on what units go where when tool launches
+
+        :param field: Field name that gained focus
+        :return:
+        """
+        # Clear default text, if any, and unbind this function
+        if any([l.isalpha() for l in self.entries[field].get()]):
+            self.entries[field].delete(0, END)
+        self.entries[field].unbind('<FocusIn>')
+
+    def lose_focus(self, field, max_length, prepend=True):
+        """
+        Binding to verify that all items in the field are properly padded before saving can occur.
+
+        :param field: Field name that lost focus
+        :param max_length: Maximum length of the item in that field
+        :param prepend: Add to the beginning when true (9->09), add to the end when false (9->900000)
+        :return: None
+        """
+        curr = self.entries[field].get()
+
+        if len(curr) == max_length:
+            return
+
+        if prepend:
+            self.entries[field].insert(0, "0" * (max_length - len(curr)))
+        else:
+            self.entries[field].insert(END, "0" * (max_length - len(curr)))
+
+        # Verify there are no letters
+        if any([l.isalpha() for l in curr]):
+            tkMessageBox.showerror("Error", "The {0}s field cannot contain letters.  Re-enter the {0}s.".format(field))
+            self.entries[field].delete(0, END)
+            self.entries[field].insert(0, "0" * max_length)
+        else:
+            self.update_variable()
+
+    def track(self, field, next_field, max_length, max_digit):
+        """
+        Binding to verify that the value within each entry is valid in terms of length, and the maximum value that can
+        exist in the field.
+
+        :param field: Current field name
+        :param next_field: Field to jump to once current field is entered
+        :param max_length: Maximum length of the value in the field (character count)
+        :param max_digit: Maximum value that the field can hold
+        :return:
+        """
+
+        def check_max(num, max_num):
+            """
+            Funtion to verify that the user did not exceed the maximum value.
+
+            :param num: Number to check
+            :param max_num: Maximum value of the passed number
+            :return:
+            """
+            if max_num >= num:
+                return True
+
+            self.entries[field].delete(0, END)
+            replace = ""
+            for i in range(1, len(curr)):
+                if int(str(max_digit)[:i]) >= int(curr[:i]):
+                    replace = int(curr[:i])
+                else:
+                    break
+            self.entries[field].insert(0, replace)
+            return False
+
+        curr = self.entries[field].get()
+        pos = self.entries[field].index(INSERT)
+
+        # Check that there is a value in the entry
+        if curr == "":
+            return
+
+        # Verify it is a number
+        nums = map(str, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        if curr[pos-1] not in nums:
+            first = pos-1
+            last = pos
+
+            # Find full range of letters incase press and hold
+            for i in range(len(curr)):
+                if curr[i] not in nums:
+                    first = i
+                    break
+            for i in range(0, len(curr), -1):
+                if curr[i] not in nums:
+                    last = i
+                    break
+            self.entries[field].delete(first, last)
+            return
+
+        # Check that there is room for the character
+        elif len(curr) >= max_length:
+            if check_max(int(curr[:max_length]), max_digit):
+                self.entries[field].delete(0, END)
+                self.entries[field].insert(0, curr[:max_length])  # [:max_length] prevents button holding, [:-1] doesn't
+
+                # If we are at the end, go to the next cell
+                if pos >= max_length and next_field:
+                    self.entries[next_field].focus()
+                    self.entries[next_field].icursor(0)
+            self.entries[field].icursor(pos)
+            return
+
+    def paste(self):
+        """
+        Handle pasting data into time boxes
+        :return:
+        """
+        time = self.clipboard_get()
+
+        try:
+            hr, mins, sfm = time.split(":")
+            s, fm = sfm.split(".")
+        except ValueError:
+            return
+
+        # Run through focus gain so text boxes wont self delete
+        self.get_focus("hour")
+        self.get_focus("minute")
+        self.get_focus("second")
+        self.get_focus("microsecond")
+
+        # Insert data and verify that it is valid
+        self.entries['hour'].delete(0, END)
+        self.entries['hour'].insert(0, hr)
+        self.lose_focus("hour", 2)
+        self.track("hour", None, 2, 99)
+
+        self.entries['minute'].delete(0, END)
+        self.entries['minute'].insert(0, mins)
+        self.lose_focus("minute", 2)
+        self.track("minute", None, 2, 59)
+
+        self.entries['second'].delete(0, END)
+        self.entries['second'].insert(0, s)
+        self.lose_focus("second", 2)
+        self.track("second", None, 2, 59)
+
+        self.entries['microsecond'].delete(0, END)
+        self.entries['microsecond'].insert(0, fm)
+        self.lose_focus("microsecond", 6, prepend=FALSE)
+        self.track("microsecond", None, 6, 999999)
+
+    def update_variable(self):
+        self.time_text_variable.set(self.__str__())
+
+    def __str__(self):
+        return "{0}:{1}:{2}.{3}".format(self.entries['hour'].get(), self.entries['minute'].get(),
+                                        self.entries['second'].get(), self.entries['microsecond'].get())
+
+    def get(self):
+        try:
+            int(self.entries['hour'].get())
+            int(self.entries['minute'].get())
+            int(self.entries['second'].get())
+            int(self.entries['microsecond'].get())
+            self.update_variable()
+        except ValueError:
+            tkMessageBox.showerror("Data Error", "Hours, minutes, seconds, and microseconds must all be integers.")
+            return ""
+        return self
+
+
 class EntryDialog(tkSimpleDialog.Dialog):
     cancelled = True
 

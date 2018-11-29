@@ -6,37 +6,33 @@
 # All rights reserved.
 # ==============================================================================
 
-from image_graph import createGraph
-from maskgen.video_tools import DummyMemory
-from support import getPathValues
-import exif
-import os
-import numpy as np
-import logging
-from tool_set import *
-import video_tools
-import ffmpeg_api
-from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader, getRule
-import tempfile
-import plugins
-import graph_rules
-from image_wrap import ImageWrapper
-from PIL import Image
-from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
-from graph_auto_updates import updateJournal
-import hashlib
-import shutil
 import collections
+import copy
+import shutil
+import tempfile
+import traceback
 from threading import Lock
+
+import ffmpeg_api
+import graph_rules
 import mask_rules
+import notifiers
+import plugins
+import video_tools
+from PIL import Image
+from graph_auto_updates import updateJournal
+from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
+from image_graph import createGraph
+from image_wrap import ImageWrapper
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
-import copy
 from maskgen.userinfo import get_username
+from maskgen.video_tools import DummyMemory
+from software_loader import Software, getProjectProperties, MaskGenLoader, getRule
+from support import MaskgenThreadPool, StatusTracker
+from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
-import traceback
-from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc
-import notifiers
+
 
 def formatStat(val):
     if type(val) == float:
@@ -1631,7 +1627,7 @@ class ImageProjectModel:
 
 
     def _executeQueue(self,q,results,tracker):
-        from Queue import Queue, Empty
+        from Queue import Empty
         """
         :param q:
         :return:
@@ -2779,47 +2775,12 @@ class ImageProjectModel:
         #else:
         #    return DonorExtender(self)
 
-    def export(self, location, include=[], notifier=None):
+    def export(self, location, include=[], redacted=[],notifier=None):
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
-            path, errors = self.G.create_archive(location, include=include, notifier=notifier)
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
-
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[],notifier=None):
-        """
-
-        :param location:
-        :param tempdir:
-        :param additional_message:
-        :param redacted: list of file paths to exclude
-        :return:
-        """
-        import boto3
-        from boto3.s3.transfer import S3Transfer, TransferConfig
-        with self.lock:
-            self.clear_validation_properties()
-            self.compress(all=True)
-            #errors = []
-            #path = ''
-            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir,
-                                                 redacted=redacted,
-                                                 notifier=notifier)
-            if len(errors) == 0:
-                config = TransferConfig()
-                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-                BUCKET = location.split('/')[0].strip()
-                DIR = location[location.find('/') + 1:].strip()
-                logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
-                DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
-                os.remove(path)
-                if not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
-                                                               additional_message=additional_message):
-                    errors = [('', '',
-                               'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
+            path, errors = self.G.create_archive(location, include=include, redacted=redacted, notifier=notifier)
+            return path, [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def export_path(self, location, redacted=[]):
         """
