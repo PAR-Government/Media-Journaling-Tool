@@ -77,7 +77,8 @@ def updateJournal(scModel):
          ('0.5.0918.b370476d40', []),
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
          ('0.5.0918.19c0afaab7', [_fixTool2]),
-         ('0.5.1105.665737a167', [])
+         ('0.5.1105.665737a167', []),
+         ('0.5.1130.c118b19ba4', [])
          ])
 
     versions= list(fixes.keys())
