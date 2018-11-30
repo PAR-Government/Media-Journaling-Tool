@@ -29,7 +29,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare,getExifDimensions
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -1296,19 +1296,17 @@ def sizeChanged(op, graph, frm, to):
     return None
 
 def checkSizeAndExifPNG(op, graph, frm, to):
+    from math import ceil
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
-    frm_shape = frm_img.image_array.shape
-    to_shape = to_img.image_array.shape
+    frm_shape = (frm_img.size[1],frm_img.size[0])
+    to_shape = (to_img.size[1],to_img.size[0])
 
     dims = getExifDimensions(frm_file,crop=False)
-    dims = [dims] if dims is not None else []
-    location= toIntTuple(getValue(edge,'location','(0,0)'))
+    location = toIntTuple(getValue(edge,'location','(0,0)'))
     dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
-    crop_dims = getExifDimensions(frm_file, crop=True)
-    if crop_dims is not None:
-        dims.append(crop_dims)
+    dims.extend(getExifDimensions(frm_file, crop=True))
 
     acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
 
@@ -1317,7 +1315,9 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
     orientation = getValue(edge, 'exifdiff.Orientation')
     distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
-    change_allowed = 0.01 if not distortion else 0.02
+    change_allowed = ceil(max(0.01,1.0-(frm_shape[0]-64)/float(frm_shape[0]))*10000.0)/10000.0
+    if distortion:
+        change_allowed*=2
 
     if orientation is not None:
         orientation = str(orientation) if orientation is not None else None

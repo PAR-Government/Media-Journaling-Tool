@@ -1893,6 +1893,41 @@ class ImageProjectModel:
         return prefix
 
 
+    def nodesToCSV(self, filename, additionalpaths=list(), nodeFilter=None):
+        """
+        Create a CSV containing all the nodes of the graph.
+        By default, the first columns are project name, edge start node id,
+        edge end node id, and edge operation.
+        :param filename:
+        :param additionalpaths: paths that describe nested keys within the edge dictionary identifying
+        those keys' value to be placed as columns in the CSV
+        :param nodeFilter: a function that accepts the node dictionary and returns True if
+        the edge is to be included in the CSV file.  If the edgeFilter is None or not provided,
+        all edges are included in the CSV file
+        :return: None
+        @type filename: str
+        @type edgeFilter: func
+        """
+        import csv
+        csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        with open(filename, "ab") as fp:
+            fp_writer = csv.writer(fp)
+            for node_id in self.G.get_nodes():
+                node = self.G.get_node(node_id)
+                if nodeFilter is not None and not nodeFilter(node):
+                    continue
+                row = [self.G.get_name(), node_id, node['nodetype'], self.G.getNodeFileType(node_id), self.G.get_filename(node_id)]
+                for path in additionalpaths:
+                    if type(path) == 'str':
+                        values = getPathValues(node, path)
+                    else:
+                        values = path(node)
+                    if len(values) > 0:
+                        row.append(values[0])
+                    else:
+                        row.append('')
+                fp_writer.writerow(row)
+
     def toCSV(self, filename, additionalpaths=list(), edgeFilter=None):
         """
         Create a CSV containing all the edges of the graph.
