@@ -118,18 +118,20 @@ class InterpolateDonor:
 
     def arguments(self):
         if self.startIm.has_alpha():
-            return {}
+            default = 'None'
+        else:
+            default = 'RANSAC-4'
         predecessors = self.graph.predecessors(self.donor_start)
         for pred in predecessors:
             edge = self.graph.get_edge(pred, self.donor_start)
             if edge['op'].startswith('Select'):
-                return {}
+                default = 'None'
 
         return {
             "homography": {
                 "type": "list",
                 "source": "image",
-                "defaultvalue": "RANSAC-4",
+                "defaultvalue": default,
                 "values": [
                     "None",
                     "Map",
