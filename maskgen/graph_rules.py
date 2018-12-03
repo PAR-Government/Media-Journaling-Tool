@@ -305,6 +305,10 @@ def checkFrameRateChange_Lenient(op, graph, frm, to):
     if checkFrameRateChange(op, graph, frm, to):
         return (Severity.WARNING, 'Frame Rate Changed between nodes')
 
+def checkFrameRateDidChange(op, graph, frm, to):
+    if not checkFrameRateChange(op, graph, frm, to):
+        return (Severity.ERROR, 'Frame Rate did not change between nodes')
+
 def checkFrameRateChange(op, graph, frm, to):
     """
 
@@ -526,7 +530,7 @@ def checkAudioLength(op, graph, frm, to):
     streams_to_filter = ["video", "unknown", "data"]
     streams = [stream for stream in getValue(edge, 'metadatadiff') if stream not in streams_to_filter]
     for stream in streams:
-        modifier = getValue(streams[stream], 'duration', ('x', 0, 0))
+        modifier = getValue(stream, 'duration', ('x', 0, 0))
         if modifier[0] == 'change':
             return int(modifier[1]) - int(modifier[2])
         else:
@@ -548,7 +552,6 @@ def checkAudioLengthSmaller(op, graph, frm, to):
     if difference >= 0:
         return (Severity.ERROR, "Audio is not shorter in duration")
 
-
 def checkAudioLength_Strict(op, graph, frm, to):
     difference = checkAudioLength(op, graph, frm, to)
     if difference != 0:
@@ -566,11 +569,12 @@ def checkAudioLengthDonor(op, graph, frm, to):
     if addType == 'replace':
         from video_tools import get_duration
         from math import floor
-        donor = getDonor(graph, to)
+
+        donor = getDonor(graph, to)[0]
         extractor = MetaDataExtractor(graph)
-        to_duration = get_duration(extractor.getMetaDataLocator(to))
-        donor_duration = get_duration(extractor.getMetaDataLocator(donor))
-        if floor(donor_duration - to_duration) != 0:
+        to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
+        donor_duration = get_duration(extractor.getMetaDataLocator(donor), audio=True)
+        if floor(abs(donor_duration - to_duration)) != 0:
             return (Severity.ERROR, "Audio duration does not match the Donor")
     else:
         return checkAudioLength_Strict(op, graph, frm, to)

@@ -78,7 +78,7 @@ def updateJournal(scModel):
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
          ('0.5.0918.19c0afaab7', [_fixTool2]),
          ('0.5.1105.665737a167', []),
-         ('0.5.1130.c118b19ba4', [])
+         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp])
          ])
 
     versions= list(fixes.keys())
@@ -124,7 +124,7 @@ def _fixReplaceAudioOp(scModel, gopLoader):
         op_name = getValue(edge, 'op', '')
         if op_name == 'ReplaceAudioSample':
             edge['op'] = 'AddAudioSample'
-            setPathValue(edge, 'arguments.add_type', 'replace')
+            setPathValue(edge, 'arguments.add type', 'replace')
             setPathValue(edge, 'arguments.synchronization', 'none')
             setPathValue(edge, 'arguments.Direct from PC', 'no')
 

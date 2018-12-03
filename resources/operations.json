@@ -818,7 +818,7 @@
         }
       },
       "rules": [
-        "checkFrameRateChange_Strict"
+        "checkFrameRateDidChange"
       ],
       "optionalparameters": {
       },
