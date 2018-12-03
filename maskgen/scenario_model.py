@@ -813,6 +813,12 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
+        else:
+            maskSet = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(startFileName),
+                                             media_types=['audio'])
+            if maskSet is None:
+                maskSet = list()
+                errors = list()
 
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet

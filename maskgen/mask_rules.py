@@ -363,7 +363,7 @@ class BuildState:
     def getNodeFile(self):
         return self.meta_extractor.getNodeFile(self.source)
 
-    def getMasksFromEdge(self, expect_types,channel=0, startTime=None,endTime=None):
+    def getMasksFromEdge(self, expect_types, channel=0, startTime=None, endTime=None):
         return self.meta_extractor.getMasksFromEdge(self.source, self.target, expect_types, channel=channel,
                                              startTime=startTime, endTime=endTime)
 
@@ -375,19 +375,19 @@ class BuildState:
         """
         return exif.rotateAmount(getOrientationForEdge(self.edge))
 
-    def warpMask(self):
+    def warpMask(self, media_type=None):
         if self.isComposite:
             return CompositeImage(self.compositeMask.source,
                                   self.compositeMask.target,
-                                  self.compositeMask.media_type,
+                                  self.compositeMask.media_type if media_type is None else media_type,
                                   self.meta_extractor.warpMask(self.compositeMask.videomasks,
-                                                               self.source,
-                                                               self.target,
+                                                               source= self.source,
+                                                               target= self.target,
                                                                expectedType=self.compositeMask.media_type))
         elif self.donorMask is not None:
             return CompositeImage(self.donorMask.source,
                                   self.donorMask.target,
-                                  self.donorMask.media_type,
+                                  self.donorMask.media_type if media_type is None else media_type,
                                   self.meta_extractor.warpMask(self.donorMask.videomasks,
                                                                self.source,
                                                                self.target,
@@ -1076,18 +1076,27 @@ def replace_audio(buildState):
     @type buildState: BuildState
     @rtype: CompositeImage
     """
+    channel_name = getValue(buildState.arguments(), 'Stream', 'all')
+    masks = buildState.getMasksFromEdge(['audio'])
+    #TODO: filter masks based on channel
+    # masks = [mask for mask in masks if mask.channel == channel_name]
+    for mask in masks:
+        video_tools.drop_mask_from_segment(mask)
+
     if buildState.isComposite:
         return CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
-                                  ['audio']),
-                                  buildState.compositeMask.videomasks, keepTime=True,
-                                                                expectedType='audio'))
-    # in donor case, the donor was already trimmed
+                              video_tools.dropFramesWithoutMask(masks,
+                                                                buildState.compositeMask.videomasks,
+                                                                keepTime=True, expectedType='audio'))
     else:
-        return buildState.donorMask
-
+        return CompositeImage(buildState.donorMask.source,
+                              buildState.donorMask.target,
+                              buildState.donorMask.media_type,
+                              video_tools.dropFramesWithoutMask(masks,
+                                                                buildState.donorMask.videomasks,
+                                                                keepTime=True, expectedType='audio'))
 
 def add_audio(buildState):
     """
@@ -2037,14 +2046,14 @@ def echo(buildState):
     else:
         return buildState.donorMask
 
-def framerate_change(buildState):
+def sample_rate_change(buildState):
     """
         :param buildState:
         :return: updated composite mask
         @type buildState: BuildState
         @rtype: CompositeImage
         """
-    return buildState.warpMask()
+    return buildState.warpMask(media_type='audio')
 
 def output_video_change(buildState):
     """

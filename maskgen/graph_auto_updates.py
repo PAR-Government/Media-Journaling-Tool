@@ -111,6 +111,23 @@ def updateJournal(scModel):
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
 
+def _fixReplaceAudioOp(scModel, gopLoader):
+    """
+    Replaces the ReplaceAudioSample operation with AddAudioSample Operation,
+    Setting the 'add type' argument to 'replace'
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'ReplaceAudioSample':
+            edge['op'] = 'AddAudioSample'
+            setPathValue(edge, 'arguments.add_type', 'replace')
+            setPathValue(edge, 'arguments.synchronization', 'none')
+            setPathValue(edge, 'arguments.Direct from PC', 'no')
+
 def _fixNoSoftware(scModel, gopLoader):
     """
     fills in missing softwareName field.

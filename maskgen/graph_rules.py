@@ -521,55 +521,59 @@ def checkAudioChannels(op,graph, frm, to):
     if 'audio' not in meta:
         return (Severity.ERROR,'audio channel not present')
 
+def checkAudioLength(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    streams_to_filter = ["video", "unknown", "data"]
+    streams = [stream for stream in getValue(edge, 'metadatadiff') if stream not in streams_to_filter]
+    for stream in streams:
+        modifier = getValue(streams[stream], 'duration', ('x', 0, 0))
+        if modifier[0] == 'change':
+            return int(modifier[1]) - int(modifier[2])
+        else:
+            return 0
+
 def checkAudioSameorLonger(op, graph,frm, to):
     edge = graph.get_edge(frm, to)
     if edge['arguments']['add type'] == 'insert':
         return checkAudioLengthBigger(op, graph, frm, to)
-    return checkAudioLength(op, graph, frm, to)
+    return checkAudioLength_Strict(op, graph, frm, to)
 
 def checkAudioLengthBigger(op, graph, frm, to):
-    edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption],'duration',('x',0,0))
-                if modifier[0] == 'change' and int(modifier[1]) < int(modifier[2]):
-                    return None
-        return (Severity.ERROR, "Audio is not longer in duration")
-    except:
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference <= 0:
         return (Severity.ERROR, "Audio is not longer in duration")
 
 def checkAudioLengthSmaller(op, graph, frm, to):
-    edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption], 'duration', ('x', 0, 0))
-                if modifier[0] == 'change' and int(modifier[1]) > int(modifier[2]):
-                    return None
-        return (Severity.ERROR, "Audio is not shorter in duration")
-    except:
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference >= 0:
         return (Severity.ERROR, "Audio is not shorter in duration")
 
 
+def checkAudioLength_Strict(op, graph, frm, to):
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference != 0:
+        return (Severity.ERROR, "Audio duration does not match")
 
-def checkAudioLength(op, graph, frm, to):
+def checkAudioLength_Loose(op, graph, frm, to):
+    from math import floor
+    difference = checkAudioLength(op, graph, frm, to)
+    if floor(difference) != 0:
+        return (Severity.ERROR, "Audio duration does not match")
+
+def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption], 'duration', ('x', 0, 0))
-                if modifier[0] == 'change':
-                    return (Severity.ERROR, "Audio duration does not match")
-        return None
-    except:
-        return None
+    addType = getValue(edge, 'arguments.add type', '')
+    if addType == 'replace':
+        from video_tools import get_duration
+        from math import floor
+        donor = getDonor(graph, to)
+        extractor = MetaDataExtractor(graph)
+        to_duration = get_duration(extractor.getMetaDataLocator(to))
+        donor_duration = get_duration(extractor.getMetaDataLocator(donor))
+        if floor(donor_duration - to_duration) != 0:
+            return (Severity.ERROR, "Audio duration does not match the Donor")
+    else:
+        return checkAudioLength_Strict(op, graph, frm, to)
 
 
 def checkFileTypeChangeForDonor(op, graph, frm, to):
@@ -1163,6 +1167,10 @@ def checkLengthBigger(op, graph, frm, to):
                          getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[0]):
         return (Severity.ERROR,"Length of video is not longer")
 
+def checkLengthSameOrBigger(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    add_type = getValue(edge, 'arguments.add type', '')
+    return checkLengthBigger(op, graph, frm, to) if add_type != 'replace' else checkLengthSame(op, graph, frm, to)
 
 def seamCarvingCheck(op, graph, frm, to):
     """
