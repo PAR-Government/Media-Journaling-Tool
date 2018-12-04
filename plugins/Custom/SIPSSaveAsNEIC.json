@@ -1,0 +1,38 @@
+{
+    "name": "SIPSSaveAsNEIC",
+    "operation": {
+      "name": "OutputNEIF",
+      "category": "Output",
+      "description": "Save Input file as NEIC",
+      "software": "SIPS",
+      "version": "10.4",
+      "arguments":{
+        "quality": {
+          "type":"int[40:100]",
+          "defaultvalue":"90",
+          "description":"Image Quality"
+        },
+        "Image Rotated": {
+          "type":"yesno",
+          "defaultvalue":"no",
+          "description":"Rotate Not Supported"
+        }
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".neic",
+    "command": {
+      "default": [
+        "sips",
+        "-s",
+        "format",
+        "neic",
+        "-s",
+        "formatOptions",
+        "{quality}",
+        "{inputimage}",
+        "--out",
+        "{outputimage}"
+      ]
+    }
+}

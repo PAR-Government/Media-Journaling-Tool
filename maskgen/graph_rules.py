@@ -1334,7 +1334,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     if orientation is not None:
         orientation = str(orientation) if orientation is not None else None
 
-    rotated = getValue(edge,'arguments.Image Rotated','yes') == 'yes'
+    rotated = getValue(edge,'arguments.Image Rotated','no') == 'yes'
     expect_rotation = orientation is not None and ('270' in orientation or '90' in orientation) and rotated
     if not expect_rotation and numpy.sign(diff_frm) != numpy.sign(diff_to):
         return (Severity.ERROR, 'Image rotated; Exif does not indicate rotation')

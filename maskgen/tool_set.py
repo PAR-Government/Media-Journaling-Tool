@@ -6,27 +6,27 @@
 # All rights reserved.
 # ==============================================================================
 
-import math
-import re
-from datetime import datetime
-from skimage.measure import compare_ssim
-import warnings
-from scipy import ndimage
 import imghdr
-import sys
-from image_wrap import *
-from maskgen_loader import MaskGenLoader
-from subprocess import Popen, PIPE
-import threading
-import loghandling
-import cv2api
-from ffmpeg_api import get_ffprobe_tool
-from maskgen.support import removeValue, getValue
+import math
 import os
-from maskgen.userinfo import get_username
-import maskgen.exif
-
 import platform
+import re
+import sys
+import threading
+import warnings
+from datetime import datetime
+from subprocess import Popen, PIPE
+
+import cv2api
+import loghandling
+import maskgen.exif
+from ffmpeg_api import get_ffprobe_tool
+from image_wrap import *
+from maskgen.support import removeValue, getValue
+from maskgen.userinfo import get_username
+from maskgen_loader import MaskGenLoader
+from scipy import ndimage
+from skimage.measure import compare_ssim
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
@@ -61,13 +61,25 @@ modelfiletypes = [('3D Studio', '*.3ds'), ('Blender', '*.blen'), ('Collada', '*.
                   ('SoftImage', '*.xsi'), ('ZBrush', '*.ztl'), ('XYZ Files', '*.xyz')]
 
 
+class S3ProgessComposite(object):
+
+    def __init__(self,progress_monitors = []):
+        self.progress_monitors = progress_monitors
+
+    def __call__(self, bytes_amount):
+        for pm in self.progress_monitors:
+            pm(bytes_amount)
+
+
 class S3ProgressPercentage(object):
-    def __init__(self, filename):
+
+    def __init__(self, filename, log = None):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._percentage_so_far = 0
         self._lock = threading.Lock()
+        self.log = log if log is not None else logging.getLogger('maskgen').info
 
     def __call__(self, bytes_amount):
         # To simplify we'll assume this is hooked up
@@ -76,7 +88,7 @@ class S3ProgressPercentage(object):
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
             if (percentage - self._percentage_so_far) > 5:
-                logging.getLogger('maskgen').info(
+                self.log(
                     "%s  %s / %s  (%.2f%%)" % (
                         self._filename, self._seen_so_far, self._size,
                         percentage))
@@ -1531,7 +1543,6 @@ def _remap(img, mask, src_pts, dst_pts):
 
 
 def __grid(img1, img2, compositeMask, edgeMask=None, arguments=None):
-    from scipy.interpolate import griddata
     """
     Compute sparse maps from points between img1 to img2
     :param img1:
@@ -2689,7 +2700,7 @@ def mergeMask(compositeMask, newMask, level=0):
 
 
 def ssim(X, Y, MASK, **kwargs):
-    from scipy.ndimage import uniform_filter, gaussian_filter
+    from scipy.ndimage import gaussian_filter
 
     K1 = kwargs.pop('K1', 0.01)
     R = kwargs.pop('R', 255)
