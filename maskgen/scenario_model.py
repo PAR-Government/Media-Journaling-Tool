@@ -1536,7 +1536,8 @@ class ImageProjectModel:
         for nodeid in self.G.get_nodes():
             node = self.G.get_node(nodeid)
             if 'nodetype' in node and node['nodetype'] == 'base':
-                self.getGraph().set_name(os.path.splitext(node['file'])[0])
+                pos = node['file'].find('.')
+                self.getGraph().set_name(node['file'][:pos] if pos > 0 else node['file'])
                 break
 
     def addNextImage(self, pathname, invert=False, mod=Modification('', ''), sendNotifications=True, position=(50, 50),
