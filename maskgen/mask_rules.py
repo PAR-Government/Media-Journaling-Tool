@@ -1116,15 +1116,13 @@ def add_audio(buildState):
                 return CompositeImage(buildState.compositeMask.source,
                                       buildState.compositeMask.target,
                                       buildState.compositeMask.media_type,
-                                      video_tools.insertFrames(buildState.getMasksFromEdge(
-                                                           ['audio']),
-                                          buildState.compositeMask.videomasks,
-                                          expectedType='audio'))
+                                      video_tools.insertFrames(buildState.getMasksFromEdge(['audio']),
+                                                                buildState.compositeMask.videomasks,
+                                                                expectedType='audio'))
             return CompositeImage(buildState.compositeMask.source,
                                   buildState.compositeMask.target,
                                   buildState.compositeMask.media_type,
-                                  video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
-                                      ['audio']),
+                                  video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(['audio']),
                                                                     buildState.compositeMask.videomasks,
                                                                     keepTime=True,
                                                                     expectedType='audio'))

@@ -1174,7 +1174,7 @@ def checkLengthBigger(op, graph, frm, to):
 def checkLengthSameOrBigger(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     add_type = getValue(edge, 'arguments.add type', '')
-    return checkLengthBigger(op, graph, frm, to) if add_type != 'replace' else checkLengthSame(op, graph, frm, to)
+    return checkLengthBigger(op, graph, frm, to) if add_type in ['replace', 'overlay'] else checkLengthSame(op, graph, frm, to)
 
 def seamCarvingCheck(op, graph, frm, to):
     """
