@@ -141,12 +141,14 @@ class InterpolateDonor:
                     "RANSAC-4",
                     "RANSAC-5"
                 ],
+                "trigger mask": True,
                 "description": "Tune transform creation for composite mask generation"
             },
             "homography max matches": {
                 "type": "int[20:10000]",
                 "defaultvalue":2000,
-                "description": "Maximum number of matched feature points used to compute the homography."
+                "description": "Maximum number of matched feature points used to compute the homography.",
+                "trigger mask": True
             }
         }
 
@@ -198,6 +200,7 @@ class VideoInterpolateDonor:
                     "RANSAC-4",
                     "RANSAC-5"
                 ],
+                "trigger mask": True,
                 "description": "Tune transform creation for composite mask generation"
             }
         }
@@ -274,16 +277,19 @@ class VideoDonor:
             "include audio": {
                 "type": "yesno",
                 "defaultvalue": "no",
+                "trigger mask": True,
                 "description": "Is Audio Donated."
             },
             "Start Time": {
                 "type": "frame_or_time",
                 "defaultvalue": 1,
+                "trigger mask": True,
                 "description": "Start frame number"
             },
             "End Time": {
                 "type": "frame_or_time",
                 "defaultvalue": 0,
+                "trigger mask" : True,
                 "description": "End frame number. Leave 0 if ALL"
             }
         }

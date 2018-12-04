@@ -2972,6 +2972,11 @@
             "heal",
             "stacking"
           ],
+          "video:values": [
+            "remove",
+            "heal",
+            "stacking"
+          ],
           "description": "Purpose: remove an object, clone (combination of add and remove), healing using sampled pixels, layer stacking to create new paste"
         },
         "Start Time": {
@@ -3736,6 +3741,36 @@
       "qaList": [
         "Confirm that the file was transformed into a png",
         "The file was compressed in a lossless fashion"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputNEIF",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "description": "Export the image in the neif format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm that the file was transformed into a NEIF"
       ]
     },
     {
@@ -4505,6 +4540,15 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
+        },
+        "add type": {
+          "type": "list",
+          "values": [
+            "replace",
+            "overlay",
+            "insert"
+          ],
+          "description": "Insert slides frames.  Replacing or overlaying keeps numbers of frames in video the same."
         },
         "Number of Frames": {
           "type": "int[0:1000000]",

@@ -93,7 +93,7 @@ def _get_path_from_first_message(pathname):
     match = exp.match(msg)
     if match is not None:
         return match.groups()
-    return None, None, None
+    raise ValueError('First Message Not Formed')
 
 #-------------------------------------------------------------------------------------------------------------
 # Upload Processing - Child Process UpLoader
@@ -191,9 +191,17 @@ class ProcessInfo:
         @type process_info: ProcessInfo
         """
         logfilename = self.get_log_name()
+        editmode = 'a+'
         try:
-            with open(logfilename,'a+') as fp:
-                fp.writelines(['INJECTED MESSAGE {} {} to {}'.format(self.status,
+            _get_path_from_first_message(logfilename)
+        except:
+            editmode='w'
+        try:
+            with open(logfilename,editmode) as fp:
+                if editmode=='w':
+                    # overwrite since what was there may be corrupt
+                    fp.writelines(['INJECTED MESSAGE START {} to {} on {}\n'.format(self.pathname, self.location, -1)])
+                fp.writelines(['INJECTED MESSAGE {} {} to {}\n'.format(self.status,
                                                                      self.pathname,
                                                                      self.location)])
         except Exception as e:
@@ -404,13 +412,24 @@ class ExportManager:
         self.listen_thread.start()
         self.export_tool = export_tool()
 
+    def shutdown(self):
+        self.semaphore.acquire()
+        self.active = False
+        self.semaphore.notifyAll()
+        self.semaphore.release()
+        self.listen_thread.join()
+
     def  _load_history(self):
         with self.lock:
             for f in os.listdir(self.directory):
                 if f.endswith('.txt'):
                     logfilename = os.path.join(self.directory,f)
                     name = os.path.splitext(f)[0]
-                    status, pathname, location, pid = _get_path_from_first_message(logfilename)
+                    try:
+                        status, pathname, location, pid = _get_path_from_first_message(logfilename)
+                    except:
+                        os.remove(logfilename)
+                        continue
                     status = _get_status_from_last_message(logfilename)
                     if name not in self.processes:
                         self.processes[name] = NonOwnedProcessInfo(pid=pid,
@@ -458,13 +477,15 @@ class ExportManager:
         :return:
         """
         from copy import copy
-        while True:
+        self.active = True
+        while self.active:
             sleep_value = 1
             self.semaphore.acquire()
+            if not self.active:
+                continue
             try:
                 active_count = len([p for p in self.processes.values() if p.is_active()])
-                print active_count
-                if active_count == 0:
+                if active_count == 0 :
                     sleep_value = 0
                     self.semaphore.wait()
                 processes = copy(self.processes)
@@ -487,13 +508,16 @@ class ExportManager:
         if pi is None:
             logfilename = os.path.join(self.directory, name + '.txt')
             status, pathname, location, pid = _get_path_from_first_message(logfilename)
+            os.remove(logfilename)
         else:
             pathname = pi.pathname
             location = pi.location
             status = pi.status
+            os.remove(pi.get_log_name())
         if pathname is None or not os.path.exists(pathname):
             return False
-        self.upload(pathname, location)
+
+        self.upload(pathname, location, remove_when_done=pi.remove_when_done)
         return True
 
     def forget(self, name):
@@ -527,6 +551,7 @@ class ExportManager:
             else:
                 return
         self._call_notifier(name, time(), process_info.status)
+        return process_info
 
     def upload(self, pathname, location, remove_when_done=True, finish_notification=None, finish_notification_args=None):
         """
@@ -565,6 +590,7 @@ class ExportManager:
         logging.getLogger('maskgen').info('START upload {}'.format(name))
         # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
         self._call_notifier(name, time(), 'START')
+        return name
 
     def sync_upload(self, pathname, location, remove_when_done=True):
         """

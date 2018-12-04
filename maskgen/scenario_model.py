@@ -2615,7 +2615,9 @@ class ImageProjectModel:
         edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
         if  'global operation' in kwargs:
             edge_parameters['global operation'] = kwargs['global operation']
-        results2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
+        results2, status = self.addNextImage(target,
+                                             mod=description,
+                                             sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
                                          edge_parameters=edge_parameters,
