@@ -3346,7 +3346,7 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
+          "description": "Start frane of the image clip",
           "defaultvalue": 1
         }
       },
@@ -3364,6 +3364,12 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "End frame of the image clip"
         }
       },
       "analysisOperations": [
