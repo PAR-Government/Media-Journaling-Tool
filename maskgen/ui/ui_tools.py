@@ -149,7 +149,7 @@ class TimeWidget(Frame):
 
     def create_widgets(self):
         initialvalues = self.time_text_variable.get().split(':')
-        if len(initialvalues) > 0:
+        if len(initialvalues) > 2:
             micro = 0 if '.' not in initialvalues[-1] else initialvalues[-1].split('.')[1]
             second  = int(initialvalues[-1]) if  '.' not in initialvalues[-1] else initialvalues[-1].split('.')[0]
             minute = initialvalues[1]
