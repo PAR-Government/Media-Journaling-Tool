@@ -633,7 +633,7 @@ class BaseSelectionOperation(BatchOperation):
         logging.getLogger('maskgen').info("Build project {}".format(pick_file))
         preferred_organization = maskGenPreferences.get_key('organization')
         preferred_username=getValue(global_state,'username',defaultValue=get_username())
-        suffix = os.path.splitext(pick_file)[0]
+        suffix = os.path.splitext(pick_file)[1]
         model = scenario_model.createProject(dir,
                                              name=name,
                                              base=file_path_in_project,
