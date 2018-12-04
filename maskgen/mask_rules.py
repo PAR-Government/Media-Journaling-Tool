@@ -1077,27 +1077,22 @@ def replace_audio(buildState):
     @rtype: CompositeImage
     """
     channel_name = getValue(buildState.arguments(), 'Stream', 'all')
-    masks = buildState.getMasksFromEdge(['audio'])
     #TODO: filter masks based on channel
-    # masks_to_remove = [mask for mask in masks if mask.channel == channel_name]
-    masks_to_remove = masks
-    for mask in masks_to_remove:
-        masks.remove(mask)
+    masks = buildState.compositeMask.videomasks if buildState.isComposite else buildState.donorMask.videomasks
+
+    new_masks = []
+    new_masks = [mask_segment for mask_segment in masks if video_tools.get_type_of_segment(mask_segment) != 'audio']
 
     if buildState.isComposite:
         return CompositeImage(buildState.compositeMask.source,
                               buildState.compositeMask.target,
                               buildState.compositeMask.media_type,
-                              video_tools.dropFramesWithoutMask(masks,
-                                                                buildState.compositeMask.videomasks,
-                                                                keepTime=True, expectedType='audio'))
+                              new_masks)
     else:
         return CompositeImage(buildState.donorMask.source,
                               buildState.donorMask.target,
                               buildState.donorMask.media_type,
-                              video_tools.dropFramesWithoutMask(masks,
-                                                                buildState.donorMask.videomasks,
-                                                                keepTime=True, expectedType='audio'))
+                              new_masks)
 
 def add_audio(buildState):
     """
