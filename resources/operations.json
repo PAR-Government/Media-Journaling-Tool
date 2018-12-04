@@ -2972,6 +2972,11 @@
             "heal",
             "stacking"
           ],
+          "video:values": [
+            "remove",
+            "heal",
+            "stacking"
+          ],
           "description": "Purpose: remove an object, clone (combination of add and remove), healing using sampled pixels, layer stacking to create new paste"
         },
         "Start Time": {
