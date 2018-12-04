@@ -69,16 +69,16 @@ class TestMaskRules(TestSupport):
             mock_composite.edge = edge
             mock_composite.arguments.return_value = edge['arguments']
             mock_composite.getMasksFromEdge.return_value = [video_tools.create_segment(**{
-                'starttime': 0,
-                'startframe': 1,
-                'endtime': 4,
-                'endframe': 176400,
-                'frames': 176399,
+                'starttime': .2267,
+                'startframe': 10000,
+                'endtime': .4535,
+                'endframe': 20000,
+                'frames': 10000,
                 'type': 'audio',
                 'rate': 44100
             })]
             result = add_audio(mock_composite)
-            self.assertEqual(0, len(result.videomasks))
+            self.assertEqual(2, len(result.videomasks))
 
             edge = {u'maskname': u'Rotate_mask.png',
                     u'inputmaskname': None,

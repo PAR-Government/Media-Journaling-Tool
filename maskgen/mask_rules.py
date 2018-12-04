@@ -1079,9 +1079,10 @@ def replace_audio(buildState):
     channel_name = getValue(buildState.arguments(), 'Stream', 'all')
     masks = buildState.getMasksFromEdge(['audio'])
     #TODO: filter masks based on channel
-    # masks = [mask for mask in masks if mask.channel == channel_name]
-    for mask in masks:
-        video_tools.drop_mask_from_segment(mask)
+    # masks_to_remove = [mask for mask in masks if mask.channel == channel_name]
+    masks_to_remove = masks
+    for mask in masks_to_remove:
+        masks.remove(mask)
 
     if buildState.isComposite:
         return CompositeImage(buildState.compositeMask.source,
