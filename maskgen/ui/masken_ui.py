@@ -986,7 +986,8 @@ class MakeGenUI(Frame):
                     self.scModel.save()
                 except Exception as e:
                     logging.getLogger('maskgen').error('Failed to incrementally save {}'.format(str(e)))
-        elif eventType == 'connect':
+
+        if eventType == 'connect':
             self.canvas.add(recipient[0],recipient[1])
         elif eventType == 'add':
             self.canvas.addNew(recipient)
