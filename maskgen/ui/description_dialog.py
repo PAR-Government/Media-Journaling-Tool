@@ -178,6 +178,8 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     @type filetypes: [(str,str)]
     :return:
     """
+    if '*.*' in [t[1] for t in filetypes]:
+        filetypes = []
     val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + id,
                                        filetypes=filetypes)
     var = obj.values[row]
@@ -2162,7 +2164,7 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
                typematch = '*.' + prop.type[prop.type.find(':')+1:]
-               typename =  prop.name[prop.type.find(':') + 1:].upper()
+               typename =  prop.type[prop.type.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)
