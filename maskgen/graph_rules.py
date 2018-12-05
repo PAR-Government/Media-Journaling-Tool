@@ -1308,7 +1308,11 @@ def checkSizeAndExifPNG(op, graph, frm, to):
     dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
     dims.extend(getExifDimensions(frm_file, crop=True))
 
-    acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
+    acceptable_size_change =  frm_img.isRaw or os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',
+                                                                                                  default_value=['.arw',
+                                                                                                                 '.nef',
+                                                                                                                 '.cr2'
+                                                                                                                 '.dng'])
 
     diff_frm = frm_img.size[0] - frm_img.size[1]
     diff_to = to_img.size[0] - to_img.size[1]
