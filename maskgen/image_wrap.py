@@ -484,6 +484,11 @@ class ImageWrapper:
             self.image_array = self.to_mask_array()
             self.mode = 'L'
 
+    def file_mtime(self):
+        if self.filename is None or not os.path.exists(self.filename):
+            return 0
+        return os.stat(self.filename).st_mtime
+
     def has_alpha(self):
         return len(self.image_array.shape) == 3 and self.mode.find('A') > 0
 
