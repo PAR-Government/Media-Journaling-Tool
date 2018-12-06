@@ -327,11 +327,13 @@ Parameters are defined optional and mandatory sections of the operation.  Each p
   - *string*
   - *listfromfile:\<filename\>* - a text file containing a list of possible entries
   - *folder:\<location\> * - example folder:plugins/QTTables
-- *values*- a list of values for list type.  Values are strings.
+- *values* - a list of values for list type.  Values are strings.
+  - *_type_:values* - source file type specific values to override the default values; example "video:values".
 - *description* - description of the parameter
 - *defaultvalue* - default value (optional)
 - *source*- Parameter is conditioned to be collected for a specific type of media such image, zip, video or audio (optional).
 
+The source type specific values is inforced in the UI.  It is not enforced in batch projects.  The batch specification to not indicate random selection of values from the parameter if there is a type restriction..
 ##Comparison and Mask Generation
 
 ##Transforms and Preprocessors

@@ -1,5 +1,5 @@
 {
-  "version": "0.10.01.b370476d40",
+  "version": "0.11.01.b370476d40",
   "operations": [
     {
       "category": "Audio",
@@ -229,6 +229,13 @@
           ],
           "description": "Replacing or overlaying."
         },
+        "filter type": {
+          "type": "list",
+          "values": [
+            "EQ Match",
+            "Other"
+          ]
+        },
         "synchronization": {
           "type": "list",
           "values": [
@@ -274,7 +281,7 @@
         "checkOverlay",
         "checkAudioOnly",
         "checkAudioAdd",
-        "checkAudioSameorLonger"
+        "checkAudioLengthDonor"
       ],
       "optionalparameters": {
         "End Time": {
@@ -336,7 +343,7 @@
         "checkSampleRate",
         "checkAudioTimeFormat",
         "checkDurationAudio",
-        "checkAudioLength"
+        "checkAudioLength_Strict"
       ],
       "parameter_dependencies": {
         "Effects Type": {
@@ -466,7 +473,7 @@
         "checkDurationAudio",
         "checkAudioOnly",
         "checkFrameRateChange_Strict",
-        "checkAudioLength"
+        "checkAudioLength_Strict"
       ],
       "parameter_dependencies": {
         "Filter Type": {
@@ -582,7 +589,7 @@
         "checkSampleRate",
         "checkAudioOnly",
         "checkFrameRateChange_Strict",
-        "checkAudioLength"
+        "checkAudioLength_Strict"
       ],
       "optionalparameters": {
         "Final Fade Level": {
@@ -677,7 +684,7 @@
         "checkUncompressed",
         "checkDurationAudio",
         "checkAudioTimeFormat",
-        "checkAudioLength",
+        "checkAudioLength_Strict",
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
@@ -756,7 +763,7 @@
         "checkDurationAudio",
         "checkSampleRate",
         "checkAudioTimeFormat",
-        "checkAudioLength",
+        "checkAudioLength_Strict",
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
@@ -798,6 +805,42 @@
     },
     {
       "category": "Audio",
+      "name": "TransformSampleRate",
+      "mandatoryparameters": {
+        "Stream": {
+          "type": "list",
+          "values": [
+            "left",
+            "right",
+            "all"
+          ],
+          "description": "all includes mono and stereo, depending on available streams"
+        }
+      },
+      "rules": [
+        "checkFrameRateDidChange"
+      ],
+      "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "audio": "maskgen.mask_rules.sample_rate_change"
+      },
+      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
+      "analysisOperations": [],
+      "description": "Use the audio stream from a donor to replace the audio stream of the file.",
+      "includeInMask": {
+        "default": false
+      },
+      "generateMask": "meta",
+      "transitions": [
+        "audio.audio"
+      ],
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.audioCompare"
+      }
+    },
+    {
+      "category": "Audio",
       "name": "ReplaceAudioSample",
       "mandatoryparameters": {
         "voice": {
@@ -812,12 +855,6 @@
           ],
           "description": "Replacing or overlaying."
         },
-        "Start Time": {
-          "type": "time",
-          "defaultvalue": "00:00:00",
-          "trigger mask": true,
-          "description": "Start time of the audio clip (HH:MI:SS.micro or frame number)"
-        },
         "Stream": {
           "type": "list",
           "values": [
@@ -831,22 +868,11 @@
       "rules": [
         "checkForDonor",
         "checkFileTypeChange",
-        "checkFrameTimes",
-        "checkAddFrameTime",
-        "checkSameChannels",
         "checkUncompressed",
-        "checkDurationAudio",
-        "checkAudioTimeFormat",
-        "checkAudioOnly",
-        "checkFrameRateChange_Strict",
-        "checkAudioLength"
+        "checkFrameRateChange_Lenient",
+        "checkAudioLengthDonor"
       ],
       "optionalparameters": {
-        "End Time": {
-          "type": "time",
-          "trigger mask": true,
-          "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
-        }
       },
       "maskTransformFunction": {
         "audio": "maskgen.mask_rules.replace_audio",
@@ -854,11 +880,11 @@
       },
       "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
-      "description": "Replacing with a donor audio stream to a video",
+      "description": "Use the audio stream from a donor to replace the audio stream of the file.",
       "includeInMask": {
-        "default": true
+        "default": false
       },
-      "generateMask": "audio",
+      "generateMask": "meta",
       "transitions": [
         "video.video",
         "audio.audio"
@@ -2972,6 +2998,11 @@
             "heal",
             "stacking"
           ],
+          "video:values": [
+            "remove",
+            "heal",
+            "stacking"
+          ],
           "description": "Purpose: remove an object, clone (combination of add and remove), healing using sampled pixels, layer stacking to create new paste"
         },
         "Start Time": {
@@ -3746,6 +3777,36 @@
     },
     {
       "category": "Output",
+      "name": "OutputNEIF",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        }
+      },
+      "rules": [
+        "checkSize",
+        "checkOutputType"
+      ],
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "description": "Export the image in the neif format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm that the file was transformed into a NEIF"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputCopy",
       "mandatoryparameters": {
       },
@@ -3812,14 +3873,14 @@
       "rules": [
         "checkLengthSame",
         "checkAudioOutputType",
-        "checkAudioLength"
+        "checkAudioLength_Loose"
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.echo",
-        "audio": "maskgen.mask_rules.echo"
+        "video": "maskgen.mask_rules.sample_rate_change",
+        "audio": "maskgen.mask_rules.sample_rate_change"
       },
       "optionalparameters": {
       },
@@ -3840,7 +3901,8 @@
       },
       "rules": [
         "checkLengthSame",
-        "checkAudioOutputType"
+        "checkAudioOutputType",
+        "checkAudioLength_Loose"
       ],
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
@@ -3848,8 +3910,8 @@
       "optionalparameters": {
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.echo",
-        "audio": "maskgen.mask_rules.echo"
+        "video": "maskgen.mask_rules.sample_rate_change",
+        "audio": "maskgen.mask_rules.sample_rate_change"
       },
       "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": {
@@ -4127,7 +4189,7 @@
       "rules": [
         "checkSameChannels",
         "checkOutputTypeM4",
-        "checkAudioLength"
+        "checkAudioLength_Strict"
       ],
       "optionalparameters": {},
       "description": "Export the image to lossless format.",
@@ -4512,6 +4574,15 @@
           "trigger mask": true,
           "description": "Start time of the copied video clip (HH:MI:SS.micro or frame number)"
         },
+        "add type": {
+          "type": "list",
+          "values": [
+            "replace",
+            "overlay",
+            "insert"
+          ],
+          "description": "Insert slides frames.  Replacing or overlaying keeps numbers of frames in video the same."
+        },
         "Number of Frames": {
           "type": "int[0:1000000]",
           "description": "Numbers of frames copy/pasted"
@@ -4523,7 +4594,7 @@
         }
       },
       "rules": [
-        "checkLengthBigger",
+        "checkLengthSameOrBigger",
         "checkSameChannels",
         "checkEmpty",
         "checkFrameRateChange_Strict"
@@ -6355,7 +6426,7 @@
         "checkSameChannels",
         "checkHomography",
         "checkFrameRateChange_Strict",
-        "checkAudioLength"
+        "checkAudioLength_Strict"
       ],
       "optionalparameters": {
         "Homography": {

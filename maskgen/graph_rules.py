@@ -29,7 +29,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
 from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -305,6 +305,10 @@ def checkFrameRateChange_Lenient(op, graph, frm, to):
     if checkFrameRateChange(op, graph, frm, to):
         return (Severity.WARNING, 'Frame Rate Changed between nodes')
 
+def checkFrameRateDidChange(op, graph, frm, to):
+    if not checkFrameRateChange(op, graph, frm, to):
+        return (Severity.ERROR, 'Frame Rate did not change between nodes')
+
 def checkFrameRateChange(op, graph, frm, to):
     """
 
@@ -521,55 +525,59 @@ def checkAudioChannels(op,graph, frm, to):
     if 'audio' not in meta:
         return (Severity.ERROR,'audio channel not present')
 
+def checkAudioLength(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    streams_to_filter = ["video", "unknown", "data"]
+    streams = [stream for stream in getValue(edge, 'metadatadiff') if stream not in streams_to_filter]
+    for stream in streams:
+        modifier = getValue(stream, 'duration', ('x', 0, 0))
+        if modifier[0] == 'change':
+            return int(modifier[1]) - int(modifier[2])
+        else:
+            return 0
+
 def checkAudioSameorLonger(op, graph,frm, to):
     edge = graph.get_edge(frm, to)
     if edge['arguments']['add type'] == 'insert':
         return checkAudioLengthBigger(op, graph, frm, to)
-    return checkAudioLength(op, graph, frm, to)
+    return checkAudioLength_Strict(op, graph, frm, to)
 
 def checkAudioLengthBigger(op, graph, frm, to):
-    edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption],'duration',('x',0,0))
-                if modifier[0] == 'change' and int(modifier[1]) < int(modifier[2]):
-                    return None
-        return (Severity.ERROR, "Audio is not longer in duration")
-    except:
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference <= 0:
         return (Severity.ERROR, "Audio is not longer in duration")
 
 def checkAudioLengthSmaller(op, graph, frm, to):
-    edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption], 'duration', ('x', 0, 0))
-                if modifier[0] == 'change' and int(modifier[1]) > int(modifier[2]):
-                    return None
-        return (Severity.ERROR, "Audio is not shorter in duration")
-    except:
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference >= 0:
         return (Severity.ERROR, "Audio is not shorter in duration")
 
+def checkAudioLength_Strict(op, graph, frm, to):
+    difference = checkAudioLength(op, graph, frm, to)
+    if difference != 0:
+        return (Severity.ERROR, "Audio duration does not match")
 
+def checkAudioLength_Loose(op, graph, frm, to):
+    from math import floor
+    difference = checkAudioLength(op, graph, frm, to)
+    if floor(difference) != 0:
+        return (Severity.ERROR, "Audio duration does not match")
 
-def checkAudioLength(op, graph, frm, to):
+def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
-    nStreams = ["video", "unknown", "data"]
-    try:
-        streams = getValue(edge, 'metadatadiff')
-        for streamOption in streams:
-            if streamOption not in nStreams:
-                modifier = getValue(streams[streamOption], 'duration', ('x', 0, 0))
-                if modifier[0] == 'change':
-                    return (Severity.ERROR, "Audio duration does not match")
-        return None
-    except:
-        return None
+    addType = getValue(edge, 'arguments.add type', '')
+    if addType == 'replace':
+        from video_tools import get_duration
+        from math import floor
+
+        donor = getDonor(graph, to)[0]
+        extractor = MetaDataExtractor(graph)
+        to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
+        donor_duration = get_duration(extractor.getMetaDataLocator(donor), audio=True)
+        if floor(abs(donor_duration - to_duration)) != 0:
+            return (Severity.ERROR, "Audio duration does not match the Donor")
+    else:
+        return checkAudioLength_Strict(op, graph, frm, to)
 
 
 def checkFileTypeChangeForDonor(op, graph, frm, to):
@@ -1163,6 +1171,10 @@ def checkLengthBigger(op, graph, frm, to):
                          getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[0]):
         return (Severity.ERROR,"Length of video is not longer")
 
+def checkLengthSameOrBigger(op, graph, frm, to):
+    edge = graph.get_edge(frm, to)
+    add_type = getValue(edge, 'arguments.add type', '')
+    return checkLengthBigger(op, graph, frm, to) if add_type in ['replace', 'overlay'] else checkLengthSame(op, graph, frm, to)
 
 def seamCarvingCheck(op, graph, frm, to):
     """
@@ -1295,37 +1307,41 @@ def sizeChanged(op, graph, frm, to):
         return (Severity.ERROR,'operation should change the size of the image')
     return None
 
-def getDimensions(filename):
-    from maskgen import exif
-    meta = exif.getexif(filename)
-    heights= ['Image Height','Exif Image Height','Cropped Image Height']
-    widths = ['Image Width','Exif Image Width','Cropped Image Width']
-    height_selections = [meta[h] for h in heights if h in meta]
-    width_selections = [meta[w] for w in widths if w in meta]
-    return (int(height_selections[0]),int(width_selections[0])) if height_selections and width_selections else None
-
 def checkSizeAndExifPNG(op, graph, frm, to):
+    from math import ceil
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
     to_img, to_file = graph.get_image(to)
-    frm_shape = frm_img.size
-    to_shape = to_img.size
+    frm_shape = (frm_img.size[1],frm_img.size[0])
+    to_shape = (to_img.size[1],to_img.size[0])
 
-    dims = getDimensions(frm_file) if getValue(edge,'arguments.Crop',None) == 'yes' else None
+    dims = getExifDimensions(frm_file,crop=False)
+    location = toIntTuple(getValue(edge,'location','(0,0)'))
+    dims = [(dim[0]-location[0]*2, dim[1]-location[1]*2) for dim in dims]
+    dims.extend(getExifDimensions(frm_file, crop=True))
 
-    acceptable_size_change =  os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',default_value=['.arw'])
+    acceptable_size_change =  frm_img.isRaw or os.path.splitext(frm_file)[1].lower() in maskGenPreferences.get_key('resizing_raws',
+                                                                                                  default_value=['.arw',
+                                                                                                                 '.nef',
+                                                                                                                 '.cr2'
+                                                                                                                 '.dng'])
 
     diff_frm = frm_img.size[0] - frm_img.size[1]
     diff_to = to_img.size[0] - to_img.size[1]
 
     orientation = getValue(edge, 'exifdiff.Orientation')
     distortion = getValue(edge,'arguments.Lens Distortion Applied','no')=='yes'
-    change_allowed = 0.01 if not distortion else 0.02
+    change_allowed = ceil(max(0.015,
+                              1.0 - (frm_shape[0] - 65)/float(frm_shape[0]),
+                              1.0 - (frm_shape[1] - 65)/float(frm_shape[1])
+                              )*10000.0)/10000.0
+    if distortion:
+        change_allowed*=2
 
     if orientation is not None:
         orientation = str(orientation) if orientation is not None else None
 
-    rotated = getValue(edge,'arguments.Image Rotated','yes') == 'yes'
+    rotated = getValue(edge,'arguments.Image Rotated','no') == 'yes'
     expect_rotation = orientation is not None and ('270' in orientation or '90' in orientation) and rotated
     if not expect_rotation and numpy.sign(diff_frm) != numpy.sign(diff_to):
         return (Severity.ERROR, 'Image rotated; Exif does not indicate rotation')
@@ -1336,10 +1352,11 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
 
     if expect_rotation:
-        acceptable_shapes = [(frm_shape[1],frm_shape[0]), (dims[1], dims[0])] if dims is not None else [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes = [(frm_shape[1],frm_shape[0])]
+        acceptable_shapes.extend([(dim[1], dim[0]) for dim in dims])
     else:
-        acceptable_shapes = [frm_shape, (dims[0], dims[1])] if dims is not None else [frm_shape]
-
+        acceptable_shapes = [frm_shape]
+        acceptable_shapes.extend(dims)
     warnings = 0
     for acceptable_shape_option in acceptable_shapes:
 

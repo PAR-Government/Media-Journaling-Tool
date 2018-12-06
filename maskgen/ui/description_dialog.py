@@ -178,6 +178,8 @@ def promptForFileAndFillButtonText(obj, dir, id, row, filetypes):
     @type filetypes: [(str,str)]
     :return:
     """
+    if '*.*' in [t[1] for t in filetypes]:
+        filetypes = []
     val = tkFileDialog.askopenfilename(initialdir=dir, title="Select " + id,
                                        filetypes=filetypes)
     var = obj.values[row]
@@ -435,6 +437,7 @@ class DescriptionCaptureDialog(Toplevel):
         self.scModel = scModel
         self.argvalues = {}
         self.arginfo = []
+        self.op = None
         self.inputMaskName = None
         self.sourcefiletype = scModel.getStartType()
         self.targetfiletype = targetfiletype
@@ -499,7 +502,7 @@ class DescriptionCaptureDialog(Toplevel):
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
-                                      values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
+                                      values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
@@ -514,16 +517,16 @@ class DescriptionCaptureDialog(Toplevel):
         self.argBox.pack()
 
     def newcommand(self, event):
-        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
+        self.op = self.scModel.getGroupOperationLoader().getOperationWithGroups(self.opname.get())
         self.arginfo = []
-        if op is not None:
-            for k, v in op.mandatoryparameters.iteritems():
+        if self.op is not None:
+            for k, v in self.op.mandatoryparameters.iteritems():
                 if 'source' in v and v['source'] != self.sourcefiletype:
                     continue
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 self.arginfo.append((k, v))
-            for k, v in op.optionalparameters.iteritems():
+            for k, v in self.op.optionalparameters.iteritems():
                 if 'source' in v and v['source'] != self.sourcefiletype:
                     continue
                 if 'target' in v and v['target'] != self.targetfiletype:
@@ -2161,7 +2164,7 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
                typematch = '*.' + prop.type[prop.type.find(':')+1:]
-               typename =  prop.name[prop.type.find(':') + 1:].upper()
+               typename =  prop.type[prop.type.find(':') + 1:].upper()
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, [(typename, typematch)])
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '               ', takefocus=False,
                                                 command=partialf)

@@ -6,37 +6,33 @@
 # All rights reserved.
 # ==============================================================================
 
-from image_graph import createGraph
-from maskgen.video_tools import DummyMemory
-from support import getPathValues
-import exif
-import os
-import numpy as np
-import logging
-from tool_set import *
-import video_tools
-import ffmpeg_api
-from software_loader import Software, getProjectProperties, ProjectProperty, MaskGenLoader, getRule
-import tempfile
-import plugins
-import graph_rules
-from image_wrap import ImageWrapper
-from PIL import Image
-from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
-from graph_auto_updates import updateJournal
-import hashlib
-import shutil
 import collections
+import copy
+import shutil
+import tempfile
+import traceback
 from threading import Lock
+
+import ffmpeg_api
+import graph_rules
 import mask_rules
+import notifiers
+import plugins
+import video_tools
+from PIL import Image
+from graph_auto_updates import updateJournal
+from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
+from image_graph import createGraph
+from image_wrap import ImageWrapper
 from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
-import copy
 from maskgen.userinfo import get_username
+from maskgen.video_tools import DummyMemory
+from software_loader import Software, getProjectProperties, MaskGenLoader, getRule
+from support import MaskgenThreadPool, StatusTracker
+from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
-import traceback
-from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc
-import notifiers
+
 
 def formatStat(val):
     if type(val) == float:
@@ -813,6 +809,12 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
+        else:
+            maskSet = video_tools.getMaskSetForEntireVideo(
+                video_tools.FileMetaDataLocator(startFileName), media_types=['audio'])
+            if maskSet is None:
+                maskSet = list()
+                errors = list()
 
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
@@ -1631,7 +1633,7 @@ class ImageProjectModel:
 
 
     def _executeQueue(self,q,results,tracker):
-        from Queue import Queue, Empty
+        from Queue import Empty
         """
         :param q:
         :return:
@@ -1897,6 +1899,41 @@ class ImageProjectModel:
         return prefix
 
 
+    def nodesToCSV(self, filename, additionalpaths=list(), nodeFilter=None):
+        """
+        Create a CSV containing all the nodes of the graph.
+        By default, the first columns are project name, edge start node id,
+        edge end node id, and edge operation.
+        :param filename:
+        :param additionalpaths: paths that describe nested keys within the edge dictionary identifying
+        those keys' value to be placed as columns in the CSV
+        :param nodeFilter: a function that accepts the node dictionary and returns True if
+        the edge is to be included in the CSV file.  If the edgeFilter is None or not provided,
+        all edges are included in the CSV file
+        :return: None
+        @type filename: str
+        @type edgeFilter: func
+        """
+        import csv
+        csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        with open(filename, "ab") as fp:
+            fp_writer = csv.writer(fp)
+            for node_id in self.G.get_nodes():
+                node = self.G.get_node(node_id)
+                if nodeFilter is not None and not nodeFilter(node):
+                    continue
+                row = [self.G.get_name(), node_id, node['nodetype'], self.G.getNodeFileType(node_id), self.G.get_filename(node_id)]
+                for path in additionalpaths:
+                    if type(path) == 'str':
+                        values = getPathValues(node, path)
+                    else:
+                        values = path(node)
+                    if len(values) > 0:
+                        row.append(values[0])
+                    else:
+                        row.append('')
+                fp_writer.writerow(row)
+
     def toCSV(self, filename, additionalpaths=list(), edgeFilter=None):
         """
         Create a CSV containing all the edges of the graph.
@@ -1926,7 +1963,10 @@ class ImageProjectModel:
                     if path == 'basenode':
                         row.append(baseNodes[0])
                         continue
-                    values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
+                    elif type(path) == 'str':
+                        values = getPathValues(edge, path)
+                    else:
+                        values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
                     if len(values) > 0:
                         row.append(values[0])
                     else:
@@ -2581,7 +2621,9 @@ class ImageProjectModel:
         edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
         if  'global operation' in kwargs:
             edge_parameters['global operation'] = kwargs['global operation']
-        results2, status = self.addNextImage(target, mod=description, sendNotifications=sendNotifications,
+        results2, status = self.addNextImage(target,
+                                             mod=description,
+                                             sendNotifications=sendNotifications,
                                          skipRules=skipRules,
                                          position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
                                          edge_parameters=edge_parameters,
@@ -2741,47 +2783,12 @@ class ImageProjectModel:
         #else:
         #    return DonorExtender(self)
 
-    def export(self, location, include=[], notifier=None):
+    def export(self, location, include=[], redacted=[],notifier=None):
         with self.lock:
             self.clear_validation_properties()
             self.compress(all=True)
-            path, errors = self.G.create_archive(location, include=include, notifier=notifier)
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
-
-    def exporttos3(self, location, tempdir=None, additional_message=None, redacted=[],notifier=None):
-        """
-
-        :param location:
-        :param tempdir:
-        :param additional_message:
-        :param redacted: list of file paths to exclude
-        :return:
-        """
-        import boto3
-        from boto3.s3.transfer import S3Transfer, TransferConfig
-        with self.lock:
-            self.clear_validation_properties()
-            self.compress(all=True)
-            #errors = []
-            #path = ''
-            path, errors = self.G.create_archive(prefLoader.getTempDir() if tempdir is None else tempdir,
-                                                 redacted=redacted,
-                                                 notifier=notifier)
-            if len(errors) == 0:
-                config = TransferConfig()
-                s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-                BUCKET = location.split('/')[0].strip()
-                DIR = location[location.find('/') + 1:].strip()
-                logging.getLogger('maskgen').info('Upload to s3://' + BUCKET + '/' + DIR + '/' + os.path.split(path)[1])
-                DIR = DIR if DIR.endswith('/') else DIR + '/'
-                s3.upload_file(path, BUCKET, DIR + os.path.split(path)[1], callback=S3ProgressPercentage(path))
-                os.remove(path)
-                if not self.notify(self.getName(), 'export',
-                                   location='s3://' + BUCKET + '/' + DIR + os.path.split(path)[1],
-                                                               additional_message=additional_message):
-                    errors = [('', '',
-                               'Export notification appears to have failed.  Please check the logs to ascertain the problem.')]
-            return [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
+            path, errors = self.G.create_archive(location, include=include, redacted=redacted, notifier=notifier)
+            return path, [ValidationMessage(Severity.ERROR,error[0],error[1],error[2],'Export',None) for error in errors]
 
     def export_path(self, location, redacted=[]):
         """
