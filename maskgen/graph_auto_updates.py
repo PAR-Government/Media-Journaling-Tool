@@ -10,6 +10,7 @@ import logging
 from image_wrap import openImageFile,ImageWrapper
 from video_tools import get_frame_rate
 from graph_meta_tools import MetaDataExtractor
+from software_loader import SoftwareLoader, getFileName
 import numpy as np
 from support import setPathValue ,getValue
 import tool_set
@@ -78,7 +79,7 @@ def updateJournal(scModel):
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
          ('0.5.0918.19c0afaab7', [_fixTool2]),
          ('0.5.1105.665737a167', []),
-         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp])
+         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp,_fixSoftwareVersion])
          ])
 
     versions= list(fixes.keys())
@@ -167,6 +168,43 @@ def _fix_Inpainting_SoftwareName(scModel,gopLoader):
                 and getValue(edge, 'softwareName', '') == '':
             edge['softwareName'] = 'UoMInPainting'
             edge['softwareVersion'] = '2.8'
+
+def _fixSoftwareVersion(scModel, gopLoader):
+
+    sl = SoftwareLoader()
+
+    adobe = {"14.1": "CC 2014", "14.2": "CC 2014", "15.0": "CC 2014", "15.2": "CC 2014", "16.0": "CC 2015",
+             "16.1": "CC 2015", "16.2": "CC 2015", "16.16": "CC 2015",
+             "17.0": "CC 2015", "18.0": "CC 2017", "18.1": "CC 2017", "19.0": "CC 2018", "20.0": "CC 2019",
+             "2014": "CC 2014", "2015": "CC 2015", "2016": "CC 2016", "2017": "CC 2017", "2018": "CC 2018",
+             "2019": "CC 2019"}
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        softwareName = getValue(edge, 'softwareName','')
+        softwareVersion = getValue(edge, 'softwareVersion','').strip()
+        versions = sl.get_versions(softwareName)
+        if len(versions) == 0:
+            #if the software is not in the jt and is one digit/char make it x.0
+            if len(softwareVersion) == 1:
+                softwareVersion = softwareVersion + ".0"
+        else:
+            #software is in the jt
+            modified = False
+            #if one of the versions in the jt is in the software version use the jt version
+            for v in versions:
+                v = v.strip()
+                if v in softwareVersion or v.lower() in softwareVersion.lower():
+                    softwareVersion = v
+                    modified = True
+            if not modified:
+                if 'adobe' in softwareName.lower():
+                    for key in adobe:
+                        if key in softwareVersion:
+                            softwareVersion = adobe[key]
+                            break
+        edge['softwareVersion'] = softwareVersion
+
 
 def _fixSelectRegionAutoJournal(scModel, gopLoader):
 

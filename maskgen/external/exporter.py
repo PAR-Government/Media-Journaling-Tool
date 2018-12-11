@@ -183,7 +183,7 @@ class ProcessInfo:
     def get_log_name(self):
         return self.log_file_name
 
-    def _update__log(self):
+    def _update_process_log(self):
         """
 
         :param process_inprocessfo:
