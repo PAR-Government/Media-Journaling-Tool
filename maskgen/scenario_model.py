@@ -2568,82 +2568,83 @@ class ImageProjectModel:
                 suffix = preferred
         target = os.path.join(tempfile.gettempdir(), self.G.new_name(self.start, suffix=suffix))
         shutil.copy2(filename, target)
-        msg = None
-        self.__addEdgeFilePaths(fullOp)
         try:
-            if getValue(kwargs,'$$-pass-thru') or passthru:
-                extra_args, warning_message = None,None
-            else:
-                extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
-        except Exception as e:
-            msg = str(e)
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
-            logging.getLogger('maskgen').error(
-                'Plugin {} failed with {} given node {} for arguments {}'.format(filter, str(e),self.start, str(resolved)))
-            extra_args = None
-        if msg is not None:
-            return self._pluginError(filter, msg), []
-        if extra_args is not None and 'rename_target' in extra_args:
-            filename = extra_args.pop('rename_target')
-            newtarget = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
-            shutil.copy2(target, newtarget)
-            target = newtarget
-        if extra_args is not None and 'override_target' in extra_args:
-            filename = extra_args.pop('override_target')
-            target = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
-        if extra_args is not None and 'output_files' in extra_args:
-            file_params = extra_args.pop('output_files')
-            for name, value in file_params.iteritems():
-                extra_args[name] = value
-                self.G.addEdgeFilePath('arguments.' + name, '')
-        opInfo = self.gopLoader.getOperationWithGroups(op['name'], fake=True)
-        description = Modification(op['name'], filter + ':' + op['description'],
-                                   category=opInfo.category,
-                                   generateMask=opInfo.generateMask,
-                                   semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
-                                   recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
-                                   'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
-        sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
-        skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
-        if software is None:
-            software = Software(op['software'], op['version'], internal=True)
-        if 'recordInCompositeMask' in kwargs:
-            description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
-        experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
-        description.setArguments(
-            {k: v for k, v in graph_args.iteritems() if k not in ['semanticGroups','sendNotifications', 'skipRules', 'experiment_id']})
-        if extra_args is not None and type(extra_args) == type({}):
-            for k, v in extra_args.iteritems():
-                if k not in kwargs or v is not None:
-                    description.arguments[k] = v
-        description.setSoftware(software)
-        description.setAutomated('yes')
-        edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
-        if  'global operation' in kwargs:
-            edge_parameters['global operation'] = kwargs['global operation']
-        results2, status = self.addNextImage(target,
-                                             mod=description,
-                                             sendNotifications=sendNotifications,
-                                         skipRules=skipRules,
-                                         position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
-                                         edge_parameters=edge_parameters,
-                                         node_parameters={
-                                             'experiment_id': experiment_id} if experiment_id is not None else {})
-        pairs = list()
+            msg = None
+            self.__addEdgeFilePaths(fullOp)
+            try:
+                if getValue(kwargs,'$$-pass-thru') or passthru:
+                    extra_args, warning_message = None,None
+                else:
+                    extra_args, warning_message = plugins.callPlugin(filter, im, filename, target, **resolved)
+            except Exception as e:
+                msg = str(e)
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+                logging.getLogger('maskgen').error(
+                    'Plugin {} failed with {} given node {} for arguments {}'.format(filter, str(e),self.start, str(resolved)))
+                extra_args = None
+            if msg is not None:
+                return self._pluginError(filter, msg), []
+            if extra_args is not None and 'rename_target' in extra_args:
+                filename = extra_args.pop('rename_target')
+                newtarget = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
+                shutil.copy2(target, newtarget)
+                target = newtarget
+            if extra_args is not None and 'override_target' in extra_args:
+                filename = extra_args.pop('override_target')
+                target = os.path.join(os.path.split(target)[0], os.path.split(filename)[1])
+            if extra_args is not None and 'output_files' in extra_args:
+                file_params = extra_args.pop('output_files')
+                for name, value in file_params.iteritems():
+                    extra_args[name] = value
+                    self.G.addEdgeFilePath('arguments.' + name, '')
+            opInfo = self.gopLoader.getOperationWithGroups(op['name'], fake=True)
+            description = Modification(op['name'], filter + ':' + op['description'],
+                                       category=opInfo.category,
+                                       generateMask=opInfo.generateMask,
+                                       semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
+                                       recordMaskInComposite=opInfo.recordMaskInComposite(filetype) if
+                                       'recordMaskInComposite' not in kwargs else kwargs['recordMaskInComposite'])
+            sendNotifications = kwargs['sendNotifications'] if 'sendNotifications' in kwargs else True
+            skipRules = kwargs['skipRules'] if 'skipRules' in kwargs else False
+            if software is None:
+                software = Software(op['software'], op['version'], internal=True)
+            if 'recordInCompositeMask' in kwargs:
+                description.setRecordMaskInComposite(kwargs['recordInCompositeMask'])
+            experiment_id = kwargs['experiment_id'] if 'experiment_id' in kwargs else None
+            description.setArguments(
+                {k: v for k, v in graph_args.iteritems() if k not in ['semanticGroups','sendNotifications', 'skipRules', 'experiment_id']})
+            if extra_args is not None and type(extra_args) == type({}):
+                for k, v in extra_args.iteritems():
+                    if k not in kwargs or v is not None:
+                        description.arguments[k] = v
+            description.setSoftware(software)
+            description.setAutomated('yes')
+            edge_parameters = {'plugin_name': filter,'experiment_id': experiment_id}
+            if  'global operation' in kwargs:
+                edge_parameters['global operation'] = kwargs['global operation']
+            results2, status = self.addNextImage(target,
+                                                 mod=description,
+                                                 sendNotifications=sendNotifications,
+                                             skipRules=skipRules,
+                                             position=self._getCurrentPosition((75 if len(donors) > 0 else 0, 75)),
+                                             edge_parameters=edge_parameters,
+                                             node_parameters={
+                                                 'experiment_id': experiment_id} if experiment_id is not None else {})
+            pairs = list()
 
-        errors = []
-        if warning_message is not None:
-            errors.append(ValidationMessage(Severity.WARNING,
-                                            self.start,
-                                            self.start,
-                                            warning_message,
-                                            'Plugin {}'.format(filter),
-                                            None))
-        if results2 is not None:
-            errors.extend(results2)
-
-        os.remove(target)
+            errors = []
+            if warning_message is not None:
+                errors.append(ValidationMessage(Severity.WARNING,
+                                                self.start,
+                                                self.start,
+                                                warning_message,
+                                                'Plugin {}'.format(filter),
+                                                None))
+            if results2 is not None:
+                errors.extend(results2)
+        finally:
+            os.remove(target)
         if status:
             pairs.append((self.start, self.end))
             if sendNotifications:
