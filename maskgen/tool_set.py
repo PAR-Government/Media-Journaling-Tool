@@ -2185,6 +2185,7 @@ def convertCompare(img1, img2, arguments=dict()):
         mask, a = __diffMask(new_img1, new_img2, False, args=arguments)
     else:
         mask, a = __diffMask(img1, img2, False, args=arguments)
+
     analysis.update(a)
     return mask, analysis
 

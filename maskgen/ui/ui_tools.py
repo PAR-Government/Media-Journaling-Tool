@@ -165,7 +165,7 @@ class TimeWidget(Frame):
         # Setup fields
         self.entries['hour'] = w = Entry(self, width=3, font=font)
         w.insert(0, hour)
-        w.bind('<KeyRelease>', lambda e: self.track('hour', 'minute', 2, 99))
+        w.bind('<KeyRelease>', lambda e: self.track('hour', 'minute', 2, 23))
         w.bind('<FocusIn>', lambda e: self.get_focus('hour'))
         w.bind('<FocusOut>', lambda e: self.lose_focus('hour', 2))
         w.grid(row=0, column=0)
@@ -276,18 +276,26 @@ class TimeWidget(Frame):
             self.entries[field].delete(first, last)
             return
 
-        # Check that there is room for the character
-        elif len(curr) >= max_length:
-            if int(curr[:max_length] > max_digit):
-                self.entries[field].delete(0, END)
-                self.entries[field].insert(0, max_digit)
-
-            # If we are at the end, go to the next cell
-            if pos >= max_length and next_field:
-                self.entries[next_field].focus()
-                self.entries[next_field].icursor(0)
-            self.entries[field].icursor(pos)
+        # enforce length restriction
+        if len(curr) > max_length:
+            self.entries[field].delete(0, END)
+            self.entries[field].insert(0, curr[:max_length])
+            self.update_variable()
             return
+
+        # limit the value entered to the maximum
+        if int(curr[:max_length]) > max_digit:
+            self.entries[field].delete(0, END)
+            self.entries[field].insert(0, max_digit)
+            self.update_variable()
+        # If we are at the end, go to the next cell
+        if pos >= max_length and next_field:
+            self.entries[next_field].focus()
+            self.entries[next_field].icursor(0)
+            self.update_variable()
+            return
+
+        self.entries[field].icursor(pos)
 
     def paste(self):
         """
@@ -312,7 +320,7 @@ class TimeWidget(Frame):
         self.entries['hour'].delete(0, END)
         self.entries['hour'].insert(0, hr)
         self.lose_focus("hour", 2)
-        self.track("hour", None, 2, 99)
+        self.track("hour", None, 2, 23)
 
         self.entries['minute'].delete(0, END)
         self.entries['minute'].insert(0, mins)

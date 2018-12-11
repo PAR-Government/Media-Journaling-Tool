@@ -54,9 +54,12 @@ class UrlMediaFetcher(Fetcher):
     def get_image(self, filename):
         """ Returns an image"""
         dl = api.download(filename, self.token, self.temp_dir, self.url)
-        im = openImage(dl)
-        os.remove(dl)
-        return im
+        try:
+            im = openImage(dl)
+            return im
+        finally:
+            if os.path.exists(dl):
+                os.remove(dl)
 
     def get_url(self, filename):
         filename = os.path.basename(filename).lower()
