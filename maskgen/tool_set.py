@@ -3141,7 +3141,7 @@ class GrayBlockOverlayGenerator:
         self.target_file = target_file
         self.output_file = output_file
         self.manager = GrayBlockReaderManager(reader_type=GrayOverlayBlockReader)
-        segments = [segment for segment in segments if segment.media_type == 'video']
+        segments = [segment for segment in segments if segment.media_type == 'video' and segment.filename != None]
         self.segments = sorted(segments, key=lambda segment: segment.startframe)
         self.segment_index = 0
         self.segment = segments[self.segment_index]

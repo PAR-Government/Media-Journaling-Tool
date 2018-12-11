@@ -501,12 +501,20 @@ class SpatialReviewDisplay(Frame):
             to = self.dialog.scModel.G.get_pathname(probe.edgeId[1])
             overlay_file = compose_overlay_name(target_file=to, link=page.link)
             total_range = (probe.targetVideoSegments[0].starttime/1000, probe.targetVideoSegments[-1].endtime/1000)
+
             self.buttonText = StringVar()
-            self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
-            self.playbutton = Button(master=self, textvariable=self.buttonText,
-                                     command=lambda: self.openOverlay(probe=probe,
-                                                                      target_file=to,
-                                                                      overlay_path=overlay_file))
+            if any(segment.filename != None for segment in probe.targetVideoSegments):
+                self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
+                self.playbutton = Button(master=self, textvariable=self.buttonText,
+                                         command=lambda: self.openOverlay(probe=probe,
+                                                                          target_file=to,
+                                                                          overlay_path=overlay_file))
+            else:
+                self.buttonText.set(value= 'NO MASK')
+                self.playbutton = Button(master=self, textvariable=self.buttonText, state=DISABLED)
+                self.checkbox.set_value(value=False)
+                self.checkbox.box.config(state= DISABLED)
+                page.cache_designation()
             self.playbutton.grid(row=0, column=0, columnspan=2, sticky='W')
             self.range_label = Label(master=self, text='Range: ' + '{:.2f}'.format(total_range[0]) + 's - ' + '{:.2f}'.format(total_range[1]) + 's')
             self.range_label.grid(row=0, column= 3, columnspan = 1, sticky='W')
@@ -876,8 +884,9 @@ class QAProjectDialog(Toplevel):
         return None
 
     def check_ok(self, event=None):
-        for page in self.pages:
-            if bool(page.checkboxes) is not True:
-                self.lastpage.acceptButton.config(state=DISABLED)
-                return
-        self.lastpage.acceptButton.config(state=NORMAL)
+        if self.lastpage != None:
+            for page in self.pages:
+                if bool(page.checkboxes) is not True:
+                    self.lastpage.acceptButton.config(state=DISABLED)
+                    return
+            self.lastpage.acceptButton.config(state=NORMAL)
