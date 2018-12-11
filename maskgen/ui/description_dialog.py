@@ -502,7 +502,7 @@ class DescriptionCaptureDialog(Toplevel):
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
-                                      values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
+                                      values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in self.arginfo]
@@ -1208,7 +1208,7 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
                                       type=resolve_argument_type(argumentTuple[1]['type'],self.sourcefiletype),
-                                      values=argumentTuple[1]['values'] if 'values' in argumentTuple[1] else [],
+                                      values=operation.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
