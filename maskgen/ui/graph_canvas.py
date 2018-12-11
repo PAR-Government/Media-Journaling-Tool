@@ -335,7 +335,8 @@ class MaskGraphCanvas(tk.Canvas):
                             d = ItemDescriptionCaptureDialog(self,
                                                              extract_default_values(args),
                                                              args,
-                                                             'Donor Mask Construct')
+                                                             'Donor Mask Construct',
+                                                             sourcefiletype=self.scModel.getNodeFileType(self.scModel.start))
                             if d.argvalues is not None:
                                 mod.arguments = d.argvalues
 

@@ -37,6 +37,9 @@ from maskgen.support import getValue
 from maskgen.userinfo import get_username
 from maskgen.validation.core import Severity
 from networkx.readwrite import json_graph
+from maskgen.external.exporter import ExportManager
+
+export_manager = ExportManager()
 
 
 class IntObject:
@@ -633,7 +636,7 @@ class BaseSelectionOperation(BatchOperation):
         logging.getLogger('maskgen').info("Build project {}".format(pick_file))
         preferred_organization = maskGenPreferences.get_key('organization')
         preferred_username=getValue(global_state,'username',defaultValue=get_username())
-        suffix = os.path.splitext(pick_file)[0]
+        suffix = os.path.splitext(pick_file)[1]
         model = scenario_model.createProject(dir,
                                              name=name,
                                              base=file_path_in_project,
@@ -1502,8 +1505,9 @@ def export_notify(url, redactions, spec_name, id, project_directory, project_nam
     if project_directory is None:
         return
     model = scenario_model.ImageProjectModel(os.path.join(project_directory,project_name + '.json'))
-    errors = model.exporttos3(url,[redaction.strip() for redaction in  redactions])
-    if len(errors) == 0:
+    path, error_list = model.export('.', redacted=[redaction.strip() for redaction in  redactions])
+    export_manager.sync_upload(path, url)
+    if len(error_list) == 0:
         shutil.rmtree(project_directory)
 
 class WaitToFinish:

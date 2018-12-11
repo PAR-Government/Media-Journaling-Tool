@@ -2,6 +2,7 @@ import PIL
 import numpy as np
 from maskgen import exif
 from maskgen.image_wrap import openImageFile, ImageWrapper
+from maskgen.tool_set import getExifDimensions
 
 """
 Save te image as PNG. If the image has a orientation and 'Image Rotated', rotate the image according to the EXIF.
@@ -18,6 +19,13 @@ def transform(img,source,target, **kwargs):
         imarray = ret
 
     analysis = {}
+    if 'Crop' in kwargs and kwargs['Crop'] == 'yes':
+        dims = getExifDimensions(source,crop=True)
+        if len(dims) > 0 and imarray.shape[0] != dims[0][0]:
+            h = int(imarray.shape[0]-dims[0])/2
+            w = int(imarray.shape[1]-dims[1])/2
+            imarray = imarray[h:-h,w:-w]
+            analysis['location']  = str((h,w))
     if 'Image Rotated' in kwargs and kwargs['Image Rotated'] == 'yes':
         orientation = exif.getOrientationFromExif(source)
         if orientation is not None:

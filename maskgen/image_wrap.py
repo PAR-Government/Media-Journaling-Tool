@@ -101,7 +101,7 @@ def _processRaw(filename, raw, isMask=False, args=None):
                                             output_color=colorspace)
     try:
         rawdata = _open_from_rawpy(raw,args=args)
-        return ImageWrapper(rawdata,to_mask=isMask)
+        return ImageWrapper(rawdata,to_mask=isMask,isRaw=True)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
@@ -461,7 +461,7 @@ class ImageWrapper:
     """
     @type image_array: numpy.ndarray
     """
-    def __init__(self, image_array, mode=None, to_mask=False, info=None, filename=None):
+    def __init__(self, image_array, mode=None, to_mask=False, info=None, filename=None, isRaw=False):
         """
 
         :param image_array:
@@ -479,6 +479,7 @@ class ImageWrapper:
         self.mode = mode if mode is not None else get_mode(image_array)
         self.size = (image_array.shape[1], image_array.shape[0])
         self.filename = filename
+        self.isRaw = isRaw
         if to_mask and self.mode != 'L':
             self.image_array = self.to_mask_array()
             self.mode = 'L'
