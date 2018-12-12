@@ -356,10 +356,11 @@ def cleanup_temporary_files(probes = [], scModel = None):
         mask = probe.targetMaskFileName if probe.targetMaskFileName != None else ''
         if mask not in used_masks:
             files_to_remove.append(mask)
-        for segment in probe.targetVideoSegments:
-            hdf5 = segment.filename if segment.filename != None else ''
-            if hdf5 not in used_hdf5:
-                files_to_remove.append(hdf5)
+        if probe.targetVideoSegments != None:
+            for segment in probe.targetVideoSegments:
+                hdf5 = segment.filename if segment.filename != None else ''
+                if hdf5 not in used_hdf5:
+                    files_to_remove.append(hdf5)
 
     files_to_remove = set(files_to_remove)
 

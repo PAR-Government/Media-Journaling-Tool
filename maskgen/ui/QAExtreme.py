@@ -323,7 +323,9 @@ class QAPage(Frame):
         Lays out inner display for video temporal and spatial review
         :return:
         """
-        displays = [TemporalReviewDisplay(self), SpatialReviewDisplay(self)]
+        displays = [TemporalReviewDisplay(self)]
+        if any(segment.filename != None for segment in self.probe.targetVideoSegments):
+            displays.append(SpatialReviewDisplay(self))
         self.checkboxes.boxes.append(CheckboxGroup(boxes=[d.checkbox for d in displays], condition='any'))
         self.master.pageDisplays[self] = [0, displays]
 
@@ -450,7 +452,7 @@ class QAPage(Frame):
         self.master.check_ok()
         displays = self.master.pageDisplays[self][1] if self in self.master.pageDisplays else []
         if len(displays) > 0:
-            validation = {'temporal': bool(displays[0].checkbox), 'spatial': bool(displays[1].checkbox)}
+            validation = {'temporal': bool(displays[0].checkbox), 'spatial': bool(displays[1].checkbox) if len(displays) > 1 else False}
             elegibility = [key for key in validation.keys() if validation[key] == True]
             designation = '-'.join(elegibility) if len(elegibility) else 'detect'
         else:
@@ -503,18 +505,12 @@ class SpatialReviewDisplay(Frame):
             total_range = (probe.targetVideoSegments[0].starttime/1000, probe.targetVideoSegments[-1].endtime/1000)
 
             self.buttonText = StringVar()
-            if any(segment.filename != None for segment in probe.targetVideoSegments):
-                self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
-                self.playbutton = Button(master=self, textvariable=self.buttonText,
-                                         command=lambda: self.openOverlay(probe=probe,
-                                                                          target_file=to,
-                                                                          overlay_path=overlay_file))
-            else:
-                self.buttonText.set(value= 'NO MASK')
-                self.playbutton = Button(master=self, textvariable=self.buttonText, state=DISABLED)
-                self.checkbox.set_value(value=False)
-                self.checkbox.box.config(state= DISABLED)
-                page.cache_designation()
+
+            self.buttonText.set(value=('PLAY: ' if os.path.exists(overlay_file) else 'GENERATE: ') + os.path.split(overlay_file)[1])
+            self.playbutton = Button(master=self, textvariable=self.buttonText,
+                                     command=lambda: self.openOverlay(probe=probe,
+                                                                      target_file=to,
+                                                                      overlay_path=overlay_file))
             self.playbutton.grid(row=0, column=0, columnspan=2, sticky='W')
             self.range_label = Label(master=self, text='Range: ' + '{:.2f}'.format(total_range[0]) + 's - ' + '{:.2f}'.format(total_range[1]) + 's')
             self.range_label.grid(row=0, column= 3, columnspan = 1, sticky='W')
