@@ -12,7 +12,7 @@ import shutil
 import tempfile
 import traceback
 from threading import Lock
-
+from maskgen.support import getPathValues
 import ffmpeg_api
 import graph_rules
 import mask_rules
@@ -1284,17 +1284,38 @@ class ImageProjectModel:
              Return an error message on failure, otherwise return None
         """
         if self.start is None:
-            return "Node node selected", False
-        if not self.G.has_node(destination):
-            return "Canvas out of state from model.  Node Missing.", False
-        if self.findChild(destination, self.start):
-            return "Cannot connect to ancestor node", False
-        for suc in self.G.successors(self.start):
-            if suc == destination:
-                return "Cannot connect to the same node twice", False
-        errors,status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
-                                      skipDonorAnalysis=skipDonorAnalysis)
-        return ('Validation errors occcurred' if (errors is not None and len(errors) > 0) else None), status
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Node node selected",
+                                     Module=''), False
+        elif not self.G.has_node(destination):
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Canvas out of state from model. Node Missing.",
+                                     Module=''), False
+        elif self.findChild(destination, self.start):
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Cannot connect to ancestor node",
+                                     Module=''), False
+        else:
+            for successor in self.G.successors(self.start):
+                if successor == destination:
+                    return ValidationMessage(Severity.ERROR,
+                                                    self.start,
+                                                    self.end,
+                                                    Message="Cannot connect to the same node twice",
+                                                    Module=''), False
+
+            return self._connectNextImage(destination,
+                                          mod,
+                                          invert=invert,
+                                          sendNotifications=sendNotifications,
+                                          skipDonorAnalysis=skipDonorAnalysis)
+
 
     def getProbeSetWithoutComposites(self, inclusionFunction=mask_rules.isEdgeLocalized,
                                      saveTargets=True,
