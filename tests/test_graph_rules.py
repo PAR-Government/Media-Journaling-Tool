@@ -75,15 +75,15 @@ class TestToolSet(TestSupport):
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNone(result)
+        self.assertEqual(0,result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'x': ('change', 1, 1)}}})
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNone(result)
+        self.assertEqual(0, result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNotNone(result)
+        self.assertEqual(1, result)
 
     def test_checkSampleRate(self):
         graph = Mock()
@@ -291,8 +291,8 @@ class TestToolSet(TestSupport):
         mockGraph = Mock(get_edge = Mock(return_value={'shape change': '(1664,-1664)',
                                                        'exifdiff':{'Orientation': ['add', 'Rotate 270 CW']}}),
                          get_image=get_MockImage)
-        mockImage_frm = Mock(size=(3264, 4928))
-        mockImage_to = Mock(size=(4928, 3264))
+        mockImage_frm = Mock(size=(3264, 4928),isRaw=False)
+        mockImage_to = Mock(size=(4928, 3264), isRaw=False)
         r = graph_rules.checkSizeAndExif('Op', mockGraph, 'a', 'b')
         self.assertIsNone(r)
         mockImage_to.size = (3264, 4928)
@@ -307,16 +307,25 @@ class TestToolSet(TestSupport):
     def test_checkSizeAndExifPNG(self):
 
         def get_MockImage(name, metadata=dict()):
+            if 'arw' in name:
+                if name[0] == 'a':
+                    return mockImage_frm_raw, name
+                else:
+                    return mockImage_to_raw, name
+
             if name[0] == 'a':
                 return mockImage_frm, name
             else:
                 return mockImage_to, name
 
         mockGraph = Mock(get_edge = Mock(return_value={'shape change': '(1664,-1664)',
+                                                       'arguments' : {'Image Rotated':'yes'},
                                                        'exifdiff':{'Orientation': ['add', 'Rotate 270 CW']}}),
                          get_image=get_MockImage)
-        mockImage_frm = Mock(size=(3264, 4928))
-        mockImage_to = Mock(size=(4928, 3264))
+        mockImage_frm = Mock(size=(3264, 4928), isRaw=False)
+        mockImage_to = Mock(size=(4928, 3264), isRaw=False)
+        mockImage_frm_raw = Mock(size=(3264, 4928), isRaw=True)
+        mockImage_to_raw = Mock(size=(4928, 3264), isRaw=True)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertIsNone(r)
         mockImage_to.size = (3264, 4928)
@@ -324,9 +333,31 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
-        mockGraph.get_edge.return_value = {'shape change': '(-50,-50)'}
-        mockImage_to.size = (3214, 4878)
+        mockGraph = Mock(get_edge=Mock(return_value={'shape change': '(-50,-50)',
+                                                    'arguments': {'Image Rotated': 'no'}}),
+                         get_image=get_MockImage)
+
+        mockImage_to_raw.size = (3214, 4878)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertIsNone(r)
+
+
+        mockImage_to_raw.size = (3000, 4800)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
+
+        mockGraph = Mock(get_edge=Mock(return_value={'shape change': '(-50,-50)',
+                                                     'arguments': {'Image Rotated': 'no',
+                                                                    'Lens Distortion Applied': 'yes'}}),
+                         get_image=get_MockImage)
+
+        mockImage_to_raw.size = (3000, 4800)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertIsNone(r)
+
+        mockImage_to.size = (3214, 4878)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
