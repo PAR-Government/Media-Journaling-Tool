@@ -20,9 +20,9 @@ class UpdaterGitAPI:
     repos = 'rwgdrummer/maskgen'
     url = 'https://api.github.com/repos'
 
-    def __init__(self, branch='master'):
+    def __init__(self, branch='master',version_file='VERSION'):
         self.branch = branch
-        self.file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/{}/VERSION'.format(branch)
+        self.file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/{}/{}'.format(branch, version_file)
 
     def _get_version_file(self):
         resp = requests.get(self.file, timeout=2)
@@ -80,3 +80,21 @@ class UpdaterGitAPI:
         except Exception as ex:
             logging.getLogger('maskgen').error('Error validating JT version: {}'.format(ex.message))
             raise EnvironmentError(ex.message)
+
+class OperationsUpdaterGitAPI(UpdaterGitAPI):
+
+    def __init__(self, branch='master'):
+        UpdaterGitAPI.__init__(self, branch=branch,version_file='resources/operations.json')
+
+    def _get_version_file(self):
+        resp = requests.get(self.file, timeout=2)
+        if resp.status_code == requests.codes.ok:
+            import json
+            return json.loads(resp.content.strip())['version']
+
+    def _hasNotPassed(self, merge_sha):
+        from maskgen.software_loader import getMetDataLoader
+        if merge_sha is None:
+            return True
+        currentversion = getMetDataLoader().operation_version
+        return merge_sha != currentversion
