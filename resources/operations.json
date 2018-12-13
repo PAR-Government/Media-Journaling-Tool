@@ -2864,8 +2864,7 @@
         "default": true
       },
       "transitions": [
-        "image.image",
-        "video.video"
+        "image.image"
       ],
       "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
@@ -5485,78 +5484,6 @@
     },
     {
       "category": "Transform",
-      "name": "TransformContentAwareScale",
-      "mandatoryparameters": {
-        "Start Time": {
-          "type": "frame_or_time",
-          "trigger mask": true,
-          "source": "video",
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "rules": [
-        "checkSize",
-        "checkFileTypeChange",
-        "check_local_warn",
-        "checkSameChannels",
-        "checkFrameTimeAlignment",
-        "checkUncompressed",
-        "checkEmpty",
-        "checkHomography",
-        "checkFrameRateChange_Strict"
-      ],
-      "optionalparameters": {
-        "homography": {
-          "type": "list",
-          "source": "image",
-          "values": [
-            "None",
-            "Map",
-            "All",
-            "LMEDS",
-            "RANSAC-3",
-            "RANSAC-4",
-            "RANSAC-5"
-          ],
-          "description": "Tune transform creation for composite mask generation"
-        },
-        "composite homography": {
-          "type": "list",
-          "source": "image",
-          "values": [
-            "Single",
-            "Multiple"
-          ],
-          "description": "Use a single transform or one per probe mask component"
-        },
-        "homography max matches": {
-          "type": "int[20:10000]",
-          "description": "Maximum number of matched feature points used to compute the homography."
-        },
-        "End Time": {
-          "type": "frame_or_time",
-          "trigger mask": true,
-          "source": "video",
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        }
-      },
-      "analysisOperations": [
-        "maskgen.tool_set.forcedSiftAnalysis"
-      ],
-      "maskTransformFunction": {
-        "image": "maskgen.mask_rules.cas_transform"
-      },
-      "description": "Resize an image without changing important visual content.",
-      "includeInMask": {
-        "default": false
-      },
-      "transitions": [
-        "image.image",
-        "video.video"
-      ]
-    },
-    {
-      "category": "Transform",
       "name": "TransformCrop",
       "mandatoryparameters": {},
       "rules": [
@@ -6071,20 +5998,33 @@
       "category": "Transform",
       "name": "TransformSeamCarving",
       "mandatoryparameters": {
+         "inputmasktype": {
+          "type": "list",
+          "values": [
+            "remove",
+            "keep",
+            "both"
+          ],
+          "description": "remove: 255  = removed pixels.  keep: 255 = kept pixels. both: [255,0,0] = remove, [0,255,0] = keep"
+        },
+        "apply mask": {
+          "type": "yesno",
+          "defaultvalue": "no",
+          "description": "Use mask to apply scaling in probes/QA."
+        }
       },
       "rules": [
         "seamCarvingCheck",
         "checkFileTypeChange",
+        "check_local_warn",
+        "checkUncompressed",
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkEmpty",
-        "checkFrameRateChange_Lenient"
+        "checkHomography",
+        "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
-        "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing preserved and sliced areas"
-        },
         "homography": {
           "type": "list",
           "source": "image",

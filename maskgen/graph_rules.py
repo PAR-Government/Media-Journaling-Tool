@@ -565,17 +565,25 @@ def checkAudioLength_Loose(op, graph, frm, to):
 
 def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
-    addType = getValue(edge, 'arguments.add type', '')
+    addType = getValue(edge, 'arguments.add type', 'replace')
     if addType == 'replace':
         from video_tools import get_duration
         from math import floor
-
-        donor = getDonor(graph, to)[0]
+        donor_segments = getValue(edge,'videomasks',[])
         extractor = MetaDataExtractor(graph)
         to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
-        donor_duration = get_duration(extractor.getMetaDataLocator(donor), audio=True)
-        if floor(abs(donor_duration - to_duration)) != 0:
-            return (Severity.ERROR, "Audio duration does not match the Donor")
+        if len(donor_segments) > 1:
+            return (Severity.ERROR, 'Expected only donor segment selected from audio')
+        elif len(donor_segments) == 0:
+            donor = getDonor(graph, to)[0]
+            donor_duration = get_duration(extractor.getMetaDataLocator(donor), audio=True)
+            if floor(abs(donor_duration - to_duration)) != 0:
+                return (Severity.ERROR, "Audio duration does not match the Donor")
+        else:
+            segment = donor_segments[0]
+            donor_duration = get_end_time_from_segment(segment) - get_start_time_from_segment(segment)
+            if floor(abs(donor_duration - to_duration)) > get_frame_rate(segment)/1000.0:
+                return (Severity.ERROR, "Audio duration does not match the Donor")
     else:
         return checkAudioLength_Strict(op, graph, frm, to)
 

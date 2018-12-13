@@ -1483,6 +1483,8 @@ def seam_transform(buildState):
     sizeChange = buildState.shapeChange()
     col_adjust = getValue(buildState.edge, 'arguments.column adjuster')
     row_adjust = getValue(buildState.edge, 'arguments.row adjuster')
+    apply_mask = getValue(buildState.edge, 'argments.apply mask','no')
+    mask_type = getValue(buildState.edge, 'argments.inputmasktype', 'color')
     diffMask = getValue(buildState.edge, 'arguments.plugin mask',
                         defaultValue=buildState.edgeMask,
                         convertFunction=openImageFunc)
@@ -1528,12 +1530,19 @@ def seam_transform(buildState):
     elif buildState.donorMask is not None or buildState.compositeMask is not None:
         res = buildState.compositeMask.mask if buildState.compositeMask is not None else buildState.donorMask.mask
         res = tool_set.applyInterpolateToCompositeImage(res,
+                                                        ImageWrapper(buildState.source) if type(
+                                                            buildState.source) not in [
+                                                                                               str, unicode] else
                                                         buildState.graph.get_image(buildState.source)[0],
-                                                        targetImage,
+                                                        ImageWrapper(buildState.target) if type(
+                                                            buildState.target) not in [
+                                                                                               str, unicode] else
+                                                        buildState.graph.get_image(buildState.target)[0],
                                                         diffMask,
                                                         inverse=buildState.donorMask is not None,
                                                         arguments=buildState.arguments(),
-                                                        defaultTransform=transformMatrix)
+                                                        defaultTransform=transformMatrix,
+                                                        withMask=apply_mask == 'yes' and mask_type == 'keep')
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
     return CompositeImage(buildState.compositeMask.source,
@@ -1582,9 +1591,6 @@ def composite_transform(buildState, withMask = False):
         CompositeImage(buildState.donorMask.source,
                        buildState.donorMask.target,
                        buildState.donorMask.media_type, res)
-
-def cas_transform(buildState):
-    return composite_transform(buildState,withMask=True)
 
 def video_flip_transform(buildState):
     """

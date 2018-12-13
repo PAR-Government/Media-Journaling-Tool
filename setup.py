@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 setup(name='maskgen',
-      version_format='0.5.1130.{gitsha}',
+      version_format='0.5.1210.{gitsha}',
       setup_requires=['setuptools_maskgen_version'],
       description='JT',
       url='http://github.com/rwgdrummer/maskgen',

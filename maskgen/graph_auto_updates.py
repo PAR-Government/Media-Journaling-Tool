@@ -79,7 +79,8 @@ def updateJournal(scModel):
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
          ('0.5.0918.19c0afaab7', [_fixTool2]),
          ('0.5.1105.665737a167', []),
-         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp,_fixSoftwareVersion])
+         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
+         ('0.5.1210.5ca3e81782', [_fixCAS])
          ])
 
     versions= list(fixes.keys())
@@ -128,6 +129,30 @@ def _fixReplaceAudioOp(scModel, gopLoader):
             setPathValue(edge, 'arguments.add type', 'replace')
             setPathValue(edge, 'arguments.synchronization', 'none')
             setPathValue(edge, 'arguments.Direct from PC', 'no')
+
+def _fixCAS(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'TransformContentAwareScale':
+            node = scModel.G.get_node(frm)
+            if getValue(node, 'filetype', 'image') == 'video':
+                edge['op'] = 'PasteSampled'
+            else:
+                edge['op'] = 'TransformSeamCarving'
+                setPathValue(edge,'arguments.inputmasktype','keep')
+                setPathValue(edge, 'arguments.apply mask', 'yes')
+        if op_name == 'ContentAwareFill':
+            node = scModel.G.get_node(frm)
+            if getValue(node, 'filetype', 'image') == 'video':
+                edge['op'] = 'PasteSampled'
+        if op_name == 'TransformSeamCarving':
+            setPathValue(edge, 'arguments.inputmasktype', 'color')
+            setPathValue(edge, 'arguments.apply mask', 'no')
+        # should have been fixed a while ago
+        if op_name == 'OutputPng':
+            if getValue(edge,'arguments.Lens Distortion Applied','') == '':
+                setPathValue(edge, 'arguments.Lens Distortion Applied', 'no')
 
 def _fixNoSoftware(scModel, gopLoader):
     """
