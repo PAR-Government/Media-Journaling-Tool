@@ -34,7 +34,7 @@ from maskgen.ui.CompositeViewer import CompositeViewDialog
 import logging
 from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from maskgen.graph_output import check_graph_status
-from maskgen.updater import UpdaterGitAPI
+from maskgen.updater import UpdaterGitAPI, OperationsUpdaterGitAPI
 from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 import maskgen.preferences_initializer
 from maskgen.software_loader import getMetDataLoader
@@ -1360,8 +1360,11 @@ class MakeGenUI(Frame):
             self.getsystemproperties()
         try:
             sha, message = UpdaterGitAPI().isOutdated()
+            sha_op, message_op= OperationsUpdaterGitAPI().isOutdated()
             if sha is not None:
                 tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+            elif sha_op is not None:
+                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha_op, message_op.encode('ascii', errors='xmlcharrefreplace')))
         except:
             tkMessageBox.showwarning('JT Update Status','Unable to verify latest version of JT due to connection error to GitHub. See logs for details')
         if self.startedWithNewProject:
