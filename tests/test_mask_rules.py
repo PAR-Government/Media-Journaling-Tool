@@ -28,6 +28,193 @@ class ImageGraphB:
 
 
 class TestMaskRules(TestSupport):
+
+    def test_add_audio(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                u'empty mask': 'no',
+                u'arguments': {'voice': 'no',
+                               'add type': 'replace',
+                               'filter type': 'Other',
+                               'synchronization': 'none',
+                               'Start Time': '00:00:00',
+                               'Stream': 'all',
+                               'Direct from PC': 'no'
+                               },
+                u'op': u'AddAudioSample'}
+        mask = video_tools.create_segment(
+            starttime=0,
+            startframe=1,
+            endtime=4,
+            endframe=176400,
+            frames=176399,
+            rate=44100,
+            error=0,
+            type='audio')
+        cm = CompositeImage(source='a', target='b', media_type='audio', mask=[mask])
+        graph = Mock()
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [video_tools.create_segment(**{
+                'starttime': .2267,
+                'startframe': 10000,
+                'endtime': .4535,
+                'endframe': 20000,
+                'frames': 10000,
+                'type': 'audio',
+                'rate': 44100
+            })]
+            result = add_audio(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(9999,
+                             video_tools.get_end_frame_from_segment(result.videomasks[0]))
+            self.assertEqual(20001,
+                             video_tools.get_start_frame_from_segment(result.videomasks[1]))
+
+
+
+    def test_copy_add_audio(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                u'empty mask': 'no',
+                u'arguments': {'voice': 'no',
+                               'add type': 'replace',
+                               'filter type': 'Other',
+                               'synchronization': 'none',
+                               'Copy Start Time': '00:00:00',
+                               'Copy End Time': '00:01:00',
+                               'Insertion Time': '00:03:00',
+                               'Stream': 'all',
+                               'Direct from PC': 'no'
+                               },
+                u'op': u'AudioCopyAdd'}
+        mask = video_tools.create_segment(
+            starttime=3000,
+            startframe=132300,
+            endtime=4000,
+            endframe=176400,
+            frames=44100,
+            rate=44100,
+            error=0,
+            type='audio')
+        cm = CompositeImage(source='a', target='b', media_type='audio', mask=[mask])
+        graph = Mock()
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [video_tools.create_segment(**{
+                'starttime': 3500,
+                'startframe': 154350,
+                'endtime': 4500,
+                'endframe': 198450,
+                'frames': 44100,
+                'type': 'audio',
+                'rate': 44100
+            })]
+            result = copy_add_audio(mock_composite)
+            self.assertEqual(1, len(result.videomasks))
+            self.assertEqual(154349,
+                             video_tools.get_end_frame_from_segment(result.videomasks[0]))
+            self.assertEqual(132300,
+                             video_tools.get_start_frame_from_segment(result.videomasks[0]))
+
+        edge['arguments']['add type'] = 'insert'
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [video_tools.create_segment(**{
+                'starttime': 3500,
+                'startframe': 154350,
+                'endtime': 4500,
+                'endframe': 198450,
+                'frames': 44101,
+                'type': 'audio',
+                'rate': 44100
+            })]
+            result = copy_add_audio(mock_composite)
+            self.assertEqual(2, len(result.videomasks))
+            self.assertEqual(154349,
+                             video_tools.get_end_frame_from_segment(result.videomasks[0]))
+            self.assertEqual(198451,
+                             video_tools.get_start_frame_from_segment(result.videomasks[1]))
+            self.assertEqual(22050,
+                             video_tools.get_frames_from_segment(result.videomasks[0]))
+            self.assertEqual(22051,
+                             video_tools.get_frames_from_segment(result.videomasks[1]))
+
+    def test_replace_audio(self):
+        edge = {u'maskname': u'Rotate_mask.png',
+                u'inputmaskname': None,
+                u'shape change': u'(0, 0)',
+                'empty mask': 'no',
+                u'arguments': {'voice': 'no',
+                               'filter type': 'Other',
+                               'Stream': 'all',
+                               },
+                u'op': u'ReplaceAudioSample'}
+        mask = video_tools.create_segment(
+            starttime=0,
+            startframe=1,
+            endtime=4,
+            endframe=176400,
+            frames=176399,
+            rate=44100,
+            error=0,
+            type='audio')
+        cm = CompositeImage(source='a', target='b', media_type='audio', mask=[mask])
+        graph = Mock()
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3884, 2888, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3884, 2888),
+                                directory='.',
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        with patch('maskgen.mask_rules.BuildState', spec=buildState) as mock_composite:
+            mock_composite.compositeMask = cm
+            mock_composite.edge = edge
+            mock_composite.arguments.return_value = edge['arguments']
+            mock_composite.getMasksFromEdge.return_value = [video_tools.create_segment(**{
+                'starttime': 0,
+                'startframe': 1,
+                'endtime': 4,
+                'endframe': 176400,
+                'frames': 176399,
+                'type': 'audio',
+                'rate': 44800
+            })]
+            result = replace_audio(mock_composite)
+            self.assertEqual(0, len(result.videomasks))
+
     def test_output(self):
         edge = {u'maskname': u'output_mask.png',
                 u'inputmaskname': None,

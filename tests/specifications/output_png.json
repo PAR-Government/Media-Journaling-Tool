@@ -1,0 +1,34 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "dupre",
+    "name": "SIPStoPNG",
+    "organization": "PAR",
+    "projectdescription" : "PNG",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "0"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "SIPStoPNG",
+      "id": "1"
+    }
+  ],
+  "links": [
+    {
+      "source": "0",
+      "target": "1"
+    }
+  ],
+  "multigraph": false
+}

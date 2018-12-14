@@ -207,6 +207,10 @@ class Operation:
             return 'yes' if self.includeInMask ['default'] else 'no'
         return 'no'
 
+    def getParameterValuesForType(self, param_name, type):
+        param = getValue(self.mandatoryparameters,param_name, getValue(self.optionalparameters,param_name,{}))
+        return getValue(param,type +':values', getValue(param,'values'),[] )
+
     def getDonorProcessor(self, default_processor = None):
         if  self.donor_processor is not None:
             return getRule(self.donor_processor)
