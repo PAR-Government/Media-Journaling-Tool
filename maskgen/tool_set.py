@@ -3153,7 +3153,6 @@ class GrayBlockOverlayGenerator:
             end_frame=self.segment.endframe)
 
         self.overlay_mask_name = os.path.join(os.path.split(self.segment.filename)[0], '_overlay')
-        self.frame_no = 0
         self.writer = GrayFrameOverlayWriter(
             mask_prefix=self.overlay_mask_name,
             fps=self.reader.fps)
@@ -3170,7 +3169,7 @@ class GrayBlockOverlayGenerator:
             end_frame=self.segment.endframe)
 
     def generate(self):
-        while self.frame_no < self.last_frame:
+        while self.writer.lastPos < self.last_frame:
             frame_time = self.reader.current_frame_time()
             frame_count = self.reader.current_frame()
             mask = self.reader.read()
@@ -3181,7 +3180,6 @@ class GrayBlockOverlayGenerator:
                     frame_count = self.last_frame #write blanks for the rest
 
             self.writer.write(mask, frame_count, frame_time)
-            self.frame_no += 1
         self.writer.close()
         ffmpeg_overlay(self.target_file, self.writer.filename, self.output_file)
         try:
