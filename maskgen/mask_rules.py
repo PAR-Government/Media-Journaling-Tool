@@ -1479,7 +1479,6 @@ def seam_transform(buildState):
     from functools import partial
     openImageFunc = partial(openImageMaskFile,buildState.directory)
     from maskgen.algorithms.seam_carving import MaskTracker
-    targetImage = buildState.graph.get_image(buildState.target)[0]
     sizeChange = buildState.shapeChange()
     col_adjust = getValue(buildState.edge, 'arguments.column adjuster')
     row_adjust = getValue(buildState.edge, 'arguments.row adjuster')
@@ -1490,6 +1489,7 @@ def seam_transform(buildState):
                         convertFunction=openImageFunc)
 
     if col_adjust is not None and row_adjust is not None:
+        targetImage = buildState.graph.get_image(buildState.target)[0]
         mask_tracker = MaskTracker((targetImage.size[1], targetImage.size[0]))
         mask_tracker.read_adjusters(os.path.join(buildState.directory,row_adjust),os.path.join(buildState.directory,col_adjust))
         if buildState.isComposite:

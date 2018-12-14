@@ -480,7 +480,7 @@ class TestMaskRules(TestSupport):
                                 compositeMask=CompositeImage('a', 'b', 'image', cm),
                                 pred_edges=None,
                                 graph=None)
-        result = cas_transform(buildState).mask
+        result = seam_transform(buildState).mask
         self.assertEqual((3984, 2988), result.shape)
         self.assertEqual(0, result[201, 201])
         self.assertEqual(1, result[330, 50])
