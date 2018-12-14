@@ -582,7 +582,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
         else:
             segment = donor_segments[0]
             donor_duration = get_end_time_from_segment(segment) - get_start_time_from_segment(segment)
-            if floor(abs(donor_duration - to_duration)) > get_frame_rate(segment)/1000.0:
+            if floor(abs(donor_duration - to_duration)) > get_rate_from_segment(segment)/1000.0:
                 return (Severity.ERROR, "Audio duration does not match the Donor")
     else:
         return checkAudioLength_Strict(op, graph, frm, to)

@@ -13,18 +13,10 @@
           "type": "list",
           "values": [
             "replace",
-            "overlay"
+            "overlay",
+            "insert"
           ],
           "description": "Replacing or overlaying."
-        },
-        "synchronization": {
-          "type": "list",
-          "values": [
-            "none",
-            "spacing",
-            "compressing"
-          ],
-          "description": "If additional track alignment changes occurred with the addition."
         },
         "Copy Stream": {
           "type": "list",
@@ -68,8 +60,8 @@
         "checkAudioOnly"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.add_audio",
-        "audio": "maskgen.mask_rules.add_audio"
+        "video": "maskgen.mask_rules.copy_add_audio",
+        "audio": "maskgen.mask_rules.copy_add_audio"
       },
       "optionalparameters": {
         "Copy End Time": {
