@@ -3140,75 +3140,54 @@ class GrayBlockOverlayGenerator:
 
         self.target_file = target_file
         self.output_file = output_file
-        self.manager = GrayBlockReaderManager(reader_type=GrayOverlayBlockReader)
+
         segments = [segment for segment in segments if segment.media_type == 'video' and segment.filename != None]
         self.segments = sorted(segments, key=lambda segment: segment.startframe)
         self.segment_index = 0
         self.segment = segments[self.segment_index]
-        self.manager.create_reader(filename=self.segment.filename,
-                                    start_time=self.segment.starttime,
-                                    start_frame=self.segment.startframe,
-                                    end_frame=self.segment.endframe)
+
+        self.reader = GrayBlockReader(
+            filename=self.segment.filename,
+            start_time=self.segment.starttime,
+            start_frame=self.segment.startframe,
+            end_frame=self.segment.endframe)
+
+        self.overlay_mask_name = os.path.join(os.path.split(self.segment.filename)[0], '_overlay')
         self.frame_no = 0
+        self.writer = GrayFrameOverlayWriter(
+            mask_prefix=self.overlay_mask_name,
+            fps=self.reader.fps)
+
         self.last_frame = get_frames_from_segment(getMaskSetForEntireVideo(locator)[0])
 
+    def updateSegment(self):
+        self.segment_index += 1
+        self.segment = self.segments[self.segment_index]
+        self.reader = GrayBlockReader(
+            filename=self.segment.filename,
+            start_time=self.segment.starttime,
+            start_frame=self.segment.startframe,
+            end_frame=self.segment.endframe)
 
     def generate(self):
         while self.frame_no < self.last_frame:
-            if self.frame_no >= self.segment.endframe:
-                    self.segment_index += 1
-                    if self.segment_index < len(self.segments):
-                        self.segment = self.segments[self.segment_index]
-                        self.manager.create_reader(filename=self.segment.filename,
-                                               start_time=self.segment.starttime,
-                                               start_frame=self.segment.startframe,
-                                               end_frame=self.segment.endframe)
+            frame_time = self.reader.current_frame_time()
+            frame_count = self.reader.current_frame()
+            mask = self.reader.read()
+            if mask is None:
+                if self.segment_index + 1 < len(self.segments):
+                    self.updateSegment()
+                else:
+                    frame_count = self.last_frame #write blanks for the rest
 
-            self.manager.reader.read()  # read and write to the file
+            self.writer.write(mask, frame_count, frame_time)
             self.frame_no += 1
-        self.manager.reader.writer.close()
-        ffmpeg_overlay(self.target_file, self.manager.reader.writer.filename, self.output_file)
+        self.writer.close()
+        ffmpeg_overlay(self.target_file, self.writer.filename, self.output_file)
         try:
-            os.remove(self.manager.reader.writer.filename) #clean up the mask file, leave the finished overlay
+            os.remove(self.writer.filename) #clean up the mask file, leave the finished overlay
         except OSError:
             pass
-
-class GrayOverlayBlockReader(GrayBlockReader):
-    """
-    Generate mask for whole video, writing blank frames where there is no segment data
-    """
-
-    def __init__(self, filename,
-                 preferences=None,
-                 start_time=0,
-                 start_frame=None,
-                 end_frame=None,
-                 current_frame = 0):
-        GrayBlockReader.__init__(self, filename,
-                 convert=True,
-                 preferences=preferences,
-                 start_time=start_time,
-                 start_frame=start_frame,
-                 end_frame=end_frame)
-        self.pos = current_frame - start_frame
-        overlay_mask_name = os.path.join(os.path.split(self.writer.mask_prefix)[0],'_overlay')
-        self.writer.mask_prefix = overlay_mask_name
-
-
-    def read(self):
-        if self.dset is None:
-            return None
-
-        if self.dset.shape[0] > self.pos >= 0:
-            mask = self.mask_format.get_frame(self)
-            mask = mask.astype('uint8')
-        else:
-            mask = np.ones((self.dset.shape[1], self.dset.shape[2]), dtype=np.uint8) * 255
-
-        self.writer.write(mask, self.pos, 0)
-        self.pos += 1
-        return mask
-
 
 class DummyWriter:
     def write(self, mask, mask_number, mask_time):
@@ -3359,6 +3338,30 @@ class GrayFrameWriter:
 
     def release(self):
         self.close()
+
+class GrayFrameOverlayWriter(GrayFrameWriter):
+
+    def __init__(self, mask_prefix = '', fps = 30/1, preferences = None):
+        GrayFrameWriter.__init__(self, mask_prefix=mask_prefix, fps=fps, preferences = preferences)
+        self.lastPos = 0
+        self.blankMask = None
+
+    def write(self, mask, mask_number, mask_time):
+
+        if self.blankMask is None:
+            self.blankMask = np.ones((mask.shape[0], mask.shape[1]), dtype=np.uint8) * 255
+
+        frames_to_write = mask_number - self.lastPos #write all the frames up to and including the mask frame
+
+        for i in range(1,frames_to_write+1):
+            frame_num = self.lastPos + i
+            mask_time = frame_num * 1000.0 / self.fps #refigure time for the frame we actually write
+            GrayFrameWriter.write(self,
+                mask=mask if frame_num == mask_number and mask is not None else self.blankMask,
+                mask_number=frame_num,
+                mask_time=mask_time)
+
+        self.lastPos = mask_number
 
 def widthandheight(img):
     a = np.where(img != 0)
