@@ -2,7 +2,7 @@ from maskgen import graph_rules
 import unittest
 from maskgen.scenario_model import loadProject
 from test_support import TestSupport
-from mock import MagicMock, Mock
+from mock import MagicMock, Mock, patch
 from maskgen.validation.core import Severity
 from maskgen import video_tools
 class TestToolSet(TestSupport):
@@ -66,6 +66,45 @@ class TestToolSet(TestSupport):
                                             'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
         result = graph_rules.checkAudioLengthSmaller('op', graph, 'a', 'b')
         self.assertIsNone(result)
+
+    def test_checkAudioLengthDonor(self):
+        graph = Mock()
+        def which_edge(x,y):
+            if x in ['ai','ar']:
+                return {'arguments': {'Start Time': 1, 'End Time': 2,
+                                      'add type':'insert' if x == 'ai' else 'replace'},
+                        'op':'AddAudioOfSomeType',
+                                            'metadatadiff': {'video': {'duration': ('change', 1, 2)}}}
+            else:
+                return {'arguments': {'Start Time': 4, 'End Time': 5, 'add type': 'insert'},
+                        'op':'Donor',
+                        'videomasks': [{'startframe': 20,'endframe':30,'rate':10,'type':'audio','frames':11,
+                         'starttime':1900,'endtime':2900}]}
+        graph.get_edge = which_edge
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        graph.predecessors = Mock(return_value=['ai','c'])
+        def duration(x,audio=True):
+            return {'ai': 59348.345, 'b':60348.345}[x.source]
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ai', 'b')
+            self.assertIsNone(result)
+
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
+            self.assertIsNotNone(result)
+
+        def duration(x,audio=True):
+            return {'ai': 59348.345, 'b':1000.0}[x.source]
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
+            self.assertIsNone(result)
+
+
 
     def test_checkAudioLength(self):
         graph = Mock()
