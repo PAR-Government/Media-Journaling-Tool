@@ -70,7 +70,11 @@ def consolidate(dict1, dict2):
 EdgeTuple = collections.namedtuple('EdgeTuple', ['start', 'end', 'edge'])
 
 
-def createProject(path, notify=None, base=None, name=None, suffixes=[],
+def createProject(path,
+                  notify=None,
+                  base=None,
+                  name=None,
+                  suffixes=[],
                   tool=None,
                   username=None,
                   organization=None,preferences={}):
@@ -1057,6 +1061,7 @@ class ImageProjectModel:
         initialYpos = ypos
         totalSet = []
         for suffix in suffixes:
+            suffix = suffix.lower()
             totalSet.extend([filename for filename in os.listdir(dir) if
                              filename.lower().endswith(suffix) and \
                              not filename.endswith('_mask' + suffix) and \

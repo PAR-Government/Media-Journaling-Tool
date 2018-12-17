@@ -8,7 +8,6 @@
 
 import imghdr
 import math
-import os
 import platform
 import re
 import sys
@@ -16,6 +15,9 @@ import threading
 import warnings
 from datetime import datetime
 from subprocess import Popen, PIPE
+
+from scipy import ndimage
+from skimage.measure import compare_ssim
 
 import cv2api
 import loghandling
@@ -25,8 +27,6 @@ from image_wrap import *
 from maskgen.support import removeValue, getValue
 from maskgen.userinfo import get_username
 from maskgen_loader import MaskGenLoader
-from scipy import ndimage
-from skimage.measure import compare_ssim
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
@@ -2589,8 +2589,16 @@ def carveMask(image, mask, expectedSize):
     return newimage
 
 
-def alterMask(compositeMask, edgeMask, rotation=0.0, targetShape=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False):
+def alterMask(compositeMask,
+              edgeMask,
+              rotation=0.0,
+              targetShape=(0, 0),
+              interpolation='nearest',
+              location=(0, 0),
+              transformMatrix=None,
+              flip=None,
+              crop=False,
+              cut=False):
     res = compositeMask
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
@@ -2598,8 +2606,8 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, targetShape=(0, 0), interpo
         if targetShape != res.shape:
             # inverse crop
             newRes = np.zeros(targetShape).astype('uint8')
-            upperBound = (min(res.shape[0] + location[0],newRes.shape[0]),
-                          min(res.shape[1] + location[1],newRes.shape[0]))
+            upperBound = (min(res.shape[0] + location[0], newRes.shape[0]),
+                          min(res.shape[1] + location[1], newRes.shape[0]))
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes

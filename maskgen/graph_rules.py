@@ -533,7 +533,7 @@ def checkAudioLength(op, graph, frm, to):
     for stream in streams:
         modifier = getValue(all_streams[stream], 'duration', ('x', 0, 0))
         if modifier[0] == 'change':
-            return int(modifier[1]) - int(modifier[2])
+            return float(modifier[1]) - float(modifier[2])
     return 0
 
 def checkAudioSameorLonger(op, graph,frm, to):
@@ -549,41 +549,43 @@ def checkAudioLengthBigger(op, graph, frm, to):
 
 def checkAudioLengthSmaller(op, graph, frm, to):
     difference = checkAudioLength(op, graph, frm, to)
-    if difference <= 0:
+    if difference <= 0.001:
         return (Severity.ERROR, "Audio is not shorter in duration")
 
 def checkAudioLength_Strict(op, graph, frm, to):
     difference = checkAudioLength(op, graph, frm, to)
-    if difference != 0:
+    if abs(difference) > 0.001:
         return (Severity.ERROR, "Audio duration does not match")
 
 def checkAudioLength_Loose(op, graph, frm, to):
     from math import floor
     difference = checkAudioLength(op, graph, frm, to)
-    if floor(difference) != 0:
+    if floor(abs(difference)) != 0:
         return (Severity.ERROR, "Audio duration does not match")
 
 def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type', 'replace')
-    if addType == 'replace':
+    if addType in ['replace','insert']:
         from video_tools import get_duration
         from math import floor
-        donor_segments = getValue(edge,'videomasks',[])
+        donor_id, doner_edge = getDonorEdge(graph, to)
+        donor_segments = getValue(doner_edge,'videomasks',[])
         extractor = MetaDataExtractor(graph)
         to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
         if len(donor_segments) > 1:
             return (Severity.ERROR, 'Expected only donor segment selected from audio')
         elif len(donor_segments) == 0:
-            donor = getDonor(graph, to)[0]
-            donor_duration = get_duration(extractor.getMetaDataLocator(donor), audio=True)
-            if floor(abs(donor_duration - to_duration)) != 0:
-                return (Severity.ERROR, "Audio duration does not match the Donor")
+            donor_duration = get_duration(extractor.getMetaDataLocator(donor_id), audio=True)
         else:
             segment = donor_segments[0]
             donor_duration = get_end_time_from_segment(segment) - get_start_time_from_segment(segment)
-            if floor(abs(donor_duration - to_duration)) > get_rate_from_segment(segment)/1000.0:
-                return (Severity.ERROR, "Audio duration does not match the Donor")
+        if addType == 'replace' and floor(abs(donor_duration - to_duration)) > get_rate_from_segment(segment)/1000.0:
+            return (Severity.ERROR, "Audio duration does not match the Donor")
+        elif addType == 'insert':
+            from_duration = get_duration(extractor.getMetaDataLocator(frm), audio=True)
+            if abs(to_duration - (from_duration + donor_duration)) > get_rate_from_segment(segment)/100.0:
+                return (Severity.WARNING, "Audio duration does not match the donor plus original")
     else:
         return checkAudioLength_Strict(op, graph, frm, to)
 
@@ -848,16 +850,15 @@ def check_eight_bit(op, graph, frm, to):
     return None
 
 
-def getDonor(graph, node):
-    predecessors = graph.predecessors(node)
-    if len(predecessors) < 2:
-        return None
-    for pred in predecessors:
-        edge = graph.get_edge(pred, node)
-        if edge['op'] == 'Donor':
-            return (pred, edge)
-    return None
 
+def getDonorEdge(graph,node):
+    preds = graph.predecessors(node)
+    for pred in preds:
+        current_edge = graph.get_edge(pred, node)
+        current_op = current_edge['op']
+        if current_op == 'Donor':
+            return (pred, current_edge)
+    return None,None
 
 def checkForDonorWithRegion(op, graph, frm, to):
     """
@@ -1254,15 +1255,6 @@ def fixPath(graph, start, end):
     im, path = graph.get_image(current_node)
     im.to_mask().invert().save(os.path.join(graph.dir,current_edge['maskname']))
 
-def getDonorEdge(graph,node):
-    preds = graph.predecessors(node)
-    for pred in preds:
-        current_edge = graph.get_edge(pred, node)
-        current_op = current_edge['op']
-        if current_op == 'Donor':
-            return current_edge
-    return None
-
 def checkSIFT(op, graph, frm, to):
     """
     Currently a marker for SIFT.
@@ -1284,14 +1276,13 @@ def checkSIFT(op, graph, frm, to):
                     return (result[0],result[1],fixPath)
                 return (Severity.WARNING,result[1])
 
-
 def checkDonorTimesMatch(op, graph, frm, to):
-    donor = getDonorEdge(graph,to)
+    donor_id, donor_edge = getDonorEdge(graph,to)
     edge = graph.get_edge(frm, to)
-    if donor is None:
+    if donor_id is None:
         return (Severity.ERROR, 'Missing Donor Edge')
     segments = edge['videomasks'] if 'videomasks' in edge else []
-    donor_segments = edge['videomasks'] if 'videomasks' in edge else []
+    donor_segments = edge['videomasks'] if 'videomasks' in donor_edge else []
     for segment in segments:
         for donor_segment in donor_segments:
             if get_type_of_segment(donor_segment) ==  get_type_of_segment(segment):
