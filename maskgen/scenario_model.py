@@ -1284,17 +1284,38 @@ class ImageProjectModel:
              Return an error message on failure, otherwise return None
         """
         if self.start is None:
-            return "Node node selected", False
-        if not self.G.has_node(destination):
-            return "Canvas out of state from model.  Node Missing.", False
-        if self.findChild(destination, self.start):
-            return "Cannot connect to ancestor node", False
-        for suc in self.G.successors(self.start):
-            if suc == destination:
-                return "Cannot connect to the same node twice", False
-        errors,status = self._connectNextImage(destination, mod, invert=invert, sendNotifications=sendNotifications,
-                                      skipDonorAnalysis=skipDonorAnalysis)
-        return ('Validation errors occcurred' if (errors is not None and len(errors) > 0) else None), status
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Node node selected",
+                                     Module=''), False
+        elif not self.G.has_node(destination):
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Canvas out of state from model. Node Missing.",
+                                     Module=''), False
+        elif self.findChild(destination, self.start):
+            return ValidationMessage(Severity.ERROR,
+                                     self.start,
+                                     self.end,
+                                     Message="Cannot connect to ancestor node",
+                                     Module=''), False
+        else:
+            for successor in self.G.successors(self.start):
+                if successor == destination:
+                    return ValidationMessage(Severity.ERROR,
+                                                    self.start,
+                                                    self.end,
+                                                    Message="Cannot connect to the same node twice",
+                                                    Module=''), False
+
+            return self._connectNextImage(destination,
+                                          mod,
+                                          invert=invert,
+                                          sendNotifications=sendNotifications,
+                                          skipDonorAnalysis=skipDonorAnalysis)
+
 
     def getPredecessorNode(self):
         if self.end is None:
@@ -2088,10 +2109,11 @@ class ImageProjectModel:
         return self.G.get_edge_image_file_time(self.start, self.end, 'maskname')
 
     def maskImage(self, inputmask=False):
-        if self.end is None:
+        mask = self.G.get_edge_image(self.start, self.end, 'maskname')
+        if self.end is None or mask is None:
             dim = (250, 250) if self.start is None else self.getImage(self.start).size
             return ImageWrapper(np.zeros((dim[1], dim[0])).astype('uint8'))
-        return self.G.get_edge_image(self.start, self.end, 'maskname')
+        return mask
 
     def maskStats(self):
         if self.end is None:

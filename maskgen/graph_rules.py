@@ -528,7 +528,7 @@ def checkAudioChannels(op,graph, frm, to):
 def checkAudioLength(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     streams_to_filter = ["video", "unknown", "data"]
-    streams = [stream for stream in getValue(edge, 'metadatadiff') if stream not in streams_to_filter]
+    streams = [stream for stream in getValue(edge, 'metadatadiff', []) if stream not in streams_to_filter]
     for stream in streams:
         modifier = getValue(stream, 'duration', ('x', 0, 0))
         if modifier[0] == 'change':
