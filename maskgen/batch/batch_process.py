@@ -25,6 +25,7 @@ from batch_project import loadJSONGraph, BatchProject, updateAndInitializeGlobal
 from maskgen.image_graph import extract_archive
 from maskgen.userinfo import setPwdX, CustomPwdX
 from maskgen.loghandling import set_logging,set_logging_level
+from maskgen.plugins import EchoInterceptor
 
 
 def parseRules(extensionRules):
@@ -218,20 +219,20 @@ def main(argv=sys.argv[1:]):
     setPwdX(CustomPwdX(args.username))
     manager = maskgen.plugins.loadPlugins()
     if args.test:
-        maskgen.plugins.EchoInterceptor(manager.getBroker())
+        EchoInterceptor(manager.getBroker())
         if args.projects is None:
             print ('argument projects is required')
             sys.exit(-1)
-        processSpecification(args.specification,
-                             args.extensionRules,
-                             args.projects,
-                             completeFile=args.completeFile,
-                             outputGraph=args.graph,
-                             threads=int(args.threads),
-                             loglevel=args.loglevel,
-                             global_variables=args.global_variables,
-                             initializers=args.initializers,
-                             passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
+    processSpecification(args.specification,
+                         args.extensionRules,
+                         args.projects,
+                         completeFile=args.completeFile,
+                         outputGraph=args.graph,
+                         threads=int(args.threads),
+                         loglevel=args.loglevel,
+                         global_variables=args.global_variables,
+                         initializers=args.initializers,
+                         passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
     # bulk export to s3
     if args.s3:
