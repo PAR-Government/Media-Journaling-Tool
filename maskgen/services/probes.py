@@ -334,6 +334,43 @@ class DonorExtender:
     def get_image(self, override_args={},target_size=(0,0)):
         return ImageWrapper(np.zeros((target_size[1],target_size[0]),dtype='uint8'))
 
+def cleanup_temporary_files(probes = [], scModel = None):
+    files_to_remove = []
+
+    used_hdf5 = ['']
+    used_masks = ['']
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        input_mask = getValue(edge, 'inputmaskname', '')
+        mask = getValue(edge, 'maskname', '')
+        used_masks.append(input_mask)
+        used_masks.append(mask)
+        videomasks = getValue(edge, 'videomasks', [])
+        for mask in videomasks:
+            hdf5 = getValue(mask, 'videosegment', '')
+            used_hdf5.append(hdf5)
+    used_hdf5 = set(used_hdf5)
+    used_masks = set(used_masks)
+
+    for probe in probes:
+        mask = probe.targetMaskFileName if probe.targetMaskFileName != None else ''
+        if mask not in used_masks:
+            files_to_remove.append(mask)
+        if probe.targetVideoSegments != None:
+            for segment in probe.targetVideoSegments:
+                hdf5 = segment.filename if segment.filename != None else ''
+                if hdf5 not in used_hdf5:
+                    files_to_remove.append(hdf5)
+
+    files_to_remove = set(files_to_remove)
+
+    for _file in files_to_remove:
+        try:
+            os.remove(os.path.join(scModel.get_dir(), _file))
+        except OSError:
+            pass
+
+
 def main():
     import sys
     archive_probes(sys.argv[1])

@@ -3363,8 +3363,10 @@ class HDF5CompositeBuilder(CompositeBuilder):
         """
         pass
 
+
     def finalize(self, probes, save=True):
         import itertools
+        results = {}
         if len(probes) == 0:
             return
         results = {}

@@ -8,7 +8,6 @@
 
 import argparse
 import sys
-
 import matplotlib
 matplotlib.use("TkAgg")
 

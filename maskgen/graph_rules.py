@@ -529,7 +529,6 @@ def checkAudioLength(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     streams_to_filter = ["video", "unknown", "data"]
     all_streams =getValue(edge, 'metadatadiff', [])
-    streams = [stream for stream in getValue(edge, 'metadatadiff', []) if stream not in streams_to_filter]
     for stream in streams:
         modifier = getValue(all_streams[stream], 'duration', ('x', 0, 0))
         if modifier[0] == 'change':

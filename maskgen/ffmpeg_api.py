@@ -361,3 +361,9 @@ def is_vfr(meta, frames=[]):
     if len(frame_durations) > 1:
         return True
     return False
+
+def ffmpeg_overlay(source, mask, output):
+    command = ['-i', source, '-i', mask, '-filter_complex',
+               '[1:v]colorkey=white:.1:.9[ckout]; [0:v][ckout]overlay[out]','-map', '[out]', '-y', output]
+    run_ffmpeg(command, noOutput=True)
+    return output
