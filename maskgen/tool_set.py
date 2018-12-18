@@ -3154,13 +3154,12 @@ class GrayBlockOverlayGenerator:
         self.segments = sorted(segments, key=lambda segment: segment.startframe)
         self.segment_index = 0
         self.segment = segments[self.segment_index]
-
-        self.reader = GrayBlockReader(
+        self.readerManager = GrayBlockReaderManager()
+        self.reader = self.readerManager.create_reader(
             filename=self.segment.filename,
             start_time=self.segment.starttime,
             start_frame=self.segment.startframe,
             end_frame=self.segment.endframe)
-
         self.overlay_mask_name = os.path.join(os.path.split(self.segment.filename)[0], '_overlay')
         self.writer = GrayFrameOverlayWriter(
             mask_prefix=self.overlay_mask_name,
@@ -3171,7 +3170,7 @@ class GrayBlockOverlayGenerator:
     def updateSegment(self):
         self.segment_index += 1
         self.segment = self.segments[self.segment_index]
-        self.reader = GrayBlockReader(
+        self.reader = self.readerManager.create_reader(
             filename=self.segment.filename,
             start_time=self.segment.starttime,
             start_frame=self.segment.startframe,
