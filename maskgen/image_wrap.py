@@ -51,15 +51,15 @@ except ImportError:
                 return []
 
 
-def _processRaw(raw, isMask=False, args=None):
+def _processRaw(filename, raw, isMask=False, args=None):
     import rawpy
-    try:
+    def _open_from_rawpy(raw,args=None):
         if args is not None and 'Bits per Channel' in args:
             bits = int(args['Bits per Channel'])
         else:
             bits = 8
-        use_camera_wb = args is not None and \
-                        'White Balance' in args and \
+        use_camera_wb = args is None or \
+                        'White Balance' not in args or \
                         args['White Balance'] == 'camera'
         use_auto_wb = args is not None and \
                       'White Balance' in args and \
@@ -89,16 +89,19 @@ def _processRaw(raw, isMask=False, args=None):
                        'LINEAR': rawpy.DemosaicAlgorithm.LINEAR,
                        'VCD_MODIFIED_AHD': rawpy.DemosaicAlgorithm.VCD_MODIFIED_AHD,
                        'VNG': rawpy.DemosaicAlgorithm.VNG}
-            return ImageWrapper(raw.postprocess(demosaic_algorithm=mapping[v],
+            return raw.postprocess(demosaic_algorithm=mapping[v],
                                                 output_bps=bits,
                                                 use_camera_wb=use_camera_wb,
                                                 use_auto_wb=use_auto_wb,
-                                                output_color=colorspace), to_mask=isMask)
+                                                output_color=colorspace)
 
-        return ImageWrapper(raw.postprocess(output_bps=bits,
+        return raw.postprocess(output_bps=bits,
                                             use_camera_wb=use_camera_wb,
                                             use_auto_wb=use_auto_wb,
-                                            output_color=colorspace), to_mask=isMask)
+                                            output_color=colorspace)
+    try:
+        rawdata = _open_from_rawpy(raw,args=args)
+        return ImageWrapper(rawdata,to_mask=isMask,isRaw=True)
     except Exception as e:
         logging.getLogger('maskgen').error('Raw Open: ' + str(e))
         return None
@@ -116,7 +119,7 @@ def openRaw(filename, isMask=False, args=None):
             if type(args) == list:
                 result = {}
                 for argitem in args:
-                    rawim = _processRaw(raw, isMask=isMask, args=argitem)
+                    rawim = _processRaw(filename, raw, isMask=isMask, args=argitem)
                     if rawim is not None:
                         if 'outputname' in argitem:
                             rawim.save(argitem['outputname'], format='PNG')
@@ -124,7 +127,7 @@ def openRaw(filename, isMask=False, args=None):
                         else:
                             result[str(argitem)] = rawim
             else:
-                result = _processRaw(raw)
+                result = _processRaw(filename,raw,args=args)
             if logger.isEnabledFor(logging.DEBUG):
                 logging.debug('Opened {} as raw'.format(filename))
             return result
@@ -183,25 +186,46 @@ def pdf2_image_extractor(filename, isMask=False):
     import PyPDF2
     import io
     from PyPDF2 import generic
-    with open(filename, "rb") as f:
-        input1 = PyPDF2.PdfFileReader(f)
-        page0 = input1.getPage(0)
+    def find_image(page0):
         xObject = page0['/Resources']['/XObject'].getObject()
+        rotate = page0['/Rotate'] if '/Rotate' in page0 else 0
         for obj in xObject:
             if xObject[obj]['/Subtype'] == '/Image':
                 size = (xObject[obj]['/Width'], xObject[obj]['/Height'])
-                if xObject[obj]['/ColorSpace'] == '/DeviceRGB':
-                    mode = "RGB"
-                else:
-                    mode = "P"
-                hasJPEG = len([x for x in xObject[obj]['/Filter'] if x == '/DCTDecode']) > 0
-                if hasJPEG:
+                mode = 'RGB'
+                if '/ColorSpace' in xObject[obj]:
+                    mode = "P" if xObject[obj]['/ColorSpace'] == '/DeviceGray' else mode
+                    mode = "CMYK" if xObject[obj]['/ColorSpace'] == '/DeviceCMYK' else mode
+                hasJPEGOld = len([x for x in xObject[obj]['/Filter'] if x == '/DCTDecode']) > 0
+                hasJPEG = xObject[obj]['/Filter'] in ['/DCTDecode', '/JBIG2Decode']
+                #isBig =  xObject[obj]['/Filter'] == '/JBIG2Decode'
+                if hasJPEG or hasJPEGOld:
                     if type(xObject[obj]['/Filter']) == generic.ArrayObject:
                         xObject[obj].update({generic.NameObject('/Filter'):
                                                  generic.ArrayObject([x for x in xObject[obj]['/Filter']
                                                                       if x not in ['/DCTDecode', '/JBIG2Decode']])})
-                    im = Image.open(io.BytesIO(bytearray(xObject[obj].getData())))
-                    return ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
+                    try:
+                        im = Image.open(io.BytesIO(bytearray(xObject[obj]._data if not hasJPEGOld else xObject[obj].getData()) ))
+                    except Exception as e:
+                        continue
+                    ima = np.asarray(im)
+                    if rotate != 0:
+                        ima = np.rot90(ima, -rotate / 90)
+                    return ImageWrapper(ima, mode=im.mode, info=im.info, to_mask=isMask, filename=filename)
+                elif xObject[obj]['/Filter'] == '/FlateDecode':
+                    ima = Image.frombytes(mode, size, xObject[obj]._data)
+                    if rotate != 0:
+                        ima = np.rot90(ima, -rotate / 90)
+                    return ImageWrapper(ima, mode=mode, to_mask=isMask, filename=filename)
+            else:
+                r = find_image(xObject[obj])
+                if r is not None:
+                    return r
+
+    with open(filename, "rb") as f:
+        input1 = PyPDF2.PdfFileReader(f)
+        return find_image(input1.getPage(0))
+
     return None
 
 
@@ -261,9 +285,14 @@ def proxyOpen(filename, isMask=False):
     return None
 
 # openTiff supports raw files as well
-file_registry = [('png', [readPNG]), ('pdf', [pdf2_image_extractor, wand_image_extractor, convertToPDF]),
-                 ('', [defaultOpen]),
-                 ('', [openTiff]), ('', [proxyOpen])]
+file_registry = [('png', [readPNG]),
+                 ('pdf', [wand_image_extractor, pdf2_image_extractor,  convertToPDF]),
+                 ('cr2', [openRaw]),
+                 ('nef', [openRaw]),
+                 ('dng', [openRaw]),
+                 ('arw', [openRaw]),
+                 ('raf', [openRaw]),
+                 ('',    [defaultOpen, openTiff, proxyOpen])]
 file_write_registry = {}
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
@@ -432,7 +461,7 @@ class ImageWrapper:
     """
     @type image_array: numpy.ndarray
     """
-    def __init__(self, image_array, mode=None, to_mask=False, info=None, filename=None):
+    def __init__(self, image_array, mode=None, to_mask=False, info=None, filename=None, isRaw=False):
         """
 
         :param image_array:
@@ -450,9 +479,15 @@ class ImageWrapper:
         self.mode = mode if mode is not None else get_mode(image_array)
         self.size = (image_array.shape[1], image_array.shape[0])
         self.filename = filename
+        self.isRaw = isRaw
         if to_mask and self.mode != 'L':
             self.image_array = self.to_mask_array()
             self.mode = 'L'
+
+    def file_mtime(self):
+        if self.filename is None or not os.path.exists(self.filename):
+            return 0
+        return os.stat(self.filename).st_mtime
 
     def has_alpha(self):
         return len(self.image_array.shape) == 3 and self.mode.find('A') > 0

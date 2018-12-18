@@ -10,6 +10,7 @@ import logging
 from image_wrap import openImageFile,ImageWrapper
 from video_tools import get_frame_rate
 from graph_meta_tools import MetaDataExtractor
+from software_loader import SoftwareLoader, getFileName
 import numpy as np
 from support import setPathValue ,getValue
 import tool_set
@@ -76,7 +77,10 @@ def updateJournal(scModel):
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
          ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
-         ('0.5.0918.19c0afaab7', [_fixTool2])
+         ('0.5.0918.19c0afaab7', [_fixTool2]),
+         ('0.5.1105.665737a167', []),
+         ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
+         ('0.5.1210.5ca3e81782', [_fixCAS])
          ])
 
     versions= list(fixes.keys())
@@ -108,6 +112,47 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixReplaceAudioOp(scModel, gopLoader):
+    """
+    Replaces the ReplaceAudioSample operation with AddAudioSample Operation,
+    Setting the 'add type' argument to 'replace'
+    :param scModel:
+    :param gopLoader:
+    :return:
+    """
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'ReplaceAudioSample':
+            edge['op'] = 'AddAudioSample'
+            setPathValue(edge, 'arguments.add type', 'replace')
+            setPathValue(edge, 'arguments.synchronization', 'none')
+            setPathValue(edge, 'arguments.Direct from PC', 'no')
+
+def _fixCAS(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op_name = getValue(edge, 'op', '')
+        if op_name == 'TransformContentAwareScale':
+            node = scModel.G.get_node(frm)
+            if getValue(node, 'filetype', 'image') == 'video':
+                edge['op'] = 'PasteSampled'
+            else:
+                edge['op'] = 'TransformSeamCarving'
+                setPathValue(edge,'arguments.inputmasktype','keep')
+                setPathValue(edge, 'arguments.apply mask', 'yes')
+        if op_name == 'ContentAwareFill':
+            node = scModel.G.get_node(frm)
+            if getValue(node, 'filetype', 'image') == 'video':
+                edge['op'] = 'PasteSampled'
+        if op_name == 'TransformSeamCarving':
+            setPathValue(edge, 'arguments.inputmasktype', 'color')
+            setPathValue(edge, 'arguments.apply mask', 'no')
+        # should have been fixed a while ago
+        if op_name == 'OutputPng':
+            if getValue(edge,'arguments.Lens Distortion Applied','') == '':
+                setPathValue(edge, 'arguments.Lens Distortion Applied', 'no')
 
 def _fixNoSoftware(scModel, gopLoader):
     """
@@ -148,6 +193,43 @@ def _fix_Inpainting_SoftwareName(scModel,gopLoader):
                 and getValue(edge, 'softwareName', '') == '':
             edge['softwareName'] = 'UoMInPainting'
             edge['softwareVersion'] = '2.8'
+
+def _fixSoftwareVersion(scModel, gopLoader):
+
+    sl = SoftwareLoader()
+
+    adobe = {"14.1": "CC 2014", "14.2": "CC 2014", "15.0": "CC 2014", "15.2": "CC 2014", "16.0": "CC 2015",
+             "16.1": "CC 2015", "16.2": "CC 2015", "16.16": "CC 2015",
+             "17.0": "CC 2015", "18.0": "CC 2017", "18.1": "CC 2017", "19.0": "CC 2018", "20.0": "CC 2019",
+             "2014": "CC 2014", "2015": "CC 2015", "2016": "CC 2016", "2017": "CC 2017", "2018": "CC 2018",
+             "2019": "CC 2019"}
+
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        softwareName = getValue(edge, 'softwareName','')
+        softwareVersion = getValue(edge, 'softwareVersion','').strip()
+        versions = sl.get_versions(softwareName)
+        if len(versions) == 0:
+            #if the software is not in the jt and is one digit/char make it x.0
+            if len(softwareVersion) == 1:
+                softwareVersion = softwareVersion + ".0"
+        else:
+            #software is in the jt
+            modified = False
+            #if one of the versions in the jt is in the software version use the jt version
+            for v in versions:
+                v = v.strip()
+                if v in softwareVersion or v.lower() in softwareVersion.lower():
+                    softwareVersion = v
+                    modified = True
+            if not modified:
+                if 'adobe' in softwareName.lower():
+                    for key in adobe:
+                        if key in softwareVersion:
+                            softwareVersion = adobe[key]
+                            break
+        edge['softwareVersion'] = softwareVersion
+
 
 def _fixSelectRegionAutoJournal(scModel, gopLoader):
 
@@ -440,7 +522,6 @@ def _emptyMask(scModel, gopLoader):
 
 def _fixTool(scModel,gopLoader):
     """
-
     :param scModel:
     :param gopLoader:
     :return:
@@ -455,9 +536,9 @@ def _fixTool(scModel,gopLoader):
     if description is not None:
         scModel.setProjectData('projectdescription', description)
     tool_name = 'jtui'
-    if summary.lower().startswith('automate'):
-        tool_name = 'jtproject'
     creator = scModel.getGraph().getDataItem('creator')
+    if summary.lower().startswith('automate') or creator in ['alice', 'dupre']:
+        tool_name = 'jtproject'
     modifier_tools = [tool_name]
     # no easy way to find extensions, since all extensions are plugins
     modified_users = set()

@@ -196,10 +196,6 @@ Section "Maskgen"
     SetOutPath "$USERDIR\maskgen\setuptools-version"
     ExecWait "$PYTHON setup.py install"
 
-    SetOutPath  "$USERDIR\maskgen\wrapper_plugins\rawphoto_wrapper"
-    ExecWait "$PYTHON setup.py sdist"
-    ExecWait "$PIP install -e ."
-
     SetOutPath  "$USERDIR\maskgen"
     ExecWait "$PYTHON setup.py sdist"
     ExecWait "$PIP install -e ."

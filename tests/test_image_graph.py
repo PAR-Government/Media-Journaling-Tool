@@ -38,14 +38,17 @@ class TestImageGraph(TestSupport):
        os.mkdir('test_image_graph')
        shutil.copy(self.locateFile('images/sample.jpg'),'test_image_graph/foo.jpg')
        shutil.copy(self.locateFile('images/sample.jpg'), 'test_image_graph/bar.jpg')
-       graph = image_graph.createGraph('test_image_graph/foo.json', 'image')
+       graph = image_graph.createGraph('test_image_graph/foo.json', 'image',)
        graph.add_node('test_image_graph/foo.jpg',xxx=1)
        graph.add_node('test_image_graph/bar.jpg', xxx=1)
        nodes=  graph.get_nodes()
        graph.setDataItem('xxx',1)
+       graph.setDataItem('projectfile',self.locateFile('tests/data/camera_sizes.json'))
+       self.assertTrue(os.path.exists(os.path.join('test_image_graph','camera_sizes.json')))
        graph.add_edge(nodes[0],nodes[1], xxx=1)
        graph.replace_attribute_value('xxx',1,2)
        self.assertEquals(graph.getDataItem('xxx'),2)
+
        shutil.rmtree('test_image_graph')
 
 if __name__ == '__main__':

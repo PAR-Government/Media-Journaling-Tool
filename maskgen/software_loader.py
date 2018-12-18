@@ -207,6 +207,10 @@ class Operation:
             return 'yes' if self.includeInMask ['default'] else 'no'
         return 'no'
 
+    def getParameterValuesForType(self, param_name, type):
+        param = getValue(self.mandatoryparameters,param_name, getValue(self.optionalparameters,param_name,{}))
+        return getValue(param,type +':values', getValue(param,'values'),[] )
+
     def getDonorProcessor(self, default_processor = None):
         if  self.donor_processor is not None:
             return getRule(self.donor_processor)
@@ -454,7 +458,7 @@ class MetaDataLoader:
         self.reload()
 
     def reload(self):
-        self.operations, self.filters, self.operationsByCategory, self.node_properties = self._load_operations('operations.json')
+        self.operations, self.filters, self.operationsByCategory, self.node_properties, self.operation_version = self._load_operations('operations.json')
         self.software_set, self.software_category_set = self._load_software('software.csv')
         self.projectProperties = self._load_project_properties('project_properties.json')
         self.manipulator_names = self._load_manipulators('ManipulatorCodeNames.txt')
@@ -520,7 +524,7 @@ class MetaDataLoader:
             if category not in operationsByCategory:
                 operationsByCategory[category] = []
             operationsByCategory[category].append(op)
-        return operations, filters, operationsByCategory, node_properties
+        return operations, filters, operationsByCategory, node_properties, version
 
     def propertiesToCSV(self, filename):
         import csv

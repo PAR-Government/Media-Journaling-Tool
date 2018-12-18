@@ -466,7 +466,17 @@ def get_shape_of_video(video_file):
             height = int(item['height'])
     return width,height
 
-
+def estimate_duration(meta=[], frame_count=0):
+    """
+    A fast estimate using the frame count and the average framerate.
+    :param meta:
+    :param frame_count:
+    :return:
+    """
+    framerate = getValue(meta, 'avg_frame_rate', '30/1').split('/')
+    framerate = float(framerate[0]) / float(framerate[1])
+    duration = (float(frame_count) / framerate) if frame_count > 0 else 0
+    return duration
 
 def get_frame_time(video_frame, last_time, rate):
     try:
@@ -528,12 +538,15 @@ def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
             frame_count = len(frames[index])
         else:
             # get the last frames, as we have the count and it is not open ended or open started
+            duration = getValue(meta[index],'duration', 'N/A')
+            if duration[0].lower() == 'n':
+                duration = estimate_duration(meta[index], frame_count)
             _, frames = ffmpeg_api.get_meta_from_video(video_file,
                                                        show_streams=True,
                                                        with_frames=True,
                                                        media_types=['video'],
                                                        frame_meta=['pkt_pts_time', 'pkt_dts_time'],
-                                                       frame_start=to_time(float(getValue(meta[index],'duration',100000.0))))
+                                                       frame_start=to_time(float(duration)-1))
             end_time = get_frame_time(frames[index][-1], None, None)
 
     if end_time_tuple in [None, (0, 0)]:
@@ -669,6 +682,8 @@ def get_frame_rate(locator, default=None, audio=False):
     if len(parts) == 2 and float(parts[1]) > 0:
         return float(parts[0]) / float(parts[1])
     return default
+
+
 
 
 def get_duration(locator, default=None, audio=False):

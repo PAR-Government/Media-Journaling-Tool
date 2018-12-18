@@ -6,26 +6,27 @@
 # All rights reserved.
 # ==============================================================================
 
-import math
-from datetime import datetime
-from skimage.measure import compare_ssim
-import warnings
-from scipy import ndimage
-import re
 import imghdr
-import sys
-from image_wrap import *
-from maskgen_loader import MaskGenLoader
-from subprocess import Popen, PIPE
-import threading
-import loghandling
-import cv2api
-from ffmpeg_api import get_ffprobe_tool
-from maskgen.support import removeValue, getValue
-import os
-from maskgen.userinfo import get_username
-
+import math
 import platform
+import re
+import sys
+import threading
+import warnings
+from datetime import datetime
+from subprocess import Popen, PIPE
+
+from scipy import ndimage
+from skimage.measure import compare_ssim
+
+import cv2api
+import loghandling
+import maskgen.exif
+from ffmpeg_api import get_ffprobe_tool
+from image_wrap import *
+from maskgen.support import removeValue, getValue
+from maskgen.userinfo import get_username
+from maskgen_loader import MaskGenLoader
 
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
@@ -43,7 +44,7 @@ audiofiletypes = [("mpeg audio files", "*.m4a"), ("mpeg audio files", "*.m4p"), 
                   ("raw audio files", "*.raw"), ("Audio Interchange File", "*.aif"),
                   ("Audio Interchange File", "*.aiff"),
                   ("Standard PC audio files", "*.wav"), ("Windows Media  audio files", "*.wma")]
-zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz')]
+zipfiletypes = [('zip of images','*.zip'),('zip of images','*.gz'),('zip of images','*.tgz')]
 
 textfiletypes = [("CSV file", "*.csv"), ("json file", "*.json"), ("text file", "*.txt"), ("log file","*.log")]
 suffixes = [".nef", ".jpg", ".png", ".tiff", ".bmp", ".avi", ".mp4", ".mov", ".wmv", ".ppm", ".pbm", ".mdc",".gif",
@@ -60,13 +61,25 @@ modelfiletypes = [('3D Studio', '*.3ds'), ('Blender', '*.blen'), ('Collada', '*.
                   ('SoftImage', '*.xsi'), ('ZBrush', '*.ztl'), ('XYZ Files', '*.xyz')]
 
 
+class S3ProgessComposite(object):
+
+    def __init__(self,progress_monitors = []):
+        self.progress_monitors = progress_monitors
+
+    def __call__(self, bytes_amount):
+        for pm in self.progress_monitors:
+            pm(bytes_amount)
+
+
 class S3ProgressPercentage(object):
-    def __init__(self, filename):
+
+    def __init__(self, filename, log = None):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._percentage_so_far = 0
         self._lock = threading.Lock()
+        self.log = log if log is not None else logging.getLogger('maskgen').info
 
     def __call__(self, bytes_amount):
         # To simplify we'll assume this is hooked up
@@ -75,7 +88,7 @@ class S3ProgressPercentage(object):
             self._seen_so_far += bytes_amount
             percentage = (self._seen_so_far / self._size) * 100
             if (percentage - self._percentage_so_far) > 5:
-                logging.getLogger('maskgen').info(
+                self.log(
                     "%s  %s / %s  (%.2f%%)" % (
                         self._filename, self._seen_so_far, self._size,
                         percentage))
@@ -593,7 +606,7 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
         elif argDef['type'] == 'list':
             if argValue not in argDef['values']:
                 raise ValueError(argValue + ' is not one of the allowed values')
-        elif argDef['type'] == 'time':
+        elif argDef['type'] in ('frame_or_time', 'time'):
             if not validateTimeString(argValue):
                 raise ValueError(argValue + ' is not a valid time (e.g. HH:MM:SS.micro)')
         elif argDef['type'] == 'yesno':
@@ -781,9 +794,34 @@ def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=
             img.save(snapshotFileName)
         return img
 
+def readFromArchive(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
+    import tarfile
+    import re
+    file_type_matcher = re.compile('.*\.(' + '|'.join([ft[1][ft[1].rfind('.') + 1:] for ft in filetypes]) + ')')
+    archive = tarfile.open(filename, "w:gz")
+    try:
+        names = archive.getnames()
+        names.sort()
+        time_manager = VidTimeManager(stopTimeandFrame=videoFrameTime)
+        i = 0
+        for name in names:
+            i += 1
+            elapsed_time = i * fps
+            if len(file_type_matcher.findall(name.lower())) == 0:
+                continue
+            time_manager.updateToNow(elapsed_time)
+            if time_manager.isPastTime() or videoFrameTime is None:
+                break
+        extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
+        img = openImage(extracted_file, isMask=isMask)
+        if extracted_file != snapshotFileName and snapshotFileName is not None:
+            img.save(snapshotFileName)
+        return img
+    finally:
+        archive.close()
 
 def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFileName=None):
-    cap = cv2api.cv2api_delegate.videoCapture(filename)
+    cap = cv2api.cv2api_delegate.videoCapture(filename, useFFMPEGForTime=False)
 
     bestSoFar = None
     bestVariance = -1
@@ -848,9 +886,9 @@ class ImageOpener:
     def __init__(self):
         pass
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         try:
-            img = openImageFile(filename, isMask=isMask)
+            img = openImageFile(filename, isMask=isMask, args=args)
             return img if img is not None else openImage(get_icon('RedX.png'))
         except Exception as e:
             logging.getLogger('maskgen').warning('Failed to load ' + filename + ': ' + str(e))
@@ -861,7 +899,7 @@ class AudioOpener(ImageOpener):
     def __init__(self):
         ImageOpener.__init__(self)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         return ImageOpener.openImage(self, get_icon('audio.png'))
 
 class VideoOpener(ImageOpener):
@@ -875,7 +913,7 @@ class VideoOpener(ImageOpener):
         return os.path.exists(snapshotFileName) and \
                os.stat(snapshotFileName).st_mtime >= os.stat(filename).st_mtime
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         if not ('video' in getFileMeta(filename)):
             return ImageOpener.openImage(self, get_icon('audio.png'))
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
@@ -892,7 +930,7 @@ class ZipOpener(VideoOpener):
     def __init__(self, videoFrameTime=None, preserveSnapshot=True):
         VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
 
-    def openImage(self, filename, isMask=False):
+    def openImage(self, filename, isMask=False, args=None):
         snapshotFileName = os.path.splitext(filename)[0] + '.png'
         if self.openSnapshot(filename, snapshotFileName):
             return ImageOpener.openImage(self, snapshotFileName)
@@ -903,6 +941,20 @@ class ZipOpener(VideoOpener):
             return ImageOpener.openImage(self, get_icon('RedX.png'))
         return videoFrameImg
 
+class TgzOpener(VideoOpener):
+    def __init__(self, videoFrameTime=None, preserveSnapshot=True):
+        VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+
+    def openImage(self, filename, isMask=False, args=None):
+        snapshotFileName = os.path.splitext(filename)[0] + '.png'
+        if self.openSnapshot(filename, snapshotFileName):
+            return ImageOpener.openImage(self, snapshotFileName)
+        videoFrameImg = readFromArchive(filename, videoFrameTime=self.videoFrameTime, isMask=isMask,
+                                    snapshotFileName=snapshotFileName if self.preserveSnapshot else None)
+        if videoFrameImg is None:
+            logging.getLogger('maskgen').warning('invalid or corrupted file ' + filename)
+            return ImageOpener.openImage(self, get_icon('RedX.png'))
+        return videoFrameImg
 
 def getContentsOfZip(filename):
     from zipfile import ZipFile
@@ -950,7 +1002,7 @@ def condenseZip(filename, outputfile=None, filetypes=None, keep=2):
                 os.remove(filename)
 
 
-def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False):
+def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=False, args=None):
     """
     Open and return an image from the file. If the file is a video, find the first non-uniform frame.
     videoFrameTime, integer time in milliseconds, is provided, then find the frame after that point in time
@@ -971,10 +1023,12 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         opener = VideoOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in ['zip', 'gz']:
         opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+    elif prefix in [ 'tgz']:
+        opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 
-    return opener.openImage(filename, isMask=isMask)
+    return opener.openImage(filename, isMask=isMask, args=args)
 
 
 def interpolateMask(mask, startIm, destIm, invert=False, arguments=dict()):
@@ -1489,7 +1543,6 @@ def _remap(img, mask, src_pts, dst_pts):
 
 
 def __grid(img1, img2, compositeMask, edgeMask=None, arguments=None):
-    from scipy.interpolate import griddata
     """
     Compute sparse maps from points between img1 to img2
     :param img1:
@@ -1786,8 +1839,6 @@ def applyRotateToComposite(rotation, compositeMask, edgeMask, expectedDims, loca
 
 
 def isHomographyOk(transform_matrix, h, w):
-    from shapely.geometry import Point
-    from shapely.geometry.polygon import Polygon
     # convert cornore to homogenous coordinates
     ll = np.array([0, 0, 1])
     ul = np.array([0, w, 1])
@@ -2081,15 +2132,63 @@ def mediatedCompare(img_one, img_two, **kwargs):
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
+def getExifDimensions(filename, crop=False):
+    from maskgen import exif
+    meta = exif.getexif(filename)
+    heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
+    widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
+    height_selections = [(meta[h] if h in meta else None) for h in heights]
+    width_selections =  [(meta[w] if w in meta else None) for w in widths ]
+    if 'png:IHDR.width,height' in meta:
+        try:
+            w,h = [int(x.strip()) for x in meta['png:IHDR.width,height'].split(',')]
+            height_selections.append(h)
+            width_selections.append(w)
+        except:
+            pass
+    return [(int(height_selections[p]), int(width_selections[p]))
+            for p in range(len(width_selections)) if height_selections[p] is not None and width_selections[p] is not None]
+
 def convertCompare(img1, img2, arguments=dict()):
+    analysis = {}
     if 'Image Rotated' in arguments and arguments['Image Rotated'] == 'yes':
-        rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
-        return 255 - mask, {'rotation': rotation}
+        if 'source filename' in arguments:
+            orienation = exif.getOrientationFromExif((arguments['source filename']))
+            analysis.update(exif.rotateAnalysis(orienation))
+            img1 = exif.rotateAccordingToExif(img1, orienation,counter=True)
+        else:
+            # assumes crop, but this approach should be improved to use HOG comparisons
+            # since some of these conversions occur with Raw images
+            rotation, mask = __findRotation(img1, img2, [0, 90, 180, 270])
+            analysis.update({'rotation': rotation})
+            return 255 - mask, analysis
+    if 'source filename' in arguments and img1.shape != img2.shape:
+        # see if there is crop information in exif
+        dims_crop = getExifDimensions(arguments['source filename'], crop=True)
+        dims = getExifDimensions(arguments['source filename'], crop=False)
+        if len(dims_crop) > 0 and len(dims) > 0 and dims_crop[0] != dims[0]:
+            analysis['Crop'] = 'yes'
     if img1.shape != img2.shape:
-        new_img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        diff_shape = (int(img1.shape[0] - img2.shape[0]) / 2, int(img1.shape[1] - img2.shape[1]) / 2)
+        #keep in mind that alterMask, used for composite generation, assumes 'crop' occurs first, followed
+        # by final adjustments for size
+        if 'location' not in arguments:
+            diff_shape= (max(1,diff_shape[0]),max(1,diff_shape[1]))
+        else:
+            diff_shape = toIntTuple(arguments['location'])
+        if getValue(arguments, 'Crop','yes') == 'no':
+            new_img1 = img1
+        else:
+            new_img1 = img1[diff_shape[0]:-diff_shape[0], diff_shape[1]:-diff_shape[1]]
+        new_img2 = cv2.resize(img2, (new_img1.shape[1], new_img1.shape[0]))
+        if getValue(arguments, 'Crop', 'yes') == 'yes':
+            analysis['location'] = str(diff_shape)
+        mask, a = __diffMask(new_img1, new_img2, False, args=arguments)
     else:
-        new_img2 = img2
-    return __diffMask(img1, new_img2, False, args=arguments)
+        mask, a = __diffMask(img1, img2, False, args=arguments)
+
+    analysis.update(a)
+    return mask, analysis
 
 def __composeMask(img1_wrapper, img2_wrapper, invert, arguments=dict(), alternativeFunction=None, convertFunction=None):
     """
@@ -2490,8 +2589,16 @@ def carveMask(image, mask, expectedSize):
     return newimage
 
 
-def alterMask(compositeMask, edgeMask, rotation=0.0, targetShape=(0, 0), interpolation='nearest', location=(0, 0),
-              transformMatrix=None, flip=None, crop=False, cut=False):
+def alterMask(compositeMask,
+              edgeMask,
+              rotation=0.0,
+              targetShape=(0, 0),
+              interpolation='nearest',
+              location=(0, 0),
+              transformMatrix=None,
+              flip=None,
+              crop=False,
+              cut=False):
     res = compositeMask
     # rotation may change the shape
     # transforms typical are created for local operations (not entire image)
@@ -2499,8 +2606,8 @@ def alterMask(compositeMask, edgeMask, rotation=0.0, targetShape=(0, 0), interpo
         if targetShape != res.shape:
             # inverse crop
             newRes = np.zeros(targetShape).astype('uint8')
-            upperBound = (min(res.shape[0] + location[0],newRes.shape[0]),
-                          min(res.shape[1] + location[1],newRes.shape[0]))
+            upperBound = (min(res.shape[0] + location[0], newRes.shape[0]),
+                          min(res.shape[1] + location[1], newRes.shape[0]))
             newRes[location[0]:upperBound[0], location[1]:upperBound[1]] = res[0:(upperBound[0] - location[0]),
                                                                            0:(upperBound[1] - location[1])]
             res = newRes
@@ -2601,7 +2708,7 @@ def mergeMask(compositeMask, newMask, level=0):
 
 
 def ssim(X, Y, MASK, **kwargs):
-    from scipy.ndimage import uniform_filter, gaussian_filter
+    from scipy.ndimage import gaussian_filter
 
     K1 = kwargs.pop('K1', 0.01)
     R = kwargs.pop('R', 255)
@@ -3234,3 +3341,40 @@ def selfVideoTest():
     except:
         return 'Video Writing Failed'
     return None
+
+def dateTimeStampCompare(v1, v2):
+    def get_defaults(source):
+        exifdata = maskgen.exif.getexif(source)
+        rd = {}
+        for e in exifdata:
+            if "date" in str(e).lower() or "time" in str(e).lower():
+                rd[e] = exifdata[e]
+        return rd
+        #date_time_stamp = exifdata['Create Date'] if 'Create Date' in exifdata else exifdata['File Creation Date/Time']
+
+    stamp1 = get_defaults(v1)
+    rgexdict = {}
+    for e in stamp1:
+        st = stamp1[e]
+        rgexf = "\\A"
+        for x in st:
+            if x.isdigit():
+                rgexf += '[0-9]'
+            elif x.isalpha():
+                rgexf += '[a-zA-z]*'
+            else:
+                rgexf += x
+        rgexf+= "\\Z"
+        rgexdict[e] = rgexf
+
+    stamp2 = get_defaults(v2)
+    nonmatches = []
+    for e in stamp2:
+        if e in rgexdict:
+            mo = re.match(rgexdict[e],stamp2[e])
+            if mo is None:
+                nonmatches.append(e)
+        else:
+            pass
+            #nonmatches.append(e)
+    return nonmatches

@@ -29,6 +29,13 @@
       "information": "Journal Description"
     },
     {
+      "description":"Project File",
+      "name": "projectfile",
+      "type": "file:*",
+      "mandatory": false,
+      "information": "A project file from the editing software"
+    },
+    {
       "description": "Technical Summary",
       "name": "technicalsummary",
       "type": "text",

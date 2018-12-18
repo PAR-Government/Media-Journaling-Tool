@@ -622,6 +622,11 @@ def run_node_rules(graph, node, external=False, preferences=None):
         os.rename(os.path.join(graph.dir, file),os.path.join(graph.dir, new_name))
         node['file'] = new_name
 
+    def remove_proxy(graph, start, end):
+        node = graph.get_node(start)
+        if 'proxyfile' in node:
+            node.pop('proxyfile')
+
     errors = []
     nodeData = graph.get_node(node)
     multiplebaseok = graph.getDataItem('provenance', default_value='no') == 'yes'
@@ -646,6 +651,10 @@ def run_node_rules(graph, node, external=False, preferences=None):
                     errors.append(
                         (Severity.WARNING, "Final image {} is not composed of its MD5.".format(nodeData['file']),
                          renameToMD5))
+        proxy = getValue(nodeData,'proxyfile', None)
+        if proxy is not None:
+            errors.append(
+                (Severity.ERRROR, "Final media {} cannot be hidden by a proxy.".format(nodeData['file']),remove_proxy))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():

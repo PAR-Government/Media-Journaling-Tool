@@ -2,7 +2,7 @@ from maskgen import graph_rules
 import unittest
 from maskgen.scenario_model import loadProject
 from test_support import TestSupport
-from mock import MagicMock, Mock
+from mock import MagicMock, Mock, patch
 from maskgen.validation.core import Severity
 from maskgen import video_tools
 class TestToolSet(TestSupport):
@@ -67,6 +67,45 @@ class TestToolSet(TestSupport):
         result = graph_rules.checkAudioLengthSmaller('op', graph, 'a', 'b')
         self.assertIsNone(result)
 
+    def test_checkAudioLengthDonor(self):
+        graph = Mock()
+        def which_edge(x,y):
+            if x in ['ai','ar']:
+                return {'arguments': {'Start Time': 1, 'End Time': 2,
+                                      'add type':'insert' if x == 'ai' else 'replace'},
+                        'op':'AddAudioOfSomeType',
+                                            'metadatadiff': {'video': {'duration': ('change', 1, 2)}}}
+            else:
+                return {'arguments': {'Start Time': 4, 'End Time': 5, 'add type': 'insert'},
+                        'op':'Donor',
+                        'videomasks': [{'startframe': 20,'endframe':30,'rate':10,'type':'audio','frames':11,
+                         'starttime':1900,'endtime':2900}]}
+        graph.get_edge = which_edge
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
+        graph.dir = '.'
+        graph.predecessors = Mock(return_value=['ai','c'])
+        def duration(x,audio=True):
+            return {'ai': 59348.345, 'b':60348.345}[x.source]
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ai', 'b')
+            self.assertIsNone(result)
+
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
+            self.assertIsNotNone(result)
+
+        def duration(x,audio=True):
+            return {'ai': 59348.345, 'b':1000.0}[x.source]
+        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+            cm.side_effect = duration
+            result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
+            self.assertIsNone(result)
+
+
+
     def test_checkAudioLength(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
@@ -75,15 +114,15 @@ class TestToolSet(TestSupport):
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNone(result)
+        self.assertEqual(0,result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'x': ('change', 1, 1)}}})
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNone(result)
+        self.assertEqual(0, result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
-        self.assertIsNotNone(result)
+        self.assertEqual(1, result)
 
     def test_checkSampleRate(self):
         graph = Mock()
@@ -291,8 +330,8 @@ class TestToolSet(TestSupport):
         mockGraph = Mock(get_edge = Mock(return_value={'shape change': '(1664,-1664)',
                                                        'exifdiff':{'Orientation': ['add', 'Rotate 270 CW']}}),
                          get_image=get_MockImage)
-        mockImage_frm = Mock(size=(3264, 4928))
-        mockImage_to = Mock(size=(4928, 3264))
+        mockImage_frm = Mock(size=(3264, 4928),isRaw=False)
+        mockImage_to = Mock(size=(4928, 3264), isRaw=False)
         r = graph_rules.checkSizeAndExif('Op', mockGraph, 'a', 'b')
         self.assertIsNone(r)
         mockImage_to.size = (3264, 4928)
@@ -307,16 +346,25 @@ class TestToolSet(TestSupport):
     def test_checkSizeAndExifPNG(self):
 
         def get_MockImage(name, metadata=dict()):
+            if 'arw' in name:
+                if name[0] == 'a':
+                    return mockImage_frm_raw, name
+                else:
+                    return mockImage_to_raw, name
+
             if name[0] == 'a':
                 return mockImage_frm, name
             else:
                 return mockImage_to, name
 
         mockGraph = Mock(get_edge = Mock(return_value={'shape change': '(1664,-1664)',
+                                                       'arguments' : {'Image Rotated':'yes'},
                                                        'exifdiff':{'Orientation': ['add', 'Rotate 270 CW']}}),
                          get_image=get_MockImage)
-        mockImage_frm = Mock(size=(3264, 4928))
-        mockImage_to = Mock(size=(4928, 3264))
+        mockImage_frm = Mock(size=(3264, 4928), isRaw=False)
+        mockImage_to = Mock(size=(4928, 3264), isRaw=False)
+        mockImage_frm_raw = Mock(size=(3264, 4928), isRaw=True)
+        mockImage_to_raw = Mock(size=(4928, 3264), isRaw=True)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertIsNone(r)
         mockImage_to.size = (3264, 4928)
@@ -324,11 +372,33 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r) > 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
-        mockGraph.get_edge.return_value = {'shape change': '(-50,-50)'}
-        mockImage_to.size = (3214, 4878)
+        mockGraph = Mock(get_edge=Mock(return_value={'shape change': '(-50,-50)',
+                                                    'arguments': {'Image Rotated': 'no'}}),
+                         get_image=get_MockImage)
+
+        mockImage_to_raw.size = (3214, 4878)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertIsNone(r)
+
+
+        mockImage_to_raw.size = (3000, 4800)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
         self.assertTrue(len(r) > 0)
-        self.assertTrue(r[0] == Severity.WARNING)
+        self.assertTrue(r[0] == Severity.ERROR)
+
+        mockGraph = Mock(get_edge=Mock(return_value={'shape change': '(-50,-50)',
+                                                     'arguments': {'Image Rotated': 'no',
+                                                                    'Lens Distortion Applied': 'yes'}}),
+                         get_image=get_MockImage)
+
+        mockImage_to_raw.size = (3000, 4800)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.arw', 'b.arw')
+        self.assertIsNone(r)
+
+        mockImage_to.size = (3214, 4878)
+        r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
+        self.assertTrue(len(r) > 0)
+        self.assertTrue(r[0] == Severity.ERROR)
 
         mockGraph.get_edge.return_value = {'shape change': '(-30,-30)'}
         mockImage_to.size = (3234, 4898)
@@ -340,7 +410,7 @@ class TestToolSet(TestSupport):
         mockImage_to.size = (3234, 4898)
         r = graph_rules.checkSizeAndExifPNG('Op', mockGraph, 'a.jpg', 'b.jpg')
         self.assertTrue(len(r) > 0)
-        self.assertTrue(r[0] == Severity.WARNING)
+        self.assertTrue(r[0] == Severity.ERROR)
 
         mockGraph.get_edge.return_value = {'shape change': '(-100,-100)'}
         mockImage_to.size = (3164, 4828)

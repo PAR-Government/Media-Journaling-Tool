@@ -221,5 +221,13 @@ class TestToolSet(TestSupport):
         self.assertTrue(tool_set.isHomographyOk(tool_set.deserializeMatrix(good_transform),450,450))
         self.assertFalse(tool_set.isHomographyOk(  tool_set.deserializeMatrix(bad_transform),8000,5320))
 
+    def test_time_stamp(self):
+        v1 = self.locateFile('tests/images/test.png')
+        v2 = self.locateFile('tests/images/donor_to_blend.png')
+        v3 = self.locateFile('tests/images/test_time_change.png')
+        self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v1))==0)
+        self.assertFalse(len(tool_set.dateTimeStampCompare(v1, v2))==0)
+        self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v3))==0)
+
 if __name__ == '__main__':
     unittest.main()
