@@ -4130,7 +4130,8 @@
         "video": "maskgen.mask_rules.output_video_change"
       },
       "transitions": [
-        "video.video"
+        "video.video",
+        "zip.video"
       ]
     },
     {

@@ -99,8 +99,8 @@ class API_Camera_Handler:
                 self.all[localID] = data
                 self.localIDs.append(data['hp_device_local_id'])
                 self.models_hp.append(data['hp_camera_model'])
-                self.ids.append(item['id'])
-                self.device_types.append(item['camera_type'])
+                self.ids.append(data['id'])
+                self.device_types.append(data['camera_type'])
                 for configuration in data['exif']:
                     self.models_exif.append(configuration['exif_camera_model'])
                     self.makes_exif.append(configuration['exif_camera_make'])

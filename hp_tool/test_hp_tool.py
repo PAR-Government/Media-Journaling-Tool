@@ -1,8 +1,6 @@
 import os
 import shutil
 import unittest
-import subprocess
-
 from hp.camera_handler import API_Camera_Handler
 from hp.hp_data import process
 from maskgen.maskgen_loader import MaskGenLoader
@@ -17,7 +15,7 @@ class TestHPTool(unittest.TestCase):
         browser_token = self.settings.get_key("apitoken")
         cam = API_Camera_Handler(self, browser_url, browser_token, "AS-ONE")
         if len(cam.ids) != 1:
-            self.fail("Unable to connect camera handler to browser.")
+            self.fail("No devices loaded.")
 
         # Attempt to Process Data with it's Information
         current_dir = os.path.split(__file__)[0]
