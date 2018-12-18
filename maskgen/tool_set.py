@@ -3189,6 +3189,7 @@ class GrayBlockOverlayGenerator:
 
             self.writer.write(mask, frame_count, frame_time)
         self.writer.close()
+        self.readerManager.close()
         ffmpeg_overlay(self.target_file, self.writer.filename, self.output_file)
         try:
             os.remove(self.writer.filename) #clean up the mask file, leave the finished overlay
