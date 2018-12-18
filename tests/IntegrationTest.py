@@ -2,7 +2,8 @@ import maskgen
 import os
 import csv
 import tempfile
-from maskgen.scenario_model import loadProject, Probe
+from maskgen.scenario_model import loadProject
+from maskgen.services.probes import Probe, ProbeGenerator, ProbeSetBuilder, EmptyCompositeBuilder
 import json
 import shutil
 import sys
@@ -189,7 +190,8 @@ def run_it(temp_folder=None, expected_probes_directory='.', project_dir='project
                         else:
                             method = RunTestMethod(expected_results_directory)
                         method.loadProbesData()
-                        probes = scModel.getProbeSetWithoutComposites(keepFailures=True)
+                        generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel, compositeBuilders=[EmptyCompositeBuilder])])
+                        probes = generator(keepFailures=True)
                         logging.getLogger('maskgen').info('Processing {} probes'.format(len(probes)))
                         for probe in probes:
                             for error in method.processProbe(probe):
