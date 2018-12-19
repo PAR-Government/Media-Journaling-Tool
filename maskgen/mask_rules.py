@@ -37,6 +37,10 @@ def raiseError(caller, message, edge_id):
     logging.getLogger('maskgen').error('{} reporting {} for edge {} to {}'.format( caller, message, edge_id[0], edge_id[1]))
     raise EdgeMaskError(message, edge_id)
 
+#====================================================================
+#  Probe Support Classes
+#====================================================================
+
 class VideoSegment:
     """
       USED FOR AUDIO and VIDEO
@@ -101,7 +105,7 @@ class Probe:
     targetChangeSizeInPixels = (0,0)
     failure = if failure occured generating this probe
     level = 0
-    taskDesignation = 1, 2 or 3
+    taskDesignation = str
     """
     edgeId = None
     targetBaseNodeId = None
@@ -117,7 +121,7 @@ class Probe:
     donorMask = None
     targetChangeSizeInPixels = 0
     level = 0
-    taskDesignation = 0
+    taskDesignation = 'detect'
     # vfr indicator
 
     """
@@ -159,7 +163,7 @@ class Probe:
                  failure=False,
                  donorFailure=False,
                  level=0,
-                 taskDesignation=0):
+                 taskDesignation='detect'):
         self.edgeId = edgeId
         self.empty = empty
         self.finalNodeId = finalNodeId
@@ -179,6 +183,11 @@ class Probe:
         self.finalImageFileName = finalImageFileName
         self.composites = dict()
         self.taskDesignation = taskDesignation
+
+    def has_masks_in_target(self):
+        if self.targetVideoSegments is not None:
+            return len([s for s in self.targetVideoSegments if s.filename is not None]) > 0
+        return False
 
     def max_time(self):
         mt = 0
@@ -238,17 +247,11 @@ class CompositeImage:
         return _compositeImageToVideoSegment(self) if not self.isImage() else None
 
 def getOrientationForEdge(edge):
-    if ('arguments' in edge and \
-                ('Image Rotated' in edge['arguments'] and \
-                             edge['arguments']['Image Rotated'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][1]
-    if ('arguments' in edge and \
-                ('rotate' in edge['arguments'] and \
-                             edge['arguments']['rotate'] == 'yes')) and \
-                    'exifdiff' in edge and 'Orientation' in edge['exifdiff']:
-        return edge['exifdiff']['Orientation'][2] if edge['exifdiff']['Orientation'][0].lower() == 'change' else \
-            edge['exifdiff']['Orientation'][1]
+    orientation = getValue(edge,'exifdiff.Orientation')
+    if (getValue(edge,'arguments.Image Rotated','no') == 'yes') and orientation is not None:
+        return orientation[1]
+    if (getValue(edge,'arguments.rotate','no') == 'yes') and orientation is not None:
+        return orientation[2] if orientation[0].lower() == 'change' else orientation[1]
     return ''
 
 class BuildState:
@@ -415,6 +418,17 @@ class BuildState:
                                                                          inverse=True,
                                                                          expectedType=self.compositeMask.media_type))
 
+def segmentToVideoSegment (segment):
+    return VideoSegment(video_tools.get_rate_from_segment(segment),
+                         video_tools.get_start_time_from_segment(segment),
+                         video_tools.get_start_frame_from_segment(segment),
+                         video_tools.get_end_time_from_segment(segment),
+                         video_tools.get_end_frame_from_segment(segment),
+                         video_tools.get_frames_from_segment(segment),
+                         video_tools.get_file_from_segment(segment),
+                         video_tools.get_type_of_segment(segment),
+                         video_tools.get_error_from_segment(segment))
+
 def _compositeImageToVideoSegment(compositeImage):
     """
 
@@ -424,15 +438,7 @@ def _compositeImageToVideoSegment(compositeImage):
     """
     if compositeImage is None or compositeImage.videomasks is None:
         return []
-    return [VideoSegment(video_tools.get_rate_from_segment(item),
-                         video_tools.get_start_time_from_segment(item),
-                         video_tools.get_start_frame_from_segment(item),
-                         video_tools.get_end_time_from_segment(item),
-                         video_tools.get_end_frame_from_segment(item),
-                         video_tools.get_frames_from_segment(item),
-                         video_tools.get_file_from_segment(item),
-                         video_tools.get_type_of_segment(item),
-                         video_tools.get_error_from_segment(item)) for item in compositeImage.videomasks]
+    return [segmentToVideoSegment(item) for item in compositeImage.videomasks]
 
 def compositeMaskSetFromVideoSegment(videoSegments):
     """
@@ -531,6 +537,9 @@ def _prepare_video_masks(meta_extractor,
 
 
 
+#====================================================================
+#  Probe Edge Transforms
+#====================================================================
 
 def _apply_recapture_transform(buildState):
     """
@@ -2219,6 +2228,62 @@ def defaultAlterDonor(buildState):
                               buildState.donorMask.media_type,
                               mask)
 
+
+#====================================================================
+#  Probe Edge Selection Functions (e.g Queries)
+#====================================================================
+
+def isEdgeNotDonorAndNotEmpty(edge_id, edge, operation):
+    return edge['op'] != 'Donor' and getValue(edge,'empty mask','no') == 'no'
+
+def isEdgeNotDonor(edge_id, edge, operation):
+    return edge['op'] != 'Donor'
+
+def isEdgeComposite(edge_id, edge, operation):
+    return edge['recordMaskInComposite'] == 'yes'
+
+def isEdgeLocalized(edge_id, edge, operation):
+    """
+    :param edge_id:
+    :param edge:
+    :param operation:
+    :return:
+    @type Operation
+    """
+    return edge['recordMaskInComposite'] == 'yes' or \
+           (edge['op'] not in ['TransformSeamCarving',
+                              'TransformCrop',
+                              'SelectCropFrames',
+                              'Donor',
+                              'TransformDownSample',
+                              'TransformReverse',
+                              'DeleteAudioSample'] and \
+           ('empty mask' not in edge or edge['empty mask'] == 'no') and \
+            getValue(edge, 'global',defaultValue='no') != 'yes' and \
+            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration'])
+
+def isEdgeLocalizedWithPostProcessingAndLaundering(edge_id, edge, operation):
+    """
+    :param edge_id:
+    :param edge:
+    :param operation:
+    :return:
+    @type Operation
+    """
+    return edge['recordMaskInComposite'] == 'yes' or \
+           (edge['op'] not in ['TransformSeamCarving',
+                              'TransformCrop',
+                              'Donor',
+                              'TransformDownSample',
+                              'TransformReverse',
+                              'DeleteAudioSample'] and \
+           ('empty mask' not in edge or edge['empty mask'] == 'no') and \
+            operation.category not in ['Output','TimeAlteration'])
+
+#====================================================================
+#  Probe Infrastructure
+#====================================================================
+
 class GroupTransformFunction:
 
     """
@@ -2339,52 +2404,6 @@ def _getUnresolvedSelectMasksForEdge(edge):
         sms[image['node']] = image['mask']
     return sms
 
-def isEdgeNotDonorAndNotEmpty(edge_id, edge, operation):
-    return edge['op'] != 'Donor' and getValue(edge,'empty mask','no') == 'no'
-
-def isEdgeNotDonor(edge_id, edge, operation):
-    return edge['op'] != 'Donor'
-
-def isEdgeComposite(edge_id, edge, operation):
-    return edge['recordMaskInComposite'] == 'yes'
-
-def isEdgeLocalized(edge_id, edge, operation):
-    """
-    :param edge_id:
-    :param edge:
-    :param operation:
-    :return:
-    @type Operation
-    """
-    return edge['recordMaskInComposite'] == 'yes' or \
-           (edge['op'] not in ['TransformSeamCarving',
-                              'TransformCrop',
-                              'SelectCropFrames',
-                              'Donor',
-                              'TransformDownSample',
-                              'TransformReverse',
-                              'DeleteAudioSample'] and \
-           ('empty mask' not in edge or edge['empty mask'] == 'no') and \
-            getValue(edge, 'global',defaultValue='no') != 'yes' and \
-            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration'])
-
-def isEdgeLocalizedWithPostProcessingAndLaundering(edge_id, edge, operation):
-    """
-    :param edge_id:
-    :param edge:
-    :param operation:
-    :return:
-    @type Operation
-    """
-    return edge['recordMaskInComposite'] == 'yes' or \
-           (edge['op'] not in ['TransformSeamCarving',
-                              'TransformCrop',
-                              'Donor',
-                              'TransformDownSample',
-                              'TransformReverse',
-                              'DeleteAudioSample'] and \
-           ('empty mask' not in edge or edge['empty mask'] == 'no') and \
-            operation.category not in ['Output','TimeAlteration'])
 
 def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
     preds = graph.predecessors(node)
@@ -2520,297 +2539,6 @@ def alterComposite(graph,
         ))
         logging.getLogger('maskgen').info(' '.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
         raise ex
-
-class GraphCompositeIdAssigner:
-    """
-        Each edge and final node is associated with a compositeid.
-        Each file node is associated with a group id.
-        target ids associated with a group id are unique.
-        A reset also increments the file id.
-        Reset points are algorithmically determined by detected pixel
-        changes for an on more than one path.
-        In the future, the algorithm should get the reset points
-        from the probe constuction where transforms themselves communicate
-        pixel changes along a path.  HOWEVER, that interjects responsibility
-        in that transformation code.  So, instead, post analysis is done here
-        to maintain some abstraction over efficiency.
-
-    """
-
-    def __init__(self, graph):
-        """
-        :param graph:
-        @type graph: ImageGraph
-        """
-        self.graph = graph
-
-    def updateProbes(self,probes, builder):
-        """
-        @type probes : list of Probe
-        :param builder:
-        :return:
-        """
-        self.__buildProbeEdgeIds(probes, builder)
-        return probes
-
-    def __getProbeId(self,item, group):
-        import hashlib
-        key = hashlib.sha384(item).hexdigest()
-        if key in group:
-            tupleInGroup = group[key]
-            if np.any(tupleInGroup[1] != item):
-                newkey = key + '01'
-                while newkey in group:
-                    newkey = key + '{:02}'.format(int(newkey[-2:0]) + 1)
-                return newkey
-        return key
-
-    def __buildProbeEdgeIds(self, probes,builder):
-        """
-         @type probes : list of Probe
-        :param probes:
-        :param baseNodes:
-        :return:
-        """
-        fileid = IntObject()
-        target_groups = dict()
-        group_bits = {}
-        # targets associated with different base nodes and shape are in a different groups
-        # note: target mask images will have the same shape as their final node
-        for probe in probes:
-            r = np.asarray(probe.targetMaskImage,order='C')
-            key = (probe.targetBaseNodeId, r.shape)
-            if key not in target_groups:
-                target_groups[key] = {}
-                target_groups[key] = (fileid.value, {})
-                group_bits[fileid.value] = IntObject()
-                fileid.increment()
-            if probe.edgeId not in target_groups[key][1]:
-                target_groups[key][1][probe.edgeId] = {}
-            probeid = self.__getProbeId(r,target_groups[key][1][probe.edgeId])
-            #print str(probe.edgeId) + '-> ' + probe.finalNodeId + '=' + probeid
-            if probeid not in target_groups[key][1][probe.edgeId]:
-                group_bits[target_groups[key][0]].increment()
-                probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': group_bits[target_groups[key][0]].value
-                }
-                target_groups[key][1][probe.edgeId][probeid] = (group_bits[target_groups[key][0]].value,r)
-            else:
-                probe.composites[builder] = {
-                    'groupid': target_groups[key][0],
-                    'bit number': target_groups[key][1][probe.edgeId][probeid][0]
-                }
-
-
-class CompositeBuilder:
-    def __init__(self, passes, composite_type):
-        self.passes = passes
-        self.composite_type = composite_type
-
-    def initialize(self, graph, probes):
-        pass
-
-    def finalize(self, probes, save=True):
-        pass
-
-    def build(self, passcount, probe, edge):
-        pass
-
-    def getComposite(self, finalNodeId):
-        return None
-
-
-class Jpeg2000CompositeBuilder(CompositeBuilder):
-    def __init__(self):
-        self.composites = dict()
-        self.group_bit_check = dict()
-        CompositeBuilder.__init__(self, 1, 'jp2')
-
-    def initialize(self, graph, probes):
-        compositeIdAssigner = GraphCompositeIdAssigner(graph)
-        return compositeIdAssigner.updateProbes(probes, self.composite_type)
-
-    def build(self, passcount, probe, edge):
-        """
-
-        :param passcount:
-        :param probe:
-        :param edge:
-        :return:
-        @type probe: Probe
-        """
-        if passcount > 0:
-            return
-        groupid = probe.composites[self.composite_type]['groupid']
-        targetid = probe.composites[self.composite_type]['bit number']
-        bit = targetid - 1
-        if groupid not in self.composites:
-            self.composites[groupid] = []
-        composite_list = self.composites[groupid]
-        composite_mask_id = (bit / 8)
-        imarray = np.asarray(probe.targetMaskImage)
-        sums = np.sum(255-imarray)
-        if sums == 0:
-            logging.getLogger('maskgen').error('Empty bit plane for edge {} to {}:{}'.format(
-                str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
-            ))
-        # check to see if the bits are in fact the same for a group
-        if (groupid, targetid) not in self.group_bit_check:
-            self.group_bit_check[(groupid, targetid)] = imarray
-            while (composite_mask_id + 1) > len(composite_list):
-                composite_list.append(np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8'))
-            thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
-            bitvalue = 1 << (bit % 8)
-            thisbit[imarray == 0] = bitvalue
-            composite_list[composite_mask_id] = composite_list[composite_mask_id] | thisbit
-        else:
-            check = np.all(self.group_bit_check[(groupid, targetid)] == imarray)
-            if not check:
-                logging.getLogger('maskgen').error('Failed assertion for edge {} to {}:{}'.format(
-                  str(probe.edgeId), probe.finalNodeId,probe.finalImageFileName)
-                )
-            assert (check)
-
-
-    def checkProbes(self,probes):
-        files = {}
-        import glymur
-        for probe in probes:
-            file =  probe.composites[self.composite_type]['file name']
-            if file not in files:
-                jp2 = glymur.Jp2k(file)
-                files[file] = jp2[:]
-            jp2img = files[file]
-            bitplaneid = probe.composites[self.composite_type]['bit number'] - 1
-            byteplane = jp2img[:,:,bitplaneid / 8]
-            bit = 1<<(bitplaneid%8)
-            img = np.ones((jp2img.shape[0], jp2img.shape[1])).astype('uint8')*255
-            try:
-                img[(byteplane&bit)>0]  = 0
-                if not np.all(img==probe.targetMaskImage.image_array):
-                    raise EdgeMaskError('Not march on {}:{}'.format(file, str(probe.edgeId)),probe.edgeId)
-            except Exception as ex:
-                print ex
-
-
-    def finalize(self, probes, save=True):
-        results = {}
-        if len(probes) == 0:
-            return
-        dirs = [os.path.split(probe.targetMaskFileName)[0] for probe in probes if
-                probe.targetMaskFileName is not None]
-        dir = dirs[0] if len(dirs) > 0 else '.'
-        for groupid, compositeMaskList in self.composites.iteritems():
-            third_dimension = len(compositeMaskList)
-            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
-            if third_dimension == 1:
-                result = compositeMaskList[0]
-                analysis_mask[compositeMaskList[0] > 0] = 255
-            else:
-                result = np.zeros(
-                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
-                for dim in range(third_dimension):
-                    result[:, :, dim] = compositeMaskList[dim]
-                    analysis_mask[compositeMaskList[dim] > 0] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
-                                                                     globalAnalysis=True)
-            img = ImageWrapper(result, mode='JP2')
-            results[groupid] = (img, globalchange, changeCategory, ratio)
-            if save:
-                img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
-
-        for probe in probes:
-            groupid = probe.composites[self.composite_type]['groupid']
-            if groupid not in results:
-                continue
-            finalResult = results[groupid]
-            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
-            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
-            probe.composites[self.composite_type]['image'] = finalResult[0]
-
-        #self.checkProbes(probes)
-        return results
-
-
-class EmptyCompositeBuilder(CompositeBuilder):
-    def __init__(self):
-        CompositeBuilder.__init__(self, 0, 'empty')
-
-class ColorCompositeBuilder(CompositeBuilder):
-    def __init__(self):
-        self.composites = dict()
-        self.colors = dict()
-        CompositeBuilder.__init__(self, 2, 'color')
-
-    def initialize(self, graph, probes):
-        for probe in probes:
-            edge = graph.get_edge(probe.edgeId[0], probe.edgeId[1])
-            color = [int(x) for x in edge['linkcolor'].split(' ')]
-            self.colors[probe.edgeId] = color
-
-    def _to_color_target_name(self, name):
-        return name[0:name.rfind('.png')] + '_c.png'
-
-    def build(self, passcount, probe, edge):
-        if passcount == 0:
-            return self.pass1(probe, edge)
-        elif passcount == 1:
-            return self.pass2(probe, edge)
-
-    def pass1(self, probe, edge):
-        color = [int(x) for x in edge['linkcolor'].split(' ')]
-        colorMask = maskToColorArray(probe.targetMaskImage, color=color)
-        if probe.finalNodeId in self.composites:
-            self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
-        else:
-            self.composites[probe.finalNodeId] = colorMask
-
-    def pass2(self, probe, edge):
-        """
-
-        :param probe:
-        :param edge:
-        :return:
-        @type probe: Probe
-        """
-        # now reconstruct the probe target to be color coded and obscured by overlaying operations
-        color = [int(x) for x in edge['linkcolor'].split(' ')]
-        composite_mask_array = self.composites[probe.finalNodeId]
-        result = np.ones(composite_mask_array.shape).astype('uint8') * 255
-        matches = np.all(composite_mask_array == color, axis=2)
-        #  only contains visible color in the composite
-        result[matches] = color
-
-    def finalize(self, probes, save=True):
-        results = {}
-        for finalNodeId, compositeMask in self.composites.iteritems():
-            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
-            matches = np.any(compositeMask != [255, 255, 255], axis=2)
-            result[matches] = 255
-            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
-                                                                     globalAnalysis=True)
-            results[finalNodeId] = (ImageWrapper(compositeMask), globalchange, changeCategory, ratio)
-        for probe in probes:
-            if probe.finalNodeId not in results:
-                continue
-            finalResult = results[probe.finalNodeId]
-            if probe.targetMaskFileName is not None:
-                targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
-                probe.composites[self.composite_type] = {
-                    'file name': targetColorMaskImageName,
-                    'image': finalResult[0],
-                    'color': self.colors[probe.edgeId]
-                }
-                if save:
-                    finalResult[0].save(targetColorMaskImageName)
-                    assert os.path.exists(targetColorMaskImageName)
-            else:
-                probe.composites[self.composite_type] = {
-                    'image': finalResult[0],
-                    'color': self.colors[probe.edgeId]
-                }
-        return results
 
 
 class CompositeDelegate:
@@ -3141,21 +2869,6 @@ class CompositeDelegate:
 
         return image, None, finalNodeId, 'video', failure
 
-    def __determine_task_designation(self,target_mask):
-       """
-       Task designation is deteremined by presence of spatial and temporal components
-       target_mask: CompositeImage
-       :param target_mask:
-       :return:
-       @type target_mask: CompositeImage
-       """
-       len_all_masks = len(target_mask.videomasks if not target_mask.isImage() else [])
-       len_vid_masks = len([x for x in target_mask.videomasks if video_tools.get_type_of_segment(x) == 'video' ] if not target_mask.isImage() else [])
-       len_spatial_masks = len([x for x in target_mask.videomasks if video_tools.get_file_from_segment(x) is not None] if not target_mask.isImage() else [])
-       task_two_eligible = len_all_masks > 0
-       task_three_eligible = task_two_eligible and len_spatial_masks > 0
-       return 1 if target_mask.isImage() or not task_two_eligible else (3 if task_three_eligible else 2)
-
     def ___add_final_node_with_donors(self,
                                       probes,
                                       finalNodeId,
@@ -3202,8 +2915,7 @@ class CompositeDelegate:
                                     empty=self.empty or target_mask.isEmpty(),
                                     failure=failure,
                                     donorFailure=donorFailure,
-                                    finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                    taskDesignation=self.__determine_task_designation(target_mask)))
+                                    finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
         else:
             probes.append(Probe(self.edge_id,
                                 finalNodeId,
@@ -3217,8 +2929,7 @@ class CompositeDelegate:
                                 empty=self.empty or target_mask.isEmpty(),
                                 failure=failure,
                                 donorFailure=donorFailure,
-                                finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                taskDesignation=self.__determine_task_designation(target_mask)))
+                                finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId))))
 
     def _constructDonor(self, node, mask, media_type=None, baseEdge=None, checkEmptyMask=True):
         """
@@ -3487,3 +3198,416 @@ def prepareComposite(edge_id, graph, gopLoader, memory=None, notifier=None):
     @type edge: dict[str,dict]
     """
     return CompositeDelegate(edge_id, graph, gopLoader, memory, notifier=notifier)
+
+
+#====================================================================
+# Composite Builders
+#====================================================================
+
+class CompositeBuilder:
+    def __init__(self, passes, composite_type):
+        self.passes = passes
+        self.composite_type = composite_type
+
+    def initialize(self, graph, probes):
+        pass
+
+    def finalize(self, probes, save=True):
+        pass
+
+    def build(self, passcount, probe, edge):
+        pass
+
+    def getComposite(self, finalNodeId):
+        return None
+
+
+class GraphCompositeIdAssigner:
+    """
+        Each edge and final node is associated with a compositeid.
+        Each file node is associated with a group id.
+        target ids associated with a group id are unique.
+        A reset also increments the file id.
+        Reset points are algorithmically determined by detected pixel
+        changes for an on more than one path.
+        In the future, the algorithm should get the reset points
+        from the probe constuction where transforms themselves communicate
+        pixel changes along a path.  HOWEVER, that interjects responsibility
+        in that transformation code.  So, instead, post analysis is done here
+        to maintain some abstraction over efficiency.
+
+    """
+
+    def __init__(self, graph):
+        """
+        :param graph:
+        @type graph: ImageGraph
+        """
+        self.graph = graph
+
+    def updateProbes(self,probes, builder):
+        """
+        @type probes : list of Probe
+        :param builder:
+        :return:
+        """
+        self.__buildProbeEdgeIds(probes, builder)
+        return probes
+
+    def __getProbeId(self,item, group):
+        import hashlib
+        key = hashlib.sha384(item).hexdigest()
+        if key in group:
+            tupleInGroup = group[key]
+            if np.any(tupleInGroup[1] != item):
+                newkey = key + '01'
+                while newkey in group:
+                    newkey = key + '{:02}'.format(int(newkey[-2:0]) + 1)
+                return newkey
+        return key
+
+    def __buildProbeEdgeIds(self, probes,builder):
+        """
+         @type probes : list of Probe
+        :param probes:
+        :param baseNodes:
+        :return:
+        """
+        fileid = IntObject()
+        target_groups = dict()
+        group_bits = {}
+        # targets associated with different base nodes and shape are in a different groups
+        # note: target mask images will have the same shape as their final node
+        for probe in probes:
+            r = np.asarray(probe.targetMaskImage,order='C')
+            key = (probe.targetBaseNodeId, r.shape)
+            if key not in target_groups:
+                target_groups[key] = {}
+                target_groups[key] = (fileid.value, {})
+                group_bits[fileid.value] = IntObject()
+                fileid.increment()
+            if probe.edgeId not in target_groups[key][1]:
+                target_groups[key][1][probe.edgeId] = {}
+            probeid = self.__getProbeId(r,target_groups[key][1][probe.edgeId])
+            #print str(probe.edgeId) + '-> ' + probe.finalNodeId + '=' + probeid
+            if probeid not in target_groups[key][1][probe.edgeId]:
+                group_bits[target_groups[key][0]].increment()
+                probe.composites[builder] = {
+                    'groupid': target_groups[key][0],
+                    'bit number': group_bits[target_groups[key][0]].value
+                }
+                target_groups[key][1][probe.edgeId][probeid] = (group_bits[target_groups[key][0]].value,r)
+            else:
+                probe.composites[builder] = {
+                    'groupid': target_groups[key][0],
+                    'bit number': target_groups[key][1][probe.edgeId][probeid][0]
+                }
+
+class GraphCompositeVideoIdAssigner:
+    """
+        Each edge and final node is associated with a compositeid.
+        Each file node is associated with a group id.
+        target ids associated with a group id are unique.
+        A reset also increments the file id.
+        Reset points are algorithmically determined by frame rate, duration and # of frames.
+    """
+
+    def updateProbes(self,probes, builder):
+        """
+        @type probes : list of Probe
+        :param builder:
+        :return:
+        """
+        self.__buildGroups(probes, builder)
+        return probes
+
+    def __buildGroups(self, probes, builder):
+        """
+          Build the list of probes assigned to each group
+               @type probes : list of Probe
+              :param probes:
+              :param baseNodes:
+        :return:
+        @type probes: list of Probe
+        """
+        self.group_probes = {}
+        self.group_bits = {}
+        self.writers = {}
+        fileid = IntObject()
+        for probe in probes:
+            if not probe.has_masks_in_target():
+                continue
+            segment = video_tools.get_frame_count(probe.finalImageFileName)
+            if segment is not None:
+                key = (video_tools.get_rate_from_segment(segment, 30),
+                       video_tools.get_frames_from_segment(segment),
+                       video_tools.get_end_time_from_segment(segment))
+                if key not in self.group_probes:
+                    self.writers[key] = tool_set.GrayBlockWriter('vmasks_{}'.format(fileid.increment()), key[0])
+                    self.group_probes[key] = []
+                    self.group_bits[key] = IntObject()
+                self.group_probes[key].append(probe)
+                probe.composites[builder] = {
+                    'groupid': key,
+                    'bit number': self.group_bits[key].increment()
+                }
+
+class HDF5CompositeBuilder(CompositeBuilder):
+    def __init__(self):
+        self.composites = dict()
+        self.group_bit_check = dict()
+        CompositeBuilder.__init__(self, 1, 'hdf5')
+
+    def initialize(self, graph, probes):
+        self.compositeIdAssigner = GraphCompositeVideoIdAssigner()
+        return self.compositeIdAssigner.updateProbes(probes,'hdf5')
+
+    def build(self, passcount, probe, edge):
+        """
+
+        :param passcount:
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
+        pass
+
+    def finalize(self, probes, save=True):
+        import itertools
+        results = {}
+        if len(probes) == 0:
+            return {}
+        for group in self.compositeIdAssigner.group_probes:
+            writer = self.compositeIdAssigner.writers[group]
+            grouped_probes = self.compositeIdAssigner.group_probes[group]
+            segments_with_probe = [[(segment_with_probe, grouped_probes[i]) for segment_with_probe in
+                                    grouped_probes[i].targetVideoSegments] for i in range(len(grouped_probes))]
+            segments_with_probe = list(itertools.chain(*segments_with_probe))
+            segments_with_probe = sorted(segments_with_probe,
+                                         key=lambda x: x[0].startframe)
+            frame_no = segments_with_probe[0][0].startframe
+            frame_time = segments_with_probe[0][0].starttime
+            edges = set([str(probe.edgeId) for probe in grouped_probes])
+            reader_managers = {id: tool_set.GrayBlockReaderManager() for id in edges}
+            while len(segments_with_probe) > 0:
+                segments_with_probe = [segment_with_probe for segment_with_probe in segments_with_probe if
+                                            segment_with_probe[0].endframe >= frame_no]
+                frame = None
+                comopsite_byte_id= 0
+                for segment_with_probe in segments_with_probe:
+                    if frame_no >= segment_with_probe[0].startframe:
+                        reader = reader_managers[str(segment_with_probe[1].edgeId)].create_reader(
+                            segment_with_probe[0].filename,
+                            start_frame=segment_with_probe[0].startframe,
+                            start_time=segment_with_probe[0].starttime,
+                            end_frame=segment_with_probe[0].endframe)
+                        mask = reader.read()
+                        if frame is None:
+                            frame = np.zeros(mask.shape + (1,), dtype='uint8')
+                        thisbit = np.zeros(mask.shape).astype('uint8')
+                        bit = segment_with_probe[1].composites[self.composite_type]['bit number'] - 1
+                        bitvalue = 1 << (bit % 8)
+                        thisbit[mask == 0] = bitvalue
+                        frame[:,:,comopsite_byte_id] = frame[:,:,comopsite_byte_id] | thisbit
+                if frame is not None:
+                    writer.write(frame, frame_time,frame_no)
+                    segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
+                    results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
+                frame_no += 1
+                frame_time += 1000.0/segment_with_probe[0].rate
+            writer.close()
+        return results
+
+
+class Jpeg2000CompositeBuilder(CompositeBuilder):
+    def __init__(self):
+        self.composites = dict()
+        self.group_bit_check = dict()
+        CompositeBuilder.__init__(self, 1, 'jp2')
+
+    def initialize(self, graph, probes):
+        compositeIdAssigner = GraphCompositeIdAssigner(graph)
+        return compositeIdAssigner.updateProbes(probes, self.composite_type)
+
+    def build(self, passcount, probe, edge):
+        """
+
+        :param passcount:
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
+        if passcount > 0:
+            return
+        groupid = probe.composites[self.composite_type]['groupid']
+        targetid = probe.composites[self.composite_type]['bit number']
+        bit = targetid - 1
+        if groupid not in self.composites:
+            self.composites[groupid] = []
+        composite_list = self.composites[groupid]
+        composite_mask_id = (bit / 8)
+        imarray = np.asarray(probe.targetMaskImage)
+        sums = np.sum(255-imarray)
+        if sums == 0:
+            logging.getLogger('maskgen').error('Empty bit plane for edge {} to {}:{}'.format(
+                str(probe.edgeId),probe.finalNodeId,probe.finalImageFileName
+            ))
+        # check to see if the bits are in fact the same for a group
+        if (groupid, targetid) not in self.group_bit_check:
+            self.group_bit_check[(groupid, targetid)] = imarray
+            while (composite_mask_id + 1) > len(composite_list):
+                composite_list.append(np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8'))
+            thisbit = np.zeros((imarray.shape[0], imarray.shape[1])).astype('uint8')
+            bitvalue = 1 << (bit % 8)
+            thisbit[imarray == 0] = bitvalue
+            composite_list[composite_mask_id] = composite_list[composite_mask_id] | thisbit
+        else:
+            check = np.all(self.group_bit_check[(groupid, targetid)] == imarray)
+            if not check:
+                logging.getLogger('maskgen').error('Failed assertion for edge {} to {}:{}'.format(
+                  str(probe.edgeId), probe.finalNodeId,probe.finalImageFileName)
+                )
+            assert (check)
+
+
+    def checkProbes(self,probes):
+        files = {}
+        import glymur
+        for probe in probes:
+            file =  probe.composites[self.composite_type]['file name']
+            if file not in files:
+                jp2 = glymur.Jp2k(file)
+                files[file] = jp2[:]
+            jp2img = files[file]
+            bitplaneid = probe.composites[self.composite_type]['bit number'] - 1
+            byteplane = jp2img[:,:,bitplaneid / 8]
+            bit = 1<<(bitplaneid%8)
+            img = np.ones((jp2img.shape[0], jp2img.shape[1])).astype('uint8')*255
+            try:
+                img[(byteplane&bit)>0]  = 0
+                if not np.all(img==probe.targetMaskImage.image_array):
+                    raise EdgeMaskError('Not march on {}:{}'.format(file, str(probe.edgeId)),probe.edgeId)
+            except Exception as ex:
+                print ex
+
+
+    def finalize(self, probes, save=True):
+        results = {}
+        if len(probes) == 0:
+            return
+        dirs = [os.path.split(probe.targetMaskFileName)[0] for probe in probes if
+                probe.targetMaskFileName is not None]
+        dir = dirs[0] if len(dirs) > 0 else '.'
+        for groupid, compositeMaskList in self.composites.iteritems():
+            third_dimension = len(compositeMaskList)
+            analysis_mask = np.zeros((compositeMaskList[0].shape[0], compositeMaskList[0].shape[1])).astype('uint8')
+            if third_dimension == 1:
+                result = compositeMaskList[0]
+                analysis_mask[compositeMaskList[0] > 0] = 255
+            else:
+                result = np.zeros(
+                    (compositeMaskList[0].shape[0], compositeMaskList[0].shape[1], third_dimension)).astype('uint8')
+                for dim in range(third_dimension):
+                    result[:, :, dim] = compositeMaskList[dim]
+                    analysis_mask[compositeMaskList[dim] > 0] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(analysis_mask,
+                                                                     globalAnalysis=True)
+            img = ImageWrapper(result, mode='JP2')
+            results[groupid] = (img, globalchange, changeCategory, ratio)
+            if save:
+                img.save(os.path.join(dir, str(groupid) + '_c.jp2'))
+
+        for probe in probes:
+            groupid = probe.composites[self.composite_type]['groupid']
+            if groupid not in results:
+                continue
+            finalResult = results[groupid]
+            targetJP2MaskImageName = os.path.join(dir, str(groupid) + '_c.jp2')
+            probe.composites[self.composite_type]['file name'] = targetJP2MaskImageName
+            probe.composites[self.composite_type]['image'] = finalResult[0]
+
+        #self.checkProbes(probes)
+        return results
+
+
+class EmptyCompositeBuilder(CompositeBuilder):
+    def __init__(self):
+        CompositeBuilder.__init__(self, 0, 'empty')
+
+class ColorCompositeBuilder(CompositeBuilder):
+    def __init__(self):
+        self.composites = dict()
+        self.colors = dict()
+        CompositeBuilder.__init__(self, 2, 'color')
+
+    def initialize(self, graph, probes):
+        for probe in probes:
+            edge = graph.get_edge(probe.edgeId[0], probe.edgeId[1])
+            color = [int(x) for x in edge['linkcolor'].split(' ')]
+            self.colors[probe.edgeId] = color
+
+    def _to_color_target_name(self, name):
+        return name[0:name.rfind('.png')] + '_c.png'
+
+    def build(self, passcount, probe, edge):
+        if passcount == 0:
+            return self.pass1(probe, edge)
+        elif passcount == 1:
+            return self.pass2(probe, edge)
+
+    def pass1(self, probe, edge):
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        colorMask = maskToColorArray(probe.targetMaskImage, color=color)
+        if probe.finalNodeId in self.composites:
+            self.composites[probe.finalNodeId] = mergeColorMask(self.composites[probe.finalNodeId], colorMask)
+        else:
+            self.composites[probe.finalNodeId] = colorMask
+
+    def pass2(self, probe, edge):
+        """
+
+        :param probe:
+        :param edge:
+        :return:
+        @type probe: Probe
+        """
+        # now reconstruct the probe target to be color coded and obscured by overlaying operations
+        color = [int(x) for x in edge['linkcolor'].split(' ')]
+        composite_mask_array = self.composites[probe.finalNodeId]
+        result = np.ones(composite_mask_array.shape).astype('uint8') * 255
+        matches = np.all(composite_mask_array == color, axis=2)
+        #  only contains visible color in the composite
+        result[matches] = color
+
+    def finalize(self, probes, save=True):
+        results = {}
+        for finalNodeId, compositeMask in self.composites.iteritems():
+            result = np.zeros((compositeMask.shape[0], compositeMask.shape[1])).astype('uint8')
+            matches = np.any(compositeMask != [255, 255, 255], axis=2)
+            result[matches] = 255
+            globalchange, changeCategory, ratio = maskChangeAnalysis(result,
+                                                                     globalAnalysis=True)
+            results[finalNodeId] = (ImageWrapper(compositeMask), globalchange, changeCategory, ratio)
+        for probe in probes:
+            if probe.finalNodeId not in results:
+                continue
+            finalResult = results[probe.finalNodeId]
+            if probe.targetMaskFileName is not None:
+                targetColorMaskImageName = self._to_color_target_name(probe.targetMaskFileName)
+                probe.composites[self.composite_type] = {
+                    'file name': targetColorMaskImageName,
+                    'image': finalResult[0],
+                    'color': self.colors[probe.edgeId]
+                }
+                if save:
+                    finalResult[0].save(targetColorMaskImageName)
+                    assert os.path.exists(targetColorMaskImageName)
+            else:
+                probe.composites[self.composite_type] = {
+                    'image': finalResult[0],
+                    'color': self.colors[probe.edgeId]
+                }
+        return results
+

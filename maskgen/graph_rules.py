@@ -525,10 +525,11 @@ def checkAudioChannels(op,graph, frm, to):
     if 'audio' not in meta:
         return (Severity.ERROR,'audio channel not present')
 
+
 def checkAudioLength(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     streams_to_filter = ["video", "unknown", "data"]
-    all_streams =getValue(edge, 'metadatadiff', [])
+    all_streams = getValue(edge, 'metadatadiff', [])
     streams = [stream for stream in getValue(edge, 'metadatadiff', []) if stream not in streams_to_filter]
     for stream in streams:
         modifier = getValue(all_streams[stream], 'duration', ('x', 0, 0))
@@ -1758,18 +1759,28 @@ def isGAN(edge, edge_id, op):
     if edge['op'] == 'ObjectCGI' and \
             getValue(edge, 'arguments.isGAN', 'no') == 'yes':
         return 'yes'
+    elif edge['op'] == 'PasteSplice' and \
+        'gan' in getValue(edge, 'arguments.subject', 'no'):
+        return 'yes'
     return 'no'
 
 def ganComponentRule(scModel, edges):
     for edgeTuple in edges:
-        if edgeTuple.edge['op'] == 'ObjectCGI' and \
-            getValue(edgeTuple.edge,'arguments.isGAN','no') == 'yes':
+        if isGAN(edgeTuple.edge, None, None) == 'yes':
             return 'yes'
-        elif edgeTuple.edge['op'] == 'PasteSplice' and \
-                'gan' in getValue(edgeTuple.edge, 'arguments.subject', 'no'):
-            return 'yes'
-
     return 'no'
+
+def ganGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"isGAN",'no')
+
+def cgiGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"cgi",'no')
 
 def _cleanEdges(scModel, edges):
     for edgeTuple in edges:

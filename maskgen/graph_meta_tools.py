@@ -15,7 +15,7 @@ from maskgen.tool_set import GrayBlockReader, fileType
 from maskgen.video_tools import get_shape_of_video, get_frame_time, getMaskSetForEntireVideo, \
     getMaskSetForEntireVideoForTuples, MetaDataLocator, get_end_time_from_segment, get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, get_start_time_from_segment, get_end_frame_from_segment,\
-    get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment
+    get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment,transfer_masks
 
 
 def get_meta_data_change_from_edge(edge, expectedType='video'):
@@ -436,38 +436,10 @@ class MetaDataExtractor:
                 adjustPositionsFFMPEG(meta_r[index_r], frames_r[index_r], hits)
             else:
                 adjustPositions(self.getNodeFile(source) if inverse else self.getNodeFile(target), hits)
-        pos = 0
-        for mask_set in video_masks:
-            change = new_mask_set[pos]
-            pos += 1
-            if get_file_from_segment(mask_set):
-                reader = GrayBlockReader(get_file_from_segment(mask_set),
-                                         start_frame=get_start_frame_from_segment(change),
-                                         start_time=get_start_time_from_segment(change))
-                writer = None
-                try:
-                    writer = reader.create_writer()
-                    frame_time = get_start_time_from_segment(change)
-                    frame_count = get_start_frame_from_segment(change)
-                    while True:
-                        mask = reader.read()
-                        if mask is not None:
-                            writer.write(mask, frame_time, frame_count)
-                        else:
-                            break
-                        frame_count += 1
-                        # for now, assume fixed rate.
-                        frame_time += 1000.0 / targetRate
-                    update_segment(change,videosegment = writer.filename)
 
-                except Exception as e:
-                    logging.getLogger('maskgen').error(
-                        'Failed to transform time for {}'.format(get_file_from_segment(mask_set)))
-                    logging.getLogger('maskgen').error(e)
-                finally:
-                    reader.close()
-                    if writer is not None:
-                        writer.close()
+        transfer_masks(video_masks,new_mask_set,
+                       frame_time_function= lambda  x,y: y+(1000.0/targetRate),
+                       frame_count_function = lambda  x,y: y+1)
         return new_mask_set
 
 

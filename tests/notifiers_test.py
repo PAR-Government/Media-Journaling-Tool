@@ -9,13 +9,16 @@ from test_support import TestSupport
 import unittest
 from maskgen.scenario_model import ImageProjectModel
 from maskgen.notifiers import NotifyDelegate
+from maskgen.services.probes import ProbeSetBuilder, ProbeGenerator, EmptyCompositeBuilder
+import logging
+
 
 class TestNotifiers(TestSupport):
 
    def test_memory(self):
        model = ImageProjectModel(self.locateFile('images/sample.json'),
                                  notify=NotifyDelegate([]))
-       model.getProbeSetWithoutComposites()
+       ProbeGenerator(scModel=model, processors=[ProbeSetBuilder(scModel=model, compositeBuilders=[EmptyCompositeBuilder])])()
        key1 = ('composite', ('orig_input', 'input_mod_1'),  ('input_mod_1', 'input_mod_2'))
        key2 = ('composite', ('orig_input', 'input_mod_1'),  ('input_mod_2', 'input_mod_2_3'))
        key3 = ('composite', ('orig_input', 'input_mod_1'),  ('input_mod_2_3', 'input_mod_2_47'))
