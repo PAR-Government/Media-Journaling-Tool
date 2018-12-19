@@ -106,6 +106,16 @@ class ValidationData:
             self._qamodel_update()
         return self.qaData[link]['designation']
 
+    def make_link_from_probe(self, probe):
+        try:
+            if probe.donorMaskImage is not None or probe.donorVideoSegments is not None:
+                return '<-'.join([self.scmodel.G.get_filename(probe.edgeId[1]), self.scmodel.G.get_filename(probe.donorBaseNodeId)])
+            else:
+                return '->'.join([self.scmodel.G.get_filename(probe.edgeId[1]), self.scmodel.G.get_filename(probe.finalNodeId)])
+        except KeyError:
+            return None
+
+
     def keys(self):
         return self.qaData.keys()
 

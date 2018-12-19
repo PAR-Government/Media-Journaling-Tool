@@ -20,7 +20,7 @@ from maskgen.video_tools import getMaskSetForEntireVideo, get_end_time_from_segm
 import maskgen.tool_set
 import random
 import maskgen.scenario_model
-from maskgen.services.probes import ProbeGenerator, DetermineTaskDesignation, cleanup_temporary_files
+from maskgen.services.probes import ProbeGenerator, DetermineTaskDesignation, fetch_qaData_designation, cleanup_temporary_files
 import maskgen.validation
 from maskgen.tool_set import openFile
 import webbrowser
@@ -692,7 +692,13 @@ class QAProjectDialog(Toplevel):
 
     def getProbes(self):
         try:
-            generator = ProbeGenerator(scModel=self.scModel, processors=[DetermineTaskDesignation(scModel=self.scModel)])
+            generator = ProbeGenerator(
+                scModel=self.scModel,
+                processors=[
+                    DetermineTaskDesignation(
+                        scModel=self.scModel,
+                        inputFunction=fetch_qaData_designation)])
+
             self.probes = generator(saveTargets=False, keepFailures=True)
         except Exception as e:
             logging.getLogger('maskgen').error(str(e))

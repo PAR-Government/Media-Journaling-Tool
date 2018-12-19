@@ -9,6 +9,7 @@
 import os
 from maskgen.scenario_model import ImageProjectModel, MaskgenThreadPool, prefLoader
 from maskgen.tool_set import *
+from maskgen.video_tools import get_file_from_segment
 import tarfile
 import csv
 from maskgen.mask_rules import *
@@ -55,7 +56,7 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
         for edge_id in scModel.getGraph().get_edges():
             scModel.reproduceMask(edge_id=edge_id)
     generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel, compositeBuilders=[EmptyCompositeBuilder]),
-                                                            DetermineTaskDesignation(scModel)])
+                                                            DetermineTaskDesignation(scModel, inputFunction=fetch_qaData_designation)])
     probes = generator()
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')
@@ -239,10 +240,27 @@ class ProbeSetBuilder(ProbeProcessor):
             compositeBuilder.finalize(probes, save=False)
         return probes
 
+def fetch_qaData_designation(scmodel, probe):
+    from maskgen.notifiers import QaNotifier
+    from maskgen.qa_logic import ValidationData
+    qa_notify = scmodel.notify.get_notifier_by_type(QaNotifier)
+    if qa_notify is not None:
+        qadata = qa_notify.qadata if qa_notify.qadata != None else ValidationData(scmodel)
+        link = qadata.make_link_from_probe(probe)
+        if link is not None:
+            return qadata.get_qalink_designation(link)
+
+
 class DetermineTaskDesignation(ProbeProcessor):
     """
         Task designation is determined by presence of spatial and temporal components
+        Use inputFunction on init to pull designation from elsewhere- otherwise, automatic designation will be made.
     """
+
+    def __init__(self, scModel = None, inputFunction = None):
+        ProbeProcessor.__init__(self, scModel= scModel)
+        self.inputFunction = inputFunction
+
 
     def apply(self, probes = []):
         """
@@ -250,7 +268,15 @@ class DetermineTaskDesignation(ProbeProcessor):
         :return:
         @type probes : list(Probe)
         """
+
         for probe in probes:
+
+            if self.inputFunction is not None:
+                designation = self.inputFunction(self.scModel, probe)
+                if designation != None:
+                    probe.taskDesignation = designation
+                    continue
+
             ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
             len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
             len_spatial_masks = len([x for x in probe.targetVideoSegments if
@@ -427,19 +453,19 @@ def cleanup_temporary_files(probes = [], scModel = None):
         used_masks.append(mask)
         videomasks = getValue(edge, 'videomasks', [])
         for mask in videomasks:
-            hdf5 = getValue(mask, 'videosegment', '')
+            hdf5 = get_file_from_segment(mask)
             used_hdf5.append(hdf5)
     used_hdf5 = set(used_hdf5)
     used_masks = set(used_masks)
 
     for probe in probes:
         mask = probe.targetMaskFileName if probe.targetMaskFileName != None else ''
-        if mask not in used_masks:
+        if os.path.basename(mask) not in used_masks:
             files_to_remove.append(mask)
         if probe.targetVideoSegments != None:
             for segment in probe.targetVideoSegments:
                 hdf5 = segment.filename if segment.filename != None else ''
-                if hdf5 not in used_hdf5:
+                if os.path.basename(hdf5) not in used_hdf5:
                     files_to_remove.append(hdf5)
 
     files_to_remove = set(files_to_remove)

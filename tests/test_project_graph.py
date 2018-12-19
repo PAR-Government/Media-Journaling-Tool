@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender, \
-    DetermineTaskDesignation,ExtendProbesForDetectEdges
+    DetermineTaskDesignation,ExtendProbesForDetectEdges, fetch_qaData_designation
 from maskgen.graph_rules import processProjectProperties
 from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 from maskgen.scenario_model import ImageProjectModel
@@ -115,7 +115,7 @@ class TestToolSet(TestSupport):
         generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel,
                                                                                 compositeBuilders=[Jpeg2000CompositeBuilder,
                                                                                                ColorCompositeBuilder]),
-                                                                DetermineTaskDesignation(scModel)])
+                                                                DetermineTaskDesignation(scModel, inputFunction=fetch_qaData_designation)])
         probeSet = generator()
         self.assertTrue(len(probeSet) == 2)
         self.assertTrue(len([x for x in probeSet if x.edgeId == ('input_mod_2','input_mod_2_3')]) == 1)
