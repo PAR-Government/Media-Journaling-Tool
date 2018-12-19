@@ -152,7 +152,8 @@ def run_it(temp_folder=None, expected_probes_directory='.', project_dir='project
     """
     from time import strftime
     if not os.path.exists(project_dir):
-        return
+        os.mkdir(project_dir)
+        #return
 
     files_to_process = []
     for item in os.listdir(project_dir):
@@ -215,11 +216,10 @@ def run_it(temp_folder=None, expected_probes_directory='.', project_dir='project
                 sys.stdout.flush()
                 count += 1
                 shutil.rmtree(process_dir)
-        if errorCount == 0:
-            if os.path.exists(done_file_name):
-
-                os.remove(done_file_name)
-        return errorCount
+    if errorCount == 0:
+        if os.path.exists(done_file_name):
+            os.remove(done_file_name)
+    return errorCount
 
 
 class MaskGenITTest(unittest.TestCase):
@@ -231,10 +231,9 @@ class MaskGenITTest(unittest.TestCase):
             os.makedirs('it/expected')
 
     def test_it(self):
-        journalDir = "../projects"
         try:
             journalDir = os.environ['MASKGEN_TEST_FOLDER']
-        except:
+        except KeyError:
             journalDir = '../projects'
 
         self.assertTrue(run_it(expected_probes_directory='it', project_dir=journalDir) == 0)
