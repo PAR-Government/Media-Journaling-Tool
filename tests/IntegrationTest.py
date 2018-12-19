@@ -152,8 +152,7 @@ def run_it(temp_folder=None, expected_probes_directory='.', project_dir='project
     """
     from time import strftime
     if not os.path.exists(project_dir):
-        os.mkdir(project_dir)
-        #return
+        return
 
     files_to_process = []
     for item in os.listdir(project_dir):

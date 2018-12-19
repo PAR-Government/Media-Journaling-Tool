@@ -87,7 +87,7 @@ from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder
 from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 
 #Initialize Processors
-probe_set_builder = ProbeSetBuilder(scModel, compositeBuilders=[Jpeg2000CompositeBuilder, colorCompositeBuilder])
+probe_set_builder = ProbeSetBuilder(scModel, compositeBuilders=[Jpeg2000CompositeBuilder, ColorCompositeBuilder])
 #Generate Probes
 generator = ProbeGenerator(scModel, processors=[probe_set_builder])
 probes = generator()
