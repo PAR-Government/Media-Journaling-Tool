@@ -12,24 +12,20 @@ import shutil
 import tempfile
 import traceback
 from threading import Lock
-from maskgen.support import getPathValues
 import ffmpeg_api
 import graph_rules
 import mask_rules
 import notifiers
 import plugins
 import video_tools
-from PIL import Image
 from graph_auto_updates import updateJournal
 from group_filter import buildFilterOperation,  GroupFilter,  GroupOperationsLoader
 from image_graph import createGraph
 from image_wrap import ImageWrapper
-from mask_rules import ColorCompositeBuilder, Probe
 from maskgen.image_graph import ImageGraph
-from maskgen.userinfo import get_username
 from maskgen.video_tools import DummyMemory
-from software_loader import Software, getProjectProperties, MaskGenLoader, getRule
-from support import MaskgenThreadPool, StatusTracker
+from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc, getPathValues
+from software_loader import Software, getProjectProperties, getRule
 from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 
@@ -1061,9 +1057,9 @@ class ImageProjectModel:
         initialYpos = ypos
         totalSet = []
         for suffix in suffixes:
-            suffix = suffix.lower()
+            suffix_lower = suffix.lower()
             totalSet.extend([filename for filename in os.listdir(dir) if
-                             filename.lower().endswith(suffix) and \
+                             filename.lower().endswith(suffix_lower ) and \
                              not filename.endswith('_mask' + suffix) and \
                              not filename.endswith('_proxy' + suffix)])
         totalSet = sorted(totalSet, key=sortalg)
@@ -1320,7 +1316,6 @@ class ImageProjectModel:
                                           invert=invert,
                                           sendNotifications=sendNotifications,
                                           skipDonorAnalysis=skipDonorAnalysis)
-
 
     def getPredecessorNode(self):
         if self.end is None:
@@ -2683,6 +2678,7 @@ class ImageProjectModel:
                 if edge['op'] == opName]
 
     def getPathExtender(self):
+        from services.probes import CompositeExtender
         """
         :return: Extend the composite or donor through current operation
         """
