@@ -216,6 +216,11 @@ class ProbeSetBuilder(ProbeProcessor):
         return diff
 
     def apply(self, probes = []):
+        """
+        :param probes:
+        :return:
+        @type probes : list(Probe)
+        """
         probes = sorted(probes, cmp=self.probeCompare)
         localCompositeBuilders = [cb() for cb in self.compositeBuilders]
         for compositeBuilder in localCompositeBuilders:
@@ -240,6 +245,11 @@ class DetermineTaskDesignation(ProbeProcessor):
     """
 
     def apply(self, probes = []):
+        """
+        :param probes:
+        :return:
+        @type probes : list(Probe)
+        """
         for probe in probes:
             ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
             len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
@@ -254,8 +264,75 @@ class DetermineTaskDesignation(ProbeProcessor):
             elif has_video_masks:
                 probe.taskDesignation = 'spatial-temporal' if spatial_temporal else 'temporal'
                 continue
-            probe.taskDesignation = 'deter'
+            probe.taskDesignation = 'detect'
         return probes
+
+
+class DropVideoFileForNonSpatialDesignation(ProbeProcessor):
+    """
+        Probes have been set to not use spatial shoudl drop their file.
+    """
+
+    def apply(self, probes = []):
+        """
+        :param probes:
+        :return:
+        @type probes : list(Probe)
+        """
+        for probe in probes:
+            if probe.taskDesignation not in  ['spatial','spatial-temporal']:
+                for videoSegment in probe.targetVideoSegments:
+                    videoSegment.filename = None
+        return probes
+
+class ExtendProbesForDetectEdges(ProbeProcessor):
+    """
+        Probes have been set to not use spatial shoudl drop their file.
+    """
+
+    def __init__(self, scModel,selectionCriteria):
+        """
+
+        :param scModel:
+        :param selectionCriteria:
+        @type scModel: ImageProjectModel
+        @typpe selectionCriteria: ()
+        """
+
+        self.selectionCriteria = selectionCriteria
+        ProbeProcessor.__init__(self,scModel)
+
+    def apply(self, probes = []):
+        """
+        :param probes:
+        :return:
+        @type probes : list(Probe)
+        """
+        edges = set()
+        for probe in probes:
+            edges.add(probe.edgeId)
+        new_probes = []
+        for edge_id in self.scModel.getGraph().get_edges():
+            if edge_id not in edges:
+                edge = self.scModel.getGraph().get_edge(edge_id[0],edge_id[1])
+                if self.selectionCriteria(edge):
+                    base_nodes = self.scModel._findBaseNodes(edge_id[0], excludeDonor=True)
+                    base_nodes = [node for node in base_nodes
+                                  if self.scModel.getGraph().get_node(node)['nodetype'] == 'base']
+                    donor_nodes = self.scModel._findBaseNodes(edge_id[0], excludeDonor=False)
+                    donor_nodes = [n for n in donor_nodes if n not in base_nodes]
+                    donor_nodes = [None] if len(donor_nodes) == 0 else donor_nodes
+                    terminal_nodes = self.scModel._findTerminalNodes(edge_id[1], excludeDonor=True)
+                    for base_node in base_nodes:
+                        for terminal_node in terminal_nodes:
+                            for donor_node in donor_nodes:
+                                new_probes.append(
+                                    Probe(edge_id,
+                                          terminal_node,
+                                          base_node,
+                                          donor_node,
+                                          targetVideoSegments=[], taskDesignation='detect'))
+        return probes + new_probes
 
 class CompositeExtender:
 

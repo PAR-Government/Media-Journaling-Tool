@@ -2,7 +2,8 @@ import csv
 import unittest
 
 import numpy as np
-from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender
+from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender, \
+    DetermineTaskDesignation,ExtendProbesForDetectEdges
 from maskgen.graph_rules import processProjectProperties
 from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 from maskgen.scenario_model import ImageProjectModel
@@ -43,27 +44,27 @@ def test_get_frame_count(thing):
 class TestToolSet(TestSupport):
     def test_hdf5_composite(self):
         from maskgen.tool_set import GrayBlockReader
-        from maskgen.mask_rules import Probe, HDF5CompositeBuilder
+        from maskgen.mask_rules import Probe, HDF5CompositeBuilder, segmentToVideoSegment
 
         probe1 = Probe(('a', 'b'), 'f1', 'b1', None, finalImageFileName='f1', targetVideoSegments=[
-            create_segment(starttime=1000, startframe=11, endtime=1900, endframe=20, type='video', frames=10,
+            segmentToVideoSegment(create_segment(starttime=1000, startframe=11, endtime=1900, endframe=20, type='video', frames=10,
                            rate=10,
                            videosegment=compose_segment_mask('ab1', 10, 11, 10,
-                                                             (64, 64))),
-            create_segment(starttime=3000, startframe=31, endtime=3900, endframe=40, type='video', frames=10, rate=10,
+                                                             (64, 64)))),
+            segmentToVideoSegment(create_segment(starttime=3000, startframe=31, endtime=3900, endframe=40, type='video', frames=10, rate=10,
                            videosegment=compose_segment_mask('ab2', 10, 31, 10,
-                                                             (64, 64)))
+                                                             (64, 64))))
         ])
         probe2 = Probe(('a', 'b'), 'f2', 'b1', None, finalImageFileName='f2',
                        targetVideoSegments=probe1.targetVideoSegments)
         probe3 = Probe(('a', 'b'), 'f3', 'b1', None, finalImageFileName='f3', targetVideoSegments=[
-            create_segment(starttime=1000, startframe=11, endtime=1900, endframe=20, type='video', frames=10,
+            segmentToVideoSegment(create_segment(starttime=1000, startframe=11, endtime=1900, endframe=20, type='video', frames=10,
                            rate=10,
                            videosegment=compose_segment_mask('ab3', 10, 11, 10,
-                                                             (256, 256))),
-            create_segment(starttime=3000, startframe=31, endtime=3900, endframe=40, type='video', frames=10, rate=10,
+                                                             (256, 256)))),
+                                  segmentToVideoSegment(create_segment(starttime=3000, startframe=31, endtime=3900, endframe=40, type='video', frames=10, rate=10,
                            videosegment=compose_segment_mask('ab4', 10, 31, 10,
-                                                             (256, 256)))
+                                                             (256, 256))))
         ])
         probes = [probe1, probe2, probe3]
         builder = HDF5CompositeBuilder()
@@ -78,14 +79,14 @@ class TestToolSet(TestSupport):
         second = results[(10, 44, 4400)]
         self.assertNotEquals(first, second)
         r = GrayBlockReader(first, start_frame=11, start_time=1000)
-        m = r.read()
+        m = r.read()[:,:,0]
         self.assertTrue(np.all(m[0:64, 0:64] == 0))
         self.assertTrue(np.sum(m[64:128, 64:128] / 2) == 0)
         self.assertTrue(np.sum(m[64:128, 64:128] % 2) > 0)
         self.assertTrue(np.sum(m[256:310, 256:310] / 2) > 0)
         self.assertTrue(np.sum(m[256:310, 256:310] % 2) == 0)
         r = GrayBlockReader(second, start_frame=11, start_time=1000)
-        m = r.read()
+        m = r.read()[:,:,0]
         self.assertTrue(np.all(m[0:64, 0:64] == 0))
         self.assertTrue(np.sum(m[64:128, 64:128] / 2) == 0)
         self.assertTrue(np.sum(m[64:128, 64:128] % 2) > 0)
@@ -93,14 +94,14 @@ class TestToolSet(TestSupport):
         self.assertTrue(np.sum(m[256:310, 256:310] % 2) == 0)
 
         r = GrayBlockReader(first, start_frame=31, start_time=3000)
-        m = r.read()
+        m = r.read()[:,:,0]
         self.assertTrue(np.all(m[0:64, 0:64] == 0))
         self.assertTrue(np.sum(m[64:128, 64:128] / 2) == 0)
         self.assertTrue(np.sum(m[64:128, 64:128] % 2) > 0)
         self.assertTrue(np.sum(m[256:310, 256:310] / 2) > 0)
         self.assertTrue(np.sum(m[256:310, 256:310] % 2) == 0)
         r = GrayBlockReader(second, start_frame=31, start_time=3000)
-        m = r.read()
+        m = r.read()[:,:,0]
         self.assertTrue(np.all(m[0:64, 0:64] == 0))
         self.assertTrue(np.sum(m[64:128, 64:128] / 2) == 0)
         self.assertTrue(np.sum(m[64:128, 64:128] % 2) > 0)
@@ -113,7 +114,8 @@ class TestToolSet(TestSupport):
         scModel.assignColors()
         generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel=scModel,
                                                                                 compositeBuilders=[Jpeg2000CompositeBuilder,
-                                                                                               ColorCompositeBuilder])])
+                                                                                               ColorCompositeBuilder]),
+                                                                DetermineTaskDesignation(scModel)])
         probeSet = generator()
         self.assertTrue(len(probeSet) == 2)
         self.assertTrue(len([x for x in probeSet if x.edgeId == ('input_mod_2','input_mod_2_3')]) == 1)
@@ -131,6 +133,14 @@ class TestToolSet(TestSupport):
         self.assertTrue('file name' in probeSet[0].composites['jp2'])
         self.assertTrue('color' in probeSet[0].composites['color'])
         self.assertTrue('file name' in probeSet[0].composites['color'])
+        self.assertTrue('spatial' in probeSet[0].taskDesignation)
+
+        full_set = ExtendProbesForDetectEdges(scModel, lambda x: True).apply(probeSet)
+        self.assertTrue(len(full_set) == 6)
+        for i in range(2,6):
+            self.assertEqual('detect',full_set[i].taskDesignation)
+
+
 
     def test_composite_extension(self):
         model = ImageProjectModel(self.locateFile('images/sample.json'))

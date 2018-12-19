@@ -2865,24 +2865,24 @@ class GrayBlockFrameFirstLayout():
 
     @staticmethod
     def count(reader):
-        return reader.dset.shape[2]
+        return reader.dset.shape[0]
 
     @staticmethod
     def get_frame(reader):
-        return reader.dset[reader.pos, :, :]
+        return reader.dset[reader.pos]
 
     @staticmethod
     def initial_shape(shape, size = None):
-        return (size, shape[0], shape[1])
+        return (size,) + shape
 
     @staticmethod
     def resize(shape, writer):
         if writer.dset.shape[0] < (writer.pos + 1):
-            writer.dset.resize((writer.pos + 1, shape[0], shape[1]))
+            writer.dset.resize((writer.pos + 1,) + writer.dset.shape[1:])
 
     @staticmethod
     def set(writer,mask):
-        writer.dset[ writer.pos, :, :] = mask
+            writer.dset[ writer.pos] = mask
 
 class GrayBlockFrameLastLayout():
 
@@ -2890,11 +2890,11 @@ class GrayBlockFrameLastLayout():
 
     @staticmethod
     def is_end(reader):
-        return reader.pos >= reader.dset.shape[2]
+        return reader.pos >= reader.dset.shape[-1]
 
     @staticmethod
     def count(reader):
-        return reader.dset.shape[2]
+        return reader.dset.shape[-1]
 
     @staticmethod
     def get_frame(reader):
@@ -2902,16 +2902,20 @@ class GrayBlockFrameLastLayout():
 
     @staticmethod
     def initial_shape(shape, size=None):
-        return (shape[0], shape[1],size)
+        return (shape)[:-1] + (size,)
 
     @staticmethod
     def resize(shape, writer):
-        if writer.dset.shape[2] < (writer.pos + 1):
-            writer.dset.resize((shape[0], shape[1], writer.pos + 1))
+        if writer.dset.shape[-1] < (writer.pos + 1):
+            writer.dset.resize((shape)[:-1] + (writer.pos + 1,))
 
     @staticmethod
     def set(writer,mask):
-        writer.dset[:, :, writer.pos] = mask
+        if len(writer.dset.shape) == 2:
+            writer.dset[:, :, writer.pos] = mask
+        else:
+            writer.dset[:, :, :, writer.pos] = mask
+
 
 
 class GrayBlockReader:
@@ -3254,14 +3258,9 @@ class GrayBlockWriter:
             self.pos = 0
 
         self.mask_format.resize(mask.shape, self)
-        new_mask = mask
-        if len(mask.shape) > 2:
-            new_mask = np.ones((mask.shape[0], mask.shape[1])) * 255
-            for i in range(mask.shape[2]):
-                new_mask[mask[:, :, i] > 0] = 0
         self.last_frame = frame_number
         self.last_time = mask_time
-        self.mask_format.set(self, new_mask)
+        self.mask_format.set(self, mask)
         self.pos += 1
 
     def get_file_name(self):

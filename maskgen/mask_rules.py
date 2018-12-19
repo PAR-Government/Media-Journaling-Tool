@@ -105,7 +105,7 @@ class Probe:
     targetChangeSizeInPixels = (0,0)
     failure = if failure occured generating this probe
     level = 0
-    taskDesignation = 1, 2 or 3
+    taskDesignation = str
     """
     edgeId = None
     targetBaseNodeId = None
@@ -121,7 +121,7 @@ class Probe:
     donorMask = None
     targetChangeSizeInPixels = 0
     level = 0
-    taskDesignation = 0
+    taskDesignation = 'detect'
     # vfr indicator
 
     """
@@ -163,7 +163,7 @@ class Probe:
                  failure=False,
                  donorFailure=False,
                  level=0,
-                 taskDesignation=0):
+                 taskDesignation='detect'):
         self.edgeId = edgeId
         self.empty = empty
         self.finalNodeId = finalNodeId
@@ -183,6 +183,11 @@ class Probe:
         self.finalImageFileName = finalImageFileName
         self.composites = dict()
         self.taskDesignation = taskDesignation
+
+    def has_masks_in_target(self):
+        if self.targetVideoSegments is not None:
+            return len([s for s in self.targetVideoSegments if s.filename is not None]) > 0
+        return False
 
     def max_time(self):
         mt = 0
@@ -413,6 +418,17 @@ class BuildState:
                                                                          inverse=True,
                                                                          expectedType=self.compositeMask.media_type))
 
+def segmentToVideoSegment (segment):
+    return VideoSegment(video_tools.get_rate_from_segment(segment),
+                         video_tools.get_start_time_from_segment(segment),
+                         video_tools.get_start_frame_from_segment(segment),
+                         video_tools.get_end_time_from_segment(segment),
+                         video_tools.get_end_frame_from_segment(segment),
+                         video_tools.get_frames_from_segment(segment),
+                         video_tools.get_file_from_segment(segment),
+                         video_tools.get_type_of_segment(segment),
+                         video_tools.get_error_from_segment(segment))
+
 def _compositeImageToVideoSegment(compositeImage):
     """
 
@@ -422,15 +438,7 @@ def _compositeImageToVideoSegment(compositeImage):
     """
     if compositeImage is None or compositeImage.videomasks is None:
         return []
-    return [VideoSegment(video_tools.get_rate_from_segment(item),
-                         video_tools.get_start_time_from_segment(item),
-                         video_tools.get_start_frame_from_segment(item),
-                         video_tools.get_end_time_from_segment(item),
-                         video_tools.get_end_frame_from_segment(item),
-                         video_tools.get_frames_from_segment(item),
-                         video_tools.get_file_from_segment(item),
-                         video_tools.get_type_of_segment(item),
-                         video_tools.get_error_from_segment(item)) for item in compositeImage.videomasks]
+    return [segmentToVideoSegment(item) for item in compositeImage.videomasks]
 
 def compositeMaskSetFromVideoSegment(videoSegments):
     """
@@ -3327,6 +3335,8 @@ class GraphCompositeVideoIdAssigner:
         self.writers = {}
         fileid = IntObject()
         for probe in probes:
+            if not probe.has_masks_in_target():
+                continue
             segment = video_tools.get_frame_count(probe.finalImageFileName)
             if segment is not None:
                 key = (video_tools.get_rate_from_segment(segment, 30),
@@ -3363,13 +3373,11 @@ class HDF5CompositeBuilder(CompositeBuilder):
         """
         pass
 
-
     def finalize(self, probes, save=True):
         import itertools
         results = {}
         if len(probes) == 0:
-            return
-        results = {}
+            return {}
         for group in self.compositeIdAssigner.group_probes:
             writer = self.compositeIdAssigner.writers[group]
             grouped_probes = self.compositeIdAssigner.group_probes[group]
@@ -3377,39 +3385,37 @@ class HDF5CompositeBuilder(CompositeBuilder):
                                     grouped_probes[i].targetVideoSegments] for i in range(len(grouped_probes))]
             segments_with_probe = list(itertools.chain(*segments_with_probe))
             segments_with_probe = sorted(segments_with_probe,
-                                         key=lambda x: video_tools.get_start_frame_from_segment(x[0]))
-            frame_no = video_tools.get_start_frame_from_segment(segments_with_probe[0][0])
-            frame_time = video_tools.get_start_time_from_segment(segments_with_probe[0][0])
+                                         key=lambda x: x[0].startframe)
+            frame_no = segments_with_probe[0][0].startframe
+            frame_time = segments_with_probe[0][0].starttime
             edges = set([str(probe.edgeId) for probe in grouped_probes])
             reader_managers = {id: tool_set.GrayBlockReaderManager() for id in edges}
             while len(segments_with_probe) > 0:
                 segments_with_probe = [segment_with_probe for segment_with_probe in segments_with_probe if
-                                            video_tools.get_end_frame_from_segment(segment_with_probe[0]) >= frame_no]
+                                            segment_with_probe[0].endframe >= frame_no]
                 frame = None
+                comopsite_byte_id= 0
                 for segment_with_probe in segments_with_probe:
-                    if frame_no >= video_tools.get_start_frame_from_segment(segment_with_probe[0]):
+                    if frame_no >= segment_with_probe[0].startframe:
                         reader = reader_managers[str(segment_with_probe[1].edgeId)].create_reader(
-                            video_tools.get_file_from_segment(segment_with_probe[0]),
-                            start_frame=video_tools.get_start_frame_from_segment(
-                                segment_with_probe[0]),
-                            start_time=video_tools.get_start_time_from_segment(
-                                segment_with_probe[0]),
-                            end_frame=video_tools.get_end_frame_from_segment(
-                                segment_with_probe[0]))
+                            segment_with_probe[0].filename,
+                            start_frame=segment_with_probe[0].startframe,
+                            start_time=segment_with_probe[0].starttime,
+                            end_frame=segment_with_probe[0].endframe)
                         mask = reader.read()
                         if frame is None:
-                            frame = np.zeros(mask.shape, dtype='uint8')
+                            frame = np.zeros(mask.shape + (1,), dtype='uint8')
                         thisbit = np.zeros(mask.shape).astype('uint8')
                         bit = segment_with_probe[1].composites[self.composite_type]['bit number'] - 1
                         bitvalue = 1 << (bit % 8)
                         thisbit[mask == 0] = bitvalue
-                        frame = frame | thisbit
+                        frame[:,:,comopsite_byte_id] = frame[:,:,comopsite_byte_id] | thisbit
                 if frame is not None:
                     writer.write(frame, frame_time,frame_no)
                     segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
                     results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
                 frame_no += 1
-                frame_time += 1000.0/video_tools.get_rate_from_segment(segment_with_probe[0])
+                frame_time += 1000.0/segment_with_probe[0].rate
             writer.close()
         return results
 
