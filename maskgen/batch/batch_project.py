@@ -747,8 +747,11 @@ class PreProcessedMediaOperation(BatchOperation):
         predecessor_state = getNodeState(connect_to_node_name, local_state)
         local_state['model'].selectImage(predecessor_state['node'])
         if 'usebaseimage' in node and node['usebaseimage']:
-            im, filename = local_state['model'].getImageAndName(local_state['model'].getBaseNode(local_state['model'].start))
+            base = local_state['model'].getBaseNode(local_state['model'].start)
+            self.logger.debug("Using base image {0}".format(base))
+            im, filename = local_state['model'].getImageAndName(base)
         else:
+            self.logger.debug("Using current image")
             im, filename = local_state['model'].currentImage()
         filename = os.path.basename(filename)
         directory = node['directory'].format(**global_state)
@@ -941,7 +944,13 @@ class InputMaskPluginOperation(PluginOperation):
         if 'node' not in predecessor_state:
             raise ValueError('image selection operation requires a source node')
         local_state['model'].selectImage(predecessor_state['node'])
-        im, filename = local_state['model'].currentImage()
+        if 'usebaseimage' in node and node['usebaseimage']:
+            base = local_state['model'].getBaseNode(local_state['model'].start)
+            self.logger.debug("Using base image {0}".format(base))
+            im, filename = local_state['model'].getImageAndName(base)
+        else:
+            self.logger.debug("Using current image")
+            im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
         prnu = node['prnu'] if 'prnu' in node else False
         plugin_op = plugins.getOperation(plugin_name)

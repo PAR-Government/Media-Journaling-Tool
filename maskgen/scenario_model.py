@@ -1060,6 +1060,7 @@ class ImageProjectModel:
         """
         initialYpos = ypos
         totalSet = []
+        suffixes = set(suffixes)
         for suffix in suffixes:
             suffix = suffix.lower()
             totalSet.extend([filename for filename in os.listdir(dir) if
