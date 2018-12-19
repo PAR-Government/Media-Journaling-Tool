@@ -273,6 +273,9 @@ class DropVideoFileForNonSpatialDesignation(ProbeProcessor):
         Probes have been set to not use spatial shoudl drop their file.
     """
 
+    def __init__(self):
+        ProbeProcessor.__init__(self,None)
+
     def apply(self, probes = []):
         """
         :param probes:
