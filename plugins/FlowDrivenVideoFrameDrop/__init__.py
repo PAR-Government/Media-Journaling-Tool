@@ -21,6 +21,7 @@ def transform(img, source, target, **kwargs):
     seconds_to_drop = float(kwargs['seconds to drop']) if 'seconds to drop' in kwargs else 1.0
     save_histograms = (kwargs['save histograms'] == 'yes') if 'save histograms' in kwargs else False
     drop = (kwargs['drop'] == 'yes') if 'drop at start time' in kwargs else True
+    audio = (kwargs['Audio'] == 'yes') if 'Audio' in kwargs else False
     codec = (kwargs['codec']) if 'codec' in kwargs else 'XVID'
     start,stop,frames_to_add = smartDropFrames(source, target,
                                               start_time,
@@ -28,7 +29,7 @@ def transform(img, source, target, **kwargs):
                                               seconds_to_drop,
                                               savehistograms=save_histograms,
                                               codec=codec,
-                                              drop = drop)
+                                              audio=audio)
     return {'Start Time': str(start),
             'End Time': str(stop),
             'Frames Dropped' : stop-start + 1,
@@ -66,6 +67,11 @@ def operation():
                   'type': 'yesno',
                   'defaultvalue': 'yes',
                   'description': 'If yes, then do not search for optimal drop, use the start and times precisely'
+              },
+              'Audio': {
+                  'type': 'yesno',
+                  'defaultvalue': 'no',
+                  'description': 'Whether or not to Include the audio in the decision process and to add it back'
               }
           },
           'transitions': [

@@ -23,11 +23,13 @@ def transform(img,source,target,**kwargs):
     if frames_add is not None:
         end_time = (start_time[0],start_time[1] + frames_add - 1)
     codec = (kwargs['codec']) if 'codec' in kwargs else 'XVID'
+    audio = (kwargs['Audio']=='yes') if 'Audio' in kwargs else False
     add_frames, end_time_millis = smartAddFrames(source, target,
                                               start_time,
                                               end_time,
                                               codec=codec,
-                                              direction=kwargs['Direction'] if 'Direction' in kwargs else 'forward')
+                                              direction=kwargs['Direction'] if 'Direction' in kwargs else 'forward',
+                                              audio=audio)
 
 
     if start_time[0] > 0:
@@ -37,6 +39,7 @@ def transform(img,source,target,**kwargs):
 
     return {'Start Time':str(kwargs['Start Time']),
             'End Time': et,
+            'Audio': audio,
             'Frames to Add': int(add_frames),
             'Method': 'Pixel Motion',
             'Algorithm':'Farneback',
@@ -75,6 +78,11 @@ def operation():
                   'values': ['MPEG','XVID','AVC1','HFYU'],
                   'defaultvalue': 'XVID',
                   'description': 'Codec of output video.'
+              },
+              'Audio': {
+                  'type': 'yesno',
+                  'defaultvalue': 'no',
+                  'description': 'Whether or not to restitch the audio after the frames are added'
               }
           },
           'transitions': [

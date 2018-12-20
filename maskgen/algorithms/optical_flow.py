@@ -13,7 +13,9 @@ from scipy import spatial
 from maskgen.cv2api import cv2api_delegate
 from maskgen.image_wrap import ImageWrapper
 from maskgen.tool_set import VidTimeManager, differenceInFramesBetweenMillisecondsAndFrame
-
+import maskgen.tool_set as tool_set
+import maskgen.maskgen_audio
+import drop_strategy
 import hashlib
 
 
@@ -100,13 +102,14 @@ def createOutput(in_file, out_file, timeManager, codec=None):
     return dropcount
 
 
-def scanHistList(histograms, distance, offset, saveHistFile=None):
+def scanHistList(histograms, distance, offset, saveHistFile=None, silenceFunc= (lambda x,y: 1)):
     """
         Function to compare frame image histograms and produce an array of the
         standard deviation of the differences.
     :param histograms:  an array of concatenated GBR histograms
     :param distance:  minimum number of frames apart to start the comparison
     :param offset:  Number of frames to skip at the start of the list
+    :param silenceFunc: the callable method that returns a weight for the frames given frame1 and frame2
     :return: Nx4 matrix where each column in start,end,length and std_flow.
     """
     import math
@@ -119,6 +122,7 @@ def scanHistList(histograms, distance, offset, saveHistFile=None):
     for i in range(offset, len(histograms) - distance):
         for j in range(i + distance, len(histograms)):
             std_flow = np.std(histograms[i] - histograms[j])
+            std_flow *= silenceFunc(i, j)
             history[h_count, :] = [i, j, j - i, std_flow]
             h_count += 1
 
@@ -159,7 +163,7 @@ def selectBestMatches(differences, selection=50):
 
 
 # best flow defined as the lowest sigam of the optical flow between frames
-def selectBestFlow(frames, best_matches, logger):
+def selectBestFlow(frames, best_matches, logger, all=False):
     flow_list = np.zeros(best_matches.shape[0])
     for i in range(best_matches.shape[0]):
         past = cv2.cvtColor(frames[best_matches[i, 0]], cv2.COLOR_BGR2GRAY)
@@ -172,6 +176,8 @@ def selectBestFlow(frames, best_matches, logger):
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('FOR {} to {}, STD={}'.format(best_matches[i, 0], best_matches[i, 1], flow_list[i]))
+    if all:
+        return np.argmin(flow_list),flow_list
     return np.argmin(flow_list)
 
 
@@ -183,7 +189,8 @@ def getNormalFlow(frames):
         future = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
         flow = cv2api_delegate.calcOpticalFlowFarneback(past, future,
                                                         0.8, 7, 15, 3, 7, 1.5)
-        flow_list[i - 1] = np.mean(flow**2)
+        #flow_list[i - 1] = np.mean(flow**2)
+        flow_list[i-1] = np.mean(np.abs(flow))
     return np.mean(flow_list)
 
 
@@ -194,9 +201,10 @@ def calculateOptimalFrameReplacement(frames, start, stop):
     next_frame = cv2.cvtColor(frames[stop], cv2.COLOR_BGR2GRAY)
     jump_flow = cv2api_delegate.calcOpticalFlowFarneback(prev_frame, next_frame,
                                                          0.8, 7, 15, 3, 7, 1.5, flags=2)
-    std_jump_flow = np.mean(jump_flow**2)
+    #std_jump_flow = np.mean(jump_flow**2)
+    std_jump_flow = np.mean(np.abs(jump_flow))
     frames_to_add = int(np.rint(std_jump_flow / avg_flow))
-    return frames_to_add
+    return min(20, frames_to_add)
 
 
 def dumpFrames(frames, file):
@@ -213,7 +221,7 @@ def smartDropFrames(in_file, out_file,
                     seconds_to_drop,
                     savehistograms=False,
                     codec=None,
-                    drop=True):
+                    audio=False):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
@@ -224,33 +232,10 @@ def smartDropFrames(in_file, out_file,
     :param codec:
     :return: first and last frame numbers dropped, and the optimal number to add back/replace
     """
-    logger = logging.getLogger('maskgen')
-    logger.info('Read {} frames into memory'.format(in_file))
-    frames, histograms, fps, start = readFrames(in_file, start_time, end_time)
-    #dumpFrames(frames, in_file[0:in_file.rfind('.')] + '-frames.csv')
-    distance = int(round(fps * seconds_to_drop))
-    logger.info('Distance {} for {} frames to drop with {} fps'.format(distance, seconds_to_drop, fps))
-    offset = int(round(fps * seconds_to_drop))
-    # avg_diffs, sigma_diffs = computeNormalDiffs(histograms, 60)
-    logger.info('starting histogram computational')
-    differences = scanHistList(histograms, distance, offset,
-                               saveHistFile=in_file[0:in_file.rfind('.')] + '-hist.csv' if savehistograms else None)
-    logger.info('Finding best matches')
-    best_matches = selectBestMatches(differences, selection=50)
-    logger.info('Starting optical flow search')
-    if best_matches is not None:
-        best_flow = selectBestFlow(frames, best_matches, logger)
-        logger.info('best pair: {}'.format(str(best_matches[best_flow])))
-        frames_to_add = calculateOptimalFrameReplacement(frames, best_matches[best_flow][0],
-                                                         best_matches[best_flow][1])
-        # add 2: one to advance to frame no and one to advance to first dropped frame
-        firstFrametoDrop = best_matches[best_flow][0] + start + 2
-        lastFrametoDrop = best_matches[best_flow][1] + start
-        if drop:
-            time_manager = VidTimeManager(startTimeandFrame=(0, firstFrametoDrop),
-                                          stopTimeandFrame=(0, lastFrametoDrop))
-            createOutput(in_file, out_file, time_manager, codec=codec)
-        return firstFrametoDrop, lastFrametoDrop, frames_to_add
+    strat = drop_strategy.StratVideo
+    if audio:
+        strat = drop_strategy.StratAudVidTogether
+    return get_best_frame_pairs(in_file,out_file,start_time,end_time,seconds_to_drop,savehistograms,codec,strat)
 
 
 def dropFrames(in_file, out_file,
@@ -456,7 +441,8 @@ def smartAddFrames(in_file,
                    start_time,
                    end_time,
                    codec=None,
-                   direction='forward'):
+                   direction='forward',
+                   audio=False):
     """
     :param in_file: is the full path of the video file from which to drop frames
     :param out_file: resulting video file
@@ -466,6 +452,11 @@ def smartAddFrames(in_file,
     :return:
     """
     logger = logging.getLogger('maskgen')
+    if audio:
+        audioProcessor = maskgen.maskgen_audio.SilenceProcessor(in_file)
+        #Potention Add strategy if you'd want
+        audio_file = audioProcessor.original
+        maskgen.maskgen_audio.export_audio(audio_file, os.path.splitext(out_file)[0] + '.wav')
     import time
     cap = cv2api_delegate.videoCapture(in_file)
     fourcc = cv2api_delegate.get_fourcc(str(codec)) if codec is not None else cap.get(cv2api_delegate.fourcc_prop)
@@ -523,6 +514,15 @@ def smartAddFrames(in_file,
     finally:
         cap.release()
         out_video.release()
+    if audio:
+        logger.debug('Recombining Audio and Video')
+        import maskgen.ffmpeg_api as ffmpeg
+        tmpvid = os.path.splitext(out_file)[0] + 'tmp' + os.path.splitext(out_file)[1]
+        os.rename(out_file, tmpvid)
+        ffmpeg.run_ffmpeg(['-i', tmpvid, '-i', os.path.splitext(out_file)[0] + '.wav', '-c', 'copy',
+                           out_file, '-y'])
+        os.remove(tmpvid)
+        os.remove(os.path.splitext(out_file)[0] + '.wav')
     return frames_to_add, frames_to_add * (1000.0 / fps)
 
 
@@ -602,3 +602,92 @@ def copyFrames(in_file,
         cap.release()
         out_video.release()
     return write_count
+
+
+def selectSilence(matches, fps, sp, offset):
+    audio_matches = []
+
+    silences = sp.detect_silence(sp.processed, min_silence_len=sp.fade_length, silence_thresh=-21, seek_step=1)
+
+    visualsilence = np.zeros(silences[-1][1])
+    for s in silences:
+        visualsilence[s[0]:s[1]] = 1
+    if matches is not None:
+        for m in matches:
+            st = tool_set.getMilliSecondsAndFrameCount(offset + int(m[0]), fps)[0]
+            en = tool_set.getMilliSecondsAndFrameCount(offset + int(m[1]), fps)[0]
+            if int(st)<len(visualsilence) and int(en) < len(visualsilence) and \
+                    visualsilence[int(st)] == 1 and visualsilence[int(en) + 1] == 1:
+
+                audio_matches.append(m)
+    return np.asarray(audio_matches)
+
+
+def get_best_frame_pairs(in_file, out_file,
+                    start_time,
+                    end_time,
+                    seconds_to_drop,
+                    savehistograms=False,
+                    codec=None,
+                    strategy=drop_strategy.StratVideo):
+    """
+    :param in_file: is the full path of the video file from which to drop frames
+    :param out_file: resulting video file
+    :param start_time: (milli,frame no) for search space
+    :param end_time: (milli,frame no) for search space
+    :param seconds_to_drop:
+    :param savehistograms: save histograms differences to file
+    :param codec:
+    :return: first and last frame numbers dropped, and the optimal number to add back/replace
+    """
+    logger = logging.getLogger('maskgen')
+    logger.info('Read {} frames into memory'.format(in_file))
+    frames, histograms, fps, start = readFrames(in_file, start_time, end_time)
+    dumpFrames(frames, in_file[0:in_file.rfind('.')] + '-frames.csv')
+    distance = int(round(fps * seconds_to_drop))
+    logger.info('Distance {} for {} frames to drop with {} fps'.format(distance, seconds_to_drop, fps))
+    offset = int(round(fps * seconds_to_drop))
+    # avg_diffs, sigma_diffs = computeNormalDiffs(histograms, 60)
+    logger.info('starting histogram computational')
+    strat = strategy(in_file, out_file, fps, start, codec)
+    differences = scanHistList(histograms, distance, offset,
+                               saveHistFile=in_file[0:in_file.rfind('.')] + '-hist.csv' if savehistograms else None,
+                               silenceFunc=strat.getWeighter())
+    logger.info('Finding best matches')
+    best_matches = selectBestMatches(differences, selection=50)
+    #logger.info('Starting Silence Matching')
+    #sp = maskgen_audio.SilenceProcessor(in_file)
+    #silence_matches = selectSilence(best_matches, fps, sp, start)
+    silence_matches = best_matches
+    logger.info('Starting optical flow search')
+    if silence_matches is not None and len(silence_matches) != 0:
+        match_data = []
+        best_flow,flows = selectBestFlow(frames, silence_matches, logger,all=True)
+        logger.info('best pair: {}'.format(str(silence_matches[best_flow])))
+        frames_to_add = calculateOptimalFrameReplacement(frames, silence_matches[best_flow][0],
+                                                         silence_matches[best_flow][1])
+        # add 2: one to advance to frame no and one to advance to first dropped frame
+        firstFrametoDrop = silence_matches[best_flow][0] + start + 2
+        lastFrametoDrop = silence_matches[best_flow][1] + start
+        match_data.append(tuple([firstFrametoDrop,lastFrametoDrop,frames_to_add]))
+        return strat.drop(firstFrametoDrop,lastFrametoDrop,frames_to_add,flows,silence_matches)
+
+class silenceWeighter:
+    def __init__(self,fps, sp, offset):
+        self.fps = fps
+        self.silenceProcessor = sp
+        self.offset = offset
+        silences = sp.detect_silence(sp.processed, min_silence_len=sp.fade_length, silence_thresh=-21, seek_step=1)
+
+        self.visualsilence = np.zeros(silences[-1][1])
+        for s in silences:
+            self.visualsilence[s[0]:s[1]] = 1
+        self.vlen = len(self.visualsilence)
+
+    def value(self, frame1, frame2):
+        st = tool_set.getMilliSecondsAndFrameCount(self.offset + frame1, self.fps)[0]
+        en = tool_set.getMilliSecondsAndFrameCount(self.offset + frame2, self.fps)[0]
+        if int(st) < self.vlen and int(en) < self.vlen and \
+                self.visualsilence[int(st)] == 1 and self.visualsilence[int(en) + 1] == 1:
+            return 1
+        return 1000000
