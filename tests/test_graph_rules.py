@@ -31,6 +31,20 @@ class TestToolSet(TestSupport):
         result = graph_rules.checkForVideoRetainment('op', graph, 'a', 'b')
         self.assertIsNotNone(result)
 
+    # Tests checkSame and checkBigger
+    def test_checkLengthSameOrBigger(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'insert'},
+                                            'metadatadiff': {}})
+        graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
+        graph.dir = '.'
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # bigger
+        self.assertIsNotNone(result)
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'replace'},
+                                            'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # same
+        self.assertIsNotNone(result)
+
     def test_checkAudioLengthBigger(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},

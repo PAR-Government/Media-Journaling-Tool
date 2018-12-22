@@ -1056,6 +1056,7 @@ class ImageProjectModel:
         """
         initialYpos = ypos
         totalSet = []
+        suffixes = set(suffixes)
         for suffix in suffixes:
             suffix_lower = suffix.lower()
             totalSet.extend([filename for filename in os.listdir(dir) if
@@ -1921,6 +1922,8 @@ class ImageProjectModel:
                            tool=tool)
 
     def _autocorrect(self):
+        if not self.G.get_nodes():
+            return
         if not updateJournal(self):
             raise AttributeError('Cannot auto update journal')
 
