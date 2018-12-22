@@ -2047,6 +2047,8 @@ class ImageProjectModel:
                            tool=tool)
 
     def _autocorrect(self):
+        if not self.G.get_nodes():
+            return
         if not updateJournal(self):
             raise AttributeError('Cannot auto update journal')
 

@@ -563,14 +563,15 @@ def checkAudioLength_Loose(op, graph, frm, to):
     if floor(abs(difference)) != 0:
         return (Severity.ERROR, "Audio duration does not match")
 
+
 def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type', 'replace')
     if addType in ['replace','insert']:
         from video_tools import get_duration
         from math import floor
-        donor_id, doner_edge = getDonorEdge(graph, to)
-        donor_segments = getValue(doner_edge,'videomasks',[])
+        donor_id, donor_edge = getDonorEdge(graph, to)
+        donor_segments = getValue(donor_edge,'videomasks',[])
         extractor = MetaDataExtractor(graph)
         to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
         if len(donor_segments) > 1:
@@ -1183,7 +1184,7 @@ def checkLengthBigger(op, graph, frm, to):
 def checkLengthSameOrBigger(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     add_type = getValue(edge, 'arguments.add type', '')
-    return checkLengthBigger(op, graph, frm, to) if add_type in ['replace', 'overlay'] else checkLengthSame(op, graph, frm, to)
+    return checkLengthBigger(op, graph, frm, to) if add_type not in ['replace', 'overlay'] else checkLengthSame(op, graph, frm, to)
 
 def seamCarvingCheck(op, graph, frm, to):
     """
