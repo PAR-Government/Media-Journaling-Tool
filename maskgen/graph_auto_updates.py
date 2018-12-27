@@ -86,15 +86,17 @@ def updateJournal(scModel):
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
+    project_version = scModel.getGraph().getProjectVersion()
+    hasNodes = bool(scModel.G.get_nodes())
     if len(matched_versions) > 0:
         # fix what is left
         fixes_needed = max(matched_versions) - len(versions) + 1
     else:
-        if scModel.getGraph().getProjectVersion() not in fixes and scModel.getGraph().getProjectVersion() > versions[
-            -1]:
+        if not hasNodes or (project_version not in fixes
+                            and project_version > versions[-1]):
             fixes_needed = 0
         else:
-            fixes_needed = - len(versions)
+            fixes_needed = -(len(versions) - versions.index(project_version)) if project_version in versions else -len(versions)
     ok = True
 
     if fixes_needed < 0:
