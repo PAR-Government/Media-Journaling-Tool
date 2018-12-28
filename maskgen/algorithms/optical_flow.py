@@ -116,7 +116,7 @@ def scanHistList(histograms, distance, offset, saveHistFile=None, silenceFunc= (
     if distance >= len(histograms):
         raise ValueError('Video is to short for the distance provided.')
     history = np.zeros(((len(histograms) - (offset + distance)) * (len(histograms) - (offset + distance) + 1) // 2,
-                        4), np.int)
+                        4), np.int64)
     h_count = 0
     # front frame to compare. skip the first 30
     for i in range(offset, len(histograms) - distance):
@@ -519,8 +519,8 @@ def smartAddFrames(in_file,
         import maskgen.ffmpeg_api as ffmpeg
         tmpvid = os.path.splitext(out_file)[0] + 'tmp' + os.path.splitext(out_file)[1]
         os.rename(out_file, tmpvid)
-        ffmpeg.run_ffmpeg(['-i', tmpvid, '-i', os.path.splitext(out_file)[0] + '.wav', '-c', 'copy',
-                           out_file, '-y'])
+        ffmpeg.run_ffmpeg(['-i', tmpvid, '-i', os.path.splitext(out_file)[0] + '.wav',
+                           '-c:v', 'rawvideo','-c:a', 'pcm_s32le', '-r', str(fps), out_file, '-y'])
         os.remove(tmpvid)
         os.remove(os.path.splitext(out_file)[0] + '.wav')
     return frames_to_add, frames_to_add * (1000.0 / fps)
@@ -678,6 +678,8 @@ class silenceWeighter:
         self.silenceProcessor = sp
         self.offset = offset
         silences = sp.detect_silence(sp.processed, min_silence_len=sp.fade_length, silence_thresh=-21, seek_step=1)
+        if len(silences) == 0:
+            raise ValueError("No Silences detected")
 
         self.visualsilence = np.zeros(silences[-1][1])
         for s in silences:

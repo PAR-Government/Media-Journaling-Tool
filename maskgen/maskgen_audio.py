@@ -1,8 +1,7 @@
 from os import path
 from collections import namedtuple
 from pydub.utils import db_to_float
-from pydub import effects
-from pydub import silence
+from pydub import effects, silence
 from pydub import *
 import pydub.exceptions
 import itertools
@@ -70,7 +69,7 @@ class SilenceProcessor():
 
     def __init__(self, source_path, min_drop_length=2, max_drop_length=4, crossfade_length=100):
         self.src_path = source_path
-        self.a_format = path.splitext(source_path)[1][-3:]
+        self.a_format = path.splitext(source_path)[1].replace('.', '')
         self.min_drop = float(min_drop_length) #s
         self.max_drop = float(max_drop_length) #s
         self.fade_length = int(crossfade_length) #ms

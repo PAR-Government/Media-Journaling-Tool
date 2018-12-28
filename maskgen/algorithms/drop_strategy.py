@@ -69,8 +69,8 @@ class StratAudVidTogether(StratAudioSep):
         import maskgen.ffmpeg_api as ffmpeg
         tmpvid = os.path.splitext(self.out_file)[0] + 'tmp' + os.path.splitext(self.out_file)[1]
         os.rename(self.out_file,tmpvid)
-        ffmpeg.run_ffmpeg(['-i',tmpvid,'-i',os.path.splitext(self.out_file)[0] + '.wav','-c','copy',
-                           self.out_file,'-y'])
+        ffmpeg.run_ffmpeg(['-i',tmpvid,'-i',os.path.splitext(self.out_file)[0] + '.wav','-c:v', 'rawvideo','-c:a', 'pcm_s32le', '-r', str(self.fps),
+                           self.out_file, '-y'])
         os.remove(tmpvid)
         os.remove(os.path.splitext(self.out_file)[0] + '.wav')
         return results

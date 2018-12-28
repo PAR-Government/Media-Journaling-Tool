@@ -38,7 +38,7 @@ def transform(img,source,target,**kwargs):
         et = str(int(start_time[1]) + int(add_frames) - 1)
 
     return {'Start Time':str(kwargs['Start Time']),
-            'End Time': et,
+            'End Time': str(et),
             'Audio': audio,
             'Frames to Add': int(add_frames),
             'Method': 'Pixel Motion',

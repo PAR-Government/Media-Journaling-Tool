@@ -32,7 +32,7 @@ def transform(img, source, target, **kwargs):
                                               audio=audio)
     return {'Start Time': str(start),
             'End Time': str(stop),
-            'Frames Dropped' : stop-start + 1,
+            'Frames Dropped' : str(stop-start + 1),
             'Frames to Add':frames_to_add},None
 
 def suffix():
