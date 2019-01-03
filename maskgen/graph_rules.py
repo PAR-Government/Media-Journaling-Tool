@@ -571,6 +571,8 @@ def checkAudioLengthDonor(op, graph, frm, to):
         from video_tools import get_duration
         from math import floor
         donor_id, donor_edge = getDonorEdge(graph, to)
+        if donor_id == None:
+            return None
         donor_segments = getValue(donor_edge,'videomasks',[])
         extractor = MetaDataExtractor(graph)
         to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)

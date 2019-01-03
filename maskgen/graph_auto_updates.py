@@ -83,18 +83,28 @@ def updateJournal(scModel):
          ('0.5.1210.5ca3e81782', [_fixCAS])
          ])
 
+    def _ConformVersion(version):
+        if version.startswith('04'):
+            return version.replace('04', '0.4', 1)
+        else:
+            return version
+
     versions= list(fixes.keys())
     # find the maximum match
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
     project_version = scModel.getGraph().getProjectVersion()
     hasNodes = bool(scModel.G.get_nodes())
+
     if len(matched_versions) > 0:
         # fix what is left
         fixes_needed = max(matched_versions) - len(versions) + 1
     else:
-        if not hasNodes or (project_version not in fixes
-                            and project_version > versions[-1]):
+        if not hasNodes or _ConformVersion(project_version) > versions[-1]:
             fixes_needed = 0
+        elif project_version not in fixes:
+            major_version = _ConformVersion(project_version).rsplit('.', 1)[0]
+            newest_match = next(version for version in versions.__reversed__() if major_version >= _ConformVersion(version))
+            fixes_needed = -(len(versions) - versions.index(newest_match))
         else:
             fixes_needed = -(len(versions) - versions.index(project_version)) if project_version in versions else -len(versions)
     ok = True

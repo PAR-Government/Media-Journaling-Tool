@@ -261,7 +261,6 @@
       "rules": [
         "checkForDonorAudio",
         "checkOverlay",
-        "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
@@ -297,8 +296,7 @@
       },
       "transitions": [
         "video.video",
-        "audio.audio",
-        "audio.video"
+        "audio.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -5179,7 +5177,7 @@
         "checkSameChannels"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.framerate_change"
+        "video": "maskgen.mask_rules.output_video_change"
       },
       "optionalparameters": {
         "Start Time": {
