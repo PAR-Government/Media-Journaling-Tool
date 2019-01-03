@@ -261,6 +261,7 @@
       "rules": [
         "checkForDonorAudio",
         "checkOverlay",
+        "checkFileTypeChange",
         "checkFrameTimes",
         "checkFrameTimeAlignment",
         "checkAudioChannels",
