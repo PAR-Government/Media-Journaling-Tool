@@ -787,12 +787,18 @@ class PreProcessedMediaOperation(BatchOperation):
                                                                                    os.path.basename(results[0]),
                                                                                    args)
             args = processValue(MyFormatter(local_state,global_state),args, lambda x:  x)
+            filetype = tool_set.fileType(filename)
             opDetails = scenario_model.Modification(node['op'],
                                                     node['description'],
                                                     software=softwareDetails,
                                                     arguments=args,
+                                                    generateMask=op.generateMask,
+                                                    recordMaskInComposite=op.recordMaskInComposite(filetype) if
+                                                    'recordMaskInComposite' not in node else node[
+                                                        'recordMaskInComposite'],
                                                     semanticGroups=node['semanticGroups'] if 'semanticGroups' in node else [],
                                                     automated='yes')
+
             position = ((lastNode['xpos'] + 50 if lastNode.has_key('xpos') else
                          80), (lastNode['ypos'] + 50 if lastNode.has_key('ypos') else 200))
             local_state['model'].addNextImage(results[0], mod=opDetails,
