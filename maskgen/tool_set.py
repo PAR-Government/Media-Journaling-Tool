@@ -229,6 +229,8 @@ def getMimeType(filename):
 
 
 def fileType(fileName):
+    if os.path.isdir(fileName):
+        return 'dir'
     suffix = os.path.splitext(fileName)[1].lower()
     suffix = '*' + suffix if len(suffix) > 0 else ''
     file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
@@ -748,7 +750,7 @@ class ZipCapture:
         return self.count <= len(self.names)
 
     def get_exif(self):
-        name = self.names[self.count - 1]
+        name = self.names[min(len(self.names)-1,self.count - 1)]
         extracted_file = os.path.join(self.dir,name)
         if not os.path.exists(extracted_file):
             extracted_file = self.myzip.extract(name, self.dir)

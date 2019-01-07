@@ -28,6 +28,7 @@ class UpdaterGitAPI:
         resp = requests.get(self.file, timeout=2)
         if resp.status_code == requests.codes.ok:
             return  resp.content.strip()
+        return "NA"
 
     def _get_tag(self):
         url =  self.url + '/' + self.repos + '/tags'

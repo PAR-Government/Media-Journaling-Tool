@@ -64,8 +64,10 @@ class BatchProcessor:
                     for error in errors:
                         if type(error) == tuple:
                             error_writer.writerow((str(item_id),) +  error)
+                        elif hasattr(error, 'astuple') and callable(getattr(error, 'astuple')):
+                            error_writer.writerow((str(item_id),) + error.astuple())
                         else:
-                            error_writer.writerow((str(item_id), error))
+                            error_writer.writerow((str(item_id), str(error)))
                 with self.lock:
                     self.count += 1
                     logging.getLogger('maskgen').info(

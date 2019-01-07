@@ -403,6 +403,9 @@ class GroupOperationsLoader(GroupFilterLoader):
             return "Groups"
         return None
 
+    def getAllOperations(self):
+        return getOperations()
+
     def getCategoryForOperation(self, name):
         op = getOperation(name,fake=False,warning=False)
         if op is not None:

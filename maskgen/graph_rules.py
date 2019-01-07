@@ -589,7 +589,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
         elif addType == 'insert':
             from_duration = get_duration(extractor.getMetaDataLocator(frm), audio=True)
             if abs(to_duration - (from_duration + donor_duration)) > get_rate_from_segment(segment)/100.0:
-                return (Severity.WARNING, "Audio duration does not match the donor plus original")
+                return (Severity.ERROR, "Audio duration does not match the donor plus original")
     else:
         return checkAudioLength_Strict(op, graph, frm, to)
 
@@ -925,7 +925,7 @@ def checkForDonorAudio(op, graph, frm, to):
         return None
     pred = graph.predecessors(to)
     if len(pred) < 2:
-        return (Severity.WARNING,'donor image/video missing')
+        return (Severity.ERROR,'donor image/video missing')
     return None
 
 def checkAudioOnly(op, graph, frm, to):

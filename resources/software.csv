@@ -106,7 +106,7 @@ both,other,iPiccy,1.0.5,
 both,other,irfanview,4.38,4.37,4.33,4.32,4.28,
 both,other,ivsEdits,
 both,other,maskgen,0.3,0.4,0.5,
-both,other,skimage,0.12,
+both,other,skimage,0.12,0.14,
 image,other,FaceApp Pro,2.0,
 image,other,FOTOR,3,
 image,other,FreeOnlinePhotoEditor.com,2018,
@@ -134,10 +134,11 @@ video,other,HandBrake,1,
 video,gan,Marshal,2.4,
 image,other,GV,3.0,
 image,other,JPEG_DCT_Modify,0.1,
-image,other,Lytro Desktop,5.0
-image,gan,GAN_face_splice,0.1
-image,other,DLIB,19.9
-image,gan,GANImageCompletion,d25cd7b8a3988a3a88bfb33a564de0c88a6f3127
-video,gan,UoMInPainting,2.8
-video,gan,deepfakes/faceswap,2.1
-both,other,sips,10.4
+image,other,Lytro Desktop,5.0,
+image,gan,GAN_face_splice,0.1,
+image,other,DLIB,19.9,
+image,gan,GANImageCompletion,d25cd7b8a3988a3a88bfb33a564de0c88a6f3127,
+video,gan,UoMInPainting,2.8,
+video,gan,deepfakes/faceswap,2.1,
+both,other,sips,10.4,
+image,gan,STGAN,20181220,
