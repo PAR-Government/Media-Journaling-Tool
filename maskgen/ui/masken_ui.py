@@ -1359,8 +1359,9 @@ class MakeGenUI(Frame):
         if self.prefLoader.get_key('username',None) is None:
             self.getsystemproperties()
         try:
-            sha, message = UpdaterGitAPI().isOutdated()
-            sha_op, message_op= OperationsUpdaterGitAPI().isOutdated()
+            git_branch = self.prefLoader.get_key('git.branch',default_value='master')
+            sha, message = UpdaterGitAPI(branch=git_branch).isOutdated()
+            sha_op, message_op= OperationsUpdaterGitAPI(branch=git_branch).isOutdated()
             if sha is not None:
                 tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
             elif sha_op is not None:

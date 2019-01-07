@@ -1,5 +1,5 @@
 {
-  "version": "0.10.01.b370476d40",
+  "version": "1.01.07.9d9b6e95f2",
   "operations": [
     {
       "category": "Audio",
@@ -259,7 +259,7 @@
       },
       "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
       "rules": [
-        "checkForDonorAudio",
+        "donor:checkForDonorAudio",
         "checkOverlay",
         "checkFileTypeChange",
         "checkFrameTimes",
@@ -273,7 +273,7 @@
         "checkOverlay",
         "checkAudioOnly",
         "checkAudioAdd",
-        "checkAudioLengthDonor"
+        "donor:checkAudioLengthDonor"
       ],
       "optionalparameters": {
         "End Time": {
@@ -857,11 +857,11 @@
         }
       },
       "rules": [
-        "checkForDonor",
+        "donor:checkForDonor",
         "checkFileTypeChange",
         "checkUncompressed",
         "checkFrameRateChange_Lenient",
-        "checkAudioLengthDonor"
+        "donor:checkAudioLengthDonor"
       ],
       "optionalparameters": {
       },
@@ -1532,7 +1532,7 @@
       },
       "rules": [
         "checkSizeAndExif",
-        "checkForDonor",
+        "donor:checkForDonor",
         "check_eight_bit",
         "checkTimeStamp"
       ],
@@ -4296,7 +4296,7 @@
       "rules": [
         "checkSize",
         "checkSIFT",
-        "checkForDonorWithRegion",
+        "donor:checkForDonorWithRegion",
         "checkFileTypeChange",
         "check_local",
         "check_pastemask",
@@ -4380,10 +4380,10 @@
         }
       },
       "rules": [
-        "checkForDonor",
+        "donor:checkForDonor",
         "checkPasteFrameLength",
         "checkFrameTimes",
-        "checkDonorTimesMatch",
+        "donor:checkDonorTimesMatch",
         "checkSameChannels",
         "checkFrameRateChange_Strict"
       ],
@@ -4444,7 +4444,7 @@
         }
       },
       "rules": [
-        "checkForDonor",
+        "donor:checkForDonor",
         "checkForSelectFrames",
         "checkLengthSame",
         "checkFrameTimes",

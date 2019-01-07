@@ -229,6 +229,8 @@ def getMimeType(filename):
 
 
 def fileType(fileName):
+    if os.path.isdir(fileName):
+        return 'dir'
     suffix = os.path.splitext(fileName)[1].lower()
     suffix = '*' + suffix if len(suffix) > 0 else ''
     file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
