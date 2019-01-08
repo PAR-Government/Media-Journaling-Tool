@@ -14,9 +14,10 @@ import traceback
 from collections import namedtuple
 
 import cv2
+import numpy as np
+
 import exif
 import graph_rules
-import numpy as np
 import tool_set
 import video_tools
 from graph_meta_tools import MetaDataExtractor
@@ -2852,20 +2853,20 @@ class CompositeDelegate:
         if self.composite is not None:
             return self.composite
         op = self.gopLoader.getOperationWithGroups(self.edge['op'])
-        if 'videomasks' in self.edge :
-            videomasks = getValue(self.edge, 'videomasks')
+        videomasks = getValue(self.edge, 'substitute videomasks', getValue(self.edge, 'videomasks'))
+        if videomasks is not None:
             if len(videomasks) == 0:
                 media_types = [_guess_type(self.edge)]
             else:
                 media_types = set([video_tools.get_type_of_segment(mask) for mask in videomasks])
             return [mask for mask in [_prepare_video_masks(self.meta_extractor,
-                                            self.edge['videomasks'],
-                                            media_type,
-                                            self.edge_id[0], self.edge_id[1],
-                                            self.edge,
-                                            fillWithUserBoundaries=True,
-                                            operation=op)
-                    for media_type in media_types] if mask is not None]
+                                                           videomasks,
+                                                           media_type,
+                                                           self.edge_id[0], self.edge_id[1],
+                                                           self.edge,
+                                                           fillWithUserBoundaries=True,
+                                                           operation=op)
+                                      for media_type in media_types] if mask is not None]
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
                                                  'maskname', returnNoneOnMissing=True)

@@ -275,7 +275,9 @@ This section describes the operation definition as it exists in the JSON file.
 
   *  *mandatory parameter name*:  defines the list of values that trigger mandatory condition such as  "clone", "stacking"] etc.
 
-* *rules*: Rules are a list of validation rule functions for the operation as defined ealier.  Rule functions are maintained in maskgen.graph_rules.
+* *rules*: Rules are a list of validation rule functions for the operation as defined ealier.  Rule functions are maintained in maskgen.graph_rules.  Rules are executed during validation and on establishing new connections.  Since rules that check donors cannot be run when establishing a new connection, as the donor connection may not exist yet, donor check rules should be prefixed with a 'donor:' designation:
+
+    * donor:checkDonor
 
 * *analysisOperations* : A set of operations that analysis the source, target and difference masks to compile meta-data used for validation and probe generation, such as transform homographies, size changes, etc.
 

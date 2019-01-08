@@ -13,12 +13,13 @@ from subprocess import Popen, PIPE
 from threading import RLock
 
 import cv2
-import ffmpeg_api
 import numpy as np
-import tool_set
 from cachetools import LRUCache
 from cachetools import cached
 from cachetools.keys import hashkey
+
+import ffmpeg_api
+import tool_set
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
 from maskgen import exif
@@ -1672,6 +1673,64 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         edge['videomasks'] = video_masks
 
 
+def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(0,1), stopTimeandFrame=None):
+    source_file_tuples = getMaskSetForEntireVideoForTuples(
+        FileMetaDataLocator(soure_file_name),
+        start_time_tuple=startTimeandFrame,
+        end_time_tuple=stopTimeandFrame)
+    mask_file_tuples = getMaskSetForEntireVideoForTuples(FileMetaDataLocator(mask_file_name))
+    if get_frames_from_segment(source_file_tuples[0]) != get_frames_from_segment(mask_file_tuples[0]):
+        return False
+    subs = videoMasksFromVid(mask_file_name,
+                             name,
+                              offset=startTimeandFrame[1]-1)
+    if get_frames_from_segment(subs[0]) != get_frames_from_segment(mask_file_tuples[0]):
+        return None
+    if get_start_frame_from_segment(subs[0]) != get_start_frame_from_segment(
+            source_file_tuples[0]):
+        return None
+    return subs
+
+def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=None, offset=0):
+    """
+    Convert video file to mask
+    :param vidFile:
+    :param name:
+    :param startTimeandFrame:
+    :param stopTimeandFrame:
+    :return:
+    """
+    time_manager = tool_set.VidTimeManager(startTimeandFrame=startTimeandFrame, stopTimeandFrame=stopTimeandFrame)
+    vid_cap = buildCaptureTool(vidFile)
+    fps = vid_cap.get(cv2api_delegate.prop_fps)
+    writer = tool_set.GrayBlockWriter(name, fps)
+    segment = create_segment(rate=fps, type='video', startframe=offset+1, starttime=offset*(1000.0/fps), frames=0)
+    last_time = 0
+    while vid_cap.isOpened():
+        ret_one = vid_cap.grab()
+        elapsed_time = vid_cap.get(cv2api_delegate.prop_pos_msec)
+        if not ret_one:
+            break
+        time_manager.updateToNow(elapsed_time)
+        if time_manager.isBeforeTime():
+            update_segment(segment,
+                           startframe=time_manager.frameSinceBeginning+ offset,
+                           starttime=offset*(1000.0/fps) + elapsed_time - 1000.0/fps)
+            continue
+        if time_manager.isPastTime():
+            break
+        ret, frame = vid_cap.retrieve()
+        mask = ImageWrapper(frame, to_mask=True).invert()
+        if 'mask' not in segment:
+            segment['mask'] = mask.to_array()
+        writer.write(mask.to_array(), last_time, time_manager.frameSinceBeginning+ offset)
+        last_time = offset*(1000.0/fps) + elapsed_time - 1000.0/fps
+    update_segment(segment,
+                   endframe=time_manager.frameSinceBeginning + offset,
+                   endtime=last_time,
+                   videosegment=writer.get_file_name())
+    return [segment]
+
 def formMaskDiffForImage(vidFile,
                  image_wrapper,
                  name_prefix,
@@ -2167,7 +2226,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
             if time_manager.isBeforeTime():
                 update_segment(segment,
                                startframe = time_manager.frameSinceBeginning,
-                               starttime = elapsed_time - fps)
+                               starttime = elapsed_time - 1000.0/fps)
                 continue
             if time_manager.isPastTime():
                 break
@@ -2176,7 +2235,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
                 exifforvid = vid_cap.get_exif()
                 exifdiff = exif.comparexif_dict(exifforvid, img_wrapper.get_exif())
             mask,analysis,error = tool_set.createMask(ImageWrapper(frame),img_wrapper,
-                                invert=True,
+                                invert=False,
                                 arguments=compare_args,
                                 alternativeFunction=tool_set.convertCompare)
             if 'mask' not in segment:
@@ -2185,7 +2244,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
             last_time = elapsed_time
         update_segment(segment,
                        endframe=time_manager.frameSinceBeginning,
-                       endtime=elapsed_time - fps,
+                       endtime=elapsed_time - 1000.0/fps,
                        videosegment=writer.get_file_name())
         return [segment], analysis, exifdiff
     finally:
@@ -2875,7 +2934,7 @@ def inverse_intersection_for_mask(mask, video_masks):
                     # TODO Handle orientation change
                     if frame.shape != mask.shape:
                         frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
-                    frame = mask * ((255-frame)/255)
+                    frame = mask * (frame/255)
                     writer.write(frame, frame_time, frame_count)
                 else:
                     break

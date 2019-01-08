@@ -33,15 +33,12 @@ from support import MaskgenThreadPool, StatusTracker
 from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 
-
 def formatStat(val):
     if type(val) == float:
         return "{:5.3f}".format(val)
     return str(val)
 
-
 prefLoader = MaskGenLoader()
-
 
 def defaultNotify(edge, message, **kwargs):
     return True
@@ -345,8 +342,6 @@ class Modification:
         self.category = op.category
         self.generateMask = op.generateMask
         self.recordMaskInComposite = op.recordMaskInComposite(filetype)
-
-
 
 class LinkTool:
     """
@@ -2165,7 +2160,7 @@ class ImageProjectModel:
         @rtype (ImageWrapper,str)
         """
         if name is None or name == '':
-            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
+            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8')),''
         return self.G.get_image(name, metadata=arguments)
 
     def getStartImageFile(self):
@@ -2557,6 +2552,19 @@ class ImageProjectModel:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
+
+    def addSubstituteMasks(self, filename, startTimeandFrame=(0,1),stopTimeandFrame=None):
+        subs = video_tools.formMaskForSource(self.getGraph().get_image_path(self.start),
+                                             filename,
+                                             self.start + '_' + self.end + '_substitute',
+                                             startTimeandFrame=startTimeandFrame,
+                                             stopTimeandFrame=stopTimeandFrame
+                                             )
+        if subs is not None:
+            edge = self.getGraph().get_edge(self.start,self.end)
+            edge['substitute videomasks'] = subs
+            self.notify((self.start, self.end), 'update_edge')
+        return subs is not None
 
     def mediaFromPlugin(self, filter, software=None, passthru=False, **kwargs):
         """

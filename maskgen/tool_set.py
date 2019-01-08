@@ -743,7 +743,7 @@ class ZipCapture:
         if prop == cv2api.cv2api_delegate.prop_frame_count:
             return self.count
         if prop == cv2api.cv2api_delegate.prop_pos_msec:
-            return self.count* self.fps
+            return self.count* 1000.0/self.fps
 
     def grab(self):
         self.count+=1
