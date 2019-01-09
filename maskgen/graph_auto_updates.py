@@ -81,7 +81,7 @@ def updateJournal(scModel):
          ('0.5.1105.665737a167', []),
          ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
          ('0.5.1210.5ca3e81782', [_fixCAS]),
-         ('0.5.0103.9d9b6e95f2', [])
+         ('0.6.0103.9d9b6e95f2', [])
          ])
 
     def _ConformVersion(version):
@@ -95,7 +95,6 @@ def updateJournal(scModel):
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
     project_version = scModel.getGraph().getProjectVersion()
     hasNodes = bool(scModel.G.get_nodes())
-
     if len(matched_versions) > 0:
         # fix what is left
         fixes_needed = max(matched_versions) - len(versions) + 1
