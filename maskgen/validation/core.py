@@ -35,6 +35,9 @@ class ValidationMessage:
         self.Module = Module
         self.Fix = Fix
 
+    def astuple(self):
+        return (self.Severity,self.Start,self.End,self.Module,self.Message)
+
     def __getitem__(self, item):
         return [self.Severity,self.Start,self.End,self.Message,self.Module,self.Fix][item]
 
@@ -420,14 +423,18 @@ class Validator:
     def __init__(self, preferences, gopLoader):
         self.preferences = preferences
         self.gopLoader = gopLoader
-        ops = getOperations()
+        ops = gopLoader.getAllOperations()
         self.rules = {}
+        self.edge_mod_rules = {}
         for op, data in ops.iteritems():
             self.set_rules(op, data.rules)
 
     def set_rules(self, op, ruleNames):
-        rules = [getRule(name, globals=globals(), default_module='maskgen.graph_rules') for name in ruleNames if len(name) > 0]
+        strippedRuleNames = [r[r.find(':') + 1:] for r in ruleNames if len(r) > 0]
+        designations = [r[:r.find(':')] for r in ruleNames if len(r) > 0]
+        rules = [getRule(name, globals=globals(), default_module='maskgen.graph_rules') for name in strippedRuleNames]
         self.rules[op] = [rule for rule in rules if rule is not None]
+        self.edge_mod_rules[op] = [rules[i] for i in range(len(rules)) if rules[i] is not None and designations[i] != 'donor']
 
     def run_graph_suite(self, graph, external=None, status_cb=None):
         """
@@ -570,7 +577,7 @@ class Validator:
         validation_callback.status_cb(ValidationStatus('Validation','Complete',100.0))
         return total_errors
 
-    def run_edge_rules(self,graph, frm, to):
+    def run_edge_rules(self, graph, frm, to, isolated=False):
         """
 
         :param graph:
@@ -586,8 +593,9 @@ class Validator:
         op = edge['op']
         valiation_apis = ValidationAPIComposite(self.preferences, external=True)
         total_errors = valiation_apis.check_edge(op, graph, frm, to)
+        rules = self.rules if not isolated else self.edge_mod_rules
         errors = run_all_edge_rules(self.gopLoader.getOperationWithGroups(op, fake=True),
-                                self.rules[op] if op in self.rules else [],
+                                    rules[op] if op in rules else [],
                                 graph, frm, to)
         if len(errors) > 0:
             total_errors.extend(errors)

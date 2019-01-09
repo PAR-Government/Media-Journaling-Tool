@@ -1843,7 +1843,7 @@ class ImageProjectModel:
             if sendNotifications:
                 self.notify((self.start, destination), 'connect')
             logging.getLogger('maskgen').debug('Validation')
-            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination)
+            edgeErrors = [] if skipRules else self.validator.run_edge_rules(self.G, self.start, destination, isolated=True)
             edgeErrors = edgeErrors if len(edgeErrors) > 0 else None
             self.labelNodes(self.start)
             self.labelNodes(destination)

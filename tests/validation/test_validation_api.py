@@ -4,7 +4,8 @@ from tests.test_support import TestSupport
 from maskgen.scenario_model import ImageProjectModel
 
 from maskgen.maskgen_loader import MaskGenLoader
-
+from mock import Mock
+from maskgen.software_loader import insertCustomRule
 
 class MockImageGraph:
 
@@ -86,6 +87,12 @@ class MockValidationAPI(ValidationAPI):
         return self.testid
 
 
+def test_rule_donor(op,graph,frm,to):
+    return (Severity.ERROR, 'donor')
+
+def test_rule_not_donor(op, graph, frm, to):
+    return (Severity.ERROR,'not donor')
+
 class TestValidationAPI(TestSupport):
 
     loader = MaskGenLoader()
@@ -136,6 +143,38 @@ class TestValidationAPI(TestSupport):
     def test_journal(self):
         model = ImageProjectModel(self.locateFile('images/sample.json'))
         results = model.validate(external=False)
+
+
+    def test_designation(self):
+        from maskgen.software_loader import Operation
+        opManager = Mock()
+        insertCustomRule('test_rule_donor',test_rule_donor)
+        insertCustomRule('test_rule_not_donor', test_rule_not_donor)
+        operation = Operation('test', category='Test', includeInMask=False,
+                                        rules={'donor:test_rule_donor','test_rule_not_donor'},
+                                        optionalparameters={},
+                                        mandatoryparameters={},
+                                        description='test',
+                                        generateMask='all',
+                                        analysisOperations=[],
+                                        transitions=[],
+                                        compareparameters={})
+        opManager.getAllOperations = Mock(return_value={'test':operation})
+        opManager.getOperationWithGroups = Mock(return_value=operation)
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'op':'test',
+                                            'username':'test',
+                                            'arguments': {},
+                                            'metadatadiff': {}})
+        graph.get_image = Mock(return_value=(0,self.locateFile('videos/sample1.mov')))
+
+        validator = Validator(self.loader,opManager)
+        results = validator.run_edge_rules(graph,'a','b', isolated=True)
+        self.assertEqual(0, len([r for r in results if r.Module == 'test_rule_donor']))
+        self.assertEqual(1, len([r for r in results if r.Module == 'test_rule_not_donor']))
+        results = validator.run_edge_rules(graph, 'a', 'b', isolated=False)
+        self.assertEqual(1, len([r for r in results if r.Module == 'test_rule_donor']))
+        self.assertEqual(1, len([r for r in results if r.Module == 'test_rule_not_donor']))
 
     def test_browser_api(self):
         from datetime import datetime
