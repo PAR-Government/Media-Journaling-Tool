@@ -2087,15 +2087,15 @@ def moving_average(a, n=3):
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
-def morphologyCompare(img_one, img_two, **kwargs):
-    kernel_size = getValue(kwargs, 'kernel', 3)
+def morphologyCompare(img_one, img_two, arguments= {}):
+    kernel_size = int(getValue(arguments, 'kernel', 3))
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     diff = (np.abs(img_one - img_two)).astype('uint16')
     mask = np.sum(diff, 2)
-    difference = float(kwargs['tolerance']) if kwargs is not None and 'tolerance' in kwargs else 0.00390625
+    difference = float(arguments['tolerance']) if arguments is not None and 'tolerance' in arguments else 0.00390625
     difference = difference * 256
     mask[np.where(mask < difference)] = 0
-    if getValue(kwargs, 'arguments.distribute_difference', False):
+    if getValue(arguments, 'distribute_difference', False):
         mask = 255*mask.astype(np.double)/(np.max(mask)-difference)
         mask = mask.astype('uint8')
     else:
@@ -2106,12 +2106,12 @@ def morphologyCompare(img_one, img_two, **kwargs):
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)# filter out noise in the mask
     return mask, {}
 
-def mediatedCompare(img_one, img_two, **kwargs):
-    kernel_size=getValue(kwargs, 'arguments.kernel',3)
-    smoothing = getValue(kwargs, 'arguments.smoothing', 3)
-    algorithm = getValue(kwargs, 'arguments.filling', 'morphology')
-    aggregate = getValue(kwargs, 'arguments.aggregate', 'max')
-    min_threshold = getValue(kwargs, 'arguments.minimum threshold', 6)
+def mediatedCompare(img_one, img_two, arguments={}):
+    kernel_size=int(getValue(arguments, 'kernel',3))
+    smoothing = int(getValue(arguments, 'smoothing', 3))
+    algorithm = getValue(arguments, 'filling', 'morphology')
+    aggregate = int(getValue(arguments, 'aggregate', 'max'))
+    min_threshold = int(getValue(arguments, 'minimum threshold', 9))
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal
     # compute diff in 3 colors
