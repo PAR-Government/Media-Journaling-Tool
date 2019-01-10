@@ -2094,18 +2094,24 @@ def morphologyCompare(img_one, img_two, **kwargs):
     mask = np.sum(diff, 2)
     difference = float(kwargs['tolerance']) if kwargs is not None and 'tolerance' in kwargs else 0.00390625
     difference = difference * 256
-    mask[np.where(mask < difference)] = 0  # set to black if less than threshold
-    mask[np.where(mask > 0)] = 255
-    mask = mask.astype('uint8')
-    mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)# filter out noise in the mask
+    mask[np.where(mask < difference)] = 0
+    if getValue(kwargs, 'arguments.distribute_difference', False):
+        mask = 255*mask.astype(np.double)/(np.max(mask)-difference)
+        mask = mask.astype('uint8')
+    else:
+        # set to black if less than threshold
+        mask[np.where(mask > 0)] = 255
+        mask = mask.astype('uint8')
+        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)# filter out noise in the mask
     return mask, {}
 
 def mediatedCompare(img_one, img_two, **kwargs):
-    kernel_size=getValue(kwargs,'kernel',3)
-    smoothing = getValue(kwargs, 'smoothing', 3)
-    algorithm = getValue(kwargs, 'filling', 'morphology')
-    aggregate = getValue(kwargs, 'aggregate', 'sum')
+    kernel_size=getValue(kwargs, 'arguments.kernel',3)
+    smoothing = getValue(kwargs, 'arguments.smoothing', 3)
+    algorithm = getValue(kwargs, 'arguments.filling', 'morphology')
+    aggregate = getValue(kwargs, 'arguments.aggregate', 'max')
+    min_threshold = getValue(kwargs, 'arguments.minimum threshold', 6)
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal
     # compute diff in 3 colors
@@ -2120,15 +2126,15 @@ def mediatedCompare(img_one, img_two, **kwargs):
     hist = moving_average(hist,n=smoothing)  # smooth out the histogram
     minima = signal.argrelmin(hist, order=2)  # find local minima
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
-        threshold = 2
+        threshold = min_threshold
     else:
-        threshold = minima[0][0]  # Use first minima
+        threshold = max(min_threshold,minima[0][0])  # Use first minima
 
-    mask[np.where(mask < threshold)] = 0  # set to black if less than threshold
+    mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
     if algorithm == 'morphology':
-        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     else:
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask

@@ -1460,6 +1460,21 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_func
         vidAnalysisComponents.writer.release()
     return True
 
+def compareChange(vidAnalysisComponents, ranges=list(), arguments={},compare_function=default_compare):
+    if len(ranges) == 0:
+        change = create_segment(mask=vidAnalysisComponents.mask,
+                                starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
+                                rate=vidAnalysisComponents.fps_one,
+                                startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
+                                endframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
+                                endtime=-1,
+                                frames=1,
+                                type='video')
+        ranges.append(change)
+    else:
+        update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
+
+
 def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis=dict()):
     """
     Determine Crop region for analysis
@@ -1556,7 +1571,7 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
             errors.append('Audio must also be cut if the audio and video are in source and target files')
     return maskSet, errors
 
-def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
+def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
     if arguments['add type'] == 'replace':
         return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                          arguments=arguments,
@@ -1567,6 +1582,17 @@ def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,ana
                      arguments=arguments,
                      compare_function=tool_set.morphologyCompare,
                      convert_function=tool_set.convert16bitcolor)
+
+
+def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={}):
+    import copy
+    args = copy.copy(arguments)
+    args['distribute_difference'] = True
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
+                       compareChange,
+                       arguments=args,
+                       compare_function=tool_set.morphologyCompare,
+                       convert_function=tool_set.convert16bitcolor)
 
 def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
@@ -1674,13 +1700,23 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
 
 
 def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(0,1), stopTimeandFrame=None):
+    """
+    BUild a mask from file from a source video file.
+    Non-Zero values = selected.
+    :param soure_file_name:
+    :param mask_file_name:
+    :param name:
+    :param startTimeandFrame:
+    :param stopTimeandFrame:
+    :return:
+    """
     source_file_tuples = getMaskSetForEntireVideoForTuples(
         FileMetaDataLocator(soure_file_name),
         start_time_tuple=startTimeandFrame,
         end_time_tuple=stopTimeandFrame)
     mask_file_tuples = getMaskSetForEntireVideoForTuples(FileMetaDataLocator(mask_file_name))
     if get_frames_from_segment(source_file_tuples[0]) != get_frames_from_segment(mask_file_tuples[0]):
-        return False
+        return None
     subs = videoMasksFromVid(mask_file_name,
                              name,
                               offset=startTimeandFrame[1]-1)
@@ -1790,8 +1826,9 @@ def formMaskDiff(fileOne,
                            arguments=arguments,
                            compare_function=tool_set.morphologyCompare,
                            convert_function=tool_set.convert16bitcolor)
-    analysis['startframe'] = time_manager.getStartFrame()
-    analysis['stopframe'] = time_manager.getEndFrame()
+    if analysis is not None:
+        analysis['startframe'] = time_manager.getStartFrame()
+        analysis['stopframe'] = time_manager.getEndFrame()
     return result
 
 def audioWrite(fileOne, amount):
@@ -2339,8 +2376,13 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
         analysis_components.vid_two.release()
         analysis_components.writer.close()
     if analysis_components.one_count == 0:
-        raise ValueError(
-            'Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
+        if os.path.exists(fileOne):
+            raise ValueError(
+                'Mask Computation Failed to a read video {}.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.'.format(fileOne))
+        else:
+            raise ValueError(
+                'Mask Computation Failed to a read video {}.  File Missing'.format(
+                    fileOne))
     return ranges,[]
 
 def __get_video_frame(video, frame_time):

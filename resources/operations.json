@@ -4441,6 +4441,15 @@
             "add"
           ],
           "description": "Purpose: remove an object or add an object."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "Purpose: remove an object or add an object."
         }
       },
       "rules": [

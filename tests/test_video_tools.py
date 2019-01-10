@@ -603,7 +603,7 @@ class TestVideoTools(TestSupport):
             diff_mask = reader.read()
             if diff_mask is None:
                 break
-            self.assertTrue(np.sum(diff_mask) > 0)
+            self.assertTrue(np.sum(255-diff_mask) > 0)
             count += 1
         self.assertEqual(20, count)
 

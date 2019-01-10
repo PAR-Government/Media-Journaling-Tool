@@ -160,7 +160,8 @@ class Probe:
                  failure=False,
                  donorFailure=False,
                  level=0,
-                 taskDesignation=0):
+                 taskDesignation=0,
+                 usesSubsituteMask=False):
         self.edgeId = edgeId
         self.empty = empty
         self.finalNodeId = finalNodeId
@@ -180,6 +181,7 @@ class Probe:
         self.finalImageFileName = finalImageFileName
         self.composites = dict()
         self.taskDesignation = taskDesignation
+        self.usesSubsituteMask = usesSubsituteMask
 
     def max_time(self):
         mt = 0
@@ -199,13 +201,17 @@ DonorImage = namedtuple('DonorImage', ['target', 'base', 'mask_wrapper', 'mask_f
 
 class CompositeImage:
 
-    def __init__(self,source, target, media_type, mask):
+    def __init__(self,source, target, media_type, mask, issubstitute=False):
         self.source = source
         self.target = target
         self.media_type = media_type
         self.videomasks = mask if media_type != 'image' else None
         self.mask = mask if media_type == 'image' else None
         self.ok = True
+        self.issubstitute = issubstitute
+
+    def create(self, mask):
+        return CompositeImage(self.source,self.target,self.media_type, mask, self.issubstitute)
 
     def __getitem__(self, item):
         if item == 0:
@@ -378,10 +384,7 @@ class BuildState:
 
     def warpMask(self, media_type=None):
         if self.isComposite:
-            return CompositeImage(self.compositeMask.source,
-                                  self.compositeMask.target,
-                                  self.compositeMask.media_type if media_type is None else media_type,
-                                  self.meta_extractor.warpMask(self.compositeMask.videomasks,
+            return self.compositeMask.create(self.meta_extractor.warpMask(self.compositeMask.videomasks,
                                                                source= self.source,
                                                                target= self.target,
                                                                expectedType=self.compositeMask.media_type))
@@ -393,23 +396,20 @@ class BuildState:
                                                                self.source,
                                                                self.target,
                                                                inverse=True,
-                                                               expectedType=self.donorMask.media_type))
+                                                               expectedType=self.donorMask.media_type),
+                                  issubstitute=self.donorMask.issubstitute)
 
     def frame_rate_check(self):
         if self.isImage():
             return
         if self.isComposite:
-            self.compositeMask = CompositeImage(self.compositeMask.source,
-                                                self.compositeMask.target,
-                                                self.compositeMask.media_type,
+            self.compositeMask = self.compositeMask.create(
                                                 self.meta_extractor.warpMask(self.compositeMask.videomasks,
                                                                              self.source,
                                                                              self.target,
                                                                               expectedType=self.compositeMask.media_type))
         elif self.donorMask is not None:
-            self.donorMask = CompositeImage(self.donorMask.source,
-                                            self.donorMask.target,
-                                            self.donorMask.media_type,
+            self.donorMask = self.donorMask.create(
                                             self.meta_extractor.warpMask(self.donorMask.videomasks,
                                                                          self.source,
                                                                          self.target,
@@ -474,7 +474,8 @@ def _prepare_video_masks(meta_extractor,
                          edge,
                          returnEmpty=True,
                          fillWithUserBoundaries=False,
-                         operation=None):
+                         operation=None,
+                         issubstitute=False):
     """
     Remove empty videosegments, set the videosegment file names to full path names,
     set the media_type of the segment if missing.
@@ -528,7 +529,8 @@ def _prepare_video_masks(meta_extractor,
                                                      preprocess(preprocess_func,
                                                                 edge,
                                                                 target_size,
-                                                                replace_with_dir(meta_extractor.graph.dir, video_masks))])
+                                                                replace_with_dir(meta_extractor.graph.dir, video_masks))],
+                        issubstitute=issubstitute)
 
 
 
@@ -577,9 +579,7 @@ def _apply_recapture_transform(buildState):
                 mask = tool_set.applyRotateToCompositeImage(newMask, angle, center)
             else:
                 mask = newMask.astype('uint8')
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   mask.astype('uint8'))
         elif buildState.donorMask is not None:
             mask = buildState.donorMask.mask
@@ -599,9 +599,7 @@ def _apply_recapture_transform(buildState):
             if ninetyRotate != 0:
                 clippedMask = np.rot90(clippedMask, -ninetyRotate).astype('uint8')
             newMask[left_box[1]:left_box[3], left_box[0]:left_box[2]] = tool_set.applyResizeComposite(clippedMask, (expectedPasteShape[0], expectedPasteShape[1]))
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return  buildState.donorMask.create(
                                   newMask.astype('uint8'))
 
     if buildState.isComposite:
@@ -614,10 +612,7 @@ def _apply_recapture_transform(buildState):
                                                      returnRaw=True)
         elif buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+        return buildState.compositeMask.create(mask)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         if tm is not None:
@@ -629,10 +624,7 @@ def _apply_recapture_transform(buildState):
                                           returnRaw=True)
         elif buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
-                                  mask)
+        return buildState.donorMask.create(mask)
     return CompositeImage(buildState.source,
                           buildState.target,
                           'image',
@@ -666,9 +658,7 @@ def crop_resize_transform(buildState):
         width = int(args['crop width'])
         height =  int(args['crop height'])
         crop_mask = buildState.compositeMask.mask[location[0]:location[0]+height, location[1]:location[1]+width]
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return  buildState.compositeMask.create(
                               tool_set.applyResizeComposite(crop_mask, buildState.targetShape))
     else:
         location = buildState.location()
@@ -680,10 +670,7 @@ def crop_resize_transform(buildState):
         final_mask = np.zeros((buildState.sourceShape)).astype('uint8')
         # replace into cropped location
         final_mask[location[0]:location[0]+height, location[1]:location[1]+width] = crop_mask
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              final_mask)
+        return buildState.donorMask.create(final_mask)
 
 def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     from PIL import Image
@@ -734,10 +721,7 @@ def resize_transform(buildState):
                     mask = move_pixels(inputmaskarray, 255 - buildState.edgeMask, mask, isComposite=True)
         if buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask,  buildState.targetShape)
-        return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
-                                  mask)
+        return buildState.compositeMask.create(mask)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         if canvas_change:
@@ -755,10 +739,7 @@ def resize_transform(buildState):
                     mask = move_pixels(255 - buildState.edgeMask, inputmaskarray, mask)
         if buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
     return CompositeImage(buildState.source,
                           buildState.target,
                           'image',
@@ -776,17 +757,13 @@ def video_resize_helper(buildState, criteria_function):
     if buildState.isComposite:
         expectedSize = buildState.getVideoMetaExtractor().getNodeSize( buildState.target)
         if canvas_change:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.resizeMask(buildState.compositeMask.videomasks, expectedSize))
         return buildState.compositeMask
     elif buildState.donorMask is not None:
         expectedSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.source)
         if canvas_change:
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                                   video_tools.resizeMask(buildState.donorMask.videomasks, expectedSize))
         return buildState.donorMask
     return None
@@ -846,10 +823,7 @@ def rotate_transform(buildState):
         else:
             mask = tool_set.__rotateImage(-rotation, buildState.donorMask.mask,
                                          expectedDims=buildState.sourceShape, cval=0)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
     elif buildState.isComposite:
         if tm is not None:
             mask = tool_set.applyTransformToComposite(buildState.compositeMask.mask,
@@ -861,10 +835,7 @@ def rotate_transform(buildState):
                                                   buildState.edgeMask,
                                                   buildState.targetShape,
                                                   local=local)
-    return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+    return buildState.compositeMask.create(mask)
 
 
 def video_copy_exif(buildState):
@@ -882,18 +853,14 @@ def video_copy_exif(buildState):
         if orientrotate == 0:
             return buildState.compositeMask
         targetSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.target)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return buildState.compositeMask.create(
                               video_tools.rotateMask(-orientrotate, buildState.compositeMask.videomasks,
                                                      expectedDims=(targetSize[1],targetSize[0]), cval=0))
     elif buildState.donorMask is not None:
         targetSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.source)
         if orientrotate == 0:
             return buildState.donorMask
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.rotateMask(orientrotate, buildState.donorMask.videomasks,
                                                      expectedDims=(targetSize[1],targetSize[0]), cval=0))
     return None
@@ -910,16 +877,12 @@ def video_rotate_transform(buildState):
     rotation = rotation if rotation is not None and abs(rotation) > 0.00001 else 0
     if buildState.isComposite:
         targetSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.target)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return buildState.compositeMask.create(
                               video_tools.rotateMask(rotation, buildState.compositeMask.videomasks,
                                                      expectedDims=(targetSize[1],targetSize[0]), cval=0))
     elif buildState.donorMask is not None:
         targetSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.source)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.rotateMask(-rotation, buildState.donorMask.videomasks,
                                                      expectedDims=(targetSize[1],targetSize[0]), cval=0))
     return None
@@ -989,16 +952,12 @@ def select_cut_frames(buildState):
     @rtype: CompositeImage
     """
     if buildState.isComposite:
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return buildState.compositeMask.create(
                               video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['audio','video']),
                                   buildState.compositeMask.videomasks))
     elif buildState.donorMask is not None:
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                   ['audio','video']),
                                 buildState.donorMask.videomasks))
@@ -1056,17 +1015,11 @@ def select_crop_frames(buildState):
     if buildState.isComposite:
         results = run_composite(video_bound,video_masks)
         results.extend(run_composite(audio_bound, audio_masks))
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              results)
+        return buildState.compositeMask.create(results)
     elif buildState.donorMask is not None:
         results = run_donor(video_bound, video_masks)
         results.extend(run_composite(audio_bound, audio_masks))
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              results)
+        return buildState.donorMask.create(results)
     return None
 
 
@@ -1085,10 +1038,7 @@ def replace_audio(buildState):
     new_masks = [mask_segment for mask_segment in masks if video_tools.get_type_of_segment(mask_segment) != 'audio']
 
     if buildState.isComposite:
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              new_masks)
+        return buildState.compositeMask.create(new_masks)
     else:
         return buildState.donorMask
 
@@ -1115,18 +1065,14 @@ def add_audio(buildState, start_time = None, end_time=None):
                         buildState.compositeMask.target != buildState.target:
             args = buildState.arguments()
             if 'add type' in args and args['add type'] == 'insert':
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
+                return buildState.compositeMask.create(
                                       video_tools.insertFrames(buildState.getMasksFromEdge(
                                           ['audio'],
                                           startTime=start_time,
                                           endTime=end_time),
                                           buildState.compositeMask.videomasks,
                                           expectedType='audio'))
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
                                       ['audio'],
                                       startTime=start_time,
@@ -1150,9 +1096,7 @@ def delete_audio(buildState):
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
                                       ['audio']),
                                       buildState.compositeMask.videomasks,
@@ -1182,9 +1126,7 @@ def copy_paste_frames(buildState):
         if buildState.isComposite:
             if buildState.compositeMask.source != buildState.source and \
                             buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
+                return buildState.compositeMask.create(
                                       video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                           ['video'],
                                           startTime=startTime,
@@ -1192,9 +1134,7 @@ def copy_paste_frames(buildState):
                                           buildState.compositeMask.videomasks))
             return buildState.compositeMask
         elif buildState.donorMask is not None:
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                                   video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                       ['video'],
                                       startTime=startTime,
@@ -1206,9 +1146,7 @@ def copy_paste_frames(buildState):
         if buildState.isComposite:
             if buildState.compositeMask.source != buildState.source and \
                             buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
+                return  buildState.compositeMask.create(
                                       video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                           ['video'],
                                           startTime=startTime,
@@ -1229,9 +1167,7 @@ def copy_paste_frames(buildState):
             # that 'somewhere else' is still part of the donor, so add it back
             startTime = getValue(buildState.edge, 'arguments.Select Start Time')
             endTime = addFrame(getMilliSecondsAndFrameCount(startTime, defaultValue=(0, 0)), framesCount)
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                                   video_tools.removeIntersectionOfMaskSets(buildState.getMasksFromEdge(
                                           ['video'],
                                           startTime=startTime,
@@ -1252,17 +1188,13 @@ def _paste_add(buildState,media_types):
         if buildState.isComposite:
             if buildState.compositeMask.source != buildState.source and \
                             buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
+                return buildState.compositeMask.create(
                                       video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                           media_types),
                                           buildState.compositeMask.videomasks))
             return buildState.compositeMask
         elif buildState.donorMask is not None:
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                                   video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                       media_types),
                                       buildState.donorMask.videomasks))
@@ -1272,18 +1204,14 @@ def _paste_add(buildState,media_types):
         if buildState.isComposite:
             if buildState.compositeMask.source != buildState.source and \
                             buildState.compositeMask.target != buildState.target:
-                return CompositeImage(buildState.compositeMask.source,
-                                      buildState.compositeMask.target,
-                                      buildState.compositeMask.media_type,
+                return buildState.compositeMask.create(
                                       video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                           media_types),
                                           buildState.compositeMask.videomasks,
                                           keepTime=True))
             return buildState.compositeMask
         else:
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                                   video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                       media_types),
                                       buildState.donorMask.videomasks,
@@ -1317,17 +1245,13 @@ def time_warp_frames(buildState):
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                       ['video']),
                                       buildState.compositeMask.videomasks))
         return buildState.compositeMask
     elif buildState.donorMask is not None:
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['video']),
                                   buildState.donorMask.videomasks))
@@ -1344,17 +1268,13 @@ def reverse_transform(buildState):
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.reverseMasks(buildState.getMasksFromEdge(
                                                                             ['video','audio']),
                                                            buildState.compositeMask.videomasks))
         return buildState.compositeMask
     elif buildState.donorMask is not None:
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.reverseMasks(buildState.getMasksFromEdge(
                                                                         ['video','audio']),
                                                        buildState.donorMask.videomasks))
@@ -1370,17 +1290,13 @@ def time_warp_audio(buildState):
     if buildState.isComposite:
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                   video_tools.insertFramesToMask(buildState.getMasksFromEdge(
                                                                                   ['audio']),
                                                                  buildState.compositeMask.videomasks))
         return buildState.compositeMask
     elif buildState.donorMask is not None:
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.dropFramesFromMask(buildState.getMasksFromEdge(
                                   ['audio']),
                                   buildState.donorMask.videomasks))
@@ -1397,10 +1313,7 @@ def select_remove(buildState):
         mask = tool_set.applyMask(buildState.compositeMask.mask, buildState.edgeMask)
         if buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
-        return buildState.checkEmptyMask(CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask),force=False)
+        return buildState.checkEmptyMask(buildState.compositeMask.create(mask),force=False)
     else:
         mask = buildState.donorMask.mask
         # res is the donor mask
@@ -1409,10 +1322,7 @@ def select_remove(buildState):
         # res = tool_set.applyMask(donorMask, edgeMask)
         if mask is not None and  buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
 
 
 def crop_transform(buildState):
@@ -1426,10 +1336,8 @@ def crop_transform(buildState):
     if buildState.isComposite:
         mask = buildState.compositeMask.mask
         mask = mask[location[0]:buildState.targetShape[0]+location[0], location[1]:buildState.targetShape[1]+location[1]]
-        return buildState.checkEmptyMask(CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask), force=True)
+        return buildState.checkEmptyMask(
+                              buildState.compositeMask.create(mask), force=True)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         expectedShape = buildState.sourceShape
@@ -1440,10 +1348,7 @@ def crop_transform(buildState):
         mask = newRes
         if expectedShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, expectedShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
     return CompositeImage(buildState.source,
                               buildState.target,
                               'image',
@@ -1463,18 +1368,14 @@ def video_crop_transform(buildState):
     location = buildState.location()
     if buildState.isComposite:
         expectedSize = targetSize
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return buildState.compositeMask.create(
                               video_tools.cropMask(buildState.compositeMask.videomasks,
                                                    (location[0], location[1], expectedSize[1], expectedSize[0])))
     elif buildState.donorMask is not None:
         expectedSize = sourceSize
         upperBound = (min(targetSize[1],sourceSize[1] + location[0]),
                       min(targetSize[0], sourceSize[0] + location[1]))
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.insertMask(
                                   buildState.donorMask.videomasks,
                                   (location[0], location[1], upperBound[0], upperBound[1]),
@@ -1505,15 +1406,11 @@ def seam_transform(buildState):
         mask_tracker = MaskTracker((targetImage.size[1], targetImage.size[0]))
         mask_tracker.read_adjusters(os.path.join(buildState.directory,row_adjust),os.path.join(buildState.directory,col_adjust))
         if buildState.isComposite:
-            return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+            return buildState.compositeMask.create(
                                mask_tracker.move_pixels(buildState.compositeMask.mask))
         else:
             mask_tracker.set_dropped_mask(diffMask)
-            return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+            return buildState.donorMask.create(
                               mask_tracker.invert_move_pixels(buildState.donorMask.mask))
 
     # if 'skip'
@@ -1557,12 +1454,8 @@ def seam_transform(buildState):
                                                         withMask=apply_mask == 'yes' and mask_type == 'keep')
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
-    return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type, res) if buildState.isComposite else \
-           CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type, res)
+    return buildState.compositeMask.create(res) if buildState.isComposite else \
+           buildState.donorMask.create(res)
 
 
 def warp_transform(buildState):
@@ -1597,12 +1490,8 @@ def composite_transform(buildState, withMask = False):
                                                     withMask=withMask)
     if res is None or len(np.unique(res)) == 1:
         return scale_transform(buildState)
-    return CompositeImage(buildState.compositeMask.source,
-                          buildState.compositeMask.target,
-                          buildState.compositeMask.media_type, res) if buildState.isComposite else \
-        CompositeImage(buildState.donorMask.source,
-                       buildState.donorMask.target,
-                       buildState.donorMask.media_type, res)
+    return buildState.compositeMask.create(res) if buildState.isComposite else \
+        buildState.donorMask.create(res)
 
 def video_flip_transform(buildState):
     """
@@ -1616,15 +1505,11 @@ def video_flip_transform(buildState):
     flip = args['flip direction'] if 'flip direction' in args else None
     if buildState.isComposite:
         expectedSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.target)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
+        return buildState.compositeMask.create(
                               video_tools.flipMask(buildState.compositeMask.videomasks, expectedSize, flip))
     elif buildState.donorMask is not None:
         expectedSize = buildState.getVideoMetaExtractor().getNodeSize(buildState.source)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
+        return buildState.donorMask.create(
                               video_tools.flipMask(buildState.donorMask.videomasks, expectedSize, flip))
     return buildState.donorMask
 
@@ -1714,10 +1599,7 @@ def move_transform(buildState):
             mask = move_pixels(inputmask, differencemask, mask, isComposite=True)
         if expectedShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, expectedShape)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+        return buildState.compositeMask.create(mask)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         if tm is not None:
@@ -1736,10 +1618,7 @@ def move_transform(buildState):
             mask = move_pixels(differencemask, inputmask, mask)
         if buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
     return CompositeImage(buildState.source,
                           buildState.target,
                           'image',
@@ -1927,18 +1806,12 @@ def flip_transform(buildState):
             mask = applyFlipComposite(buildState.compositeMask.mask, buildState.edgeMask, flip)
         if buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+        return buildState.compositeMask.create(mask)
     else:
         mask = applyFlipComposite(buildState.donorMask.mask, buildState.edgeMask, flip)
         if buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
 
 
 def scale_transform(buildState):
@@ -1959,10 +1832,7 @@ def scale_transform(buildState):
                                                      returnRaw=False)
         elif buildState.targetShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.targetShape)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+        return buildState.compositeMask.create(mask)
     elif buildState.donorMask is not None:
         mask = buildState.donorMask.mask
         if tm is not None:
@@ -1974,10 +1844,7 @@ def scale_transform(buildState):
                                           returnRaw=False)
         elif buildState.sourceShape != mask.shape:
             mask = tool_set.applyResizeComposite(mask, buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
 
 
 def distort_transform(buildState):
@@ -2130,10 +1997,7 @@ def exif_transform(buildState):
                                   targetShape=buildState.targetShape,
                                   interpolation=interpolation,
                                   flip=orientflip)
-        return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+        return buildState.compositeMask.create( mask)
     else:
         orientrotate = -orientrotate if orientrotate is not None else None
         mask= alterReverseMask(buildState.donorMask.mask,
@@ -2141,10 +2005,7 @@ def exif_transform(buildState):
                                 rotation=orientrotate,
                                 flip=orientflip,
                                 targetShape=buildState.sourceShape)
-        return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+        return buildState.donorMask.create(mask)
 
 def copy_transform(buildState):
     if buildState.isComposite:
@@ -2182,10 +2043,7 @@ def defaultAlterComposite(buildState):
                               interpolation=interpolation,
                               flip=orientflip,
                               location=location)
-    return CompositeImage(buildState.compositeMask.source,
-                              buildState.compositeMask.target,
-                              buildState.compositeMask.media_type,
-                              mask)
+    return buildState.compositeMask.create(mask)
 
 
 def defaultAlterDonor(buildState):
@@ -2215,10 +2073,7 @@ def defaultAlterDonor(buildState):
                             flip=orientflip,
                             transformMatrix=tm,
                             targetShape=buildState.sourceShape)
-    return CompositeImage(buildState.donorMask.source,
-                              buildState.donorMask.target,
-                              buildState.donorMask.media_type,
-                              mask)
+    return buildState.donorMask.create(mask)
 
 class GroupTransformFunction:
 
@@ -3204,7 +3059,8 @@ class CompositeDelegate:
                                     failure=failure,
                                     donorFailure=donorFailure,
                                     finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                    taskDesignation=self.__determine_task_designation(target_mask)))
+                                    taskDesignation=self.__determine_task_designation(target_mask),
+                                    usesSubsituteMask=target_mask.issubstitute))
         else:
             probes.append(Probe(self.edge_id,
                                 finalNodeId,
@@ -3219,7 +3075,8 @@ class CompositeDelegate:
                                 failure=failure,
                                 donorFailure=donorFailure,
                                 finalImageFileName=os.path.basename(self.graph.get_image_path(finalNodeId)),
-                                taskDesignation=self.__determine_task_designation(target_mask)))
+                                taskDesignation=self.__determine_task_designation(target_mask),
+                                usesSubsituteMask=target_mask.issubstitute))
 
     def _constructDonor(self, node, mask, media_type=None, baseEdge=None, checkEmptyMask=True):
         """
