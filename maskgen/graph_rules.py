@@ -1352,7 +1352,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         return (Severity.ERROR, 'Image not rotated; Exif indicates rotation')
 
     if rotated and orientation is None:
-        return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
+        return (Severity.ERROR, 'No orientation metadata indicating rotation; split into two operations')
     elif not rotated and orientation is not None:
         return (Severity.WARNING, 'Exif indicates rotation; operation settings differ.')
 
