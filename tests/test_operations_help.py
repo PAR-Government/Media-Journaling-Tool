@@ -52,7 +52,8 @@ class TestOperationsHelp(TestSupport):
 
         self.assertTrue(missing==[], "Missing is not empty " + str(missing))
         self.assertTrue(slide == len(slides), "Slides Online doesn't match with the number of slides in the JT")
-        self.assertTrue(len(data["operation"]) == 0, "There are extra operation(s) in the help section")
+        self.assertTrue(len(data["operation"]) == 0, "There are extra operation(s) in the help section: " +
+                        ", ".join(data["operation"].keys()))
 
         self.remove_files()
 
