@@ -5,7 +5,7 @@ from maskgen.tool_set import get_username
 
 class ValidationData:
 
-    def __init__(self, scmodel,qaState=None,qaPerson=None,time=None,qaComment=None,qadata=None):
+    def __init__(self, scmodel, qaState=None, qaPerson=None, time=None, qaComment=None, qadata=None):
         self.scmodel = scmodel
         if qaState is not None:
             self.scmodel.setProjectData('validation', qaState, excludeUpdate=True)
@@ -23,7 +23,6 @@ class ValidationData:
             if self.qaData is None:
                 self.qaData = {}
                 self._qamodel_update()
-
 
 
     def update_All(self, qaState=None, qaPerson=None, qaComment=None, qaData=None):
@@ -53,16 +52,22 @@ class ValidationData:
         self.scmodel.setProjectData('validationdate', time.strftime("%m/%d/%Y"), excludeUpdate=True)
         self.scmodel.setProjectData('validationtime', time.strftime("%H:%M:%S"), excludeUpdate=True)
 
-    def set_qalink_status(self, t, s):
-        if t not in self.qaData:
-            self.qaData[t] = {}
-        self.qaData[t]['done'] = s
+    def set_qalink_status(self, link, status):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        self.qaData[link]['done'] = status
         self._qamodel_update()
 
-    def set_qalink_caption(self, t, s):
-        if t not in self.qaData:
-            self.qaData[t] = {}
-        self.qaData[t]['caption'] = s
+    def set_qalink_caption(self, link, caption):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        self.qaData[link]['caption'] = caption
+        self._qamodel_update()
+
+    def set_qalink_designation(self, link, designation):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        self.qaData[link]['designation'] = designation
         self._qamodel_update()
 
     def get_state(self):
@@ -77,21 +82,39 @@ class ValidationData:
     def get_qaData(self):
         return self.scmodel.getProjectData('qadata')
 
-    def get_qalink_status(self, t):
-        if t not in self.qaData:
-            self.qaData[t] = {}
-        if 'done' not in self.qaData[t]:
-            self.qaData[t]['done'] = 'no'
+    def get_qalink_status(self, link):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        if 'done' not in self.qaData[link]:
+            self.qaData[link]['done'] = 'no'
             self._qamodel_update()
-        return self.qaData[t]['done']
+        return self.qaData[link]['done']
 
-    def get_qalink_caption(self, t):
-        if t not in self.qaData:
-            self.qaData[t] = {}
-        if 'caption' not in self.qaData[t]:
-            self.qaData[t]['caption'] = ""
+    def get_qalink_caption(self, link):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        if 'caption' not in self.qaData[link]:
+            self.qaData[link]['caption'] = ""
             self._qamodel_update()
-        return self.qaData[t]['caption']
+        return self.qaData[link]['caption']
+
+    def get_qalink_designation(self, link):
+        if link not in self.qaData:
+            self.qaData[link] = {}
+        if 'designation' not in self.qaData[link]:
+            self.qaData[link]['designation'] = ""
+            self._qamodel_update()
+        return self.qaData[link]['designation']
+
+    def make_link_from_probe(self, probe):
+        try:
+            if probe.donorMaskImage is not None or probe.donorVideoSegments is not None:
+                return '<-'.join([self.scmodel.G.get_filename(probe.edgeId[1]), self.scmodel.G.get_filename(probe.donorBaseNodeId)])
+            else:
+                return '->'.join([self.scmodel.G.get_filename(probe.edgeId[1]), self.scmodel.G.get_filename(probe.finalNodeId)])
+        except KeyError:
+            return None
+
 
     def keys(self):
         return self.qaData.keys()
@@ -102,8 +125,8 @@ class ValidationData:
     def clearProperties(self):
         validationProps = {'validation': 'no', 'validatedby': '', 'validationtime': '', 'validationdate': ''}
         currentProps = {}
-        for p in validationProps:
-            currentProps[p] = self.scmodel.getProjectData(p)
+        for prop in validationProps:
+            currentProps[prop] = self.scmodel.getProjectData(prop)
         datetimeval = time.clock()
         if currentProps['validationdate'] is not None and \
                 len(currentProps['validationdate']) > 0:
