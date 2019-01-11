@@ -722,8 +722,12 @@ class HPSpreadsheet(Toplevel):
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
 
-            archives_in_dir = [x for x in os.listdir(self.dir) if os.path.splitext(x)[1] == ".tar"]
-            if not archives_in_dir:
+            archives_in_dir = [x for x in os.listdir(self.dir) if os.path.splitext(x)[1] == ".tar" and
+                               self.is_hp_archive(x)]
+            encryptions_in_dir = [x for x in os.listdir(self.dir) if os.path.splitext(x)[1] == ".gpg"]
+            # item -1 is going to be the most recent since files are named <name>-<device>-<date><time>.tar
+
+            if not (archives_in_dir or encryptions_in_dir):
                 print('Archiving and encrypting data...'),
                 archive = self.create_hp_archive()
                 print('done.')
@@ -731,11 +735,28 @@ class HPSpreadsheet(Toplevel):
                 reuse_archive = tkMessageBox.askyesno("Archive Found", "A preexisting archive has been found.  Would"
                                                                        " you like to reuse it?\n\nWARNING: If you reuse"
                                                                        " the archive, none of the changes made since "
-                                                                       "the archive was made will be uploaded.")
+                                                                       "the archive was made will be uploaded.",
+                                                      parent=self)
                 if reuse_archive:
-                    print("Encrypting data..."),
-                    archive = self.encrypt(os.path.join(self.dir, archives_in_dir[-1]))
-                    print("done.")
+                    if encryptions_in_dir and archives_in_dir:
+                        if tkMessageBox.askyesno("Use Encrypted Archive", "An encrypted archive has been found.  Would "
+                                                                          "you like to use that to skip the encryption "
+                                                                          "process? (Select no to re-encrypt archive)",
+                                                 parent=self):
+                            archive = os.path.join(self.dir, encryptions_in_dir[-1])
+                        else:
+                            for e in encryptions_in_dir:
+                                os.remove(os.path.join(self.dir, e))
+                            print("Encrypting data..."),
+                            archive = self.encrypt(os.path.join(self.dir, archives_in_dir[-1]))
+                            print("done.")
+                    elif encryptions_in_dir:
+                        archive = os.path.join(self.dir, encryptions_in_dir[-1])
+                    else:  # only archive exists
+                        print("Encrypting data..."),
+                        archive = self.encrypt(os.path.join(self.dir, archives_in_dir[-1]))
+                        print("done.")
+
                 else:
                     print('Archiving and encrypting data...'),
                     archive = self.create_hp_archive()
@@ -778,6 +799,20 @@ class HPSpreadsheet(Toplevel):
             self.settings.save('trello', token)
         comment = tkSimpleDialog.askstring(title='Trello Notification', prompt='(Optional) Enter any trello comments for this upload.', parent=self)
         return comment
+
+    def is_hp_archive(self, archive):
+        from tarfile import TarFile
+        test_file = TarFile(os.path.join(self.dir, archive))
+        # the only directory we can guarantee is parent/csv
+        try:
+            # path must use '/' separator, os.path.join doesn't work
+            test_file.getmember(os.path.basename(self.dir) + "/csv")
+            test_file.close()
+            return True
+        except KeyError:
+            # Didn't exist
+            test_file.close()
+            return False
 
     def notify_trello(self, filestr, archive, comment):
         """
