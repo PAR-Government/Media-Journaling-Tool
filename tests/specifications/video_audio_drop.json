@@ -1,0 +1,134 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "unicorn",
+    "name": "video_audio_flow",
+    "organization": "PAR",
+    "projectdescription" : "Optical Flow",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "manipulationcategory":"2-Unit",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "videoset",
+      "id": "Base"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputX264",
+      "id": "AviBase",
+      "arguments": {
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "FlowDrivenVideoFrameDrop",
+      "id": "Drop",
+      "arguments": {
+        "seconds to drop": {
+         "type":"int[2:4]"
+        },
+        "Start Time": {
+          "type":"value",
+          "value":0
+        },
+        "save histograms": {
+          "type" : "value",
+          "value":"no"
+        },
+        "codec" : {
+          "type": "value",
+          "value": "0"
+        },
+         "Audio" : {
+          "type": "value",
+          "value": "yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+       "plugin": "FlowDrivenVideoTimeWarp",
+      "id": "Add",
+      "arguments": {
+        "Frames to Add": {
+          "type":"variable",
+          "source":"Drop",
+          "name":"Frames to Add"
+        },
+       "Start Time": {
+          "type":"variable",
+          "source":"Drop",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "End Time": {
+          "type":"variable",
+          "source":"Drop",
+          "name":"End Time",
+          "function": "maskgen.tool_set.addOneFrame"
+        },
+        "codec" : {
+          "type":"value",
+          "value":"0"
+        },
+        "Audio": {
+          "type":"value",
+          "value": "yes"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "DropExport",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "Base"
+         }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "CompressAsVideo",
+      "id": "AddExport",
+      "arguments": {
+         "donor": {
+           "type": "donor",
+           "source": "Base"
+         }
+      }
+    }
+  ],
+  "links":[
+    {
+      "source":"Base",
+      "target":"AviBase"
+    },
+    {
+      "source": "AviBase",
+      "target": "Drop"
+    },
+    {
+      "source": "Drop",
+      "target": "Add"
+    },
+    {
+      "source": "Drop",
+      "target": "DropExport"
+    },
+    {
+      "source":"Add",
+      "target": "AddExport"
+    }
+  ]
+}
+
+

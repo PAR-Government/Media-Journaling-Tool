@@ -15,8 +15,11 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from maskgen.tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon,convertToVideo
 from maskgen.scenario_model import Modification,ImageProjectModel
+from maskgen.services.probes import CompositeExtender
+from maskgen.video_tools import get_start_frame_from_segment, get_start_time_from_segment, get_file_from_segment,\
+    get_end_frame_from_segment
 from maskgen.support import getValue
 import numpy as np
 from tkintertable import TableCanvas, TableModel
@@ -938,7 +941,7 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
             self.metaBox.grid(row=row, column=0, columnspan=4, sticky=E + W)
             row += 1
         if self.description.maskSet is not None:
-            self.maskBox = MaskSetTable(master, self.description.maskSet, openColumn=3, dir=self.dir)
+            self.maskBox = MaskSetTable(master, self.description.maskSet, dir=self.dir)
             self.maskBox.grid(row=row, column=0, columnspan=4, sticky=SE + NW)
             row += 1
 
@@ -1388,10 +1391,9 @@ class URLCaptureDialog(tkSimpleDialog.Dialog):
 
 
 class ActionableTableCanvas(TableCanvas):
-    def __init__(self, parent=None, model=None, width=None, height=None, openColumn=None, dir='.', allowSave=False, **kwargs):
-        self.openColumn = openColumn
-        self.dir = dir
+    def __init__(self, parent=None, model=None, width=None, height=None, allowSave=False,openers=None, **kwargs):
         self.allowSave = True
+        self.openers=openers
         TableCanvas.__init__(self, parent=parent, model=model, width=width, height=height, **kwargs)
 
     def handle_double_click(self, event):
@@ -1399,10 +1401,10 @@ class ActionableTableCanvas(TableCanvas):
         self.openFile(row)
 
     def openFile(self, row):
-        model = self.getModel()
-        f = model.getValueAt(row, self.openColumn)
-        if f is not None and len(str(f)) > 0:
-          openFile(os.path.join(self.dir, f))
+        #model = self.getModel()
+        #TODO: Sorting?
+        if self.openers is not None:
+            self.openers[row]()
 
     def saveAll(self):
         self.model.saveAll()
@@ -1426,7 +1428,7 @@ class ActionableTableCanvas(TableCanvas):
                           "Preferences": self.showtablePrefs,
                           "Formulae->Value": lambda: self.convertFormulae(rows, cols)}
 
-        if self.openColumn:
+        if self.openers is not None:
             main = ["Open", "Set Fill Color", "Set Text Color", "Copy"]
         else:
             main = ["Set Fill Color", "Set Text Color", "Copy"]
@@ -1532,23 +1534,49 @@ class ExtendedTableModel(TableModel):
 class MaskSetTable(Frame):
     section = None
 
-    def __init__(self, master, items, openColumn=3, dir='.', **kwargs):
+    def __init__(self, master, items, dir='.', **kwargs):
         self.items = items
         bh = kwargs.pop('boxheight') if 'boxheight' in kwargs else 125
         bw = kwargs.pop('boxwidth') if 'boxwidth' in kwargs else None
         Frame.__init__(self, master, **kwargs)
-        self._drawMe(dir, openColumn,bw,bh)
+        self._drawMe(dir, bw,bh)
 
-
-    def _drawMe(self, dir, openColumn, boxWidth=140, boxHeight=125):
+    def _drawMe(self, dir, boxWidth=140, boxHeight=125):
+        from functools import partial
+        openers= []
         model = ExtendedTableModel( self.items)
         for c in self.items.columnNames:
             model.addColumn(c)
         model.importDict(self.items.columnValues)
         model.reclist = sorted(model.reclist)
 
-        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True, height=boxHeight, width=boxWidth,
-                                           openColumn=openColumn, dir=dir, allowSave=True)
+        def _get_segment(start,file):
+            for segment in self.items.maskset:
+                if get_start_time_from_segment(segment) == start and \
+                    get_file_from_segment(segment) == file:
+                    return segment
+        def _open_mask(filename, preferences=None,start_frame=None,start_time=0, end_frame=None):
+            vid = convertToVideo(filename,preferences=preferences,start_frame=start_frame,start_time=start_time)
+            openFile(vid)
+        def _log():
+            logging.getLogger('maskgen').warn('Empty Segment')
+        for recid in model.reclist:
+            rec = model.data[recid]
+            segment = _get_segment(rec['Start'],rec['File'])
+            if segment is not None and get_file_from_segment(segment) is not None:
+                opener = partial(_open_mask,
+                                 os.path.join(dir,get_file_from_segment(segment)),
+                                 preferences=MaskGenLoader(),
+                                 start_frame=get_start_frame_from_segment(segment),
+                                 start_time=get_start_time_from_segment(segment),
+                                 end_frame=get_end_frame_from_segment(segment))
+                openers.append(opener)
+            else:
+                openers.append(_log)
+
+        self.table = ActionableTableCanvas(self, model=model, rowheaderwidth=140, showkeynamesinheader=True,
+                                           height=boxHeight, width=boxWidth,
+                                           allowSave=True, openers=openers)
         self.table.updateModel(model)
         self.table.createTableFrame()
 
@@ -1766,7 +1794,7 @@ class PointsViewDialog(tkSimpleDialog.Dialog):
         self.angle = angle
         self.scModel = model
         self.op = op
-        self.extender = self.scModel.getPathExtender()
+        self.extender = CompositeExtender(scModel=self.scModel)
         self.argument_name = argument_name
         tkSimpleDialog.Dialog.__init__(self, parent)
 

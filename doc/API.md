@@ -83,14 +83,17 @@ reproduceMask= True) # Rebuild Masks
 ##Generate with API
 
 ```
-from maskgen.scenario_model import ImageProjectModel
-from maskgen.mask_rules import Probe, EmptyCompositeBuilder
+from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder
+from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 
-scModel = maskgen.scenario_model.ImageProjectModel(project)
-probes = scModel.getProbeSet(compositeBuilders=[EmptyCompositeBuilder])
+#Initialize Processors
+probe_set_builder = ProbeSetBuilder(scModel, compositeBuilders=[Jpeg2000CompositeBuilder, ColorCompositeBuilder])
+#Generate Probes
+generator = ProbeGenerator(scModel, processors=[probe_set_builder])
+probes = generator()
 ```
 
-### Probe Set Arguments
+### ProbeSetBuilder Arguments
 
 * inclusionFunction - a function that determines if an edge can be included as a probe edge.   There are quite a few pre-build options:
 
@@ -108,8 +111,6 @@ probes = scModel.getProbeSet(compositeBuilders=[EmptyCompositeBuilder])
 * compositeBuilders - the consolidation of masks aligned to final images
 
 * graph - alternate maskgen.image_graph.ImageGraph than the one managed by the ImageProjectModel.  Often a similar graph with some adjustments.
-
-* replacement_probes - override the probe construction to use provided probes for to composite construction
 
 * keepFailures - Keep all probes regardless of failure, recording the failure status in the probe if possible
 
