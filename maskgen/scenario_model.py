@@ -29,15 +29,12 @@ from software_loader import Software, getProjectProperties, getRule
 from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 
-
 def formatStat(val):
     if type(val) == float:
         return "{:5.3f}".format(val)
     return str(val)
 
-
 prefLoader = MaskGenLoader()
-
 
 def defaultNotify(edge, message, **kwargs):
     return True
@@ -342,8 +339,6 @@ class Modification:
         self.generateMask = op.generateMask
         self.recordMaskInComposite = op.recordMaskInComposite(filetype)
 
-
-
 class LinkTool:
     """
     LinkTools are used to handle the comparison and analysis of each each in the graph.
@@ -423,6 +418,8 @@ class LinkTool:
             except Exception as e:
                 logging.getLogger('maskgen').error('Failed to run analysis {}: {} '.format(analysisOp, str(e)))
 
+    def addSubstituteMasks(self, start, destination, scModel, op, arguments={}, filename=''):
+        return None
 
 class ImageImageLinkTool(LinkTool):
     """
@@ -744,6 +741,34 @@ class VideoVideoLinkTool(LinkTool):
                           arguments=consolidate(arguments, analysis_params),
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
+
+    def addSubstituteMasks(self,start, destination, scModel, op, arguments={},filename=''):
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        startSegment = getMilliSecondsAndFrameCount(arguments[
+                                                        'Start Time']) if 'Start Time' in arguments else None
+        endSegment = getMilliSecondsAndFrameCount(arguments[
+                                                      'End Time']) if 'End Time' in arguments else None
+        subs = video_tools.formMaskForSource(startFileName,
+                                             filename,
+                                             start + '_' + destination + '_substitute',
+                                             startTimeandFrame=startSegment,
+                                             stopTimeandFrame=endSegment
+                                             )
+        #if subs is not None:
+        #    analysis = {}
+        #    startIm, startFileName = scModel.getImageAndName(start)
+        #    destIm, destFileName = scModel.getImageAndName(destination)
+        #    maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+        #                                               os.path.join(scModel.G.dir, start + '_' + destination + '_cmp'),
+        #                                               op,
+        #                                               startSegment=startSegment,
+        #                                               endSegment=endSegment,
+        #                                               analysis=analysis,
+        #                                               alternateFunction=video_tools.maskCompare,
+        #                                               arguments=arguments)
+        # how best to compare
+        return subs
 
 
 class AudioVideoLinkTool(VideoVideoLinkTool):
@@ -1475,6 +1500,13 @@ class ImageProjectModel:
         return self.getNodeFileType(start) + '.' + self.getNodeFileType(end)
 
     def getLinkTool(self, start, end):
+        """
+
+        :param start:
+        :param end:
+        :return:
+        @rtype: LinkTool
+        """
         return linkTools[self.getLinkType(start, end)]
 
     def mergeProject(self, project):
@@ -1916,7 +1948,8 @@ class ImageProjectModel:
                            arg_checker_callback=self.__scan_args_callback,
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                           'selectmasks.mask': '',
-                                          'videomasks.videosegment': ''},
+                                          'videomasks.videosegment': '',
+                                          'substitute videomasks.videosegment': ''},
                            nodeFilePaths={'donors.*': ''},
                            username=username if username is not None else self.username,
                            tool=tool)
@@ -2040,7 +2073,7 @@ class ImageProjectModel:
         @rtype (ImageWrapper,str)
         """
         if name is None or name == '':
-            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8'))
+            return ImageWrapper(np.zeros((250, 250, 4)).astype('uint8')),''
         return self.G.get_image(name, metadata=arguments)
 
     def getStartImageFile(self):
@@ -2432,6 +2465,22 @@ class ImageProjectModel:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
+
+    def addSubstituteMasks(self, filename):
+        edge = self.getGraph().get_edge(self.start, self.end)
+        subs = self.getLinkTool(self.start, self.end).addSubstituteMasks(self.start,
+                                                                  self.end,
+                                                                  self,
+                                                                  edge['op'],
+                                                                  arguments=getValue(edge,'arguments',{}),
+                                                                  filename=filename,
+                                                                  videomasks=getValue(edge,'arguments',[])
+                                                                  )
+        if subs is not None:
+            edge['substitute videomasks'] = subs
+            self.getGraph().addEdgeFilePath('substitute videomasks.videosegment','')
+            self.notify((self.start, self.end), 'update_edge')
+        return subs is not None
 
     def mediaFromPlugin(self, filter, software=None, passthru=False, **kwargs):
         """

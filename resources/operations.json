@@ -257,7 +257,7 @@
           "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
-      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
       "rules": [
         "donor:checkForDonorAudio",
         "checkOverlay",
@@ -816,7 +816,7 @@
       "maskTransformFunction": {
         "audio": "maskgen.mask_rules.sample_rate_change"
       },
-      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
       "description": "Use the audio stream from a donor to replace the audio stream of the file.",
       "includeInMask": {
@@ -869,7 +869,7 @@
         "audio": "maskgen.mask_rules.replace_audio",
         "video": "maskgen.mask_rules.replace_audio"
       },
-      "donor_processor":"maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
       "description": "Use the audio stream from a donor to replace the audio stream of the file.",
       "includeInMask": {
@@ -1827,11 +1827,30 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+       "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Add sources of reflection that were not originally present.",
       "includeInMask": {
         "default": true
@@ -1877,7 +1896,26 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
+      },
+       "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
@@ -1939,11 +1977,30 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+       "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Create objects that were not originally present in an image.",
       "includeInMask": {
         "default": true
@@ -2066,11 +2123,30 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+       "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Face Swap with Deep Fake algorithms.",
       "includeInMask": {
         "default": true
@@ -2471,11 +2547,30 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+       "compareparameters": {
+        "tolerance": 0.0001,
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": {
         "default": true
@@ -2838,6 +2933,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
@@ -2905,6 +3015,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
@@ -2941,6 +3066,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "rules": [
@@ -3047,6 +3187,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
@@ -3544,6 +3699,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [
@@ -3595,6 +3765,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "compareparameters": {
@@ -3649,6 +3834,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "compareparameters": {
@@ -3702,6 +3902,21 @@
           "trigger mask": true,
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "compareparameters": {
@@ -3732,9 +3947,9 @@
           "type": "yesno",
           "description": "Did the software rotate the image when removing the EXIF Orientation?"
         },
-        "Lens Distortion Applied":{
-          "type":"yesno",
-          "description":"Len Distortion Algorithms Applied?"
+        "Lens Distortion Applied": {
+          "type": "yesno",
+          "description": "Len Distortion Algorithms Applied?"
         }
       },
       "rules": [
@@ -4003,7 +4218,6 @@
           "description": "DPI"
         }
       },
-
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.output_transform"
       },
@@ -4292,7 +4506,7 @@
           "description": "Subject catgeory pasted to image"
         }
       },
-      "donor_processor":"maskgen.masks.donor_rules.image_interpolate",
+      "donor_processor": "maskgen.masks.donor_rules.image_interpolate",
       "rules": [
         "checkSize",
         "checkSIFT",
@@ -4398,12 +4612,12 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "kernel": {
-          "type":"int[1:27]",
+          "type": "int[1:27]",
           "defaultvalue": 3,
           "description": "Size of kernel to remove noise"
         }
       },
-      "donor_processor":"maskgen.masks.donor_rules.video_donor",
+      "donor_processor": "maskgen.masks.donor_rules.video_donor",
       "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
       },
@@ -4441,6 +4655,20 @@
             "add"
           ],
           "description": "Purpose: remove an object or add an object."
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "rules": [
@@ -4461,9 +4689,24 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
-      "donor_processor":"maskgen.masks.donor_rules.video_donor",
+      "donor_processor": "maskgen.masks.donor_rules.video_donor",
       "description": "Paste a series of green screen frames from a donor video clip, overlaying frames.",
       "includeInMask": {
         "default": true
@@ -4541,6 +4784,20 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "type": "int[9:255]",
+          "defaultvalue": "9",
+          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "aggregate": {
+          "type": "list",
+          "defaultvalue": "max",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "analysisOperations": [],
@@ -4905,9 +5162,9 @@
         "checkLengthSame"
       ],
       "optionalparameters": {
-         "End Time": {
+        "End Time": {
           "type": "frame_or_time",
-           "trigger mask": true,
+          "trigger mask": true,
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
@@ -5819,18 +6076,18 @@
       "category": "Transform",
       "name": "TransformCropResize",
       "mandatoryparameters": {
-          "crop width": {
-            "type": "int[0:100000]",
-            "description": "The width of the crop image prior to resize"
-          },
-         "crop height": {
-            "type": "int[0:100000]",
-            "description": "The height of the crop image prior to resize"
-          }
+        "crop width": {
+          "type": "int[0:100000]",
+          "description": "The width of the crop image prior to resize"
+        },
+        "crop height": {
+          "type": "int[0:100000]",
+          "description": "The height of the crop image prior to resize"
+        }
       },
       "rules": [],
       "optionalparameters": {
-         "Position Mapping": {
+        "Position Mapping": {
           "type": "boxpair",
           "description": "Maps the bounding regions of each image"
         }
@@ -5990,7 +6247,7 @@
       "category": "Transform",
       "name": "TransformSeamCarving",
       "mandatoryparameters": {
-         "inputmasktype": {
+        "inputmasktype": {
           "type": "list",
           "values": [
             "remove",
@@ -6490,16 +6747,20 @@
         "save_to_defaults": true
       },
       "Crop": {
-          "type": "yesno",
-          "defaultvalue":"yes",
-          "description": "Cropped according to camera?"
-        },
-      "White Balance":{
-          "type":"list",
-          "defaultvalue":"camera",
-          "values":["camera","auto","none"],
-          "description":"As Shot (camera) White Balance?"
-        }
+        "type": "yesno",
+        "defaultvalue": "yes",
+        "description": "Cropped according to camera?"
+      },
+      "White Balance": {
+        "type": "list",
+        "defaultvalue": "camera",
+        "values": [
+          "camera",
+          "auto",
+          "none"
+        ],
+        "description": "As Shot (camera) White Balance?"
+      }
     }
   }
 }

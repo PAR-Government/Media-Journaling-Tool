@@ -73,10 +73,10 @@ def updateJournal(scModel):
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
          ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI]),
-         ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask,_fixVideoMasks]),
+         ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask]),
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
-         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware]),
+         ('0.5.0918.b14aff2910', [_fixMetaDataDiff,_fixVideoNode,_fixSelectRegionAutoJournal, _fixNoSoftware, _fixVideoMasks]),
          ('0.5.0918.19c0afaab7', [_fixTool2]),
          ('0.5.1105.665737a167', []),
          ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
@@ -102,8 +102,8 @@ def updateJournal(scModel):
         if not hasNodes or _ConformVersion(project_version) > versions[-1]:
             fixes_needed = 0
         elif project_version not in fixes:
-            major_version = _ConformVersion(project_version).rsplit('.', 1)[0]
-            newest_match = next(version for version in versions.__reversed__() if major_version >= _ConformVersion(version))
+            major_version = _ConformVersion(project_version)
+            newest_match = next(version for version in versions if major_version <= _ConformVersion(version))
             fixes_needed = -(len(versions) - versions.index(newest_match))
         else:
             fixes_needed = -(len(versions) - versions.index(project_version)) if project_version in versions else -len(versions)

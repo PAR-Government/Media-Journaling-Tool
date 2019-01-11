@@ -356,6 +356,69 @@ class TestVideoTools(TestSupport):
         self.assertEqual(1350, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(1350 - 21 + 1, video_tools.get_frames_from_segment(result[0]))
 
+    def test_video_to_mask(self):
+        from maskgen.tool_set import GrayFrameWriter, GrayBlockReader
+        w = GrayFrameWriter('test_source',10)
+        m = np.zeros((1092,720,3),dtype='uint8');
+        m[100:200,100:200,1] = 255
+        for i in range(180):
+            w.write(m, i/10.0)
+        w.close()
+        self.addFileToRemove(w.filename)
+        sf = w.filename
+        w = GrayFrameWriter('test',10)
+        m = np.zeros((1092,720,3),dtype='uint8');
+        m[100:200,100:200,1] = 255
+        for i in range(60):
+            w.write(m, i/10.0)
+        w.close()
+        self.addFileToRemove(w.filename)
+        masks = video_tools.videoMasksFromVid(w.filename,'test_mask')
+        self._add_mask_files_to_kill(masks)
+        hdf5filename = masks[0]['videosegment']
+        r = GrayBlockReader(hdf5filename)
+        m = r.read()
+        c = 0
+        self.assertEqual(255,m[0,0])
+        self.assertEqual(0, m[101,101])
+        self.assertEqual('video',video_tools.get_type_of_segment(masks[0]))
+        self.assertEqual(1, video_tools.get_start_frame_from_segment(masks[0]))
+        self.assertEqual(60, video_tools.get_end_frame_from_segment(masks[0]))
+        self.assertEqual(10, video_tools.get_rate_from_segment(masks[0]))
+        self.assertEqual(5900, video_tools.get_end_time_from_segment(masks[0]))
+        while m is not None:
+            self.assertEquals(c+2, r.current_frame())
+            c += 1
+            m = r.read()
+            if m is not None:
+                self.assertEqual(255,m[0,0])
+                self.assertEqual(0, m[101,101])
+        self.assertEqual(60, c)
+        r.close()
+
+        masks = video_tools.formMaskForSource(sf,w.filename,'test_mask',
+                                              startTimeandFrame=(0,60),
+                                              stopTimeandFrame=(0,119))
+        hdf5filename = masks[0]['videosegment']
+        r = GrayBlockReader(hdf5filename)
+        m = r.read()
+        c = 0
+        self.assertEqual(255, m[0, 0])
+        self.assertEqual(0, m[101, 101])
+        self.assertEqual('video', video_tools.get_type_of_segment(masks[0]))
+        self.assertEqual(60, video_tools.get_start_frame_from_segment(masks[0]))
+        self.assertEqual(119, video_tools.get_end_frame_from_segment(masks[0]))
+        self.assertEqual(10, video_tools.get_rate_from_segment(masks[0]))
+        self.assertEqual(11800, int(video_tools.get_end_time_from_segment(masks[0])))
+        while m is not None:
+            self.assertEquals(c + 61, r.current_frame())
+            c += 1
+            m = r.read()
+            if m is not None:
+                self.assertEqual(255, m[0, 0])
+                self.assertEqual(0, m[101, 101])
+        self.assertEqual(60, c)
+
     def test_frame_binding_vfr(self):
 
         result = video_tools.getMaskSetForEntireVideo(
@@ -533,14 +596,14 @@ class TestVideoTools(TestSupport):
         self.assertEquals(1, video_tools.get_start_frame_from_segment(mask))
         self.assertEquals(20, video_tools.get_end_frame_from_segment(mask))
         self.assertEquals(0, video_tools.get_start_time_from_segment(mask))
-        self.assertEquals(600, video_tools.get_end_time_from_segment(mask))
+        self.assertEquals(666, int(video_tools.get_end_time_from_segment(mask)))
         reader = tool_set.GrayBlockReader(video_tools.get_file_from_segment(mask))
         count = 0
         while True:
             diff_mask = reader.read()
             if diff_mask is None:
                 break
-            self.assertTrue(np.sum(diff_mask) > 0)
+            self.assertTrue(np.sum(255-diff_mask) > 0)
             count += 1
         self.assertEqual(20, count)
 

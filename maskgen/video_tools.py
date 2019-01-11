@@ -13,12 +13,13 @@ from subprocess import Popen, PIPE
 from threading import RLock
 
 import cv2
-import ffmpeg_api
 import numpy as np
-import tool_set
 from cachetools import LRUCache
 from cachetools import cached
 from cachetools.keys import hashkey
+
+import ffmpeg_api
+import tool_set
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
 from maskgen import exif
@@ -1494,6 +1495,21 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_func
         vidAnalysisComponents.writer.release()
     return True
 
+def compareChange(vidAnalysisComponents, ranges=list(), arguments={},compare_function=default_compare):
+    if len(ranges) == 0:
+        change = create_segment(mask=vidAnalysisComponents.mask,
+                                starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
+                                rate=vidAnalysisComponents.fps_one,
+                                startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
+                                endframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
+                                endtime=-1,
+                                frames=1,
+                                type='video')
+        ranges.append(change)
+    else:
+        update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
+
+
 def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis=dict()):
     """
     Determine Crop region for analysis
@@ -1590,7 +1606,7 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
             errors.append('Audio must also be cut if the audio and video are in source and target files')
     return maskSet, errors
 
-def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
+def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
     if arguments['add type'] == 'replace':
         return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                          arguments=arguments,
@@ -1601,6 +1617,17 @@ def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,ana
                      arguments=arguments,
                      compare_function=tool_set.morphologyCompare,
                      convert_function=tool_set.convert16bitcolor)
+
+
+def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={}):
+    import copy
+    args = copy.copy(arguments)
+    args['distribute_difference'] = True
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
+                       compareChange,
+                       arguments=args,
+                       compare_function=tool_set.morphologyCompare,
+                       convert_function=tool_set.convert16bitcolor)
 
 def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
@@ -1707,6 +1734,74 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         edge['videomasks'] = video_masks
 
 
+def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(0,1), stopTimeandFrame=None):
+    """
+    BUild a mask from file from a source video file.
+    Non-Zero values = selected.
+    :param soure_file_name:
+    :param mask_file_name:
+    :param name:
+    :param startTimeandFrame:
+    :param stopTimeandFrame:
+    :return:
+    """
+    source_file_tuples = getMaskSetForEntireVideoForTuples(
+        FileMetaDataLocator(soure_file_name),
+        start_time_tuple=startTimeandFrame,
+        end_time_tuple=stopTimeandFrame)
+    mask_file_tuples = getMaskSetForEntireVideoForTuples(FileMetaDataLocator(mask_file_name))
+    if get_frames_from_segment(source_file_tuples[0]) != get_frames_from_segment(mask_file_tuples[0]):
+        return None
+    subs = videoMasksFromVid(mask_file_name,
+                             name,
+                              offset=startTimeandFrame[1]-1)
+    if get_frames_from_segment(subs[0]) != get_frames_from_segment(mask_file_tuples[0]):
+        return None
+    if get_start_frame_from_segment(subs[0]) != get_start_frame_from_segment(
+            source_file_tuples[0]):
+        return None
+    return subs
+
+def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=None, offset=0):
+    """
+    Convert video file to mask
+    :param vidFile:
+    :param name:
+    :param startTimeandFrame:
+    :param stopTimeandFrame:
+    :return:
+    """
+    time_manager = tool_set.VidTimeManager(startTimeandFrame=startTimeandFrame, stopTimeandFrame=stopTimeandFrame)
+    vid_cap = buildCaptureTool(vidFile)
+    fps = vid_cap.get(cv2api_delegate.prop_fps)
+    writer = tool_set.GrayBlockWriter(name, fps)
+    segment = create_segment(rate=fps, type='video', startframe=offset+1, starttime=offset*(1000.0/fps), frames=0)
+    last_time = 0
+    while vid_cap.isOpened():
+        ret_one = vid_cap.grab()
+        elapsed_time = vid_cap.get(cv2api_delegate.prop_pos_msec)
+        if not ret_one:
+            break
+        time_manager.updateToNow(elapsed_time)
+        if time_manager.isBeforeTime():
+            update_segment(segment,
+                           startframe=time_manager.frameSinceBeginning+ offset,
+                           starttime=offset*(1000.0/fps) + elapsed_time - 1000.0/fps)
+            continue
+        if time_manager.isPastTime():
+            break
+        ret, frame = vid_cap.retrieve()
+        mask = ImageWrapper(frame, to_mask=True).invert()
+        if 'mask' not in segment:
+            segment['mask'] = mask.to_array()
+        writer.write(mask.to_array(), last_time, time_manager.frameSinceBeginning+ offset)
+        last_time = offset*(1000.0/fps) + elapsed_time - 1000.0/fps
+    update_segment(segment,
+                   endframe=time_manager.frameSinceBeginning + offset,
+                   endtime=last_time,
+                   videosegment=writer.get_file_name())
+    return [segment]
+
 def formMaskDiffForImage(vidFile,
                  image_wrapper,
                  name_prefix,
@@ -1766,8 +1861,9 @@ def formMaskDiff(fileOne,
                            arguments=arguments,
                            compare_function=tool_set.morphologyCompare,
                            convert_function=tool_set.convert16bitcolor)
-    analysis['startframe'] = time_manager.getStartFrame()
-    analysis['stopframe'] = time_manager.getEndFrame()
+    if analysis is not None:
+        analysis['startframe'] = time_manager.getStartFrame()
+        analysis['stopframe'] = time_manager.getEndFrame()
     return result
 
 def audioWrite(fileOne, amount):
@@ -2202,7 +2298,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
             if time_manager.isBeforeTime():
                 update_segment(segment,
                                startframe = time_manager.frameSinceBeginning,
-                               starttime = elapsed_time - fps)
+                               starttime = elapsed_time - 1000.0/fps)
                 continue
             if time_manager.isPastTime():
                 break
@@ -2211,7 +2307,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
                 exifforvid = vid_cap.get_exif()
                 exifdiff = exif.comparexif_dict(exifforvid, img_wrapper.get_exif())
             mask,analysis,error = tool_set.createMask(ImageWrapper(frame),img_wrapper,
-                                invert=True,
+                                invert=False,
                                 arguments=compare_args,
                                 alternativeFunction=tool_set.convertCompare)
             if 'mask' not in segment:
@@ -2220,7 +2316,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
             last_time = elapsed_time
         update_segment(segment,
                        endframe=time_manager.frameSinceBeginning,
-                       endtime=elapsed_time - fps,
+                       endtime=elapsed_time - 1000.0/fps,
                        videosegment=writer.get_file_name())
         return [segment], analysis, exifdiff
     finally:
@@ -2314,8 +2410,13 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
         analysis_components.vid_two.release()
         analysis_components.writer.close()
     if analysis_components.one_count == 0:
-        raise ValueError(
-            'Mask Computation Failed to a read videos.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.')
+        if os.path.exists(fileOne):
+            raise ValueError(
+                'Mask Computation Failed to a read video {}.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.'.format(fileOne))
+        else:
+            raise ValueError(
+                'Mask Computation Failed to a read video {}.  File Missing'.format(
+                    fileOne))
     return ranges,[]
 
 def __get_video_frame(video, frame_time):
@@ -2922,7 +3023,9 @@ def inverse_intersection_for_mask(mask, video_masks):
                         # TODO Handle orientation change
                         if frame.shape != mask.shape:
                             frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
-                        frame = mask * ((255-frame)/255)
+                        # frame  is black = NOT match, white = MATCH
+                        # we want pixels in the MATCH REGION
+                        frame = 255 - ((255-mask) * (frame/255))
                         writer.write(frame, frame_time, frame_count)
                     else:
                         break

@@ -1398,7 +1398,9 @@ def headless_systemcheck(prefLoader):
     notifiers = getNotifier(prefLoader)
     validator = ValidationAPIComposite(prefLoader,external=True)
     errors = [validator.test(),
-              ffmpeg_api.ffmpeg_tool_check(), exif.toolCheck(), selfVideoTest(),
+              ffmpeg_api.ffmpeg_tool_check(),
+              exif.toolCheck(),
+              selfVideoTest(),
               check_graph_status(),
               notifiers.check_status()]
     error_count = 0
