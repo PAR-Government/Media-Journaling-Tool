@@ -223,10 +223,7 @@ class TimeWidget(Frame):
         """
         curr = self.entries[field].get()
 
-        if len(curr) == max_length:
-            return
-
-        if len(curr) != 0:
+        if len(curr) != 0 and len(curr) < max_length:
             if prepend:
                 self.entries[field].insert(0, "0" * (max_length - len(curr)))
             else:
@@ -264,7 +261,6 @@ class TimeWidget(Frame):
             first = pos-1
             last = pos
 
-            # Find full range of letters incase press and hold
             for i in range(len(curr)):
                 if not curr[i].isdigit():
                     first = i
@@ -273,6 +269,7 @@ class TimeWidget(Frame):
                 if not curr[i].isdigit():
                     last = i
                     break
+
             self.entries[field].delete(first, last)
             return
 

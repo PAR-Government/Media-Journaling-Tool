@@ -18,18 +18,28 @@ class TestHPTool(unittest.TestCase):
             self.fail("No devices loaded.")
 
         # Attempt to Process Data with it's Information
-        current_dir = os.path.split(__file__)[0]
+        current_dir = os.path.dirname(__file__)
         indir = os.path.join(current_dir, "test")
-        outdir = os.path.join(current_dir, "output")
-        process(self, cam.get_all(), indir, outdir)
+        odir = os.path.join(current_dir, "output")
+        process(self, cam.get_all(), indir, odir)
+        self.assertTrue(os.path.isdir(os.path.join(odir, "csv")) and os.listdir(os.path.join(odir, "csv")) != [])
+        self.assertTrue(os.path.isdir(os.path.join(odir, "image")) and os.listdir(os.path.join(odir, "image")) != [])
+        self.assertTrue(os.path.isdir(os.path.join(odir, "video")) and os.listdir(os.path.join(odir, "video")) != [])
+        self.assertTrue(os.path.isdir(os.path.join(odir, "audio")) and os.listdir(os.path.join(odir, "audio")) != [])
+        self.assertFalse(os.path.isdir(os.path.join(odir, "model")))
+        shutil.rmtree(odir)
 
-        shutil.rmtree(outdir)
-
+        # Attempt to Process 3D Models
         indir = os.path.join(current_dir, "test_model")
-        process(self, {}, indir, outdir)
+        process(self, {}, indir, odir)
+        self.assertTrue(os.path.isdir(os.path.join(odir, "csv")) and os.listdir(os.path.join(odir, "csv")) != [])
+        self.assertFalse(os.path.isdir(os.path.join(odir, "image")))
+        self.assertFalse(os.path.isdir(os.path.join(odir, "video")))
+        self.assertFalse(os.path.isdir(os.path.join(odir, "audio")))
+        self.assertTrue(os.path.isdir(os.path.join(odir, "model")) and os.listdir(os.path.join(odir, "model")) != [])
+        shutil.rmtree(odir)
 
-        shutil.rmtree(outdir)
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def tearDown(self):
+        # If any of the tests fail, the output directory may have still been created
+        if os.path.isdir(os.path.join(os.path.dirname(__file__), "output")):
+            shutil.rmtree(os.path.join(os.path.dirname(__file__), "output"))

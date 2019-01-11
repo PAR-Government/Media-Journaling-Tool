@@ -525,10 +525,11 @@ def checkAudioChannels(op,graph, frm, to):
     if 'audio' not in meta:
         return (Severity.ERROR,'audio channel not present')
 
+
 def checkAudioLength(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     streams_to_filter = ["video", "unknown", "data"]
-    all_streams =getValue(edge, 'metadatadiff', [])
+    all_streams = getValue(edge, 'metadatadiff', [])
     streams = [stream for stream in getValue(edge, 'metadatadiff', []) if stream not in streams_to_filter]
     for stream in streams:
         modifier = getValue(all_streams[stream], 'duration', ('x', 0, 0))
@@ -1344,14 +1345,16 @@ def checkSizeAndExifPNG(op, graph, frm, to):
         orientation = str(orientation) if orientation is not None else None
 
     rotated = getValue(edge,'arguments.Image Rotated','no') == 'yes'
-    expect_rotation = orientation is not None and ('270' in orientation or '90' in orientation) and rotated
+    expect_rotation = orientation is not None and ( '270' in orientation or '90' in orientation) and rotated
     if not expect_rotation and numpy.sign(diff_frm) != numpy.sign(diff_to):
         return (Severity.ERROR, 'Image rotated; Exif does not indicate rotation')
     elif expect_rotation and numpy.sign(diff_frm) == numpy.sign(diff_to):
         return (Severity.ERROR, 'Image not rotated; Exif indicates rotation')
 
-    if rotated and numpy.sign(diff_frm) == numpy.sign(diff_to):
-        return (Severity.ERROR, 'Image not rotated; operation settings indicated rotation')
+    if rotated and orientation is None:
+        return (Severity.ERROR, 'No orientation metadata indicating rotation; split into two operations')
+    elif not rotated and orientation is not None:
+        return (Severity.WARNING, 'Exif indicates rotation; operation settings differ.')
 
     if expect_rotation:
         acceptable_shapes = [(frm_shape[1],frm_shape[0])]
@@ -1761,18 +1764,28 @@ def isGAN(edge, edge_id, op):
     if edge['op'] == 'ObjectCGI' and \
             getValue(edge, 'arguments.isGAN', 'no') == 'yes':
         return 'yes'
+    elif edge['op'] == 'PasteSplice' and \
+        'gan' in getValue(edge, 'arguments.subject', 'no'):
+        return 'yes'
     return 'no'
 
 def ganComponentRule(scModel, edges):
     for edgeTuple in edges:
-        if edgeTuple.edge['op'] == 'ObjectCGI' and \
-            getValue(edgeTuple.edge,'arguments.isGAN','no') == 'yes':
+        if isGAN(edgeTuple.edge, None, None) == 'yes':
             return 'yes'
-        elif edgeTuple.edge['op'] == 'PasteSplice' and \
-                'gan' in getValue(edgeTuple.edge, 'arguments.subject', 'no'):
-            return 'yes'
-
     return 'no'
+
+def ganGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"isGAN",'no')
+
+def cgiGeneratedRule(scModel, edges):
+    for edgeTuple in edges:
+        node = scModel.getGraph().get_node(edgeTuple.start)
+        if getValue(node, 'nodetype','interim') == 'base':
+            return getValue(node,"cgi",'no')
 
 def _cleanEdges(scModel, edges):
     for edgeTuple in edges:

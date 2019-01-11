@@ -672,6 +672,12 @@
 				"operationSlides/output_video.png"
 			]
 		},
+		"OutputNEIF": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png"
+			]
+		},
 		"PasteSplice": {
 			"images": [
 				"operationSlides/paste_splice.png",
@@ -802,11 +808,6 @@
 				"operationSlides/transform.png"
 			]
 		},
-		"TransformContentAwareScale": {
-			"images": [
-				"operationSlides/transform.png"
-			]
-		},
 		"TransformCrop": {
 			"images": [
 				"operationSlides/transform.png"
@@ -843,6 +844,11 @@
 			]
 		},
 		"TransformRotate": {
+			"images": [
+				"operationSlides/transform.png"
+			]
+		},
+		"TransformSampleRate": {
 			"images": [
 				"operationSlides/transform.png"
 			]

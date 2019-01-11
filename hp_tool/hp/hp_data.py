@@ -129,10 +129,12 @@ def check_settings(self):
 def add_types(data, mformat):
     global exts
     mformat = mformat.upper()
-    data = data.replace(',', ' ').split(' ')
-    for i in data:
-        if i not in exts[mformat] and len(i) > 0:
-            exts[mformat].append(i)
+    # type == str when settings have been opened, None otherwise
+    if type(data) == str:
+        data = data.replace(',', ' ').split(' ')
+        for i in data:
+            if i not in exts[mformat] and len(i) > 0:
+                exts[mformat].append(i)
 
 
 # def convert_GPS(coordinate):
