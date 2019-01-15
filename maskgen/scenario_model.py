@@ -2810,6 +2810,11 @@ class ImageProjectModel:
         return []
 
     def setSemanticGroups(self, start, end, grps):
+        """
+        @type start: str
+        @type end: str
+        @type grps: list(str)
+        """
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)

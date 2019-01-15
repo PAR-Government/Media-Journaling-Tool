@@ -316,7 +316,7 @@ class DropVideoFileForNonSpatialDesignation(ProbeProcessor):
 
 class ExtendProbesForDetectEdges(ProbeProcessor):
     """
-        Probes have been set to not use spatial shoudl drop their file.
+        Given a selection criteria, add additional edges that are detect only probes.
     """
 
     def __init__(self, scModel,selectionCriteria):

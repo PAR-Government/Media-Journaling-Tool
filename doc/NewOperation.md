@@ -2,23 +2,28 @@
 
 # WHAT IS THIS?
 
-Operations define each manipulation to media.  Operation is designed to be categorical, agnostic to software.  For example, resize is a common operation supported by many operations in similarly consistent approach.  The expected output is a adjustment media with a different size.  Deciding to add a new operation is based on:
-​    1. arguments required for capture
-​    2. Validation rules
-​    3. Mask generation rules
-​    4. Probe/Composite Generation rules.
+Operations define each manipulation to media.  Operation is designed to be categorical, agnostic to software.  For example, *resize* is a common operation supported by many operations in similarly consistent approach.  The expected output is media with a different size.  
+
+Deciding to add a new operation is based on:
+
+1. Arguments required for capture.
+2. Validation rules.
+3.  Mask generation rules.
+4.  Probe/Composite Generation rules.
 
 # STEPS
 
 ## Comparison and Mask Generation
 
-Determines how two media items--before and after manipulation--compared to generic masks.
+Comparison and Mask Generation collectively determine how two media items--before and after manipulation--are different, generating masks and change meta-data.
 
 For example, Crop Resize is specialty operation found in some tools.  The sofware crops and image and restores the crop to the original size of the image using some interpolation.  It is one operation with 'special sauce'.   It cannot be grouped with the individual Crop and Resize operations since the intermediate crop image is missing and the actual location of the crop is not immmediatly known.  In this case, the comparison function resizes the original image back to the crop size, as gathered from the manipulation sofware tool and recorded by the user.  The next step is to find the location of the crop in the original image.  Finally a mask of the crop region only is created, showing the amount of change that occurred during interpolation.   
 
 Comparison functions live in tool_set or video_tools.
 
-Image comparison signature:
+####Image and Frame Comparison Signature
+
+For imaeges, masks use 0 to represent change.  Frames are inverted in comparison and then flipped prior to write to HDF5.  
 
 ```
 def xCompare(img_original, img_manipulated,  arguments=dict()):
@@ -32,12 +37,12 @@ def xCompare(img_original, img_manipulated,  arguments=dict()):
    """
 ```
 
-Image Analysis:
+####Image and Frame Analysis Signature
 
 ```
 def x_analysis(analysis, img_original, img_manipulated, mask=None, linktype=None, arguments=dict(), directory='.'):
     """
-    Add analysis items to the analysis dictionary
+    Add analysis items to the provided analysis dictionary
     @param linkType: image.image, video.image, video.video, etc.
     @type analysis: dict
     @type img_original: maskgen.image_wrap.ImageWrapper
@@ -47,7 +52,22 @@ def x_analysis(analysis, img_original, img_manipulated, mask=None, linktype=None
     """
 ```
 
-Video comparison signature:
+Each analysis operation is function, defined by the
+*package.module.function name*. The function is defined with the
+following parameters:
+
+- *analysis* -\> a dictionary to place the results
+- *img_original* -\> maskgen.image\_wrap.ImageWrapper for the source image
+- *img_manipulated* -\> maskgen.image\_wrap.ImageWrapper for the destination image
+  (result of the operation)
+- *mask* -\> maskgen.image\_wrap.ImageWrapper containing the mask
+  generated when comparing the images
+- *linkType* -\> the transition type of the link; one of  'video.video', 'image.video', 'video.image', 'image.image', 'audio.video'  or 'video.audio'.
+- *arguments* -\> a dictionary of arguments provided to the operation
+  (collected from the link parameters).
+- *directory* -\> the project directory
+
+####Video Comparison Signature
 
 ```
 def x_vid_compare(vid_original, vid_manipulated, name_prefix, time_manager, arguments=None, analysis=dict()):
@@ -68,33 +88,35 @@ def x_vid_compare(vid_original, vid_manipulated, name_prefix, time_manager, argu
     """
 ```
 
-### Analysis Operations
+## Other Mask Types
 
-```
-def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None,
-arguments=dict(),directory='.')
-```
+#### Input Masks
 
-Each analysis operation is function, defined by the
-*package.module.function name*. The function is defined with the
-following parameters:
+Inputmasks are essential donor masks.  They are special in that they are always referenced in the edge by file name in the attribute *inputmaskname*.
 
-- analysis -\> a dictionary to place the results
-- img1 -\> maskgen.image\_wrap.ImageWrapper for the source image
-- img2 -\> maskgen.image\_wrap.ImageWrapper for the destination image
-  (result of the operation)
-- mask -\> maskgen.image\_wrap.ImageWrapper containing the mask
-  generated when comparing the images
-- linkType -\> the transition type of the link; one of  'video.video', 'image.video', 'video.image', 'image.image', 'audio.video'  or 'video.audio'.
-- arguments -\> a dictionary of arguments provided to the operation
-  (collected from the link parameters).
-- directory -\> the project directory
+#### Substitute Masks
+
+Substitute masks replace edge masks.  CAUTION: These masks do not reflect actual differences between media.  Instead, they represent intended differences.
+
+##Probe Inclusion
+
+Edge masks included in a probe are selected as part of the probe generation API.  By default, all edge masks that are labeled as to included to in a 'composite' (blue color links in the JT UI) are included in a generated probe set.  
+
+## Composites
+
+The term *Composite* is derived from the notion that a final media is the composite of a series of manipulation.  A *Composite* mask attempts to represent all the changes in one mask media file.    However, each composite mask, depending its make-up, may leave some manipulations not-represented due obfuscation (e.g. Color Masks).
+
+Composites are described in the API documentation.
+
+For the remainder of this document the term 'Composite Image' is misused, as it is only a single representation of one edge/manipulation.
 
 ## Probe Generation
 
-Probe generation involves overlaying each generated mask over the final media.  This requires applying transformations from manipulations that occur after the mask's associated manipulation.
+Probe generation involves overlaying each generated edge mask over the final media.  This requires applying transformations associated with manipulations that occur after the manipulation that created the mask.  These subsequent transforms are applid in the order represented by the graph.  A single generated edge mask may contribute to more than one final media.  Each subsequent manipulation effectively replaces the mask from the prior manipulation.
 
-Transforms are strictly spatial for images when dealing with masks, include resizing, cropping, warping, etc.  For video and audio, transforms are mostly temporal accept for crop and size (wxh) manipulations.   The level of effort to handle warping, spatial object rotation, etc. for video is outside the scope of complexity of the tool.
+> If a manipulation does not effect a mask, the mask is forwarded to the next manipulation's transformation function.  
+
+Transforms are strictly spatial for images when dealing with masks, include resizing, cropping, warping, etc.  For video and audio, transforms are mostly temporal accept for crop and size (wxh) manipulations.   At this time, the level of effort to handle complex spatial adjustments in video such as warping and spatial object rotation is outside the scope of complexity for the tool.
 
 Probe generation also supports donor media overlay, applying prior transforms in the reverse direction, essentially backing out the manipulations prior to the mask.
 
@@ -107,22 +129,32 @@ Each probe generation for final (also called composite) and donor uses the same 
 ```
 def x_transform(buildState):
     if buildState.isComposite:
-            return CompositeImage(buildState.compositeMask.source,
-                                  buildState.compositeMask.target,
-                                  buildState.compositeMask.media_type,
-                                  apply_transform_to_mask(buildState.compositeMask.mask)
-    elif buildState.donorMask is not None::
-            return CompositeImage(buildState.donorMask.source,
-                                  buildState.donorMask.target,
-                                  buildState.donorMask.media_type,
-                                  apply_reverse_transform_to_mask(buildState.donorMask.mask)
+            return buildState.compositeMask.create(
+               apply_transform_to_mask(
+               buildState.compositeMask.mask)
+    elif buildState.donorMask is not None:
+            return buildState.donorMask.create(
+                               apply_reverse_transform_to_mask(
+                               buildState.donorMask.mask)
 ```
 
-Functions *apply_transform_to_mask* and *apply_reverse_transform_to_mask* are user defined for the specific operation.  Masks are maintained in an object *CompositeImage*, either as a *donorMask* or *compositeMask*.  The *CompositeImage* returns the source and target node ids for for the edge associated with the mask, the media type of the mask (video, audio, image, zip) and the masks.
+Functions *apply_transform_to_mask* and *apply_reverse_transform_to_mask* are user defined for the specific operation.  Masks are maintained in an object *CompositeImage*, either as a *donorMask* or *compositeMask*.  The *CompositeImage* contains the source and target node IDs for for the edge associated with the mask, the media type of the mask (video, audio, image, zip) and the masks.
 
-For images, the single *mask* attribute records a *numpy ndarray* of the mask.  Since some masks are processed with multiple edges at the same time, masks are unsigned eight bit single channel arrays with values 1  through 255 in each pixel, identifying the manipulation mask for the specific pixel. Thus, the mask is a composite of masks.  Typically, only mask is represented, but the used of the composite concept is retained for historical purposes.
+The CompositeImage has the followin attributes:
 
-For audio and video, the masks are in the format of a list of segments in the attribute *videomasks* (e.g. *buildState.compositeMask.videomasks*).   A segment includes start time, end time, start frame, end frame, rate, error, media type, and total frames (end - start + 1).   Spatial data is maintain an HDF5 file.  The file is reference in each segment as *videomask*.  
+* source -> node ID of the basis media manipulated to produce the mask for which is being transformed to overlay a final media.
+* target -> node ID of the target/result of the manipulation being transformed to overlay a final media.
+* media_type -> the media manipulate by the edge from source  to target nodes.
+* videomask -> list of non-overlapping segments containing the temporal and spatial records of the manipulation.
+* mask -> a single image mask associate with an image manipulation.
+* ok -> composites may be invalidated by subsequent manipulations such as obfuscation and removal.
+* issubstitute -> records if the originating change mask is a substitute for the JT's calculated different masks.
+
+For images, the single *mask* attribute records a *numpy ndarray* of the mask.  Since some masks are processed with multiple edges at the same time, masks are unsigned eight bit single channel arrays with values 0  through 255 in each pixel, identifying the manipulation mask for the specific pixel. Thus, the mask is a composite of masks.  Only one mask is represented in a CompositeImage, but the use of the composite concept is retained for historical purposes.
+
+For video, the *videomask* attribute contains non-overlapping segments.  The *videosegment* attribute in each segment is set only if the spatial data was generated by the JT's video comparison for the specific manipulation.
+
+For audio and video, the masks are in the format of a list of segments in the attribute *videomasks* (e.g. *buildState.compositeMask.videomasks*).   A segment includes start time, end time, start frame, end frame, rate, error, media type, and total frames (end - start + 1).   Spatial data is maintain as an HDF5 file.  The file is reference in each segment as *videomask*.  
 
 Each segment has the following components:
 
@@ -134,6 +166,7 @@ Each segment has the following components:
 - type = 'audio' or 'video'
 - rate = frames per second. Each frame consumes 1000.0/rate milliseconds
 - videosegment (file) = the name of the HDF5 spatial mask file.
+- error = the amount of error in milliseconds; error is introduced as segments are augmented through temporal manipulations such as frame rate changes.
 
 Accessing these attributes in a segment, using the following functions:
 
@@ -177,9 +210,9 @@ def update_segment(segment,
                    error=None)
 ```
 
-Historically, the *mask* attribute associated with a composite or donor mask is a single representative sample frame mask.  Unlike the image mask counterpart, this mask is values or 0 or 255, manipulated or non-manipulated respectively
+Historically, the *mask* attribute associated with a composite or donor mask is a single representative sample frame mask.  Like the image edge mask counterpart, this mask is values or 0 or 255, manipulated or non-manipulated respectively.  Probe image masks are inverted, 0=non-manipulated and 255=manipulated.
 
-A helpful function is accessing the default set of segments (called a mask set) for the entire source or target media:
+A helpful function is accessing the default set of segments (called a mask set) for the entire source or target media (without spatial masks):
 
 ```
 def getMaskSetForEntireVideo(locator, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0)
@@ -189,23 +222,25 @@ def getMaskSetForEntireVideo(locator, start_time='00:00:00.000', end_time=None, 
 
 A probe (maskgen.mask\_rules.Probe) is defined as:
 
-* edgeId = the tuple (source,target) graph link identifier
-* targetBaseNodeId = the based node id
-* finalNodeId = the final media node id 
-* composites = a dictionary describing the location of this image in a one
-  or more composite images
-* donorBaseNodeId = the donor base media node id
-* donorVideoSegments = the list video and audio donor segments
-* targetMaskImage = the ImageWrapper target mask image (aligned to target
-  final node)
-* donorMaskImage= the ImageWrapper donor mask image (aligned to donor)
-* targetMaskFileName = the file name of the target mask image (aligned to
-  target final node)
-* donorMaskFileName = the file name of the donor mask image (aligned to
-  donor)
-* targetVideoSegments = the list video and audio final node segments
-* targetChangeSizeInPixels = tuple of (height,width) change is size (e.g. (0,0))
-* level = 0 = the edge level within the graph
+* edgeId = The tuple (source,target) graph link identifier.
+* targetBaseNodeId = The based node id.
+* finalNodeId = The final media node id.
+* composites = A dictionary describing the location of this image in a one
+  or more composite images.
+* donorBaseNodeId = The donor base media node id.
+* donorVideoSegments = The list video and audio donor segments.
+* targetMaskImage = The ImageWrapper target mask image (aligned to target
+  final node).
+* donorMaskImage= The ImageWrapper donor mask image (aligned to donor).
+* targetMaskFileName = The file name of the target mask image (aligned to
+  target final node).
+* donorMaskFileName = The file name of the donor mask image (aligned to
+  donor).
+* targetVideoSegments = The list video and audio final node segments.
+* targetChangeSizeInPixels = A tuple of (height,width)  indicating a change is size (e.g. (0,0)).
+* level = The edge level within the graph.
+* taskDesignation = Indicates the type of test for which the segment is eligible for: 'spatial', 'temporal','spatial-temporal'
+* usesSubsituteMask = Indicates if the JT generated edge mask is replaced with a user generated mask: True/False.  
 
 ## BuildState
 
@@ -214,25 +249,25 @@ name*. The function is defined to consume a build\_state of type
 *maskgen.mask\_rules.BuildState* which contains the following
 parameters:
 
-- edge -\> a dictionary containing all the edge arguments and analysis
-  results
-- edgeMask -\> the numpy ndarray of the edge mask
-- compositeMask -\> CompositeImage for video or numpy array for image.
+- *edge* -\> A dictionary containing all the edge arguments and analysis
+  results.
+- *edgeMask* -> The numpy ndarray of the edge mask.
+- *compositeMask* -\> CompositeImage for video or numpy array for image.
   The contained mask values are set by level starting with 1.
   Alterations should be careful to preserve the numbering. One
   strategy is to process each pixel at a time, convert the level to
   255 and then back again upon completion. 
-- donorMask -\> CompositeImage for video or numpy array for image. The
+- *donorMask* -\> CompositeImage for video or numpy array for image. The
   mask values are 0 and 255. The donorMask attribute is not None, then
   perform the transformation in reverse using the embeddded mask.
-- source -\> source node id for edge
-- target -\> target node id for edge
-- directory -\> location of journal
-- pred\_edges -\> list of edge ids for predecessor edges to the source
+- *source* -\> Source node id for edge.
+- *target* -\> Target node id for edge.
+- *directory* -\> Location of journal.
+- *pred\_edges* -\> List of edge ids for predecessor edges to the source
   node.
-- graph -\> the ImageGraph of the journal
-- checkEmpies -> indication to check for empty masks, possibly indicating an erroneous obfuscating operation.
-- extractor -> MetaDataExtractor using the graph as a 'cache'.
+- *graph* -\> The ImageGraph of the journal.
+- *checkEmpies* -> An indicator to check for empty masks, possibly indicating an erroneous obfuscating operation.
+- *extractor* -> MetaDataExtractor using the graph as a 'cache'.
 
 A composite image is defined as a named tuple:
 
@@ -246,12 +281,12 @@ Videomasks is a list of segments.
 
 The change mask generated during the comparison is often used as the starting state of probe mask, prior to applying transforms.  In somecase, the mask or segments need to be adjusted as the initial state. For example, in select cut frames, the mask reflects the removed frames.  However, these frames do not exist in the final video, thus the video segments record the set neigboring frames of the cut in the final video.
 
-In general, masks and segments are always in the dimensions, spatial and temporal, of the source, identifying on the source what was changed, removed, etc.  In operations that generate masks that cut, resize or otherwise changethese dimensions must be cast into the target media space.
+In general, masks and segments are always in the dimensions, spatial and temporal, of the source, identifying on the source what was changed, removed, etc.  In operations that generate masks that cut, resize or otherwise change these dimensions must be cast into the target media space.
 
 The signature for a preprocess function is as follows:
 
 ```
-def select_cut_frames_preprocess(mask, edge, target_size):
+def x_preprocess(mask, edge, target_size):
   """
   mask depends on the media type.
   target size is height and width.
@@ -261,13 +296,28 @@ def select_cut_frames_preprocess(mask, edge, target_size):
   """
 ```
 
+#### Example: Select Cut Frames
+
+Select Cut Frames recorded video segment does contain a HDF5 spatial mask.  The segment records the dropped/cut frames.  We overlayed on the next manipulations, the dropped frames do not exist.   Instead, the composite mask records the neighbor frames:
+
+ * start frame = one minus the cut start frame.
+ * end frame = one plus the cut start frame.
+
+#### Example: Seam Carving
+
+Seam Carving spatial masks represent seams removed from the basis image.  Since these pixels cannot be represented in the next manipulation, the neighbor pixels are represented in the mask.  This appears like two pixel wide lightning stricks across the image, vertically or horizontally.
+
+
+
+
+
 ## Operation
 
 This section describes the operation definition as it exists in the JSON file.
 
 * *category*: Like operations grouped together
 
-* *name*: Operation name that indicates the most common software terminology.  Understandably,  software designers to adopt other common terms.  For example, Liquid Rescale is often a form of seam carving.
+* *name*: Operation name that indicates the most common software terminology.  Understandably,  software designers adopt other common terms.  For example, Liquid Rescale is often a form of seam carving.
 
 * *mandatoryparameters*: Parameters required from the user. Can be conditioned on media type (video and image).
 
@@ -279,7 +329,7 @@ This section describes the operation definition as it exists in the JSON file.
 
     * donor:checkDonor
 
-* *analysisOperations* : A set of operations that analysis the source, target and difference masks to compile meta-data used for validation and probe generation, such as transform homographies, size changes, etc.
+* *analysisOperations*: A set of operations that analysis the source, target and difference masks to compile meta-data used for validation and probe generation, such as transform homographies, size changes, etc.
 
 * *maskTransformFunction*:  A dictionary keyed on media type defining probe transform functions as defined earlier
 
@@ -293,15 +343,18 @@ This section describes the operation definition as it exists in the JSON file.
 
 * *includeInMask*: A dictionary of keyed boolean values indicating if the mask associated with an operation is considered a testable mask to be included in a probe (e.g. blue link).  The key is the media type or 'default'--for all unspecified media types.  Example: { 'default': false, 'video':true}
 
-* *transitions*: The set of media type transitions supported by the operation.  Transitions are defined as source media type to target media type, separated by '.' (e.g. "video.video").
+* *transitions*: The set of media type transitions supported by the operation.  Transitions are defined as source media type to target media type, separated by '.' (e.g. "video.video").  
+
+    > IMPORTANT: Transitions are associated with file type.  
 
 * *qaList*: The list of prompts to the user for a probes associated with the operation in QA.
 
-* *donor_processor*: A factory function that creates a donor mask/segment. At this time there are three:  *maskgen.masks.donor_rules.image_interpolate*, *maskgen.masks.donor_rules.audio_donor* and *maskgen.masks.donor_rules.video_donor*.  Use the for their respective operations if the donor has a spatial or temporal constraints (e.g not the entire media as in a global operation such as Antiforensics).
+* *donor_processor*:  A processor is factory function that creates a donor mask/segment. At this time there are three:  *maskgen.masks.donor_rules.image_interpolate*, *maskgen.masks.donor_rules.audio_donor* and *maskgen.masks.donor_rules.video_donor*.  Use the for their respective operations if the donor has a spatial or temporal constraints (e.g not the entire media as in a global operation such as Antiforensics).
 
     Thus, not all operations that accept donors require a processor.  For those that use a global mask, it is not needed.
 
-* *generateMask*: describes to the type change information generated during the original and manipulated media during comparison and mask generation.  In some cases, mask generation is not required, only capturing media meta-data changes.  These type of operations are referred to as 'global' operations, affecting diffuse parts of the media type such as transforms. Options for the generate mask attribute include:
+* *generateMask*: Describes to the type change information generated during the original and manipulated media during comparison and mask generation.  In some cases, mask generation is not required, only capturing media meta-data changes.  These type of operations are referred to as 'global' operations, affecting diffuse parts of the media type such as transforms. Options for the generate mask attribute include:
+
     - meta : meta-data only
     - frames: capture meta- data on frames
     - all: include spatial masks
@@ -328,7 +381,7 @@ Parameters are defined optional and mandatory sections of the operation.  Each p
   - *frame \_or\_time* - picks time if audio, frame if video depending on the source file type
   - *string*
   - *listfromfile:\<filename\>* - a text file containing a list of possible entries
-  - *folder:\<location\> * - example folder:plugins/QTTables
+  - *folder:\<location\>* - example folder:plugins/QTTables
 - *values* - a list of values for list type.  Values are strings.
   - *_type_:values* - source file type specific values to override the default values; example "video:values".
 - *description* - description of the parameter
@@ -367,6 +420,7 @@ A rule function returns None if the link is valid, otherwise the function return
 
 - Severity as defined in maskgen.validation.core
 - Error String
+- Optional: A Fix function.
 
 Example: (Severity.WARNING, 'Starting node appears to be compressed\')
 
@@ -390,6 +444,18 @@ def checkCropSize(op, graph, frm, to):
             return (Severity.ERROR,'Crop cannot increase a dimension size of the image')
 ```
 
+### Fix Functions
+
+A fix function promises to fix the issue raised during validation with minimal or no additional input from the user.  A fix function signature is as follows.
+
+~~~
+def fixX(graph, start, end):
+"""
+@param graph: maskgen.image_graph.ImageGraph
+@param start: start node id (str) for erroneous edge
+@param end: end node id (str) for errorneous edge
+~~~
+
 ## HELP
 
 Help resources are maintained under *resources/help*.  Each operation has several PNG files that describe the operation.
@@ -412,7 +478,7 @@ loading plugins. The Setuptools entry point 'maskgen\_rules' permits the
 discovery of new rules installed outside the maskgen core module.
 
 ```
-entry_points= {'maskgen\_rule': [ 'ruleid = apackage.amodule:aRuleFunction']},
+entry_points= {'maskgen_rules': [ 'ruleid = apackage.amodule:aRuleFunction']},
 
 ```
 
