@@ -1550,6 +1550,35 @@ class TestVideoTools(TestSupport):
         self.assertEqual(20, video_tools.get_start_frame_from_segment(result_add[0]))
         self.assertEqual(39, video_tools.get_end_frame_from_segment(result_add[0]))
         self.assertEqual(1266, int(video_tools.get_end_time_from_segment(result_add[0])))
+
+        result_add, errors = video_tools.formMaskDiff(fileOne,
+                                                      modFiles[3],
+                                                      modFiles[3],
+                                                      'PasteFrames',
+                                                      startSegment=None,
+                                                      endSegment=None,
+                                                      analysis=analysis,
+                                                      alternateFunction=video_tools.pasteCompare,
+                                                      arguments={'add type': 'insert'})
+        self.assertEqual(1, len(result_add))
+        self.assertEqual(21, video_tools.get_start_frame_from_segment(result_add[0]))
+        self.assertEqual(39, video_tools.get_end_frame_from_segment(result_add[0]))
+        self.assertEqual(19, video_tools.get_frames_from_segment(result_add[0]))
+
+        result_add, errors = video_tools.formMaskDiff(fileOne,
+                                                      modFiles[3],
+                                                      modFiles[3],
+                                                      'PasteFrames',
+                                                      startSegment=None,
+                                                      endSegment="39",
+                                                      analysis=analysis,
+                                                      alternateFunction=video_tools.pasteCompare,
+                                                      arguments={'add type': 'insert'})
+        self.assertEqual(1, len(result_add))
+        self.assertEqual(21, video_tools.get_start_frame_from_segment(result_add[0]))
+        self.assertEqual(39, video_tools.get_end_frame_from_segment(result_add[0]))
+        self.assertEqual(19, video_tools.get_frames_from_segment(result_add[0]))
+
         result_crop, errors = video_tools.formMaskDiff(fileOne,
                                                        modFiles[1],
                                                        modFiles[1],
