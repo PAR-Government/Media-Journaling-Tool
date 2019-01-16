@@ -1427,7 +1427,7 @@ def addDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
     :return:
     """
     frame_count_diff = int(vidAnalysisComponents.vid_two.get(cv2api_delegate.prop_frame_count) - \
-       vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count)) - 1
+       vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_frame_count))
 
     if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_one.isOpened():
         end_time = vidAnalysisComponents.time_manager.milliNow

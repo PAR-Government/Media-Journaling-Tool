@@ -2110,7 +2110,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     kernel_size=int(getValue(arguments, 'kernel',3))
     smoothing = int(getValue(arguments, 'smoothing', 3))
     algorithm = getValue(arguments, 'filling', 'morphology')
-    aggregate = int(getValue(arguments, 'aggregate', 'max'))
+    aggregate = getValue(arguments, 'aggregate', 'max')
     min_threshold = int(getValue(arguments, 'minimum threshold', 9))
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal

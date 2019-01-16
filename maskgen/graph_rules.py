@@ -1286,11 +1286,11 @@ def checkDonorTimesMatch(op, graph, frm, to):
     if donor_id is None:
         return (Severity.ERROR, 'Missing Donor Edge')
     segments = edge['videomasks'] if 'videomasks' in edge else []
-    donor_segments = edge['videomasks'] if 'videomasks' in donor_edge else []
+    donor_segments = donor_edge['videomasks'] if 'videomasks' in donor_edge else []
     for segment in segments:
         for donor_segment in donor_segments:
             if get_type_of_segment(donor_segment) ==  get_type_of_segment(segment):
-                if abs(get_frames_from_segment(donor_segment) - get_frames_from_segment(segment)) > 1:
+                if abs(get_frames_from_segment(donor_segment) - get_frames_from_segment(segment)) > 0:
                     return (Severity.ERROR, 'Mismatch number of frames')
 
 def sizeChanged(op, graph, frm, to):
