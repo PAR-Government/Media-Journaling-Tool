@@ -81,7 +81,8 @@ def updateJournal(scModel):
          ('0.5.1105.665737a167', []),
          ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
          ('0.5.1210.5ca3e81782', [_fixCAS]),
-         ('0.6.0103.9d9b6e95f2', [])
+         ('0.6.0103.9d9b6e95f2', []),
+         ('0.6.0117.76365a8b60', [])
          ])
 
     def _ConformVersion(version):
