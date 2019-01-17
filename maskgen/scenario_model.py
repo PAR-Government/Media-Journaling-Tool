@@ -1694,10 +1694,12 @@ class ImageProjectModel:
                                                                        invert=invert,
                                                                        analysis_params=analysis_params)
 
-    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict()):
+    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict(), argument_params=dict()):
         mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
         edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
+        if len(argument_params) > 0:
+            arguments = argument_params
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
         mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
@@ -1705,6 +1707,7 @@ class ImageProjectModel:
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
+        analysis_params['arguments'] = arguments
         maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
         self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:

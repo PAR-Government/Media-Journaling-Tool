@@ -356,7 +356,7 @@ class MakeGenUI(Frame):
                     return
 
                 params = d.argvalues
-        errors = self.scModel.reproduceMask(analysis_params=params)
+        errors = self.scModel.reproduceMask(argument_params=params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
