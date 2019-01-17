@@ -307,6 +307,14 @@ class MakeGenUI(Frame):
         video_tools.fixVideoMasks(self.scModel.getGraph(),self.scModel.start,
                                   self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
 
+    def add_substitute_mask(self):
+        edge = self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end)
+        current_file = getValue(edge, 'substitute videomasks.videosegment', None)
+        dialog = FileCaptureDialog(self, 'Substitute Mask', self.scModel.get_dir(), current_file=current_file)
+        result = dialog.item.get()
+        if os.path.exists(result) and current_file != result and not dialog.cancelled:
+            self.scModel.addSubstituteMasks(self, result)
+
     def recomputeedgemask(self):
         analysis_params = {}
         if self.scModel.getEndType() == 'video':
@@ -1235,7 +1243,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
         self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
-        self.edgemenu.add_command(label="Fix It", command=self.fixit)
+        self.edgemenu.add_command(label="Substitute Mask", command=self.add_substitute_mask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
