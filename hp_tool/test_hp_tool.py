@@ -4,18 +4,26 @@ import unittest
 from hp.camera_handler import API_Camera_Handler
 from hp.hp_data import process
 from maskgen.maskgen_loader import MaskGenLoader
+from mock import Mock
+from hp import data_files
 
 
 class TestHPTool(unittest.TestCase):
-    settings = MaskGenLoader()
-
     def test_process_data(self):
-        # Get Camera
-        browser_url = self.settings.get_key("apiurl")
-        browser_token = self.settings.get_key("apitoken")
-        cam = API_Camera_Handler(self, browser_url, browser_token, "AS-ONE")
-        if len(cam.ids) != 1:
-            self.fail("No devices loaded.")
+        def get_key(key):
+            return 0 if key == "seq" else key
+
+        if os.path.isfile(os.path.join(os.path.expanduser("~"), ".maskgen2")):
+            self.settings = MaskGenLoader()
+            if "seq" not in self.settings:
+                self.settings = Mock()
+                self.settings.get_key = get_key
+        else:
+            self.settings = Mock()
+            self.settings.get_key = get_key
+
+        # Get a Camera (May be AS-ONE, May be sample, irrelevant for the test)
+        cam = API_Camera_Handler(self, None, None, "sample", localfile=data_files._DEVICES)
 
         # Attempt to Process Data with it's Information
         current_dir = os.path.dirname(__file__)
