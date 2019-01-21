@@ -279,7 +279,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                         if dar != 'N/A':
                             aspect_ratio = ',setdar=' + dar.replace(':', '/')
                         else:
-                            aspect_ratio = str(float(width)/float(height))
+                            aspect_ratio = ',setdar=' + str(float(width)/float(height))
                         filters += (',scale=' + video_size + aspect_ratio)
                 else:
                     if (abs(diff_rotation) == 90 and (source_height != width or source_width != height)) or \
@@ -289,7 +289,7 @@ def save_as_video(source, target, donor, matchcolor=False, apply_rotate=True, vi
                         if dar != 'N/A':
                             aspect_ratio = ',setdar=' + dar.replace(':', '/')
                         else:
-                            aspect_ratio = str(float(width)/float(height))
+                            aspect_ratio = ',setdar=' + str(float(width) / float(height))
                         filters += (',scale=' + video_size + aspect_ratio)
                     if rotation_filter is not None and  len(rotation_filter) > 0:
                         filters += (',' + rotation_filter)
