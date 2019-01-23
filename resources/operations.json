@@ -3982,6 +3982,41 @@
     },
     {
       "category": "Output",
+      "name": "OutputHEIC",
+      "mandatoryparameters": {
+        "Image Rotated": {
+          "type": "yesno",
+          "description": "Did the software rotate the image when removing the EXIF Orientation?"
+        },
+        "Quality": {
+          "type": "int[0:100]",
+          "description": "Compression quality- higher numbers are better quality, with 100 being lossless."
+        }
+      },
+      "rules": [
+        "checkHEICOutputType"
+      ],
+      "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.output_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "description": "Export the image in the HEIC format.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm that the file was transformed into a HEIC"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputNEIF",
       "mandatoryparameters": {
         "Image Rotated": {

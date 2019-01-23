@@ -1112,6 +1112,9 @@ def checkTifOutputType(op, graph, frm, to):
 
 def checkMp4OutputType(op, graph, frm, to):
     return _checkOutputType(graph, to, ['mp4', 'mpeg','mpg'])
+
+def checkHEICOutputType(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['heic', 'heif'])
     
 
 def checkForVideoRetainment(op, graph, frm, to):

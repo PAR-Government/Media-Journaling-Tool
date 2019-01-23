@@ -181,6 +181,18 @@ def wand_image_extractor(filename, isMask=False):
                         to_mask=isMask,
                         filename=filename)
 
+def alt_wand_image_extractor(filename, isMask=False):
+    from wand.image import Image as WandImage
+    from io import BytesIO
+
+    depthmap = {'8': 'uint8', '16':'uint16', '32':'uint32'}
+
+    with WandImage(filename=filename) as wand_img:
+       with wand_img.convert(format='bmp') as img:
+           img_buffer = np.asarray(bytearray(img.make_blob()), dtype=depthmap[str(img.depth)])
+           bytesio = BytesIO(img_buffer)
+           pilImage = Image.open(fp=bytesio)
+           return ImageWrapper(np.asarray(pilImage), mode=pilImage.mode, info=pilImage.info, to_mask=isMask, filename=filename)
 
 def pdf2_image_extractor(filename, isMask=False):
     import PyPDF2
@@ -292,6 +304,7 @@ file_registry = [('png', [readPNG]),
                  ('dng', [openRaw]),
                  ('arw', [openRaw]),
                  ('raf', [openRaw]),
+                 ('heic',[alt_wand_image_extractor]),
                  ('',    [defaultOpen, openTiff, proxyOpen])]
 file_write_registry = {}
 
