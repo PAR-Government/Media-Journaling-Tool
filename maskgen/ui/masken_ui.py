@@ -12,6 +12,7 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 
+from maskgen.SystemCheckTools import VersionChecker
 from botocore.exceptions import ClientError
 from maskgen.ui.graph_canvas import MaskGraphCanvas
 from maskgen.scenario_model import *
@@ -870,12 +871,16 @@ class MakeGenUI(Frame):
         self._setTitle()
 
     def systemcheck(self):
+        vc = VersionChecker()
         errors = [self.validator.test(),
                   ffmpeg_api.ffmpeg_tool_check(),
                   exif.toolCheck(),
                   selfVideoTest(),
                   check_graph_status(),
-                  self.notifiers.check_status()]
+                  self.notifiers.check_status(),
+                  vc.check_ffmpeg(),
+                  vc.check_opencv(),
+                  vc.check_dot()]
         error_count = 0
         for error in errors:
             if error is not None:
