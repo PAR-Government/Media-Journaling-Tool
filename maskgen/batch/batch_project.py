@@ -434,8 +434,11 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     elif spec_type == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        source = getNodeState(specification['source'], local_state)['node']
-        return postProcess(getGraphFromLocalState(local_state).get_image(source)[1])
+        node_state = getNodeState(specification['source'], local_state)
+        if 'node' not in node_state:
+            raise ValueError('Node {} did not generate a project node.  Try using type "input" in {}'.format(
+                specification['source'], specification_name))
+        return postProcess(getGraphFromLocalState(local_state).get_image(node_state['node'])[1])
     elif spec_type == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -1012,6 +1015,8 @@ class InputMaskPluginOperation(PluginOperation):
             if (self.logger.isEnabledFor(logging.DEBUG)):
                 self.logger.debug('Plugin {} returned  {}'.format(filter, str(extra_args)))
             if extra_args is not None and type(extra_args) == type({}):
+                if 'override_target' in extra_args:
+                    target = extra_args.pop('override_target')
                 for k, v in extra_args.iteritems():
                     # if k not in kwargs:
                     params[k] = v
