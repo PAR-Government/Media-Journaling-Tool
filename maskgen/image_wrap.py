@@ -181,7 +181,6 @@ def wand_image_extractor(filename, isMask=False):
                         to_mask=isMask,
                         filename=filename)
 
-
 def pdf2_image_extractor(filename, isMask=False):
     import PyPDF2
     import io
