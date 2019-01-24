@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-import data_files
+from data_files import _DEVICES, _LOCALDEVICES
 
 
 class API_Camera_Handler:
@@ -11,11 +11,13 @@ class API_Camera_Handler:
     :param token: browser login token
     :param given_id: camera local id to look up
     """
-    def __init__(self, master, url, token, given_id):
+    def __init__(self, master, url, token, given_id, localfile=(_LOCALDEVICES if os.path.exists(_LOCALDEVICES) else
+                 _DEVICES)):
         self.master = master
         self.url = url
         self.token = token
         self.given_id = given_id
+        self.localfile = localfile
         self.localIDs = []
         self.models_hp = []
         self.models_exif = []
@@ -92,8 +94,7 @@ class API_Camera_Handler:
             self.makes_exif = []
             self.sn_exif = []
             self.all = {}
-            devices_path = data_files._LOCALDEVICES if os.path.exists(data_files._LOCALDEVICES) else data_files._DEVICES
-            with open(devices_path) as j:
+            with open(self.localfile) as j:
                 device_data = json.load(j)
             for localID, data in device_data.iteritems():
                 self.all[localID] = data
@@ -129,7 +130,7 @@ class API_Camera_Handler:
                 else:
                     raise requests.HTTPError()
 
-            with open(data_files._LOCALDEVICES, 'w') as j:
+            with open(_LOCALDEVICES, 'w') as j:
                 json.dump(self.all, j, indent=4)
 
             self.source = 'remote'
