@@ -8,6 +8,14 @@ import sys
 
 
 class TestToolSet(TestSupport):
+
+
+    def test_diff(self):
+        args = {'smoothing': 3, 'mode':'bgr', 'aggregate':'max','filling':'morphology'}
+        a = np.random.randint(0,255,(255,255,3)).astype('int16')
+        b = np.random.randint(0, 255, (255, 255, 3)).astype('int16')
+        m = tool_set.mediatedCompare(a,b, arguments= args)
+
     def test_filetype(self):
         self.assertEquals(tool_set.fileType(self.locateFile('images/hat.jpg')), 'image')
         self.assertEquals(tool_set.fileType(self.locateFile('images/sample.json')), 'text')

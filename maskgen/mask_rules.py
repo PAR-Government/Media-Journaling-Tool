@@ -416,7 +416,7 @@ class BuildState:
                                                                          self.source,
                                                                          self.target,
                                                                          inverse=True,
-                                                                         expectedType=self.compositeMask.media_type))
+                                                                         expectedType=self.donorMask.media_type))
 
 def segmentToVideoSegment (segment):
     return VideoSegment(video_tools.get_rate_from_segment(segment),
