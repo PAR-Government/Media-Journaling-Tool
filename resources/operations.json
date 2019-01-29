@@ -4724,21 +4724,6 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "minimum threshold": {
-          "type": "int[9:255]",
-          "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
-        },
-        "aggregate": {
-          "type": "list",
-          "defaultvalue": "max",
-          "source": "video",
-          "values": [
-            "max",
-            "sum"
-          ],
-          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
       "donor_processor": "maskgen.masks.donor_rules.video_donor",
