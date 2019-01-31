@@ -257,7 +257,7 @@
           "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
-      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_sample_donor_processor",
       "rules": [
         "donor:checkForDonorAudio",
         "checkOverlay",
@@ -869,7 +869,7 @@
         "audio": "maskgen.mask_rules.replace_audio",
         "video": "maskgen.mask_rules.replace_audio"
       },
-      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_sample_donor_processor",
       "analysisOperations": [],
       "description": "Use the audio stream from a donor to replace the audio stream of the file.",
       "includeInMask": {
@@ -1833,13 +1833,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -1902,13 +1908,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -1983,13 +1995,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2129,13 +2147,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2553,13 +2577,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2939,13 +2969,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3021,13 +3057,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3072,13 +3114,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3193,13 +3241,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3705,13 +3759,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3771,13 +3831,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3840,13 +3906,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3908,13 +3980,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4696,12 +4774,18 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4730,13 +4814,19 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4825,12 +4915,18 @@
           "defaultvalue": "9",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
+        "gain": {
+          "type":"int[-20:20]",
+          "defaultvalue":0,
+          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "values": [
             "max",
-            "sum"
+            "sum",
+            "luminance"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }

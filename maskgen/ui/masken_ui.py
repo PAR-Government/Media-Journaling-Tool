@@ -12,6 +12,7 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 
+from maskgen.SystemCheckTools import VersionChecker
 from botocore.exceptions import ClientError
 from maskgen.ui.graph_canvas import MaskGraphCanvas
 from maskgen.scenario_model import *
@@ -309,25 +310,6 @@ class MakeGenUI(Frame):
 
     def recomputeedgemask(self):
         analysis_params = {}
-        if self.scModel.getEndType() == 'video':
-            d = ItemDescriptionCaptureDialog(self,
-                                             {
-                                                 'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='opencv')
-                                             },
-                                             {
-                                                 "video compare": {
-                                                     "type": "list",
-                                                     "source": "video",
-                                                     "values": [
-                                                         "opencv",
-                                                         "ffmpeg"
-                                                     ],
-                                                     "description": "FFMPEG is faster but less accurate"
-                                                 }
-                                             },
-                                             'Mask Reconstruct')
-            analysis_params = d.argvalues
         errors = self.scModel.reproduceMask(analysis_params=analysis_params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
@@ -870,12 +852,16 @@ class MakeGenUI(Frame):
         self._setTitle()
 
     def systemcheck(self):
+        vc = VersionChecker()
         errors = [self.validator.test(),
                   ffmpeg_api.ffmpeg_tool_check(),
                   exif.toolCheck(),
                   selfVideoTest(),
                   check_graph_status(),
-                  self.notifiers.check_status()]
+                  self.notifiers.check_status(),
+                  vc.check_ffmpeg(),
+                  vc.check_opencv(),
+                  vc.check_dot()]
         error_count = 0
         for error in errors:
             if error is not None:

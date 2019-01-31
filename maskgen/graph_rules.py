@@ -269,19 +269,7 @@ def checkMetaDate(op, graph, frm, to):
             if re.sub('[0-9a-zA-Z]','x',v[1]) != re.sub('[0-9a-zA-Z]','x',v[2]):
                 return (Severity.WARNING, 'Meta Data {} Date Format Changed: {}'.format(k, v[2]))
 
-def checkFrameTimes(op, graph, frm, to):
-    """
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type op: Operation
-     @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    edge = graph.get_edge(frm, to)
+def _checkTimesForEdge(edge):
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
     et = None
@@ -295,6 +283,29 @@ def checkFrameTimes(op, graph, frm, to):
     st = st if st is not None else (0, 1)
     if st[0] > et[0] or (st[0] == et[0] and st[1] > et[1] and st[1] > 0):
         return (Severity.ERROR,'Start Time occurs after End Time')
+
+def checkFrameTimes(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
+    edge = graph.get_edge(frm, to)
+    error = _checkTimesForEdge(edge)
+    if error is not None:
+        return error
+
+    pred = graph.predecessors(to)
+    if len(pred) > 1:
+        donor = [p for p in pred if p != frm][0]
+        edge = graph.get_edge(donor, to)
+        return _checkTimesForEdge(edge)
     return None
 
 def checkFrameRateChange_Strict(op, graph, frm, to):
@@ -564,19 +575,35 @@ def checkAudioLength_Loose(op, graph, frm, to):
     if floor(abs(difference)) != 0:
         return (Severity.ERROR, "Audio duration does not match")
 
-
+def _getSegment(filename, edge,media_types=['audio']):
+    from video_tools import getMaskSetForEntireVideoForTuples,FileMetaDataLocator
+    end_time_tuple = getMilliSecondsAndFrameCount(getValue(edge, 'arguments.End Time', "00:00:00"))
+    start_time_tuple = getMilliSecondsAndFrameCount(getValue(edge, 'arguments.Start Time', '00:00:00'))
+    return getMaskSetForEntireVideoForTuples(FileMetaDataLocator(filename),
+                                             start_time_tuple=start_time_tuple,
+                                             end_time_tuple=end_time_tuple if end_time_tuple[0] > 0 else None,
+                                             media_types=media_types)
 def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type', 'replace')
-    if addType in ['replace','insert']:
+    if addType in ['replace','insert','overlay']:
         from video_tools import get_duration
         from math import floor
         donor_id, donor_edge = getDonorEdge(graph, to)
         if donor_id == None:
             return None
+        edge_segments = getValue(edge, 'videomasks', [])
         donor_segments = getValue(donor_edge,'videomasks',[])
+
         extractor = MetaDataExtractor(graph)
         to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
+
+        user_segments = _getSegment(graph.get_image_path(to),edge)
+        if user_segments is not None:
+            user_duration = get_end_time_from_segment(user_segments[0]) - get_start_time_from_segment(user_segments[-1])
+        else:
+            user_duration = to_duration
+
         if len(donor_segments) > 1:
             return (Severity.ERROR, 'Expected only donor segment selected from audio')
         elif len(donor_segments) == 0:
@@ -584,8 +611,16 @@ def checkAudioLengthDonor(op, graph, frm, to):
         else:
             segment = donor_segments[0]
             donor_duration = get_end_time_from_segment(segment) - get_start_time_from_segment(segment)
-        if addType == 'replace' and floor(abs(donor_duration - to_duration)) > get_rate_from_segment(segment)/1000.0:
-            return (Severity.ERROR, "Audio duration does not match the Donor")
+        if addType in ['replace','overlay']:
+            if len(edge_segments) > 0:
+                # using max as sometimes, the amount detected is less than the expected donor.
+                # which means detectable change is less than donor change.
+                edge_duration = get_end_time_from_segment(edge_segments[-1]) - get_start_time_from_segment(edge_segments[0])
+            else:
+                edge_duration = to_duration
+            if floor(abs(donor_duration - edge_duration)) > get_rate_from_segment(segment)/1000.0:
+                if floor(abs(donor_duration - user_duration)) > get_rate_from_segment(segment)/1000.0:
+                    return (Severity.ERROR, "Audio duration does not match the Donor")
         elif addType == 'insert':
             from_duration = get_duration(extractor.getMetaDataLocator(frm), audio=True)
             if abs(to_duration - (from_duration + donor_duration)) > get_rate_from_segment(segment)/100.0:

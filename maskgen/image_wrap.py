@@ -574,17 +574,18 @@ class ImageWrapper:
             img_array = img_array * 256
             img_array = img_array.astype('uint8')
         if img_array.dtype == 'uint8' and self.mode == 'L':
-            if image_format == 'PDF' and self.mode != 'RGB':
+            if image_format == 'PDF':
                 self.convert('RGB').save(filename, **newargs)
             else:
                 Image.fromarray(img_array).save(filename, **newargs)
             return
         newargs.pop('format')
-        if image_format == 'PNG' and img_array.dtype == 'uint16':
-            write_png(filename, img_array)
-            # with open(filename, 'w') as f:
-            #    w = png.Writer(width=img_array.shape[1], height=img_array.shape[0], bitdepth=16)
-            #    w.write(f, img_array.reshape(-1, img_array.shape[1] * img_array.shape[2]).tolist())
+        if image_format == 'PNG':
+            if img_array.dtype == 'uint16':
+               write_png(filename, img_array)
+            elif self.mode not in ('RGB','RGBA','L','LA'):
+                img_array = ImageWrapper(img_array.astype('uint8')).convert('RGB').image_array
+                imsave(filename, img_array, **tiff_masssage_args(**newargs))
         elif image_format not in ['TIFF','TIF']:
             Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
         else:
@@ -614,9 +615,20 @@ class ImageWrapper:
             img_array = img_array[:, :, 0:4]
             return ImageWrapper(np.asarray(Image.fromarray(img_array, mode='RGBA').convert(convert_type_str)),
                                 mode=convert_type_str)
-        if img_array.dtype == 'uint8':
-            return ImageWrapper(np.asarray(Image.fromarray(img_array, mode=self.mode).convert(convert_type_str)),
-                                mode=convert_type_str)
+        try:
+            if img_array.dtype == 'uint8':
+                return ImageWrapper(np.asarray(Image.fromarray(img_array, mode=self.mode).convert(convert_type_str)),
+                                        mode=convert_type_str)
+        except:
+            logging.getLogger('maskgen').debug('Image convert does not support convert type')
+        if self.mode == 'BGR' and convert_type_str == 'RGB':
+            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_BGR2RGB), mode='RGB')
+        if self.mode == 'YUV' and convert_type_str == 'RGB':
+            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YUV2RGB), mode='RGB')
+        if self.mode == 'YCrCb' and convert_type_str == 'RGB':
+            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
+        if self.mode == 'YCbCr' and convert_type_str == 'RGB':
+            return ImageWrapper(cv2.cvtColor(img_array[:,:,[0,2,1]].astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
             return ImageWrapper(cv2.cvtColor(img_array, cv2.COLOR_RGB2RGBA), mode='RGBA')
         if self.mode == 'RGB' and convert_type_str == 'HSV':

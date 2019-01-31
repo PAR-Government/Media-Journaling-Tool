@@ -2107,28 +2107,41 @@ def morphologyCompare(img_one, img_two, arguments= {}):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, arguments={}):
+    gain = int(getValue(arguments, 'gain', 0))
     kernel_size=int(getValue(arguments, 'kernel',3))
+    weight = int(getValue(arguments, 'weight', 1.0))
     smoothing = int(getValue(arguments, 'smoothing', 3))
     algorithm = getValue(arguments, 'filling', 'morphology')
     aggregate = getValue(arguments, 'aggregate', 'max')
-    min_threshold = int(getValue(arguments, 'minimum threshold', 9))
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal
     # compute diff in 3 colors
-    diff = (np.abs(img_one - img_two)).astype('uint16')
-    if aggregate == 'max':
-        mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
-        bins=256
+    if aggregate == 'luminance':
+        min_threshold = int(getValue(arguments, 'minimum threshold', 3))
+        img_one = cv2.cvtColor(img_one.astype('uint8'), cv2.COLOR_BGR2YCrCb)
+        img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
+        mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
+        bins = 256
     else:
-        mask = np.sum(diff, 2)
-        bins=768
+        min_threshold = int(getValue(arguments, 'minimum threshold', 9))
+        diff = (np.abs(img_one - img_two)).astype('uint16')
+        if aggregate == 'max':
+            mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+            bins=256
+        elif aggregate == 'sum':
+            mask = np.sum(diff, 2)
+            bins=768
+        else:
+            mask = np.mean(diff, 2)
+            bins = 256
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
     hist = moving_average(hist,n=smoothing)  # smooth out the histogram
     minima = signal.argrelmin(hist, order=2)  # find local minima
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima[0][0])  # Use first minima
+        threshold = max(min_threshold,minima[0][0] + gain)  # Use first minima
 
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
@@ -2136,7 +2149,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     if algorithm == 'morphology':
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    else:
+    elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
@@ -3297,7 +3310,7 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences['vid_suffix']
+        t_suffix = getValue(preferences,'vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 

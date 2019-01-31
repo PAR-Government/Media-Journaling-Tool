@@ -3,8 +3,10 @@
 *.xml
 *.iml
 maskgen/Untitled.json
-maskgen.log.*
-*.mp4
-maskgen.log
-.idea/workspace.xml___jb_tmp___
-*.log
+maskgen.log*
+.idea/*
+dist/*
+hp_tool/dist/*
+hp_tool/build/*
+hp_tool/hptool.egg-info/*
+maskgen.egg-info/*

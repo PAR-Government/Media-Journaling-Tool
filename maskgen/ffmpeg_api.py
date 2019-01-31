@@ -8,7 +8,6 @@ import itertools
 from support import getValue
 
 
-
 def get_ffmpeg_tool():
     return os.getenv('MASKGEN_FFMPEGTOOL', 'ffmpeg');
 
