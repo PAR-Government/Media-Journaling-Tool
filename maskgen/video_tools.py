@@ -1922,24 +1922,44 @@ class AudioReader:
         self.pos = pos
 
     def getBlock(self,position, size):
-        return np.fromstring(self.buffer, 'Int16')[position*self.channels:(position+size)*self.channels]
+        """
+        :param position:
+        :param size:
+        :return: a sub block of the current buffer given its offset to position
+        """
+        position = position - self.block_pos
+        if position < 0:
+            raise ValueError('Referenced position prior to current block')
+        end = (position+size) * self.channels
+        return np.fromstring(self.buffer, 'Int16')[self.startchannel+position*self.channels:end:self.skipchannel]
+
+    def plot(self, a, b, pos, channel=0, sample=1000):
+        import matplotlib.pyplot as plt
+        a = a[pos + channel:pos + channel + sample:self.channels]
+        b = b[pos + channel:pos + channel + sample:self.channels]
+        Time = np.linspace(0, sample, num=sample / self.channels)
+        plt.figure(1)
+        plt.title('Signal Wave...')
+        plt.plot(Time, a, color="red")
+        plt.figure(2)
+        plt.plot(Time, b, color="green")
+        plt.show()
 
     def compareBlock(self, anotherReader, min_threshold=3):
+        """
+
+        :param anotherReader:
+        :param min_threshold:
+        :return: start frame in self that does not match the other
+        """
         a = np.fromstring(self.buffer, 'Int16')
         b = np.fromstring(anotherReader.buffer, 'Int16')
-        a = a[:min(len(a),len(b))]
-        b = b[:min(len(a),len(b))]
-        def plot(a,b,pos,channel=0, sample=1000):
-            import matplotlib.pyplot as plt
-            a = a[pos+channel:pos+channel+sample:self.channels]
-            b = b[pos+channel:pos+channel+sample:self.channels]
-            Time = np.linspace(0, sample, num=sample/self.channels)
-            plt.figure(1)
-            plt.title('Signal Wave...')
-            plt.plot(Time, a, color="red")
-            plt.figure(2)
-            plt.plot(Time, b, color="green")
-            plt.show()
+        # consider a is stereo, b is mono, so a.skipchannel = 2
+        # a is 16, b is 8 in length
+        # 8*2  = 16, so a length is the 16 with skip of 2.
+        # b is 8 (smaller than a*1=16), with a skipchannel of 1
+        a = a[self.startchannel:min(len(a),len(b)*self.skipchannel):self.skipchannel]
+        b = b[anotherReader.startchannel:min(len(a)*anotherReader.skipchannel,len(b)):anotherReader.skipchannel]
         diffs = a - b
         if np.all(diffs==0):
             return None
@@ -1952,20 +1972,37 @@ class AudioReader:
         base_start = positions[0][0]
         base_end = positions[0][-1]
         positions = np.where(abs(bychannel_sum[base_start:base_end])> min_threshold)
-        if len(positions) == 0 or len(positions[0]) == 0:
-            return
         new_base_start = base_start + positions[0][0]
         new_base_end = base_end+ positions[0][-1]
         return self.block_pos+new_base_start,self.block_pos+new_base_end
 
-    def findBlock(self, block, position, min_threshold=99999999):
+    def syncAtPosition(self, position):
+        if position < self.block_pos:
+            self.pos = self.block_pos
+        else:
+            while position>(self.block_pos+self.block):
+                self.nextBlock()
+            self.pos = position
+
+    def findBlock(self, block, position, min_threshold=99999999, residual=None):
+        """
+
+        :param block:
+        :param position:
+        :param min_threshold:
+        :return: the sample # of the begining of the where the block is found in self
+        """
         a = np.fromstring(self.buffer, 'Int16')
+        if residual is not None:
+            a = np.append(residual,a)
         position = position * self.channels
         l = len(block)
         best = min_threshold
         best_p = 0
-        while (position + l) < len(a):
-            diffs = a[position:position+l] - block
+        # if skip channel, then need more data
+        a_len = len(a)*self.skipchannel
+        while (position + l) < a_len:
+            diffs = a[self.startchannel+position:position+l:self.skipchannel] - block
             if np.all(diffs==0):
                 return position/self.channels
             s = sum(abs(diffs))
@@ -1973,18 +2010,37 @@ class AudioReader:
                 best = s
                 best_p = position
             position+=1
-        self.pos = self.block_pos + self.block
         if self.hasMore():
             self.nextBlock()
-            return self.findBlock(block,0,best)
+            # The block is from getBlock, which takes into account
+            # the skip and channel properties of the other stream.
+            # If the other is stereo and this is mono, then block is length mono
+            # channels/skipchannel = 1
+            # if this block is stereo and other mono, then block is length mono
+            # channels/skipchannel = 1
+            # if both are stereo, then block length is double the frames and then channels/skipchannel = 2
+            #
+            # residual is what we need to continue searching a step at a time
+            #  skipchannel != 1 in the case where this block is stereo and the other is mono
+            # which means we need double the length to fulfill the obligation of matching
+            factor = self.channels/self.skipchannel
+            return self.findBlock(block,self.pos-(l/factor),best,
+                                  residual=a[-(l*self.skipchannel):])
         return best_p/self.channels
 
     def getData(self):
+        """
+
+        :return: raw buffer string for one frame/smample
+        """
         position = self.pos - self.block_pos - 1
         return self.buffer[position * self.framesize + self.startchannel:position * self.framesize + self.framesize + self.startchannel:self.skipchannel]
 
-
     def getOrd(self):
+        """
+
+        :return: Ordinal for one frame/smample
+        """
         position = self.pos - self.block_pos - 1
         return sum([ord(c) for c in self.buffer[
                                         position * self.framesize + self.startchannel:position * self.framesize + self.framesize + self.startchannel:self.skipchannel]])
@@ -2094,6 +2150,7 @@ class AudioCompare:
         section = None
         while self.fone.hasMore() and self.ftwo.hasMore() > 0 and section is None:
             position = self.fone.compareBlock(self.ftwo)
+            # position is where the two streams begin to differ
             if position is not None:
                 self.time_manager.updateToNow(position[0] / float(framerateone))
                 start = position[0]
@@ -2174,6 +2231,7 @@ def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},ana
 
 def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
     """
+    Confirm fileTwo is sampled from fileOne
     :param fileOne:
     :param fileTwo:
     :param name_prefix:
@@ -2200,13 +2258,17 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
                          type='audio',
                          endtime= float(ftwo.count) / float(ftwo.framerate)*1000.0,
                          frames=ftwo.count)], []
+            # advance to the starting point of the sample
             while fone.hasMore():
                 fone.read()
                 time_manager.updateToNow(float(fone.pos) / float(fone.framerate)*1000.0)
                 if not time_manager.isBeforeTime():
                     break
+            #seed ftwo data
             if ftwo.hasMore():
                 ftwo.read()
+            # expect that the sample area matches, since ftwo is the sample
+            # users may have to 'backup the time' a little to find this point.
             while fone.hasMore():
                 diff = abs(fone.getOrd() - ftwo.getOrd())
                 if diff == 0:
@@ -2221,7 +2283,7 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
                     break
             if ftwo.hasMore():
                 startframe = time_manager.getExpectedStartFrameGiveRate(float(fone.framerate), defaultValue =1)
-                errors = ['Warning: Could not find sample in source media']
+                errors = ['Could not find sample in source media']
             else:
                 errors = []
             starttime = (startframe-1) / float(fone.framerate)*1000.0
@@ -2283,7 +2345,7 @@ def audioDelete(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
             mismatches = []
             while toRead > 0 and len(mismatches) == 0:
                 mismatches = [i for i in range(len(framestwo)) if framestwo[i] != framesone[i*skip+start]]
-                countone -=  toRead
+                countone -= toRead
                 counttwo -= toRead
                 toRead = min([2048, countone, counttwo])
                 framestwo = ftwo.readframes(toRead)

@@ -257,7 +257,7 @@
           "description": "Is audio recorded into the video from PC rather than a separate audio file?"
         }
       },
-      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_sample_donor_processor",
       "rules": [
         "donor:checkForDonorAudio",
         "checkOverlay",
@@ -869,7 +869,7 @@
         "audio": "maskgen.mask_rules.replace_audio",
         "video": "maskgen.mask_rules.replace_audio"
       },
-      "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
+      "donor_processor": "maskgen.masks.donor_rules.audio_sample_donor_processor",
       "analysisOperations": [],
       "description": "Use the audio stream from a donor to replace the audio stream of the file.",
       "includeInMask": {
