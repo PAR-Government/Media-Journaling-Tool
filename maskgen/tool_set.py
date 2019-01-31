@@ -3308,7 +3308,7 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences['vid_suffix']
+        t_suffix = getValue(preferences,'vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 

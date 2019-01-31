@@ -269,19 +269,7 @@ def checkMetaDate(op, graph, frm, to):
             if re.sub('[0-9a-zA-Z]','x',v[1]) != re.sub('[0-9a-zA-Z]','x',v[2]):
                 return (Severity.WARNING, 'Meta Data {} Date Format Changed: {}'.format(k, v[2]))
 
-def checkFrameTimes(op, graph, frm, to):
-    """
-    :param op:
-    :param graph:
-    :param frm:
-    :param to:
-    :return:
-    @type op: Operation
-     @type graph: ImageGraph
-    @type frm: str
-    @type to: str
-    """
-    edge = graph.get_edge(frm, to)
+def _checkTimesForEdge(edge):
     args = edge['arguments'] if 'arguments' in edge  else {}
     st = None
     et = None
@@ -295,6 +283,29 @@ def checkFrameTimes(op, graph, frm, to):
     st = st if st is not None else (0, 1)
     if st[0] > et[0] or (st[0] == et[0] and st[1] > et[1] and st[1] > 0):
         return (Severity.ERROR,'Start Time occurs after End Time')
+
+def checkFrameTimes(op, graph, frm, to):
+    """
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    @type op: Operation
+     @type graph: ImageGraph
+    @type frm: str
+    @type to: str
+    """
+    edge = graph.get_edge(frm, to)
+    error = _checkTimesForEdge(edge)
+    if error is not None:
+        return error
+
+    pred = graph.predecessors(to)
+    if len(pred) > 1:
+        donor = [p for p in pred if p != frm][0]
+        edge = graph.get_edge(donor, to)
+        return _checkTimesForEdge(edge)
     return None
 
 def checkFrameRateChange_Strict(op, graph, frm, to):

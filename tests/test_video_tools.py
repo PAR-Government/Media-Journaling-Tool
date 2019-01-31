@@ -293,16 +293,16 @@ class TestVideoTools(TestSupport):
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
         result = video_tools.get_frame_count('sample1_ffr.mov', (0, 21), None)
-        self.assertEqual(576, video_tools.get_frames_from_segment(result))
-        self.assertEqual(596, video_tools.get_end_frame_from_segment(result))
-        self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result))
+        self.assertEqual(575, video_tools.get_frames_from_segment(result))
+        self.assertEqual(595, video_tools.get_end_frame_from_segment(result))
+        self.assertEqual(59400.0, video_tools.get_end_time_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
         result = video_tools.get_frame_count('sample1_ffr.mov', (2010, 0), None)
-        self.assertEqual(576, video_tools.get_frames_from_segment(result))
-        self.assertEqual(596, video_tools.get_end_frame_from_segment(result))
-        self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result))
+        self.assertEqual(575, video_tools.get_frames_from_segment(result))
+        self.assertEqual(595, video_tools.get_end_frame_from_segment(result))
+        self.assertEqual(59400.0, video_tools.get_end_time_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
@@ -324,16 +324,16 @@ class TestVideoTools(TestSupport):
                                                       start_time='00:00:02.01:02')
         self._add_mask_files_to_kill(result)
         self.assertEqual(2200.0, round(video_tools.get_start_time_from_segment(result[0])))
-        self.assertEqual(59500.0, round(video_tools.get_end_time_from_segment(result[0])))
+        self.assertEqual(video_tools.get_end_frame_from_segment(result[0])*100- 100, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual(23, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(574, video_tools.get_frames_from_segment(result[0]))
+        self.assertEqual(573, video_tools.get_frames_from_segment(result[0]))
 
         result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_ffr.mov'),
                                                       start_time='00:00:02.01')
         self._add_mask_files_to_kill(result)
-        self.assertEqual(576, video_tools.get_frames_from_segment(result[0]))
-        self.assertEqual(596, video_tools.get_end_frame_from_segment(result[0]))
-        self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result[0]))
+        self.assertEqual(575, video_tools.get_frames_from_segment(result[0]))
+        self.assertEqual(595, video_tools.get_end_frame_from_segment(result[0]))
+        self.assertEqual(video_tools.get_end_frame_from_segment(result[0])*100- 100, video_tools.get_end_time_from_segment(result[0]))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result[0]))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result[0]))
 
@@ -352,25 +352,25 @@ class TestVideoTools(TestSupport):
         self._add_mask_files_to_kill(result)
         self.assertEqual(567.0, round(video_tools.get_start_time_from_segment(result[0])))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(44975.0, round(video_tools.get_end_time_from_segment(result[0])))
+        self.assertEqual(45000.0, round(video_tools.get_end_time_from_segment(result[0])/100)*100)
         self.assertEqual(1350, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(1350 - 21 + 1, video_tools.get_frames_from_segment(result[0]))
 
     def test_video_to_mask(self):
         from maskgen.tool_set import GrayFrameWriter, GrayBlockReader
-        w = GrayFrameWriter('test_source',10)
+        w = GrayFrameWriter('test_source',10, preferences={'vid_codec':'raw', 'vid_suffix':'avi'})
         m = np.zeros((1092,720,3),dtype='uint8');
-        m[100:200,100:200,1] = 255
+        m[100:200,100:200,0] = 255
         for i in range(180):
-            w.write(m, i/10.0)
+            w.write(m, i/10.0, i)
         w.close()
         self.addFileToRemove(w.filename)
         sf = w.filename
-        w = GrayFrameWriter('test',10)
+        w = GrayFrameWriter('test',10, preferences={'vid_codec':'raw', 'vid_suffix':'avi'})
         m = np.zeros((1092,720,3),dtype='uint8');
-        m[100:200,100:200,1] = 255
+        m[100:200,100:200,0] = 255
         for i in range(60):
-            w.write(m, i/10.0)
+            w.write(m, i/10.0, i)
         w.close()
         self.addFileToRemove(w.filename)
         masks = video_tools.videoMasksFromVid(w.filename,'test_mask')
@@ -631,7 +631,7 @@ class TestVideoTools(TestSupport):
             expect_mask = reader.read()
             if expect_mask is None:
                 break
-            self.assertTrue(np.all((test_mask.astype('int') - expect_mask.astype('int') >= 0)))
+            self.assertTrue(np.all((test_mask.astype('int') - 255-expect_mask.astype('int') <= 0)))
 
     def test_remove_intersection(self):
         setOne = []
@@ -1117,9 +1117,8 @@ class TestVideoTools(TestSupport):
         print(maskSet[0])
         print(audioSet[0])
         self.assertEqual(1, len(audioSet))
-        self.assertEqual(87053, video_tools.get_frames_from_segment(audioSet[0]))
-        self.assertEqual(441001, video_tools.get_start_frame_from_segment(audioSet[0]))
-        self.assertEqual(441001 + 87053 - 1, video_tools.get_end_frame_from_segment(audioSet[0]))
+        self.assertEqual(865, int(round(video_tools.get_frames_from_segment(audioSet[0]))/100))
+        self.assertEqual(44, int(video_tools.get_start_frame_from_segment(audioSet[0])/10000))
         self.assertEquals(video_tools.get_start_time_from_segment(audioSet[0]),
                           video_tools.get_start_time_from_segment(maskSet[0]))
         self.assertTrue(0.2 > abs(
@@ -1714,15 +1713,15 @@ class TestVideoTools(TestSupport):
 
         result, errors = video_tools.audioInsert('test_ta.0.0.wav', 'test_ta6.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
-        self.assertEqual(29, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(48, video_tools.get_end_frame_from_segment(result[0]))
+        self.assertEqual(28, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(40, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
 
         result, errors = video_tools.audioCompare('test_ta.0.0.wav', 'test_ta2.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
-        self.assertEqual(7, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(6, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(256, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
@@ -1731,6 +1730,7 @@ class TestVideoTools(TestSupport):
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1', VidTimeManager())
         self.assertEqual(1, len(result))
         self.assertEqual(6, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(47, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)

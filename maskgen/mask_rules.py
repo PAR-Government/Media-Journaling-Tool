@@ -803,7 +803,7 @@ def median_stacking(buildState):
         return CompositeImage(buildState.source,
                             buildState.target,
                             buildState.getVideoMetaExtractor().getNodeFileType(buildState.source),
-                              video_tools.inverse_intersection_for_mask(buildState.compositeMask,
+                              video_tools.inverse_intersection_for_mask(buildState.donorMask,
                                                                         getValue(buildState.edge, 'videomasks', [])))
 
 def rotate_transform(buildState):

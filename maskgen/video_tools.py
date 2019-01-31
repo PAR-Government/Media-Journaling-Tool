@@ -1591,8 +1591,10 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
     if len(maskSet) > 0 and len(audioMaskSetOne) > 0 and len(audioMaskSetTwo)>0:
         # audio was changed
         if get_frames_from_segment(audioMaskSetOne[0]) != get_frames_from_segment(audioMaskSetTwo[0]):
-            startframe = 1+int(get_start_time_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])/1000.0)
+            startframe = (get_start_frame_from_segment(maskSet[0])-1)/get_rate_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])
+            #int(get_start_time_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])/1000.0)
             realframediff = get_frames_from_segment(audioMaskSetOne[0]) - get_frames_from_segment(audioMaskSetTwo[0])
+            realtimediff = get_end_time_from_segment(audioMaskSetOne[0]) - get_end_time_from_segment(audioMaskSetTwo[0])
             endtime=get_start_time_from_segment(maskSet[0])+ realframediff*1000.0/get_rate_from_segment(audioMaskSetOne[0])
             maskSet.append(
                 create_segment(
@@ -1883,7 +1885,7 @@ def audioWrite(fileOne, amount):
 
 class AudioReader:
 
-    def __init__(self,filename, channel, block=8192):
+    def __init__(self,filename, channel, block=524288):
         import wave
         self.handle = wave.open(filename, 'rb')
         self.count = self.handle.getnframes()
@@ -1912,8 +1914,73 @@ class AudioReader:
         self.pos += 1
         return True
 
+    def nextBlock(self):
+        self.pos = self.block_pos = self.block_pos + self.block
+        self.buffer = self.handle.readframes(min(self.count - self.block_pos, self.block))
+
+    def advanceTo(self, pos):
+        self.pos = pos
+
+    def getBlock(self,position, size):
+        return np.fromstring(self.buffer, 'Int16')[position*self.channels:(position+size)*self.channels]
+
+    def compareBlock(self, anotherReader, min_threshold=3):
+        a = np.fromstring(self.buffer, 'Int16')
+        b = np.fromstring(anotherReader.buffer, 'Int16')
+        a = a[:min(len(a),len(b))]
+        b = b[:min(len(a),len(b))]
+        def plot(a,b,pos,channel=0, sample=1000):
+            import matplotlib.pyplot as plt
+            a = a[pos+channel:pos+channel+sample:self.channels]
+            b = b[pos+channel:pos+channel+sample:self.channels]
+            Time = np.linspace(0, sample, num=sample/self.channels)
+            plt.figure(1)
+            plt.title('Signal Wave...')
+            plt.plot(Time, a, color="red")
+            plt.figure(2)
+            plt.plot(Time, b, color="green")
+            plt.show()
+        diffs = a - b
+        if np.all(diffs==0):
+            return None
+        bychannel_sum = sum(
+            [diffs[i::self.channels] for i in range(self.channels)]) if self.channels > 1 else diffs
+        bychannel_avg = tool_set.moving_average(bychannel_sum/self.channels,32)
+        positions = np.where(abs(bychannel_avg) > min_threshold)
+        if len(positions) == 0 or len(positions[0]) == 0:
+            return
+        base_start = positions[0][0]
+        base_end = positions[0][-1]
+        positions = np.where(abs(bychannel_sum[base_start:base_end])> min_threshold)
+        if len(positions) == 0 or len(positions[0]) == 0:
+            return
+        new_base_start = base_start + positions[0][0]
+        new_base_end = base_end+ positions[0][-1]
+        return self.block_pos+new_base_start,self.block_pos+new_base_end
+
+    def findBlock(self, block, position, min_threshold=99999999):
+        a = np.fromstring(self.buffer, 'Int16')
+        position = position * self.channels
+        l = len(block)
+        best = min_threshold
+        best_p = 0
+        while (position + l) < len(a):
+            diffs = a[position:position+l] - block
+            if np.all(diffs==0):
+                return position/self.channels
+            s = sum(abs(diffs))
+            if s < best:
+                best = s
+                best_p = position
+            position+=1
+        self.pos = self.block_pos + self.block
+        if self.hasMore():
+            self.nextBlock()
+            return self.findBlock(block,0,best)
+        return best_p/self.channels
+
     def getData(self):
-        position = self.pos - self.block_pos  - 1
+        position = self.pos - self.block_pos - 1
         return self.buffer[position * self.framesize + self.startchannel:position * self.framesize + self.framesize + self.startchannel:self.skipchannel]
 
 
@@ -1962,22 +2029,20 @@ class AudioCompare:
         segment = None
         end = None
         while self.fone.hasMore() and self.ftwo.hasMore():
-            self.fone.read()
-            self.ftwo.read()
-            allone = self.fone.getOrd()
-            alltwo = self.ftwo.getOrd()
-            diff = abs(allone - alltwo)
-            self.time_manager.updateToNow(self.fone.pos / float(framerateone))
-            if diff > 1:
-                if segment is not None and end is not None and self.fone.pos - end >= framerateone:
+            position = self.fone.compareBlock(self.ftwo)
+            self.fone.nextBlock()
+            self.ftwo.nextBlock()
+            if position is not None:
+                self.time_manager.updateToNow(position[1] / float(framerateone))
+                if segment is not None and end is not None and position[0] - end >= framerateone:
                     update_segment(segment,
                                    endframe=end,
                                    endtime= float(end) / float(framerateone) * 1000.0)
                     sections.append(segment)
                     segment = None
-                end = self.fone.pos
+                end = position[1]
                 if segment is None:
-                    start = self.fone.pos
+                    start = position[0]
                     segment = create_segment(startframe=start,
                                starttime= float(start - 1) / float(framerateone) * 1000.0,
                                endframe= end,
@@ -2020,46 +2085,25 @@ class AudioCompare:
                         ]
         return sections, errors
 
-    def __findMatch(self,matches=8):
-        matchcount = 0
-        dataone = [self.fone.getOrd()]
-        while self.fone.hasMore() and matchcount < matches:
-            self.fone.read()
-            dataone.append(self.fone.getOrd())
-            matchcount+=1
-        totalmatches = matchcount
-        while self.ftwo.hasMore() > 0 and matchcount>0:
-            self.ftwo.read()
-            datatwo=self.ftwo.getOrd()
-            diff = abs(dataone[totalmatches-matchcount] - datatwo)
-            if diff == 0:
-                matchcount -= 1
-            else:
-                #while matchcount < matches:
-                #    self.fone.read()
-                matchcount = totalmatches
-
+    def __findMatch(self,position):
+        dataone = self.fone.getBlock(position, min(64,self.fone.count-position))
+        return self.ftwo.findBlock(dataone, position)
 
     def __insert(self):
         framerateone = self.fone.framerate
         section = None
-        while self.fone.hasMore()  and self.ftwo.hasMore() > 0 and section is None:
-            self.fone.read()
-            self.ftwo.read()
-            allone = self.fone.getOrd()
-            alltwo = self.ftwo.getOrd()
-            diff = abs(allone - alltwo)
-            self.time_manager.updateToNow(self.ftwo.pos / float(framerateone))
-            if diff > 1:
-                start = self.ftwo.pos
-                self.__findMatch()
-                end = self.ftwo.pos
-                section = create_segment(startframe= start,
-                           starttime=float(start - 1) / float(framerateone),
-                           endframe= end,
-                           endtime= float(end) / float(framerateone),
-                           rate=framerateone,
-                           type='audio')
+        while self.fone.hasMore() and self.ftwo.hasMore() > 0 and section is None:
+            position = self.fone.compareBlock(self.ftwo)
+            if position is not None:
+                self.time_manager.updateToNow(position[0] / float(framerateone))
+                start = position[0]
+                end = self.__findMatch(start)
+                section = create_segment(startframe=start,
+                                         starttime=float(start - 1) / float(framerateone),
+                                         endframe=end,
+                                         endtime=float(end) / float(framerateone),
+                                         rate=framerateone,
+                                         type='audio')
                 break
         if section is not None:
             return [section], []
@@ -2086,9 +2130,9 @@ class AudioCompare:
                 ftwo.close()
         if len(self.errorstwo) > 0:
             return list(), self.errorstwo
-        self.fone = AudioReader(self.fileOneAudio, self.channel, 8192)
+        self.fone = AudioReader(self.fileOneAudio, self.channel, 524288)
         try:
-            self.ftwo = AudioReader(self.fileTwoAudio,self.channel, 8192)
+            self.ftwo = AudioReader(self.fileTwoAudio,self.channel, 524288)
             self.fone.setskipchannel ( self.fone.width if self.fone.channels > self.ftwo.channels else 1 )
             self.ftwo.setskipchannel ( self.ftwo.width if self.fone.channels < self.ftwo.channels else 1 )
             if self.fone.framerate != self.ftwo.framerate or self.fone.width != self.ftwo.width:
@@ -3025,8 +3069,9 @@ def inverse_intersection_for_mask(mask, video_masks):
                             frame = cv2.resize(frame, (mask.shape[1],mask.shape[0]))
                         # frame  is black = NOT match, white = MATCH
                         # we want pixels in the MATCH REGION
-                        frame = 255 - ((255-mask) * (frame/255))
-                        writer.write(frame, frame_time, frame_count)
+                        # mask is white = match (videos are inverted!)
+                        m = mask>0
+                        writer.write(255 - (m * frame), frame_time, frame_count)
                     else:
                         break
                 update_segment(change,videosegment=writer.get_file_name())
@@ -3085,7 +3130,8 @@ def insertMask(video_masks,box, size):
     """
     from functools import partial
     def insertMaskWithBox(box,size,mask):
-        newRes = np.zeros(size).astype('uint8')
+        # white = unchanged
+        newRes = np.ones(size).astype('uint8')*255
         newRes[box[0]:box[2], box[1]:box[3]] = mask[0:(box[2] - box[0]), 0:(box[3] - box[1])]
         return newRes
     return _maskTransform(video_masks,partial(insertMaskWithBox,box,size))
