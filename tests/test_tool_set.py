@@ -237,5 +237,30 @@ class TestToolSet(TestSupport):
         self.assertFalse(len(tool_set.dateTimeStampCompare(v1, v2))==0)
         self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v3))==0)
 
+
+    def test_compare(self):
+        from maskgen import tool_set
+        wrapper1 = image_wrap.openImageFile(self.locateFile('/Users/ericrobertson/Downloads/foo1.png'))
+        wrapper2 = image_wrap.openImageFile(self.locateFile('/Users/ericrobertson/Downloads/foo2.png'))
+
+        result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'), wrapper2.to_array().astype('int16'))
+        image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_max.png')
+
+        result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'), wrapper2.to_array().astype('int16'),
+                                          arguments={'aggregate': 'luminance', 'minimum threshold': 3})
+        image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_lum.png')
+
+        result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'), wrapper2.to_array().astype('int16'),
+                                          arguments={'aggregate': 'luminance', 'minimum threshold': 3, "weight": 4})
+        image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_lum_4.png')
+
+        result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'), wrapper2.to_array().astype('int16'),
+                                          arguments={'aggregate': 'luminance', 'minimum threshold': 3, "weight": 1})
+        image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_lum_1.png')
+
+        result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'), wrapper2.to_array().astype('int16'),
+                                          arguments={'aggregate': 'luminance', 'minimum threshold': 9, "weight": 1})
+        image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_lum_1_mt_9.png')
+
 if __name__ == '__main__':
     unittest.main()

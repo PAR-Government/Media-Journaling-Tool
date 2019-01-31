@@ -1840,7 +1840,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -1915,7 +1915,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -2002,7 +2002,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -2154,7 +2154,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -2584,7 +2584,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -2976,7 +2976,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3064,7 +3064,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3121,7 +3121,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3248,7 +3248,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3766,7 +3766,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3838,7 +3838,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3913,7 +3913,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -3987,7 +3987,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -4781,7 +4781,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "values": [
             "max",
             "sum",
@@ -4821,7 +4821,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "source": "video",
           "values": [
             "max",
@@ -4922,7 +4922,7 @@
         },
         "aggregate": {
           "type": "list",
-          "defaultvalue": "max",
+          "defaultvalue": "luminance",
           "values": [
             "max",
             "sum",
