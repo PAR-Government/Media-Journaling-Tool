@@ -2107,22 +2107,24 @@ def morphologyCompare(img_one, img_two, arguments= {}):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, arguments={}):
-    gain = getValue(arguments, 'gain', 0)
+    gain = int(getValue(arguments, 'gain', 0))
     kernel_size=int(getValue(arguments, 'kernel',3))
+    weight = int(getValue(arguments, 'weight', 1.0))
     smoothing = int(getValue(arguments, 'smoothing', 3))
     algorithm = getValue(arguments, 'filling', 'morphology')
     aggregate = getValue(arguments, 'aggregate', 'max')
-    min_threshold = int(getValue(arguments, 'minimum threshold', 9))
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal
     # compute diff in 3 colors
     if aggregate == 'luminance':
+        min_threshold = int(getValue(arguments, 'minimum threshold', 3))
         img_one = cv2.cvtColor(img_one.astype('uint8'), cv2.COLOR_BGR2YCrCb)
         img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
-        mask = diff[:, :, 0]
+        mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
         bins = 256
     else:
+        min_threshold = int(getValue(arguments, 'minimum threshold', 9))
         diff = (np.abs(img_one - img_two)).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors

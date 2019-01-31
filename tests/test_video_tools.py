@@ -1655,15 +1655,124 @@ class TestVideoTools(TestSupport):
         self.assertTrue(meta_diff['stereo']['nb_frames'] == ('change', '2563', '2558'))
 
 
-    def xtest_intersection(self):
+    def test_audio_reader(self):
+        video_tools.audioWrite('test_tat.0.0.wav', 8192*1024)
+        self.filesToKill.append('test_tat.0.0.wav')
+        c1 = video_tools.AudioReader('test_tat.0.0.wav','all',block=8192)
+        block = c1.getBlock(10000, 128)
+        c1.close()
+        c1 = video_tools.AudioReader('test_tat.0.0.wav','all', block=8192)
+        position = c1.findBlock(block, 0)
+        self.assertIsNotNone(position)
+        self.assertEqual(10000,position[0])
+        c1.close()
+        block = block[1::2]
+        c1 = video_tools.AudioReader('test_tat.0.0.wav', 'right', block=8192)
+        position = c1.findBlock(block, 0)
+        self.assertIsNotNone(position)
+        self.assertEqual(10000, position[0])
+        c1.close()
+
+        video_tools.audioWrite('test_tat1.0.0.wav', 8192 * 10,channels=1)
+        self.filesToKill.append('test_tat1.0.0.wav')
+        c1 = video_tools.AudioReader('test_tat1.0.0.wav', 'all', block=8192)
+        block = c1.getBlock(10000, 128)
+        c1.close()
+        c1 = video_tools.AudioReader('test_tat1.0.0.wav', 'all', block=8192)
+        position = c1.findBlock(block, 0)
+        self.assertIsNotNone(position)
+        self.assertEqual(10000, position[0])
+        c1.close()
+
+
+        import wave
+        wf = wave.open('test_tat2.0.0.wav', 'wb')
+        wf.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
+        value = np.random.randint(-32767, 32767, 1024*1024, dtype=np.int16)
+        packed_value = value.tobytes()
+        wf.writeframesraw(packed_value)
+        wf.close()
+        self.filesToKill.append('test_tat2.0.0.wav')
+        wf = wave.open('test_tat3.0.0.wav', 'wb')
+        wf.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+        value1 = np.random.randint(-32767, 32767, 2*1024 * 1024, dtype=np.int16)
+        value1[0:40000:2] = value[0:20000]
+        value1[46000::2] = value[23000:]
+        packed_value = value1.tobytes()
+        wf.writeframesraw(packed_value)
+        wf.close()
+        self.filesToKill.append('test_tat3.0.0.wav')
+        c1 = video_tools.AudioReader('test_tat2.0.0.wav', 'all', block=8192)
+        c2 = video_tools.AudioReader('test_tat3.0.0.wav', 'left', block=8192)
+        self.assertIsNone(c1.compareBlock(c2, min_threshold=0))
+        c1.nextBlock()
+        c2.nextBlock()
+        c1.nextBlock()
+        c2.nextBlock()
+        self.assertEquals((20000,23000-1),c1.compareBlock(c2, min_threshold=0))
+        c1.close()
+        c2.close()
+
+        wf = wave.open('test_tat4.0.0.wav', 'wb')
+        wf.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+        value2 = np.random.randint(-32767, 32767, 2 * 1024 * 1024, dtype=np.int16)
+        value2[0:40000] = value1[0:40000]
+        value2[46000:] = value1[46000:]
+        packed_value = value2.tobytes()
+        wf.writeframesraw(packed_value)
+        wf.close()
+        c1 = video_tools.AudioReader('test_tat3.0.0.wav', 'all', block=8192)
+        c2 = video_tools.AudioReader('test_tat4.0.0.wav', 'all', block=8192)
+        self.assertIsNone(c1.compareBlock(c2, min_threshold=0))
+        c1.nextBlock()
+        c2.nextBlock()
+        c1.nextBlock()
+        c2.nextBlock()
+        self.assertEquals((20000, 23000 - 1), c1.compareBlock(c2, min_threshold=0))
+        c1.close()
+        c2.close()
+
+        c1 = video_tools.AudioReader('test_tat3.0.0.wav', 'right', block=8192)
+        c2 = video_tools.AudioReader('test_tat4.0.0.wav', 'right', block=8192)
+        self.assertIsNone(c1.compareBlock(c2, min_threshold=0))
+        c1.nextBlock()
+        c2.nextBlock()
+        c1.nextBlock()
+        c2.nextBlock()
+        self.assertEquals((20000, 23000 - 1), c1.compareBlock(c2, min_threshold=0))
+        c1.close()
+        c2.close()
+
+        wf = wave.open('test_tat5.0.0.wav', 'wb')
+        wf.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+        value3 = np.random.randint(-32767, 32767, 2 * 1024 * 1024, dtype=np.int16)
+        value3[0:40000:2] = value2[1:40000:2]
+        value3[46000::2] = value2[46001::2]
+        packed_value = value3.tobytes()
+        wf.writeframesraw(packed_value)
+        wf.close()
+        c1 = video_tools.AudioReader('test_tat4.0.0.wav', 'right', block=8192)
+        c2 = video_tools.AudioReader('test_tat5.0.0.wav', 'left', block=8192)
+        self.assertIsNone(c1.compareBlock(c2, min_threshold=0))
+        c1.nextBlock()
+        c2.nextBlock()
+        c1.nextBlock()
+        c2.nextBlock()
+        self.assertEquals((20000, 23000 - 1), c1.compareBlock(c2, min_threshold=0))
+        c1.close()
+        c2.close()
+
+
+
+    def test_intersection(self):
         amount = 30
         sets = []
         change = video_tools.create_segment(
             starttime=0,
             startframe=1,
             endtime=1000,
-            endframe=30,
-            frames=30,
+            endframe=amount,
+            frames=amount,
             rate=30,
             error=1.1,
             type='video')
@@ -1682,7 +1791,7 @@ class TestVideoTools(TestSupport):
         result = video_tools.dropFramesFromMask([video_tools.create_segment(**{
             'startframe': 90,
             'starttime': 3000,
-            'endframe': 117,
+            'endframe': 100,
             'endtime': 4000
         })], sets)
         self._add_mask_files_to_kill(result)
@@ -1690,10 +1799,10 @@ class TestVideoTools(TestSupport):
         self.assertEqual(15, video_tools.get_frames_from_segment(result[1]))
         self.assertEqual(75, video_tools.get_start_frame_from_segment(result[1]))
         self.assertEqual(89, video_tools.get_end_frame_from_segment(result[1]))
-        self.assertEqual(96, video_tools.get_start_frame_from_segment(result[2]))
-        self.assertEqual(122, video_tools.get_end_frame_from_segment(result[2]))
+        self.assertEqual(90, video_tools.get_start_frame_from_segment(result[2]))
+        self.assertEqual(93, video_tools.get_end_frame_from_segment(result[2]))
         self.assertEqual(1.1, video_tools.get_error_from_segment(result[0]))
-        self.assertEqual(1.3, video_tools.get_error_from_segment(result[2]))
+        self.assertEqual(1.2, video_tools.get_error_from_segment(result[2]))
         self.assertEqual(1.2, video_tools.get_error_from_segment(result[1]))
 
     def testAudio(self):
