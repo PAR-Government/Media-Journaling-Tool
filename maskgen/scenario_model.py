@@ -1952,6 +1952,7 @@ class ImageProjectModel:
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                           'selectmasks.mask': '',
                                           'videomasks.videosegment': '',
+                                          'substitute subsitute': '',
                                           'substitute videomasks.videosegment': ''},
                            nodeFilePaths={'donors.*': ''},
                            username=username if username is not None else self.username,
