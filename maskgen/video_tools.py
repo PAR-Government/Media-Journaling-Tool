@@ -1884,13 +1884,26 @@ def audioWrite(fileOne, amount, channels=2, block=8192):
 
 class AudioReader:
 
+
+    """
+    Tool to assist reading and comparing audio streams.
+    The audio streams may be mixed mono/stereo and streams could be swapped, comparing
+    left from to right on the other.
+    """
+
     def __init__(self,filename, channel, block=524288):
+        """
+
+        :param filename:
+        :param channel: left,right,both,all,stereo (the last three mean the same thing!)
+        :param block: how much to read and compare at one time in terms of samples!
+        """
         import wave
         self.handle = wave.open(filename, 'rb')
         self.count = self.handle.getnframes()
         self.channels = self.handle.getnchannels()
         self.width = self.handle.getsampwidth()
-        self.skipchannel = self.width if channel.lower() in ['left','right'] and self.channels > 1 else 1
+        self.skipchannel = self.channels if channel.lower() in ['left','right'] and self.channels > 1 else 1
         self.startchannel = 1 if channel == 'right' and self.channels > 1 else 0
         self.channel = channel
         self.framesize = self.width * self.channels
@@ -1901,10 +1914,21 @@ class AudioReader:
         self.framerate = self.handle.getframerate()
 
     def setskipchannel(self, skipchannel):
-        self.skipchannel = skipchannel
+        """
+        Set based on other reader.
+        If other reader is 'mono'  and this is sterio left, for example,
+        then skip a channel.
+        :param skipchannel:
+        :return:
+        """
+        self.skipchannel = self.channels if skipchannel else 1
         self.startchannel = 1 if self.channel == 'right' and self.skipchannel > 1 else 0
 
     def read(self):
+        """
+        Advance sample pointer, read if necessary
+        :return:
+        """
         if self.pos >= self.count:
             return False
         if self.pos == self.block_pos + self.block:
@@ -1914,22 +1938,36 @@ class AudioReader:
         return True
 
     def nextBlock(self):
+        """
+        Read entire next block
+        :return:
+        """
         self.pos = self.block_pos = self.block_pos + self.block
+        if self.pos > self.count:
+            self.pos = self.count - 1
+            return False
         self.buffer = self.handle.readframes(min(self.count - self.block_pos, self.block))
+        return True
 
     def getBlock(self,position, size):
         """
+        Get a block.  Cannot go backwards. The block read must be at or ahead of the current position
         :param position:
         :param size:
         :return: a sub block of the current buffer given its offset to position
         """
-        position = position - self.block_pos
-        if position < 0:
+        if position - self.block_pos < 0:
             raise ValueError('Referenced position prior to current block')
         while position > (self.block_pos + self.block):
             self.nextBlock()
         start = position - self.block_pos
         end = (start+size) * self.channels
+        buffer = np.fromstring(self.buffer, 'Int16')
+        while end > buffer.shape[0]:
+            if self.nextBlock():
+                buffer = np.append (buffer,np.fromstring(self.buffer, 'Int16'))
+            else:
+                break
         return np.fromstring(self.buffer, 'Int16')[self.startchannel+start*self.channels:end:self.skipchannel]
 
     def plot(self, a, b, pos, channel=0, sample=1000):
@@ -1944,7 +1982,8 @@ class AudioReader:
         plt.plot(Time, b, color="green")
         plt.show()
 
-    def compareBlock(self, anotherReader, min_threshold=3, smooth=32):
+
+    def compareToOtherReader(self, anotherReader, min_threshold=3, smooth=32):
         """
 
         :param anotherReader:
@@ -1976,12 +2015,38 @@ class AudioReader:
         return self.block_pos+new_base_start,self.block_pos+new_base_end
 
     def syncAtPosition(self, position):
+        """
+        Advance to position.
+        Read blocks when needed.
+        Do not go backwards behind the current block.
+        :param position:
+        :return:
+        """
         if position < self.block_pos:
             self.pos = self.block_pos
         else:
             while position>(self.block_pos+self.block):
                 self.nextBlock()
             self.pos = position
+
+    def compareBlock(self, position, block,smooth=8):
+        """
+        Compare the provided block to a bloack at position.
+        :param position:
+        :param block:
+        :param smooth:
+        :return:
+        """
+        # if skipchannel, then comparing mono to mono
+        l = len(block) * self.skipchannel
+        my_block = self.getBlock(position, l)
+        if len(my_block) < l:
+            return -1
+        diffs = my_block[self.startchannel:l:self.skipchannel] - block
+        bychannel_sum = sum(
+            [diffs[i::self.channels] for i in range(self.channels)]) if self.skipchannel == 1 else diffs
+        bychannel_avg = tool_set.moving_average(bychannel_sum / self.channels, smooth)
+        return np.sum(abs(bychannel_avg))
 
     def findBlock(self, block, position, min_threshold=99999999, residual=None):
         """
@@ -2088,7 +2153,7 @@ class AudioCompare:
         segment = None
         end = None
         while self.fone.hasMore() and self.ftwo.hasMore():
-            position = self.fone.compareBlock(self.ftwo)
+            position = self.fone.compareToOtherReader(self.ftwo)
             self.fone.nextBlock()
             self.ftwo.nextBlock()
             if position is not None:
@@ -2152,7 +2217,7 @@ class AudioCompare:
         framerateone = self.fone.framerate
         section = None
         while self.fone.hasMore() and self.ftwo.hasMore() > 0 and section is None:
-            position = self.fone.compareBlock(self.ftwo)
+            position = self.fone.compareToOtherReader(self.ftwo)
             # position is where the two streams begin to differ
             if position is not None:
                 self.time_manager.updateToNow(position[0] / float(framerateone))
@@ -2195,8 +2260,8 @@ class AudioCompare:
         self.fone = AudioReader(self.fileOneAudio, self.channel, 524288)
         try:
             self.ftwo = AudioReader(self.fileTwoAudio,self.channel, 524288)
-            self.fone.setskipchannel ( self.fone.width if self.fone.channels > self.ftwo.channels else 1 )
-            self.ftwo.setskipchannel ( self.ftwo.width if self.fone.channels < self.ftwo.channels else 1 )
+            self.fone.setskipchannel ( self.fone.channels > self.ftwo.channels )
+            self.ftwo.setskipchannel ( self.fone.channels < self.ftwo.channels )
             if self.fone.framerate != self.ftwo.framerate or self.fone.width != self.ftwo.width:
                 self.time_manager.updateToNow(float(self.fone.count) / float(self.fone.framerate))
                 startframe = self.time_manager.getExpectedStartFrameGiveRate(self.ftwo.framerate, defaultValue=1)
@@ -2251,8 +2316,8 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
     fone = AudioReader(fileOneAudio, channel)
     try:
         ftwo = AudioReader(fileTwoAudio,channel='all')
-        fone.setskipchannel(fone.width if fone.channels > ftwo.channels else 1)
-        ftwo.setskipchannel(ftwo.width if fone.channels < ftwo.channels else 1)
+        fone.setskipchannel( fone.channels > ftwo.channels)
+        ftwo.setskipchannel( fone.channels < ftwo.channels)
         try:
             if fone.framerate != ftwo.framerate or fone.width != ftwo.width:
                 time_manager.updateToNow(float(ftwo.count) / float(ftwo.framerate))
@@ -2263,42 +2328,27 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
                          type='audio',
                          endtime= float(ftwo.count) / float(ftwo.framerate)*1000.0,
                          frames=ftwo.count)], []
-            # advance to the starting point of the sample
-            while fone.hasMore():
-                fone.read()
-                time_manager.updateToNow(float(fone.pos) / float(fone.framerate)*1000.0)
-                if not time_manager.isBeforeTime():
-                    break
-            #seed ftwo data
-            if ftwo.hasMore():
-                ftwo.read()
-            # expect that the sample area matches, since ftwo is the sample
-            # users may have to 'backup the time' a little to find this point.
-            while fone.hasMore():
-                diff = abs(fone.getOrd() - ftwo.getOrd())
-                if diff == 0:
-                    break
-                fone.read()
-            startframe = fone.pos - 1
-            while fone.hasMore() and ftwo.hasMore():
-                fone.read()
-                ftwo.read()
-                diff = abs(fone.getOrd() - ftwo.getOrd())
-                if diff != 0:
-                    break
-            if ftwo.hasMore():
-                startframe = time_manager.getExpectedStartFrameGiveRate(float(fone.framerate), defaultValue =1)
-                errors = ['Could not find sample in source media']
-            else:
-                errors = []
+            startframe = int(time_manager.getExpectedStartFrameGiveRate(fone.framerate, defaultValue=1))
+            fone.syncAtPosition(startframe)
+            block_two = ftwo.getBlock(0, min(ftwo.count,262144))
+            diff = fone.compareBlock(startframe, block_two)
+            errors = []
+            if diff != 0:
+              # try from the beginning of the block
+              position, diff = fone.findBlock(block_two, fone.block_pos)
+              if diff != 0:
+                    errors = ['Could not find sample in source media']
+              else:
+                    startframe= position
+            endframe = startframe + ftwo.count - 1
             starttime = (startframe-1) / float(fone.framerate)*1000.0
             return [create_segment(
                      startframe= startframe,
                      starttime= starttime,
                      rate= fone.framerate,
-                     endframe= startframe + ftwo.count- 1,
+                     endframe= endframe,
                      type= 'audio',
-                     endtime= float(startframe + ftwo.count) / float(fone.framerate)*1000.0,
+                     endtime= float(endframe) / float(fone.framerate)*1000.0,
                      frames= ftwo.count)], errors
         finally:
             ftwo.close()
