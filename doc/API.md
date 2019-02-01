@@ -1,7 +1,51 @@
+# Logging
+
+The tool logs everything using python's logger.  The default setup uses command line and the maskgen.log file.  The file is rotating over each day.  The logger is registered as 'maskgen'.  
+
+*To override this logger settings, perform the override after import maskgen.*
+
+# Journal
+
+## Create a Journal
+
+A journal can be created in a directory, preloading all image files in the journal.
+
+`from maskgen.scenario_model import createProject`
+
+```
+def createProject(path,
+                  notify=None,
+                  base=None,
+                  name=None,
+                  suffixes=[],
+                  tool=None,
+                  username=None,
+                  organization=None,
+                  preferences={}):
+    """
+    :param path: directory name or JSON file
+    :param notify: function pointer receiving the image (node) id and the event type
+    :param base:  image name
+    :param username: the username of the person creating the journal
+    :param suffixes: limit the images to load by suffixes
+    :param organization: the organization of the person creating the journal
+    :param preferences: attributes attached to each node loaded in the creation process
+    :return:  a tuple=> (a project if found or created, boolean indicator)
+              Boolean indicator =  True if created.
+              Boolean indicator =  False if found.
+              The expected return value is None if a project cannot be found or created.
+     @type path: str
+     @type notify: (str, str) -> None
+     @rtype (ImageProjectModel, bool)
+    """
+```
+
+This utility function creates an ImageProjectModel given a directory.  If the directory contains a JSON file, then that file is used as the project file.  Otherwise, the directory is inspected for images. All images found in the directory are imported into the project.  If the 'base' parameter is provided, the project is named based on that image name.  If the 'base' parameter is not provided, the project name is set based on finding the first image in the list of found images, sorted in lexicographic order, starting with JPG, then PNG and then TIFF.
+
 ## Open and Interrogate a Journal
 
 ~~~
-from maskgen.scenario_model import ImageProjectModel, Description
+from maskgen.scenario_model import ImageProjectModel, Modification
 ~~~
 
 ImageProjectModels serve has high level access to projects.  The ImageProjectModel also works with other components by retaining start and end node ids of a 'selected' node.   Some operations are specific to the nodes selected and are listed at the bottom of this section.
@@ -12,63 +56,67 @@ Project can be the path to the JSON file, the directory of the journal or the tg
 scModel = maskgen.scenario_model.ImageProjectModel(project)
 ~~~
 
+### Auto Updates
+
+Old journals are automatically upated upon opening with an ImageProjectModel.  This update can take some time.  Once the update is made and the ImageProjectModel saved (explicit calling of the save function), then updates are permanent.    The log file details each update applied.
+
 #### Validate
 
-scModel.validate(external=False)
+`scModel.validate(external=False)`
 
 > To Validate against external validators, set external to true.
 
 #### Obtain list of final node IDs
 
-scModel. finalNodes()
+`scModel. finalNodes()`
 
 ####Get Project Data Item
 
-scModel. getProjectData(name, default_value = None)
+`scModel. getProjectData(name, default_value = None)`
 
 #### Set Project Data Item
 
-scModel. setProjectData(name, value = None)
+`scModel. setProjectData(name, value = None)`
 
 #### Get Version
 
-scModel. getVersion()
+`scModel. getVersion()`
 
 #### Get Underlying ImageGraph
 
-scModel. getGraph()
+`scModel. getGraph()`
 
-####Find base node for given node id
+####Find base node id for given node id
 
-scModel.getBaseNode(node)
+`scModel.getBaseNode(node)`
 
-####Find base node for given node id
+####Is edge a donor edge
 
-scModel.isDonorEdge(start, end)
+`scModel.isDonorEdge(start, end)`
 
 ####Get the name of the project
 
-scModel.getName()
+`scModel.getName()`
 
 ####Get the list of based node ids (typical only one)
 
-scModel.baseNodes()
+`scModel.baseNodes()`
 
 ####Get successor node ids to node
 
-scModel.getGraph().successors(nodeid)
+`scModel.getGraph().successors(nodeid)`
 
 #### Get predecessor node ids to node
 
-scModel.getGraph().predecessor(nodeid)
+`scModel.getGraph().predecessor(nodeid)`
 
 ####Returns the Description object describing the link
 
-description = scModel. getModificationForEdge(start,end)
+`description = scModel. getModificationForEdge(start,end)`
 
 ####Obtain all descriptions for all links
 
-scModel.getDescriptions()
+`scModel.getDescriptions()`
 
 **Description**:
 
@@ -92,13 +140,15 @@ scModel.getDescriptions()
 Video Mask Set consists of a list of dictionaries, each describing a
 single segment. See Compare Parameters.
 
-#### Open Image for Node
+#### Open Image for File Name
 
-scModel.openImage(node id)
+`scModel.openImage(image path name)`
+
+Returns tuple: (image path name, ImageWrapper)
 
 ####Get the representative Image and Media File Name
 
-scModel.getImageAndName(node id, arguments={})
+`scModel.getImageAndName(node id, arguments={})`
 
 Arguments can be used to :
 
@@ -113,27 +163,41 @@ Returns a tuple:
 
 #### Find Edges given Operation Name
 
-scModel.findEdgesByOperationName(operationName)  -- returns the list of edge dictionaries
+`scModel.findEdgesByOperationName(operationName)`
+
+Returns the list of edge dictionaries.
 
 #### Export to File Archive
 
-scModel.export(directory, redacted=[]) -- can redact node and link/edge attributes to keep from archive.  The redact list is a set list of attribute path names.
+`scModel.export(directory, redacted=[])`
+
+Allows node and attributes to be  redacted from archive.  The redacted list is a set list of attribute path names.
 
 ####Get Semantic Groups for Link
 
-scModel. getSemanticGroups(start node id,end node id)
+`scModel. getSemanticGroups(start node id,end node id)`
 
 #### Set Semantic Groups for Link
 
-scModel. setSemanticGroups(start node id,end node id, semantic groups list)
+`scModel. setSemanticGroups(start node id,end node id, semantic groups list)`
 
-### Start and End node Selected Operation
+### Start and End Node Selected Operation
 
-The *select* function takes a tuple: (start,end) to select a link. The *selectImage* function sets the *start*, not the end, signaling a starting point for subsequent connections and extension points. If *end* is select, then *end* is the connection/extension point.
+`scModel.selectNode(nodeid)`
+
+`scModel.selectEdge(start node id, end node id)`
+
+The *select* function takes a tuple: (start,end) to select a link. The *selectNode* function sets the *start*, not the end, signaling a starting point for subsequent connections and extension points. If *end* is select, then *end* is the connection/extension point.
+
+`scModel.getCurrentNode()` 
+
+The current node is the node dictionary.    To obtain the modification for the selected, use:
+
+scModel.getCurrentEdgeModification()
 
 ### Extend a selected node via Plugin
 
-A plugin runs a manipulation on the select node's media to produce a new media and associated node along with the link between the select node and the new node. The links arguments include provide arguments and arguments returned back from the plugin.
+A plugin runs a manipulation on the select node's media to produce a new media and associated node along with the link between the *select* node (see selectNode or selectEdge) and the new node. The links arguments include provide arguments and arguments returned back from the plugin.
 
 The filename of the resulting media contains the prefix of the input media file name plus an addtional numeric index--from a incremental integer maintained in the project.
 
@@ -154,19 +218,21 @@ def mediaFromPlugin(filter, software=None, passthru=False, **kwargs):
 
 > Always uses selected *start* node.
 
-scModel.getProxy()
+`scModel.getProxy()`
 
-scModel.setProxy(filename):
+`scModel.setProxy(filename)`
+
+Proxy files are PNG files that are referenced as the image to use in the tool since the raw image format may not be readable.
 
 #### Current Image
 
-scModel.currentImage()
+`scModel.currentImage()`
 
-Calles *self.getImageAndName* from the select media image.
+Calls *self.getImageAndName* from the select media image.
 
 #### Remove Select Component (Node or Link)
 
-scModel.remove()
+`scModel.remove()`
 
 #### Connect to Node
 

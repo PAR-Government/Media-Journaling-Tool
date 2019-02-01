@@ -677,7 +677,7 @@ class MakeGenUI(Frame):
                 ok = True
                 end = self.scModel.nextId()
                 # reset back to the start image
-                self.scModel.selectImage(start)
+                self.scModel.selectNode(start)
             # select the last one completed
             self.scModel.select((start, end))
             self.drawState()
@@ -955,7 +955,7 @@ class MakeGenUI(Frame):
     def removegroup(self):
         if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
             for name in self.groupselection:
-                self.scModel.selectImage(name)
+                self.scModel.selectNode(name)
                 self.remove()
 
     def select(self):
@@ -1012,7 +1012,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, self.scModel.getEndType(),
                                      im, os.path.split(filename)[1],
-                                     description=self.scModel.getDescription())
+                                     description=self.scModel.getCurrentEdgeModification())
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.update_edge(d.description)
@@ -1023,7 +1023,7 @@ class MakeGenUI(Frame):
         if (im is None):
             return
         d = DescriptionViewDialog(self, self.scModel, os.path.split(filename)[1],
-                                  description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
+                                  description=self.scModel.getCurrentEdgeModification(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
         d = CompositeCaptureDialog(self,self.scModel)

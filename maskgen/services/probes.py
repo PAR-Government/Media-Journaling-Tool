@@ -420,7 +420,7 @@ class CompositeExtender:
         if self.prior_probes is None:
             self.prior_probes = self.constructPathProbes(start=self.scModel.start, constructDonors=False)
 
-        if self.scModel.getDescription() is None or not self.prior_probes:
+        if self.scModel.getCurrentEdgeModification() is None or not self.prior_probes:
             probes = self.prior_probes
         else:
             probes = self.extendCompositeByOne(self.prior_probes,

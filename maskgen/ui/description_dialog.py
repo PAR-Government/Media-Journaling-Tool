@@ -1634,7 +1634,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.parent = parent
         self.scModel = scModel
         name = scModel.start + ' to ' + scModel.end
-        self.modification = scModel.getDescription()
+        self.modification = scModel.getCurrentEdgeModification()
         self.selectMasks = self.scModel.getSelectMasks()
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 

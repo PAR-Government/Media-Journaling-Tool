@@ -458,7 +458,7 @@ class MaskGraphCanvas(tk.Canvas):
         e = None
         if (item is not None):
             if self.itemToNodeIds.has_key(item):
-                self.scModel.selectImage(self.itemToNodeIds[item])
+                self.scModel.selectNode(self.itemToNodeIds[item])
             else:
                 e = self.itemToEdgeIds[item]
                 if e is not None:
@@ -475,7 +475,7 @@ class MaskGraphCanvas(tk.Canvas):
         self._unmark()
         item = self._get_id(event)
         if (item is not None):
-            self.scModel.selectImage(self.itemToNodeIds[item])
+            self.scModel.selectNode(self.itemToNodeIds[item])
             self.callback(event, "n")
             self._mark(item)
 
@@ -612,7 +612,7 @@ class NodeObj(tk.Canvas):
         self.master.add_selected_item(self)
 
     def selectModel(self, model):
-        model.selectImage(self.node_id)
+        model.selectNode(self.node_id)
 
     def render(self):
         """Draw on canvas what we want node to look like"""
