@@ -117,15 +117,12 @@ try to uninstall logging. This may leave an older version of pip in an
 unstable state, indicated by an error message trying to resolve a
 handler List. Here are the steps used to clean this problem.
 
-pip uninstall logging
-
+```pip uninstall logging
 brew upgrade python
-
 rm -r /usr/local/lib/python2.7/site-packages/logging
-
-rm --r /usr/local/lib/python2.7/site-packages/logging-0.4.9.6.dist-info/
-
-sudo easy\_install pip
+rm -r /usr/local/lib/python2.7/site-packages/logging-0.4.9.6.dist-info/
+sudo easy_install pip
+```
 
 # RESOURCES
 
@@ -484,7 +481,7 @@ Link descriptions include a category of operations, an operation name, a free-te
 
 Some parameters are mandatory. The link edit window cannot be closed without providing valid values for each mandatory parameter.
 
-###Input Masks
+### Input Masks
 
 Link descriptions can include an input mask. An input mask is a mask used by the software as a parameter or set of parameters to create the output media. For example, some seam carving tools request a mask describing areas targeted for removal and areas for retention. This mask may be used as the input mask for the journaling tool as well. The input mask is an optional attachment, but it **should be used** for any operations that operate on a specific region of the media. When first attached to the description, the mask is not shown in the description dialog. On subsequent edits, the media is both shown and able to be replaced with a new attachment.
 
@@ -498,7 +495,7 @@ Video input masks may be a single media applied to multiple frames (detected in 
 
 Regardless if the link is read-only (for links created by plugins) or created through one of the media connection operations, a link may be selected and inspected.  The inspection includes all parameters, an input mask if provided, and an EXIF comparison analysis, as shown in the figures below. 
 
-![](doc/images/LinkInspection.PNG)
+![](doc/images/LinkInspection.png)
 
 Video Links contain changes across the entire video stream. Changes are organized by steam. A selection drop down controls the section of data viewed in the subsequent meta-data change table. Global meta-data changes represent changes for the entire video file.
 
@@ -575,6 +572,8 @@ Semantic group participation is also verified for 'blue' links in the QA review 
 > ![](doc/images/SemanticGroupReview.png)
 
 **Figure** **Semantic Group Review**
+
+
 
 ##Mask Generation
 
