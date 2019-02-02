@@ -1,4 +1,27 @@
-# Detailed Document
+
+
+# WHAT IS THIS?
+
+This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
+
+# PHILOSOPHY
+
+Each manipulation performed on media is an isolated single manipulation given a source media file and target file.  This requires the result of a manipulation to be saved after each manipulation step. A subsequent manipulation step must continue from the 'saved' media from the preceding step.  Operations cannot be combined.  Operations cannot have side-effects.  The journaling tool creates change masks and meta-data capturing each differences in the state of media between before and after manipulation.
+
+When applying a new manipulation to media after a preceding one, it is critical that starting point be the saved result of the preceding manipulation.  A common mistake occurs during the export of a manipulation result.  Manipulation tools such as Adobe Photo Shop support export options.  These options essential re-encode the result to be stored on disk.  The saved result must be a pure reflection of the manipulation, without side-effects from the encoding process.   Thus, Uncompressed images PNG (RGB) and AVI (RAW) are the best options for recording results.  Be careful when exporting videos.  Any compressiong or translation to YUV (e.g. as commonly done in H264), is a side effect.  The journaling tool compensates for some of the translation, but each encoding adds 'noise'.  Always used fixed frame rates.
+
+This detailed methodical capture should not detract from individualistic approaches to assembling final media products.  Often, image fabricators like to play with many layers, exposing layers in a final mathematical blended result embodied by rendering.   Although this is the ultimate outcome, the composition must be broken down into each individual manipulation.   
+
+Always keep the core goals of journals and media in mind.  Given that we want fabrications to fool a human inspection using 'eyes' only, the corpus of journals aids in the development image science algorithms that aid inspection anddiscovery of manipulations not easily caught with the human eye.   To develop algorithms, image scientist need accurate, discernable data to train and test their algorithm, evaluating the effectiveness of their algorithm across a broad range of manipulations.  In the end, it is unlikely that any one algorithm is good a discoverying all manipulations.  Algorithms tend to specialize, requiring the use of multiple approaches to analyze manipulated media.     Understanding the performance envelope of each algorithm establishes confidence in the algorithms analytic results.
+
+The goals of each journal include:
+
+* Factor Analysis to determine what types of manipulations make fabrications difficult or easy to detect.
+* Factor Analysis to determine what order of manipulations make fabrications difficult or easy to detect.
+* Extensibility to permit the addition of new manipulations at ANY intermediate point in the journal.
+* Accurate training data so that machine leaning based algorithms can learn the 'tells' of individual operations and combination of operations of manipulated media.
+
+# Detailed Documents
 
 For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.pdf. This README is a summary.
 
@@ -12,13 +35,9 @@ See see documentation [here](doc/MediForJournalingTool-Batch-public.pdf) describ
 
 See see documentation [here](doc/Seam.pptx) describes the components of JT's seam carving plugin.
 
-See see documentation [here]("doc/Batch Project and MSCOCO.pptx") describes the use of MSCOCO with batch journal creation.
+See see documentation [here](doc/BatchWithMSCOCO.pptx) describes the use of MSCOCO with batch journal creation.
 
 For developers, documentation [here](doc/NewFileType.md) describes steps to add category of media type in addition the current set of video, audio, image and zip (of images).
-
-# WHAT IS THIS?
-
-This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
 
 # INSTALLATION
 
