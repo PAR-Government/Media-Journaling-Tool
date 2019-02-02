@@ -2,6 +2,20 @@
 
 For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.pdf. This README is a summary.
 
+See see documentation [here](doc/API.md) for details on the python API.
+
+See see documentation [here](doc/NewOperation.md) for details on the operations, written in terms of creating new operations.
+
+See see documentation [here](doc/NewFileType.md) describing steps to handle new media file types.
+
+See see documentation [here](doc/ProjectProperties.md) describes journal project properties.
+
+See see documentation [here](doc/MediforJournalingTool-Batch-public.pdf) describes batch journal creatiton and extension.
+
+See see documentation [here](doc/Seams.pptx) describes the components of JT's seam carving plugin.
+
+See see documentation [here](doc/Batch Project and MSCOCO.pptx) describes the use of MSCOCO with batch journal creation.
+
 # WHAT IS THIS?
 
 This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
