@@ -14,7 +14,7 @@
  (2) get_versions
 
 ##operations.json
- Add transitions to appropriate operations
+ Add transitions to appropriate operations.
 
 ## maskgen.masks.donor_rules
 

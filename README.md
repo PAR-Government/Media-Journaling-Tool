@@ -6,15 +6,15 @@ See see documentation [here](doc/API.md) for details on the python API.
 
 See see documentation [here](doc/NewOperation.md) for details on the operations, written in terms of creating new operations.
 
-See see documentation [here](doc/NewFileType.md) describing steps to handle new media file types.
-
 See see documentation [here](doc/ProjectProperties.md) describes journal project properties.
 
-See see documentation [here](doc/MediforJournalingTool-Batch-public.pdf) describes batch journal creatiton and extension.
+See see documentation [here](doc/MediForJournalingTool-Batch-public.pdf) describes batch journal creatiton and extension.
 
-See see documentation [here](doc/Seams.pptx) describes the components of JT's seam carving plugin.
+See see documentation [here](doc/Seam.pptx) describes the components of JT's seam carving plugin.
 
-See see documentation [here](doc/Batch Project and MSCOCO.pptx) describes the use of MSCOCO with batch journal creation.
+See see documentation [here]("doc/Batch Project and MSCOCO.pptx") describes the use of MSCOCO with batch journal creation.
+
+For developers, documentation [here](doc/NewFileType.md) describes steps to add category of media type in addition the current set of video, audio, image and zip (of images).
 
 # WHAT IS THIS?
 
