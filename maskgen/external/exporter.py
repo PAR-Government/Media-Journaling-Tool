@@ -122,8 +122,11 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
     except Exception as e:
         logging.getLogger('jt_export').error(str(e))
         logging.getLogger('jt_export').info('FAIL {} to {}'.format(path, location))
-        pipe_to_parent.send('FAIL')
-        pipe_to_parent.close()
+        try:
+            pipe_to_parent.send('FAIL')
+            pipe_to_parent.close()
+        except:
+            logging.getLogger('jt_export').error("Child process already disconnected")
 
 #-------------------------------------------------------------------------------------------------------------
 # External Notifiers -

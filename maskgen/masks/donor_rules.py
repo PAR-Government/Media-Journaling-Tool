@@ -386,6 +386,15 @@ class GeneralStreamDonor:
         return ['audio','video']
 
     def arguments(self):
+        args = self._base_arguments()
+        edge = self.graph.get_edge(self.donor_start,self.donor_end)
+        args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',"1")
+        end_def = getValue(edge, 'arguments.End Time', None)
+        if end_def is not None:
+            args['End Time']['defaultvalue'] = end_def
+        return args
+
+    def _base_arguments(self):
         return {
             "Start Time": {
                 "type": "time",
@@ -415,6 +424,9 @@ class GeneralStreamDonor:
 def audio_donor_processor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return AudioDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
+def audio_sample_donor_processor(raph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+    return SampleAudioDonor(raph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
+
 class AudioDonor(GeneralStreamDonor):
 
     def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
@@ -432,6 +444,42 @@ class AudioDonor(GeneralStreamDonor):
 
     def media_types(self):
         return ['audio']
+
+class SampleAudioDonor(AudioDonor):
+
+
+    def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+        """
+        :param graph:
+        :param donor_start:
+        :param donor_end:
+        :param parent_of_end:
+        :param startImTuple:
+        :param destImTuple:
+        @type graph: ImageGraph
+        """
+        AudioDonor.__init__(self,graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
+
+    #
+    # def create(self,
+    #            arguments={},
+    #            invert=False):
+    #
+    #     from maskgen.tool_set import getMilliSecondsAndFrameCount,VidTimeManager
+    #     from maskgen.video_tools import audioDonor
+    #
+    #     from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+    #     end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
+    #     start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
+    #     audio_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+    #                                                  start_time_tuple=start_time_tuple,
+    #                                                  end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
+    #                                                  media_types=['audio'])
+    #     time_manager = VidTimeManager(start_time_tuple,end_time_tuple)
+    #     try:
+    #         return [audioDonor(self.startFileName, self.destFileName, time_manager, arguments={})]
+    #     except:
+    #         return audio_set
 
 def all_audio_processor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return AllAudioStreamDonor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)

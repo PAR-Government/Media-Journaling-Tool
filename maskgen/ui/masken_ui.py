@@ -310,25 +310,6 @@ class MakeGenUI(Frame):
 
     def recomputeedgemask(self):
         analysis_params = {}
-        if self.scModel.getEndType() == 'video':
-            d = ItemDescriptionCaptureDialog(self,
-                                             {
-                                                 'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='opencv')
-                                             },
-                                             {
-                                                 "video compare": {
-                                                     "type": "list",
-                                                     "source": "video",
-                                                     "values": [
-                                                         "opencv",
-                                                         "ffmpeg"
-                                                     ],
-                                                     "description": "FFMPEG is faster but less accurate"
-                                                 }
-                                             },
-                                             'Mask Reconstruct')
-            analysis_params = d.argvalues
         errors = self.scModel.reproduceMask(analysis_params=analysis_params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())

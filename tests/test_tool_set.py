@@ -8,6 +8,14 @@ import sys
 
 
 class TestToolSet(TestSupport):
+
+
+    def test_diff(self):
+        args = {'smoothing': 3, 'mode':'bgr', 'aggregate':'max','filling':'morphology'}
+        a = np.random.randint(0,255,(255,255,3)).astype('int16')
+        b = np.random.randint(0, 255, (255, 255, 3)).astype('int16')
+        m = tool_set.mediatedCompare(a,b, arguments= args)
+
     def test_filetype(self):
         self.assertEquals(tool_set.fileType(self.locateFile('images/hat.jpg')), 'image')
         self.assertEquals(tool_set.fileType(self.locateFile('images/sample.json')), 'text')
@@ -228,6 +236,31 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v1))==0)
         self.assertFalse(len(tool_set.dateTimeStampCompare(v1, v2))==0)
         self.assertTrue(len(tool_set.dateTimeStampCompare(v1, v3))==0)
+
+
+    def test_compare(self):
+        from maskgen import tool_set
+        wrapper1 = image_wrap.openImageFile(self.locateFile('tests/images/pre_blend.png'))
+        arr2 = np.copy(wrapper1.image_array)
+        for x in np.random.randint(1,arr2.shape[0]-1,100):
+            for y in np.random.randint(1, arr2.shape[1] - 1, 100):
+                arr2[x,y,1] = arr2[x,y,1] + np.random.randint(-20,20)
+        arr2[100:200,100:200,2] = arr2[100:200,100:200,2] - 25
+        wrapper2 = image_wrap.ImageWrapper(arr2)
+
+        args = [{'aggregate': 'luminance', 'minimum threshold': 3, "weight": 4},
+                {'aggregate': 'luminance', 'minimum threshold': 3, "weight": 1},
+                {'aggregate': 'max'}]
+        for arg in args:
+            result = tool_set.mediatedCompare(wrapper1.to_array().astype('int16'),
+                                              wrapper2.to_array().astype('int16'),
+                                              arguments=arg)
+            self.assertTrue(np.all(result[0][100:200,100:200] == 255))
+            result[0][100:200, 100:200] = 0
+            self.assertTrue(np.all(result[0] == 0))
+        #image_wrap.ImageWrapper(result[0]).save('/Users/ericrobertson/Downloads/foo_max.png')
+
+
 
 if __name__ == '__main__':
     unittest.main()
