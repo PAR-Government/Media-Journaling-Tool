@@ -1210,13 +1210,16 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5, 5), np.uint8)
         erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        p = np.asarray([item[0] for sublist in contours for item in sublist])
-        if len(p) > 0:
-            area = cv2.contourArea(cv2.convexHull(p))
-            totalArea = cv2.contourArea(
-                np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
-            globalchange = globalchange or area / totalArea > 0.50
+        try:
+            contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            p = np.asarray([item[0] for sublist in contours for item in sublist])
+            if len(p) > 0:
+                area = cv2.contourArea(cv2.convexHull(p))
+                totalArea = cv2.contourArea(
+                    np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
+                globalchange = globalchange or area / totalArea > 0.50
+        except:
+            True,'empty'
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
 
@@ -2122,10 +2125,10 @@ def mediatedCompare(img_one, img_two, arguments={}):
         img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
-        bins = 256
+        bins = 256 + 512/weight
     else:
         min_threshold = int(getValue(arguments, 'minimum threshold', 9))
-        diff = (np.abs(img_one - img_two)).astype('uint16')
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
             bins=256
@@ -2141,8 +2144,9 @@ def mediatedCompare(img_one, img_two, arguments={}):
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima[0][0] + gain)  # Use first minima
+        threshold = max(min_threshold,minima[0][0])  # Use first minima
 
+    threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')

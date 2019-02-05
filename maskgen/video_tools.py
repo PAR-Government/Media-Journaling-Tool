@@ -2532,6 +2532,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components.time_manager = time_manager
     ranges = list()
     compare_args = arguments if arguments is not None else {}
+    dump_dir =  getValue(arguments,'dump directory',False)
     try:
         done = False
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
@@ -2550,6 +2551,10 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 break
             ret_one, frame_one =analysis_components.retrieveOne()
             ret_two, frame_two = analysis_components.retrieveTwo()
+            if dump_dir:
+                from cv2 import imwrite
+                imwrite(os.path.join(dump_dir,'one_{}.png'.format(time_manager.frameSinceBeginning)), frame_one)
+                imwrite(os.path.join(dump_dir,'two_{}.png'.format(time_manager.frameSinceBeginning)), frame_two)
             if frame_one.shape != frame_two.shape:
                 return getMaskSetForEntireVideo(FileMetaDataLocator(fileOne)),[]
             analysis_components.mask = tool_set.createMask(ImageWrapper(frame_one),
