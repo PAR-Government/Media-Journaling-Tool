@@ -3169,16 +3169,16 @@ class GraphCompositeVideoIdAssigner:
         Reset points are algorithmically determined by frame rate, duration and # of frames.
     """
 
-    def updateProbes(self,probes, builder):
+    def updateProbes(self,probes, builder, directory = '.'):
         """
         @type probes : list of Probe
         :param builder:
         :return:
         """
-        self.__buildGroups(probes, builder)
+        self.__buildGroups(probes, builder,directory)
         return probes
 
-    def __buildGroups(self, probes, builder):
+    def __buildGroups(self, probes, builder, directory):
         """
           Build the list of probes assigned to each group
                @type probes : list of Probe
@@ -3194,7 +3194,7 @@ class GraphCompositeVideoIdAssigner:
         for probe in probes:
             if not probe.has_masks_in_target():
                 continue
-            segment = video_tools.get_frame_count(probe.finalImageFileName)
+            segment = video_tools.get_frame_count(os.path.join(directory, probe.finalImageFileName))
             if segment is not None:
                 key = (video_tools.get_rate_from_segment(segment, 30),
                        video_tools.get_frames_from_segment(segment),
@@ -3217,7 +3217,7 @@ class HDF5CompositeBuilder(CompositeBuilder):
 
     def initialize(self, graph, probes):
         self.compositeIdAssigner = GraphCompositeVideoIdAssigner()
-        return self.compositeIdAssigner.updateProbes(probes,'hdf5')
+        return self.compositeIdAssigner.updateProbes(probes,'hdf5',directory=graph.dir)
 
     def build(self, passcount, probe, edge):
         """
