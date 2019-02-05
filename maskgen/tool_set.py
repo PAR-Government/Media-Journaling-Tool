@@ -2125,10 +2125,10 @@ def mediatedCompare(img_one, img_two, arguments={}):
         img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
-        bins = 256
+        bins = 256 + 512/weight
     else:
         min_threshold = int(getValue(arguments, 'minimum threshold', 9))
-        diff = (np.abs(img_one - img_two)).astype('uint16')
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
             bins=256
@@ -2144,8 +2144,9 @@ def mediatedCompare(img_one, img_two, arguments={}):
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima[0][0] + gain)  # Use first minima
+        threshold = max(min_threshold,minima[0][0])  # Use first minima
 
+    threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
