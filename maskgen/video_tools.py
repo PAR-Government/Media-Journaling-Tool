@@ -1764,7 +1764,7 @@ def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(
         return None
     return subs
 
-def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=None, offset=0):
+def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=None, offset=0, writerFactory=tool_set.GrayBlockFactory()):
     """
     Convert video file to mask
     :param vidFile:
@@ -1776,7 +1776,7 @@ def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=N
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startTimeandFrame, stopTimeandFrame=stopTimeandFrame)
     vid_cap = buildCaptureTool(vidFile)
     fps = vid_cap.get(cv2api_delegate.prop_fps)
-    writer = tool_set.GrayBlockWriter(name, fps)
+    writer = writerFactory(os.path.join(os.path.dirname(vidFile), name), fps)
     segment = create_segment(rate=fps, type='video', startframe=offset+1, starttime=offset*(1000.0/fps), frames=0)
     last_time = 0
     while vid_cap.isOpened():
