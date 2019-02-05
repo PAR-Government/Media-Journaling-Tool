@@ -1831,12 +1831,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -1906,12 +1915,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -1993,12 +2011,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -2145,12 +2172,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -2575,12 +2611,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -2967,12 +3012,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -3055,12 +3109,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -3112,12 +3175,21 @@
         "minimum threshold": {
           "type": "int[9:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -3237,14 +3309,23 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -3755,14 +3836,23 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",
@@ -3827,12 +3917,14 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
+          "source": "video",
           "defaultvalue":0,
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
         },
@@ -3902,13 +3994,15 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
@@ -3976,13 +4070,15 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
@@ -4770,18 +4866,21 @@
           "description": "Purpose: remove an object or add an object."
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
           "type": "list",
           "defaultvalue": "luminance",
+          "source": "video",
           "values": [
             "max",
             "sum",
@@ -4890,14 +4989,23 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "type": "int[0:255]",
           "defaultvalue": "9",
+          "source": "video",
           "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]",
           "defaultvalue":0,
+          "source": "video",
           "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Mask noise reduction"
         },
         "aggregate": {
           "type": "list",

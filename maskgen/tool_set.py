@@ -1210,13 +1210,16 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5, 5), np.uint8)
         erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        p = np.asarray([item[0] for sublist in contours for item in sublist])
-        if len(p) > 0:
-            area = cv2.contourArea(cv2.convexHull(p))
-            totalArea = cv2.contourArea(
-                np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
-            globalchange = globalchange or area / totalArea > 0.50
+        try:
+            contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            p = np.asarray([item[0] for sublist in contours for item in sublist])
+            if len(p) > 0:
+                area = cv2.contourArea(cv2.convexHull(p))
+                totalArea = cv2.contourArea(
+                    np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
+                globalchange = globalchange or area / totalArea > 0.50
+        except:
+            True,'empty'
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
 
