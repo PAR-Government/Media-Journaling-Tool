@@ -585,7 +585,7 @@ class ImageWrapper:
                write_png(filename, img_array)
             elif self.mode not in ('RGB','RGBA','L','LA'):
                 img_array = ImageWrapper(img_array.astype('uint8')).convert('RGB').image_array
-                imsave(filename, img_array, **tiff_masssage_args(**newargs))
+            imsave(filename, img_array, **tiff_masssage_args(**newargs))
         elif image_format not in ['TIFF','TIF']:
             Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
         else:

@@ -1210,13 +1210,16 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5, 5), np.uint8)
         erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        p = np.asarray([item[0] for sublist in contours for item in sublist])
-        if len(p) > 0:
-            area = cv2.contourArea(cv2.convexHull(p))
-            totalArea = cv2.contourArea(
-                np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
-            globalchange = globalchange or area / totalArea > 0.50
+        try:
+            contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            p = np.asarray([item[0] for sublist in contours for item in sublist])
+            if len(p) > 0:
+                area = cv2.contourArea(cv2.convexHull(p))
+                totalArea = cv2.contourArea(
+                    np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
+                globalchange = globalchange or area / totalArea > 0.50
+        except:
+            True,'empty'
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
 
@@ -2122,10 +2125,10 @@ def mediatedCompare(img_one, img_two, arguments={}):
         img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
-        bins = 256
+        bins = 256 + 512/weight
     else:
         min_threshold = int(getValue(arguments, 'minimum threshold', 9))
-        diff = (np.abs(img_one - img_two)).astype('uint16')
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
             bins=256
@@ -2141,8 +2144,9 @@ def mediatedCompare(img_one, img_two, arguments={}):
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima[0][0] + gain)  # Use first minima
+        threshold = max(min_threshold,minima[0][0])  # Use first minima
 
+    threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
@@ -3313,6 +3317,53 @@ def preferredSuffix(preferences=None):
         t_suffix = getValue(preferences,'vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
+
+class GrayBlockFactory:
+    """
+    Either build the Writer or the Validator
+    """
+    def __init__(self, jt_mask=None):
+        self.jt_mask = jt_mask
+        self.product = None
+
+    def __call__(self, name, fps):
+        self.product = GrayBlockWriter(mask_prefix=name, fps=fps) if self.jt_mask is None else GrayBlockValidator(jt_mask_file=self.jt_mask)
+        return self.product
+
+class GrayBlockValidator:
+    """
+    Compare frames of two video masks to see if one is valid.
+    """
+    def __init__(self, jt_mask_file):
+        self.filename = jt_mask_file
+        self.failed_frames = []
+        self.manager = GrayBlockReaderManager()
+        self.manager.create_reader(jt_mask_file)
+
+    def compareMask(self, mask, inputmask, cur_frame):
+        inputmask = np.invert(inputmask)
+        inputmask[inputmask > 0] = 1
+        mask = np.invert(mask)
+        mask[mask > 0] = 1
+        intersection = inputmask * mask
+        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
+        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        masksize = float(np.sum(mask))
+        unionsize = float(np.sum(union))
+        mismatch = abs(masksize-unionsize)/masksize
+        if mismatch > .05:
+            self.failed_frames.append(cur_frame)
+
+    def write(self, mask, mask_time, frame_number):
+        while(self.manager.reader.current_frame() < frame_number):
+            self.manager.reader.read() #ffwd to where we want to be
+        if self.manager.reader.current_frame() == frame_number:
+            jt_mask = self.manager.reader.read()
+            if jt_mask is not None:
+                self.compareMask(inputmask=mask, mask=jt_mask, cur_frame=frame_number)
+
+    def get_file_name(self):
+        return self.filename
 
 
 class GrayFrameWriter:
