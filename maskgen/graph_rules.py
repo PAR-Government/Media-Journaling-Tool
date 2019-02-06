@@ -1253,32 +1253,47 @@ def checkMoveMask(op, graph, frm,to):
     :param to:
     :return:
     """
+    from tool_set import GrayBlockFactory
+    from video_tools import videoMasksFromVid
+
+    def compareMask(mask, inputmask):
+        inputmask[inputmask > 0] = 1
+        mask[mask > 0] = 1
+        intersection = inputmask * mask
+        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
+        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        masksize = float(np.sum(mask))
+        unionsize = float(np.sum(union))
+        mismatch = abs(masksize - unionsize) / masksize
+        if mismatch > .05:
+            return (Severity.ERROR, 'input mask does not represent the moved pixels')
+
     edge = graph.get_edge(frm, to)
+    videomasks = getValue(edge, 'videomasks', defaultValue=[])
     try:
-        maskname =getValue(edge,'maskname',defaultValue='')
-        inputmaskname = getValue(edge,'inputmaskname',defaultValue='')
-        if os.path.exists(os.path.join(graph.dir, inputmaskname)) and \
-            os.path.exists(os.path.join(graph.dir, maskname)):
+        inputmaskname = getValue(edge, 'inputmaskname', defaultValue='')
+        if len(videomasks) == 0:
+            maskname = getValue(edge,'maskname',defaultValue='')
             mask = openImageFile(os.path.join(graph.dir, maskname)).invert().to_array()
             inputmask = openImage(os.path.join(graph.dir, inputmaskname)).to_mask().to_array()
-            inputmask[inputmask > 0] = 1
-            mask[mask > 0] = 1
-            intersection = inputmask * mask
-            leftover_mask = mask - intersection
-            leftover_inputmask = inputmask - intersection
-            masksize = np.sum(leftover_mask)
-            inputmasksize = np.sum(leftover_inputmask)
-            intersectionsize = np.sum(intersection)
-            if inputmasksize == 0 and intersectionsize == 0:
-                  return (Severity.ERROR,'input mask does not represent moved pixels. It is empty.')
-            ratio_of_intersection = float(intersectionsize) / float(inputmasksize)
-            ratio_of_difference = float(masksize) / float(inputmasksize)
-            # intersection is too small or difference is too great
-            if abs(ratio_of_difference - 1.0) > 0.25:
-                  return (Severity.ERROR,'input mask does not represent the moved pixels')
+            return compareMask(mask=mask, inputmask=inputmask)
+        else:
+            for mask in videomasks:
+                segment_file = getValue(mask, 'videosegment', None)
+                if segment_file is not None:
+                    writer_factory = GrayBlockFactory(jt_mask=os.path.join(graph.dir, segment_file))
+                    videoMasksFromVid(
+                        vidFile=os.path.join(graph.dir, inputmaskname),
+                        name=inputmaskname,
+                        startTimeandFrame=(0, 1),
+                        writerFactory=writer_factory)
+                    if len(writer_factory.product.failed_frames) > 0:
+                        return (Severity.ERROR, 'input mask does not represent the moved pixels')
+
     except Exception as ex:
         logging.getLogger('maskgen').error('Graph Validation Error checkMoveMask: ' + str(ex))
         return (Severity.ERROR,'Cannot validate Move Masks: ' + str(ex))
+
 
 def checkHomography(op, graph, frm, to):
     edge = graph.get_edge(frm, to)

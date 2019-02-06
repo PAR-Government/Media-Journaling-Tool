@@ -1829,16 +1829,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -1904,16 +1917,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -1991,16 +2017,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -2143,16 +2182,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -2573,16 +2625,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -2965,16 +3030,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3053,16 +3131,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3110,16 +3201,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
+          "trigger mask": true,
           "type": "int[9:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "type":"int[-20:20]",
+            "trigger mask": true,
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "type":"list",
+          "trigger mask": true,
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3237,16 +3341,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3755,16 +3872,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3827,16 +3957,29 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
+          "source": "video",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -3902,17 +4045,30 @@
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+         "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "gain": {
           "type":"int[-20:20]",
+            "trigger mask": true,
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
           "type": "list",
+            "trigger mask": true,
           "defaultvalue": "luminance",
           "source": "video",
           "values": [
@@ -3975,17 +4131,30 @@
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
+         "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Algorithm to suppress difference mask noise"
+        },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "type":"int[-20:20]",
+           "trigger mask": true,
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
+         "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "source": "video",
@@ -4770,18 +4939,32 @@
           "description": "Purpose: remove an object or add an object."
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+          "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+       "filling": {
+          "trigger mask": true,
+          "type":"list",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "source": "video",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "gain": {
+          "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
         "aggregate": {
+          "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
+          "source": "video",
           "values": [
             "max",
             "sum",
@@ -4890,16 +5073,29 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "type": "int[9:255]",
+         "trigger mask": true,
+          "type": "int[0:255]",
           "defaultvalue": "9",
-          "description": "Permittedvariance in the differences of frame pixels across dimension RGB during mask creation."
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
+         "trigger mask": true,
           "type":"int[-20:20]",
           "defaultvalue":0,
-          "description": "Fixed varation of pixel difference used as a tolerance to create masks"
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "filling": {
+         "trigger mask": true,
+          "type":"list",
+          "source": "video",
+          "values": ["morphology","median","none"],
+          "defaultvalue":"morphology",
+          "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
+         "trigger mask": true,
           "type": "list",
           "defaultvalue": "luminance",
           "values": [
