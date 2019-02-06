@@ -3318,6 +3318,53 @@ def preferredSuffix(preferences=None):
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
 
+class GrayBlockFactory:
+    """
+    Either build the Writer or the Validator
+    """
+    def __init__(self, jt_mask=None):
+        self.jt_mask = jt_mask
+        self.product = None
+
+    def __call__(self, name, fps):
+        self.product = GrayBlockWriter(mask_prefix=name, fps=fps) if self.jt_mask is None else GrayBlockValidator(jt_mask_file=self.jt_mask)
+        return self.product
+
+class GrayBlockValidator:
+    """
+    Compare frames of two video masks to see if one is valid.
+    """
+    def __init__(self, jt_mask_file):
+        self.filename = jt_mask_file
+        self.failed_frames = []
+        self.manager = GrayBlockReaderManager()
+        self.manager.create_reader(jt_mask_file)
+
+    def compareMask(self, mask, inputmask, cur_frame):
+        inputmask = np.invert(inputmask)
+        inputmask[inputmask > 0] = 1
+        mask = np.invert(mask)
+        mask[mask > 0] = 1
+        intersection = inputmask * mask
+        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
+        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        masksize = float(np.sum(mask))
+        unionsize = float(np.sum(union))
+        mismatch = abs(masksize-unionsize)/masksize
+        if mismatch > .05:
+            self.failed_frames.append(cur_frame)
+
+    def write(self, mask, mask_time, frame_number):
+        while(self.manager.reader.current_frame() < frame_number):
+            self.manager.reader.read() #ffwd to where we want to be
+        if self.manager.reader.current_frame() == frame_number:
+            jt_mask = self.manager.reader.read()
+            if jt_mask is not None:
+                self.compareMask(inputmask=mask, mask=jt_mask, cur_frame=frame_number)
+
+    def get_file_name(self):
+        return self.filename
+
 
 class GrayFrameWriter:
     """

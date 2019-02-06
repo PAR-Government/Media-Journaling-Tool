@@ -432,7 +432,73 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r)> 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
+    def test_checkMoveMask(self):
+        import numpy as np
+        from maskgen.tool_set import GrayFrameWriter, GrayBlockWriter
+        from maskgen.image_wrap import ImageWrapper
 
+        def edge(a,b):
+            return {}
+
+        mask = np.ones((1092, 720), dtype='uint8') * 255
+        mask[100:250, 100:200] = 0
+        ImageWrapper(mask).save(filename='.\\test_jt_mask.png')
+        self.addFileToRemove(filename='.\\test_jt_mask.png')
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[100:200, 100:200, :] = 255
+        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
+        self.addFileToRemove(filename='.\\test_input_mask.png')
+
+        mockGraph = Mock(get_edge=Mock(return_value={'inputmaskname': self.locateFile('test_input_mask.png'),
+                                                     'maskname': self.locateFile('test_jt_mask.png')}))
+        mockGraph.dir = '.'
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[150:250, 150:250, :] = 255
+        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
+        self.addFileToRemove(filename='.\\test_input_mask.png')
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNotNone(r)
+
+        w = GrayBlockWriter('test_jt', 10)
+        m = np.ones((1092, 720), dtype='uint8') * 255
+        m[100:250, 100:200] = 0
+        for i in range(60):
+            w.write(m, i / 10.0, i)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        w = GrayFrameWriter('test_input', 10)
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[100:200, 100:200, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, 0)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile('test_input_mask_0.avi'),
+            'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10, 'type': 'video', 'frames': 60,
+                            'videosegment':'test_jt_mask_0.0.hdf5', 'starttime': 0, 'endtime': 600},
+                           ]
+        })
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        w = GrayFrameWriter('test_input', 10)
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[150:250, 150:250, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, 0)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNotNone(r)
 
 if __name__ == '__main__':
     unittest.main()
