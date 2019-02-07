@@ -1035,12 +1035,16 @@ class MakeGenUI(Frame):
                                                    DetermineTaskDesignation(self.scModel, inputFunction=fetch_qaData_designation)])
             ps = generator(saveTargets=False, keepFailures=True)
             for probe in ps:
-                logging.getLogger('maskgen').info('{},{},{},{},{}'.format(
+                logging.getLogger('maskgen').info('{},{},{},{},{},{},{},{}'.format(
                     probe.targetBaseNodeId,
                     probe.edgeId,
                     probe.targetMaskFileName,
                     probe.donorBaseNodeId,
-                    probe.donorMaskFileName))
+                    probe.donorMaskFileName,
+                    os.path.exists(os.path.join(self.scModel.get_dir(),probe.targetMaskFileName)) \
+                        if probe.targetMaskFileName is not None else False,
+                    os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites, 'jp2.file name', ''))),
+                    os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites,'color.file name', '')))))
 
     def startQA(self):
         from maskgen.validation.core import hasErrorMessages

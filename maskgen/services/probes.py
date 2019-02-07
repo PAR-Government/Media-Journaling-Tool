@@ -237,7 +237,7 @@ class ProbeSetBuilder(ProbeProcessor):
                 for compositeBuilder in localCompositeBuilders:
                     compositeBuilder.build(passcount, probe, edge)
         for compositeBuilder in localCompositeBuilders:
-            compositeBuilder.finalize(probes, save=False)
+            compositeBuilder.finalize(probes)
         return probes
 
 def fetch_qaData_designation(scmodel, probe):
