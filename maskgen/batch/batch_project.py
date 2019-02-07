@@ -276,7 +276,7 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     :return: a iterator function to construct an iterator over possible values
     """
     if param_spec['type'] == 'list':
-        new_values =[(value.format(**global_state) if type(value) in ['str','unicode'] else value) for value in param_spec['values']]
+        new_values =[(value.format(**global_state) if type(value) in [str,unicode] else value) for value in param_spec['values']]
         if not random_selection:
             return ListPermuteGroupElement(spec_name, new_values)
         else:
