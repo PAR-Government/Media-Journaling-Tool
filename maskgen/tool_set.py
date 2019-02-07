@@ -3058,10 +3058,14 @@ class GrayBlockReaderManager:
         else:
             if self.reader is not None:
                 self.reader.close()
+            self.filename = filename
             self.reader = self.reader_type(filename,
                                start_frame=start_frame,
                                start_time=start_time,
                                end_frame=end_frame)
+
+
+
         return self.reader
 
     def close(self):

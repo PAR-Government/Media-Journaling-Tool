@@ -3270,8 +3270,9 @@ class HDF5CompositeBuilder(CompositeBuilder):
                         frame[:,:,comopsite_byte_id] = frame[:,:,comopsite_byte_id] | thisbit
                 if frame is not None:
                     writer.write(frame, frame_time,frame_no)
-                    segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
-                    results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
+                    for segment_with_probe in segments_with_probe:
+                        segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
+                        results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
                 frame_no += 1
                 frame_time += 1000.0/segment_with_probe[0].rate
             writer.close()
