@@ -1,6 +1,7 @@
 import csv
 import unittest
 
+
 import numpy as np
 from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder, CompositeExtender, \
     DetermineTaskDesignation,ExtendProbesForDetectEdges, fetch_qaData_designation
@@ -9,7 +10,7 @@ from maskgen.mask_rules import Jpeg2000CompositeBuilder,ColorCompositeBuilder
 from maskgen.scenario_model import ImageProjectModel
 from maskgen.software_loader import getOperation
 from maskgen.support import getPathValuesFunc
-from mock import patch
+from mock import patch, Mock
 from test_support import TestSupport
 
 def compose_segment_mask(name, length, start_frame, rate, corner):
@@ -35,7 +36,7 @@ class test_get_frame_count_callable:
 
 
 def test_get_frame_count(thing):
-    if thing in ['f1', 'f3']:
+    if thing in ['./f1', './f3']:
         return create_segment(starttime=0, startframe=1, endtime=4300, endframe=42, type='video', frames=43, rate=10)
     else:
         return create_segment(starttime=0, startframe=1, endtime=4400, endframe=43, type='video', frames=44, rate=10)
@@ -68,9 +69,11 @@ class TestToolSet(TestSupport):
         ])
         probes = [probe1, probe2, probe3]
         builder = HDF5CompositeBuilder()
+        graph = Mock()
+        graph.dir = '.'
         with patch('maskgen.video_tools.get_frame_count',
                    new_callable=test_get_frame_count_callable):
-            builder.initialize(None, probes)
+            builder.initialize(graph, probes)
         results = builder.finalize(probes)
         self.assertEqual(1, probe1.composites['hdf5']['bit number'])
         self.assertEqual(1, probe2.composites['hdf5']['bit number'])

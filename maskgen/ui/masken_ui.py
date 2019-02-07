@@ -36,7 +36,7 @@ import logging
 from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from maskgen.graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI, OperationsUpdaterGitAPI
-from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
+from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder, HDF5CompositeBuilder
 import maskgen.preferences_initializer
 from maskgen.software_loader import getMetDataLoader
 from cachetools import LRUCache
@@ -1028,10 +1028,11 @@ class MakeGenUI(Frame):
         if tkMessageBox.askyesno('Archive','Archive Probes'):
             archive_probes(self.scModel,reproduceMask=False)
         else:
+            builders = [ColorCompositeBuilder,Jpeg2000CompositeBuilder]  if self.scModel.getGraph().get_project_type() == 'image' else \
+              [HDF5CompositeBuilder]
             generator = ProbeGenerator(scModel=self.scModel,
                                        processors=[ProbeSetBuilder(scModel=self.scModel,
-                                                                   compositeBuilders=[ColorCompositeBuilder,
-                                                                                      Jpeg2000CompositeBuilder]),
+                                                                   compositeBuilders=builders),
                                                    DetermineTaskDesignation(self.scModel, inputFunction=fetch_qaData_designation)])
             ps = generator(saveTargets=False, keepFailures=True)
             for probe in ps:
