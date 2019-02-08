@@ -1060,9 +1060,7 @@ def checkLengthSmaller(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and \
-                         int(getMilliSecondsAndFrameCount(durationChangeTuple[1], defaultValue=(0,1))[1])<
-                         int(getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[1])):
+            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1][1]) < int(durationChangeTuple[2][1])):
         return (Severity.ERROR,"Length of video is not shorter")
 
 def checkSampleRate(op, graph, frm, to):
@@ -1217,9 +1215,7 @@ def checkLengthBigger(op, graph, frm, to):
 
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and \
-                         int(getMilliSecondsAndFrameCount(durationChangeTuple[1], defaultValue=(0,1))[1]) >
-                         int(getMilliSecondsAndFrameCount(durationChangeTuple[2], defaultValue=(0,1))[1])):
+            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1][1]) > int(durationChangeTuple[2][1])):
         return (Severity.ERROR,"Length of video is not longer")
 
 def checkLengthSameOrBigger(op, graph, frm, to):
