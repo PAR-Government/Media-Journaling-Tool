@@ -590,7 +590,7 @@ class HPSpreadsheet(Toplevel):
                 celltype = \
                     "disabled" if (notnans.iloc[row, col] and not colName.startswith("HP")) or (colName in
                                self.disabledColNames or (colName == "HP-PrimarySecondary" and self.device_type !=
-                               "CellPhone")) else\
+                               "CellPhone") or (colName == "HP-Keywords" and self.device_type != "model")) else\
                     "mandatory" if (colName in self.mandatoryImageNames and currentExt in hp_data.exts['IMAGE']) or \
                               (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
                               fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and
@@ -801,7 +801,7 @@ class HPSpreadsheet(Toplevel):
         return comment
 
     def is_hp_archive(self, archive):
-        from tarfile import TarFile
+        from tarfile import TarFile, ReadError
         test_file = TarFile(os.path.join(self.dir, archive))
         # the only directory we can guarantee is parent/csv
         try:
@@ -813,6 +813,10 @@ class HPSpreadsheet(Toplevel):
             # Didn't exist
             test_file.close()
             return False
+        except ReadError:
+            print("WARNING: {0} could not be read, and therefore can not be reused for uploading.".format(archive))
+            return False
+
 
     def notify_trello(self, filestr, archive, comment):
         """
