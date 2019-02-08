@@ -17,6 +17,7 @@ from maskgen.userinfo import get_username, setPwdX,CustomPwdX
 from maskgen.validation.core import  hasErrorMessages
 from maskgen.preferences_initializer import initialize
 from maskgen.external.exporter import ExportManager
+import logging
 
 export_manager = ExportManager()
 
@@ -37,6 +38,7 @@ def upload_projects(args, project):
     organization = args.organization
     updatename = args.updatename
     ignore_errors = args.ignore
+    log = logging.getLogger('maskgen')
     redactions= [redaction.strip() for redaction in args.redacted.split(',')]
     scModel = maskgen.scenario_model.loadProject(project)
     if username is None:
@@ -57,11 +59,11 @@ def upload_projects(args, project):
     errors = [] if args.skipValidation else scModel.validate(external=True)
     if ignore_errors or not hasErrorMessages(errors,  contentCheck=lambda x: len([m for m in redactions if m not in x]) == 0 ):
         path, error_list = scModel.export('.', redacted=redactions)
-        if s3dir is None:
+        if path is not None and (ignore_errors or len(error_list) == 0):
             export_manager.sync_upload(path, s3dir)
         if len(error_list) > 0:
             for err in error_list:
-                print (err)
+                log.error(str(err))
             raise ValueError('Export Failed')
     return errors
 
