@@ -3058,10 +3058,14 @@ class GrayBlockReaderManager:
         else:
             if self.reader is not None:
                 self.reader.close()
+            self.filename = filename
             self.reader = self.reader_type(filename,
                                start_frame=start_frame,
                                start_time=start_time,
                                end_frame=end_frame)
+
+
+
         return self.reader
 
     def close(self):
@@ -3169,7 +3173,7 @@ class OldFormatGroupSetter:
 
 def compose_overlay_name(target_file="", link = tuple()):
     path_tuple = os.path.split(target_file)
-    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.' + preferredSuffix())
+    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.avi')
 
 class GrayBlockOverlayGenerator:
 
