@@ -4888,11 +4888,6 @@
         "audio": "maskgen.mask_rules.paste_add_audio_frames"
       },
       "optionalparameters": {
-        "End Time": {
-          "type": "frame_or_time",
-          "trigger mask": true,
-          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
-        },
         "kernel": {
           "type": "int[1:27]",
           "defaultvalue": 3,
