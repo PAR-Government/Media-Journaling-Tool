@@ -70,7 +70,7 @@ Old journals are automatically upated upon opening with an ImageProjectModel.  T
 
 `scModel. finalNodes()`
 
-####Get Project Data Item
+#### Get Project Data Item
 
 `scModel. getProjectData(name, default_value = None)`
 
@@ -86,23 +86,23 @@ Old journals are automatically upated upon opening with an ImageProjectModel.  T
 
 `scModel. getGraph()`
 
-####Find base node id for given node id
+#### Find base node id for given node id
 
 `scModel.getBaseNode(node)`
 
-####Is edge a donor edge
+#### Is edge a donor edge
 
 `scModel.isDonorEdge(start, end)`
 
-####Get the name of the project
+#### Get the name of the project
 
 `scModel.getName()`
 
-####Get the list of based node ids (typical only one)
+#### Get the list of based node ids (typical only one)
 
 `scModel.baseNodes()`
 
-####Get successor node ids to node
+#### Get successor node ids to node
 
 `scModel.getGraph().successors(nodeid)`
 
@@ -110,11 +110,11 @@ Old journals are automatically upated upon opening with an ImageProjectModel.  T
 
 `scModel.getGraph().predecessor(nodeid)`
 
-####Returns the Description object describing the link
+#### Returns the Description object describing the link
 
 `description = scModel. getModificationForEdge(start,end)`
 
-####Obtain all descriptions for all links
+#### Obtain all descriptions for all links
 
 `scModel.getDescriptions()`
 
@@ -146,7 +146,7 @@ single segment. See Compare Parameters.
 
 Returns tuple: (image path name, ImageWrapper)
 
-####Get the representative Image and Media File Name
+#### Get the representative Image and Media File Name
 
 `scModel.getImageAndName(node id, arguments={})`
 
@@ -173,7 +173,7 @@ Returns the list of edge dictionaries.
 
 Allows node and attributes to be  redacted from archive.  The redacted list is a set list of attribute path names.
 
-####Get Semantic Groups for Link
+#### Get Semantic Groups for Link
 
 `scModel. getSemanticGroups(start node id,end node id)`
 
@@ -355,7 +355,7 @@ def getProjectProperties():
 """
 ~~~
 
-##CSV FILE
+## CSV FILE
 
 Create CSV file for all the probes and target probe files.
 
@@ -369,20 +369,20 @@ archive=True,  # ARCHIVE in masks in tgz
 reproduceMask= True) # Rebuild Masks
 ```
 
-##Generate Probes with API
+## Generate Probes with API
 
 ```
 from maskgen.services.probes import ProbeGenerator, ProbeSetBuilder
 from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
 
-#Initialize Processors
+# Initialize Processors
 probe_set_builder = ProbeSetBuilder(scModel, compositeBuilders=[Jpeg2000CompositeBuilder, ColorCompositeBuilder])
 
-#Generate Probes
+# Generate Probes
 generator = ProbeGenerator(scModel, processors=[probe_set_builder])
 probes = generator()
 
-#Apply processors
+# Apply processors
 generator.apply_processors(probes)
 ```
 
@@ -802,7 +802,7 @@ Some media images formats may not be direcctly supported by the default install 
 
 An opener returns a Numpy array.
 
-####Signature
+#### Signature
 
 ~~~
 def openX(filename, isMask=False, args=None):
@@ -812,7 +812,7 @@ def openX(filename, isMask=False, args=None):
 @param args: dictionary
 ~~~
 
-####Structure
+#### Structure
 
 ~~~
 README.md
@@ -1050,7 +1050,7 @@ The basic structure of JSON three keyed sections:
 }
 ~~~
 
-###Graph
+### Graph
 
 ~~~
 {
@@ -1366,7 +1366,7 @@ A video or audio node may also carry media properties as 'cache' extracted from 
 
 
 
-###Link
+### Link
 
 A link is a connection between source and target nodes. The nodes are referenced by a number in accordance to the order of nodes list from 1 to N (N being the total number of nodes).
 

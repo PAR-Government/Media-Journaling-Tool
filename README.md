@@ -102,7 +102,7 @@ pip install ffmpeg
 ```
 
 ## GRAPHVIZ:
-###MAC
+### MAC
 
 ```
 brew install graphviz
@@ -110,7 +110,7 @@ pip install pygraphviz
 ```
 See http://www.graphviz.org/Download..php for other options.
 
-###WINDOWS
+### WINDOWS
 
 1.	Download the current stable release from http://www.graphviz.org/Download_windows.php. Get the .msi, not the .zip.
 2.	Run the graphviz msi installer, and walk through the steps to install.
@@ -125,19 +125,19 @@ pip install pygraphviz-1.3.1-cp27-none-win_amd64.whl
 
 For use with using plugins that write TIFF files, install tifffile. For Mac users, XCode needs to be installed.  For Windows users, Microsoft Visual C++ 9.x for python needs to be installed.   An alternative is to find a prebuilt libtiff library for Mac or Windows.  Download at your own risk.
 
-###Mac
+### Mac
 
 ```
 pip install tifffile
 ```
 
-###Windows
+### Windows
 
 ~~~
 conda install -c conda-forge tifffile -y
 ~~~
 
-###RAWPY
+### RAWPY
 
 The installation may fail on installing rawpy.  Here other some other options, before restarting the install.
 
@@ -246,7 +246,7 @@ Logs are maintained in maskgen.log.  Older log files are stamped with the day th
 
 # Menus
 
-##File
+## File
 
 ![FileMenu](doc/images/FileMenu.png)
 
@@ -575,7 +575,7 @@ The JPEG functionality of the Create JPEG/TIFF feature is a fairly powerful proc
 
 However, this feature is limited in the sense that the base image node must be a Jpeg (or TIFF). Individual operations may be performed by selecting the end node and performing the CompressAs plugin (Process\--Next w/Filter). This allows the user to select any node as a donor for quantization tables and metadata.
 
-###Output PNG and Image Rotations
+### Output PNG and Image Rotations
 
 When exporting a JPEG image to PNG as the start of the manipulation process, the EXIF is stripped from the image. EXIF can have an Orientation attribute describing the orientation of the image. Some
 export software (e.g. Adobe Photoshop) automatically rotates the image in accordance to the Orientation during export, as the exported image needs to reflect the proper orientation\--the guidance from EXIF is not longer present. Software may automatically rotate, prompt to rotate or not rotate on export. The manipulator must record whether the image was rotated during the OutputPNG operation when creating the OutputPNG link.
@@ -612,7 +612,7 @@ Semantic group participation is also verified for 'blue' links in the QA review 
 
 
 
-##Mask Generation
+## Mask Generation
 
 It most cases, mask generation is a comparison between before and after manipulations of an media. Full media operations like equalization,blur, color enhance, and anti-aliasing often effect all pixels resulting
 in a full image mask. Since these operations may only effect some pixels (e.g. anti-aliasing), the mask does represent the scope of change.

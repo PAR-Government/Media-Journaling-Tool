@@ -1,6 +1,6 @@
 # UI
 
-###Video Manipulation Validation Concerns
+### Video Manipulation Validation Concerns
 
 TBD
 
@@ -10,7 +10,7 @@ TBD
 
 # BATCH
 
-###EXTENSIONS
+### EXTENSIONS
 
 #### Is the state of journal changed if extension fails?
 
@@ -42,7 +42,7 @@ As summary, the updates to the forementioned components occur in this order:
 
 (3) Add project to complete file
 
-###Creation
+### Creation
 
 #### Why does a core dump occur?
 

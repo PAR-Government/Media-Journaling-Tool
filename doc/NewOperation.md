@@ -21,7 +21,7 @@ For example, Crop Resize is specialty operation found in some tools.  The sofwar
 
 Comparison functions live in tool_set or video_tools.
 
-####Image and Frame Comparison Signature
+#### Image and Frame Comparison Signature
 
 For imaeges, masks use 0 to represent change.  Frames are inverted in comparison and then flipped prior to write to HDF5.  
 
@@ -37,7 +37,7 @@ def xCompare(img_original, img_manipulated,  arguments=dict()):
    """
 ```
 
-####Image and Frame Analysis Signature
+#### Image and Frame Analysis Signature
 
 ```
 def x_analysis(analysis, img_original, img_manipulated, mask=None, linktype=None, arguments=dict(), directory='.'):
@@ -67,7 +67,7 @@ following parameters:
   (collected from the link parameters).
 - *directory* -\> the project directory
 
-####Video Comparison Signature
+#### Video Comparison Signature
 
 ```
 def x_vid_compare(vid_original, vid_manipulated, name_prefix, time_manager, arguments=None, analysis=dict()):
@@ -98,7 +98,7 @@ Inputmasks are essential donor masks.  They are special in that they are always 
 
 Substitute masks replace edge masks.  CAUTION: These masks do not reflect actual differences between media.  Instead, they represent intended differences.
 
-##Probe Inclusion
+## Probe Inclusion
 
 Edge masks included in a probe are selected as part of the probe generation API.  By default, all edge masks that are labeled as to included to in a 'composite' (blue color links in the JT UI) are included in a generated probe set.  
 
@@ -277,7 +277,7 @@ CompositeImage = namedtuple('CompositeImage', ['source', 'target', 'media_type',
 
 Videomasks is a list of segments. 
 
-##Probe Pre-process
+## Probe Pre-process
 
 The change mask generated during the comparison is often used as the starting state of probe mask, prior to applying transforms.  In somecase, the mask or segments need to be adjusted as the initial state. For example, in select cut frames, the mask reflects the removed frames.  However, these frames do not exist in the final video, thus the video segments record the set neigboring frames of the cut in the final video.
 
@@ -389,9 +389,9 @@ Parameters are defined optional and mandatory sections of the operation.  Each p
 - *source*- Parameter is conditioned to be collected for a specific type of media such image, zip, video or audio (optional).
 
 The source type specific values is inforced in the UI.  It is not enforced in batch projects.  The batch specification to not indicate random selection of values from the parameter if there is a type restriction..
-##Comparison and Mask Generation
+## Comparison and Mask Generation
 
-##Transforms and Preprocessors
+## Transforms and Preprocessors
 
 Transforms and Preprocessors  as specified as part of *maskTransformFunction*.
 
