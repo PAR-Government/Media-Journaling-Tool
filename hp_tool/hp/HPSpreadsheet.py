@@ -6,6 +6,8 @@ from Tkinter import *
 import tkFileDialog
 import os
 import sys
+from operator import add
+
 import boto3
 from boto3.s3.transfer import S3Transfer
 import collections
@@ -165,7 +167,7 @@ class HPSpreadsheet(Toplevel):
         :return: None
         """
         currentTable = self.get_current_tab()
-        if hasattr(currentTable, 'undo') and currentTable.undo:
+        if hasattr(currentTable, 'undo') and currentTable.undo and isinstance(currentTable.undo, list):
             currentTable.redo = []
             # cell: tuple (value, row, column)
             for cell in currentTable.undo:
@@ -180,7 +182,7 @@ class HPSpreadsheet(Toplevel):
         :return: None
         """
         currentTable = self.get_current_tab()
-        if hasattr(currentTable, 'redo') and currentTable.redo:
+        if hasattr(currentTable, 'redo') and currentTable.redo and isinstance(currentTable.redo, list):
             currentTable.undo = []
             for cell in currentTable.redo:
                 currentTable.undo.append((currentTable.model.getValueAt(cell[1], cell[2]), cell[1], cell[2]))
@@ -1298,7 +1300,7 @@ class CustomTable(pandastable.Table):
     def __init__(self, master, color_cb=None, **kwargs):
         pandastable.Table.__init__(self, parent=master, **kwargs)
         self.color_cb = color_cb
-        self.copied_val = None
+        self.copied_val = None, None
 
     def doBindings(self):
         """Bind keys and mouse clicks, this can be overriden"""
@@ -1406,8 +1408,9 @@ class CustomTable(pandastable.Table):
 
     def fill_column(self, event=None):
         col = self.getSelectedColumn()
+        col_name = self.model.getColumnName(col)
         rowList = range(0, self.rows)
-        if hasattr(self, 'disabled_cells'):
+        if hasattr(self, 'disabled_cells') and not col_name == "HP-ReleaseForms":
             if not self.check_disabled_cells(rowList, [col]):
                 return
         self.focus_set()
@@ -1415,7 +1418,8 @@ class CustomTable(pandastable.Table):
         row = self.getSelectedRow()
         val = self.model.getValueAt(row, col)
         for row in rowList:
-            if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+            if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells and not \
+                    col_name == "HP-ReleaseForms":
                 continue
             self.undo.append((self.model.getValueAt(row, col), row, col))
             self.model.setValueAt(val, row, col)
@@ -1435,18 +1439,47 @@ class CustomTable(pandastable.Table):
         self.focus_set()
         col = self.getSelectedColumn()
         row = self.getSelectedRow()
-        self.copied_val = self.model.getValueAt(row, col)
+        self.copied_val = (self.model.getValueAt(row, col), self.model.getColumnName(col))
         self.redraw()
 
     def paste_value(self, event=None):
         self.focus_set()
         col = self.getSelectedColumn()
+        col_name = self.model.getColumnName(col)
         row = self.getSelectedRow()
-        if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells:
+        if hasattr(self, 'disabled_cells') and (row, col) in self.disabled_cells and col_name != "HP-ReleaseForms":
             return
-        if self.copied_val is not None:
+        # xnor between copied value and current column being HP-ReleaseForms
+        if (self.copied_val[1] == "HP-ReleaseForms") != (col_name == "HP-ReleaseForms"):
+            tkMessageBox.showerror("Paste Error", "HP-ReleaseForms cell values cannot be mixed with other columns.",
+                                   master=self.master)
+            return
+        if self.copied_val[0] is not None:
             self.undo = [(self.model.getValueAt(row, col), row, col)]
-            self.model.setValueAt(self.copied_val, row, col)
+            self.model.setValueAt(self.copied_val[0], row, col)
+        self.redraw()
+
+    def deleteCells(self, rows, cols, answer=None):
+        from itertools import product
+        from numpy import nan
+        # Remove possibility of deleting disabled data (You can select negative index values by dragging too high up)
+        rows = [r for r in rows if r >= 0]
+        cols = [c for c in cols if c >= 0]
+
+        disabled = [(row, col) for (row, col) in product(rows, cols) if (row, col) in self.disabled_cells and
+                    self.model.getColumnName(col) != "HP-ReleaseForms"] if hasattr(self, "disabled_cells") else []
+        self.storeCurrent()
+        if disabled:
+            self.undo = []
+            for row, col in product(rows, cols):
+                if (row, col) in disabled:
+                    continue
+                else:
+                    self.undo.append([self.model.getValueAt(row, col), row, col])
+                    self.model.setValueAt(nan, row, col)
+        else:
+            self.undo = [[self.model.getValueAt(row, col), row, col] for (row, col) in product(rows, cols)]
+            self.model.deleteCells(rows, cols)
         self.redraw()
 
     def move_selection(self, event, direction='down', entry=False):
