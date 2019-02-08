@@ -2121,8 +2121,8 @@ def mediatedCompare(img_one, img_two, arguments={}):
     # compute diff in 3 colors
     if aggregate == 'luminance':
         min_threshold = int(getValue(arguments, 'minimum threshold', 3))
-        img_one = cv2.cvtColor(img_one.astype('uint8'), cv2.COLOR_BGR2YCrCb)
-        img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCrCb)
+        img_one = cv2.cvtColor(img_one.astype('uint8'), cv2.COLOR_BGR2YCR_CB)
+        img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCR_CB)
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
         bins = 256 + 512/weight
