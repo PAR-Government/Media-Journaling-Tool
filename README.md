@@ -21,6 +21,10 @@ The goals of each journal include:
 * Extensibility to permit the addition of new manipulations at ANY intermediate point in the journal.
 * Accurate training data so that machine leaning based algorithms can learn the 'tells' of individual operations and combination of operations of manipulated media.
 
+# FAQ
+
+Navigate [here](doc/FAQ.md) .
+
 # Detailed Documents
 
 For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.pdf. This README is a summary.
