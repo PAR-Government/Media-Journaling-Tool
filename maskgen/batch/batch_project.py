@@ -702,13 +702,13 @@ class PreProcessedMediaOperation(BatchOperation):
     def __init__(self):
         self.index = dict()
 
-    def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
+    def _fetchArguments(self, directory, node, nodename, image_file_name, arguments, global_state={}):
         import csv
         argcopy = copy.deepcopy(arguments)
         if 'argument file' in node:
             if 'argument names' not in node:
                 raise ValueError("Cannot find argument names in node {}".format(nodename))
-            fullfilename = os.path.join(directory, node['argument file'])
+            fullfilename = os.path.join(directory, node['argument file'].format(**global_state))
             if fullfilename not in self.index:
                 argnames = node['argument names']
                 if not os.path.exists(fullfilename):
@@ -784,11 +784,7 @@ class PreProcessedMediaOperation(BatchOperation):
                 self.logger.debug('Execute image {} on {} with {}'.format(node['description'],
                                                                           filename,
                                                                           str(args)))
-            args = self._fetchArguments(directory,
-                                                                                   node,
-                                                                                   node_name,
-                                                                                   os.path.basename(results[0]),
-                                                                                   args)
+            args = self._fetchArguments(directory, node, node_name, os.path.basename(results[0]), args, global_state)
             args = processValue(MyFormatter(local_state,global_state),args, lambda x:  x)
             filetype = tool_set.fileType(filename)
             opDetails = scenario_model.Modification(node['op'],
@@ -881,6 +877,8 @@ class PluginOperation(BatchOperation):
             args['experiment_id'] = node['experiment_id']
         if node_name in getValue(global_state,'passthrus',[]):
             args['passthru']= True
+        if 'description' in node:
+            args['description'] = node['description'].format(**global_state)
         args['skipRules'] = True
         args['sendNotifications'] = False
         args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []

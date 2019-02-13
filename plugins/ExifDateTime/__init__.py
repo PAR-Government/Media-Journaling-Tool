@@ -1,10 +1,8 @@
-'''
+"""
 Plugin to modify date and time in exif
 Plugin adapted from ExifGPSChange\__init__.py
-'''
-
-from maskgen.exif import getexif
-from maskgen.ffmpeg_api import run_ffmpeg, get_ffmpeg_version
+"""
+from maskgen.exif import getexif, get_version, runexif
 import datetime
 import random
 
@@ -24,19 +22,27 @@ def get_defaults(source):
 
 
 def modify_datetime(source, target, date, time):
-    dt = " ".join([date, time + "Z"])
-    # ffmpeg -i input.mp4 -c copy -map 0 -metadata creation_time="2013-06-21 12:00:00" output.mp4
-
-    run_ffmpeg(['-y', '-i', source, '-c', 'copy', '-map', '0', '-metadata', 'creation_time=' + dt, target])
+    dt = "{0} {1}".format(date, time)
+    # -exif:ModifyDate= -exif:DateTimeOriginal="2018:08:29 12:00:00" -exif:CreateDate="2018:08:29
+    # 12:00:00" -xmp:DateTimeDigitized="2018:08:29 12:00:00" -xmp:DateTimeOriginal="2018:08:29 12:00:00"
+    # -xmp:GPSDateTime="2018:08:29 12:00:00" video.mp4
+    exifcmd = ["-exif:ModifyDate=", "-exif:DateTimeOriginal=\"{0}\"".format(dt), "-exif:CreateDate=\"{0}\"".format(dt),
+               "-xmp:DateTimeDigitized=\"{0}\"".format(dt), "-xmp:DateTimeOriginal=\"{0}\"".format(dt),
+               "-xmp:GPSDateTime=\"{0}\"".format(dt), target]
+    dt_changed = runexif(exifcmd)
+    if dt_changed:
+        runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
+    # Old Command
+    # run_ffmpeg(['-y', '-i', source, '-c', 'copy', '-map', '0', '-metadata', 'creation_time=' + dt, target])
     return
 
 
 def random_date(mindate, maxdate):
-    try:
-        startdate = datetime.datetime.strptime(mindate, "%m-%d-%Y").date()
-        enddate = datetime.datetime.strptime(maxdate, "%m-%d-%Y").date()
-    except TypeError:
+    sep = "-" if mindate.count("-") == 2 else "/" if mindate.count("/") == 2 else None
+    if not sep:
         return False
+    startdate = datetime.datetime.strptime(mindate, "%m{0}%d{0}%Y".format(sep)).date()
+    enddate = datetime.datetime.strptime(maxdate, "%m{0}%d{0}%Y".format(sep)).date()
 
     if startdate > enddate:
         return False
@@ -45,7 +51,7 @@ def random_date(mindate, maxdate):
 
     rand_change = random.randint(0, dif.days)
 
-    date = datetime.datetime.fromordinal(startdate.toordinal()+rand_change).strftime("%Y-%m-%d")
+    date = datetime.datetime.fromordinal(startdate.toordinal()+rand_change).strftime("%Y:%m:%d")
 
     return str(date)
 
@@ -64,7 +70,7 @@ def random_time(mintime, maxtime):
 
     rand_change = random.randint(0, dif.seconds)
 
-    start_seconds = (starttime.time().second + 60 * starttime.time().minute + (60 * 60 * starttime.hour))
+    start_seconds = (starttime.time().second + 60 * starttime.time().minute + (3600 * starttime.hour))
 
     time = datetime.datetime.utcfromtimestamp(rand_change + start_seconds).time()
 
@@ -79,7 +85,7 @@ def transform(img, source, target, **kwargs):
 
     date, time = get_defaults(source)
 
-    if not (date and time):
+    if not ((mindate and maxdate) or (mintime and maxtime)):
         return None, "Invalid Arguments"
 
     if mintime and maxtime:
@@ -88,7 +94,7 @@ def transform(img, source, target, **kwargs):
     if mindate and maxdate:
         randdate = random_date(mindate, maxdate)
         date = randdate if randdate else date
-    else:
+    if not ((mintime and maxtime) or (mindate and maxdate)):
         return None, "Invalid field entries."
 
     modify_datetime(source, target, date, time)
@@ -105,8 +111,8 @@ def operation():
     return {'name': 'AntiForensicEditExif',
             'category': 'AntiForensic',
             'description': 'Set Date and Time of Video Capture',
-            'software': 'ffmpeg',
-            'version': get_ffmpeg_version(),
+            'software': 'exiftool',
+            'version': get_version(),
             'arguments': {
                 'Date Minimum': {
                     'type': 'String',

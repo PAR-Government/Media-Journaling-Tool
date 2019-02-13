@@ -12,6 +12,8 @@ def transform(img, source, target, **kwargs):
         js = json.load(open(kwargs['Json File']))
         jsName = kwargs['Json File']
     index = kwargs['index'] if 'index' in kwargs else np.random.randint(0, len(js), 1)[0] #use given, if none given, pick.
+
+    dictionary = None
     if str(index).isdigit(): #see if we are trying to reference by index, else search through values.
         dictionary = js[int(index)]
     else:
@@ -22,6 +24,8 @@ def transform(img, source, target, **kwargs):
                 if str(index) in d or d in index:
                     dictionary = js[d]
                     break
+    if not dictionary:
+        raise ValueError("{0} not found in {1}".format(index, jsName))
 
     result = {}
     result.update(dictionary)
