@@ -10,7 +10,7 @@ from hp import data_files
 
 class TestHPTool(unittest.TestCase):
     def test_process_data(self):
-        def get_key(key):
+        def get_key(key, *args, **kwargs):
             return 0 if key == "seq" else key
         self.settings = Mock()
         self.settings.get_key = get_key
