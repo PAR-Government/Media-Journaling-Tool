@@ -12,15 +12,8 @@ class TestHPTool(unittest.TestCase):
     def test_process_data(self):
         def get_key(key):
             return 0 if key == "seq" else key
-
-        if os.path.isfile(os.path.join(os.path.expanduser("~"), ".maskgen2")):
-            self.settings = MaskGenLoader()
-            if "seq" not in self.settings:
-                self.settings = Mock()
-                self.settings.get_key = get_key
-        else:
-            self.settings = Mock()
-            self.settings.get_key = get_key
+        self.settings = Mock()
+        self.settings.get_key = get_key
 
         # Get a Camera (May be AS-ONE, May be sample, irrelevant for the test)
         cam = API_Camera_Handler(self, None, None, "sample", localfile=data_files._DEVICES)
