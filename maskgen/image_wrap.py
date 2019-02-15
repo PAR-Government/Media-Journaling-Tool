@@ -22,6 +22,8 @@ import exif
 from numpngw import write_png
 from maskgen import config
 
+Image.MAX_IMAGE_PIXELS = 10000000000
+
 
 image_lock = config.getAndSet('image_lock', RLock())
 image_cache = config.getAndSet('image_cache', LRUCache(maxsize=24))
