@@ -1134,6 +1134,9 @@ def checkOutputType(op, graph, frm, to):
     expected_extension = extension.lower()
     return _checkOutputType(graph,to,[expected_extension])
 
+def checkOutputTypeNITF(op, graph, frm, to):
+    return _checkOutputType(graph, to, ['ntf','nitf'])
+
 def checkOutputTypeM4(op, graph, frm, to):
     return _checkOutputType(graph, to, ['m4a','m4v'])
 

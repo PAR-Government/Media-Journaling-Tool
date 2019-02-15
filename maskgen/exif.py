@@ -153,6 +153,18 @@ exif_lock = RLock()
 exif_cache = LRUCache(maxsize=12)
 
 
+def get_version():
+    exiftool = os.getenv('MASKGEN_EXIFTOOL', 'exiftool')
+    p = Popen([exiftool, '-ver'], stdout=PIPE, stderr=PIPE)
+    d = p.communicate()
+    if p.returncode == 0:
+        version = d[0].splitlines()[0]
+    else:
+        version = "Unknown"
+        logging.getLogger("maskgen").error("Unable to find exiftool version")
+    return version
+
+
 def stringifyargs(kwargs):
     return [str(item) for item in sorted([(k, str(v)) for k, v in kwargs.iteritems()])]
 
