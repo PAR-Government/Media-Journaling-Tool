@@ -171,7 +171,7 @@ def find_project_json(prefix, directory):
 
 def findCreatorTool(tool):
     import sys
-    return tool if tool is not None else sys.argv[0]
+    return tool if tool is not None else os.path.split(sys.argv[0])[1]
 
 def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, graphFilePaths={}, arg_checker_callback=None,
                 username=None,tool=None):

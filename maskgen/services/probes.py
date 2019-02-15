@@ -273,7 +273,7 @@ class DetermineTaskDesignation(ProbeProcessor):
 
             if self.inputFunction is not None:
                 designation = self.inputFunction(self.scModel, probe)
-                if designation != None:
+                if designation not in [None, '']:
                     probe.taskDesignation = designation
                     continue
 

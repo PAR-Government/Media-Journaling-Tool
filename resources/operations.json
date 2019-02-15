@@ -4478,7 +4478,7 @@
       "optionalparameters": {},
       "rules": [
         "checkSize",
-        "checkOutputType"
+        "checkOutputTypeNITF"
       ],
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.output_transform"

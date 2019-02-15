@@ -2486,7 +2486,7 @@ class ImageProjectModel:
             self.notify((self.start, self.end), 'update_edge')
         return subs is not None
 
-    def mediaFromPlugin(self, filter, software=None, passthru=False, **kwargs):
+    def mediaFromPlugin(self, filter, software=None, passthru=False, description=None, **kwargs):
         """
           Use a plugin to create a new media item and link.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2555,7 +2555,7 @@ class ImageProjectModel:
                     extra_args[name] = value
                     self.G.addEdgeFilePath('arguments.' + name, '')
             opInfo = self.gopLoader.getOperationWithGroups(op['name'], fake=True)
-            description = Modification(op['name'], filter + ':' + op['description'],
+            description = Modification(op['name'], filter + ':' + op['description'] if description is None else description,
                                        category=opInfo.category,
                                        generateMask=opInfo.generateMask,
                                        semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
@@ -2633,7 +2633,8 @@ class ImageProjectModel:
                                        'semanticGroups',
                                        'experiment_id',
                                        'recordInCompositeMask',
-                                       'donorargs'}:
+                                       'donorargs',
+                                       'index'}:
                 parameters[k] = v
                 # if arguments[k]['type'] != 'donor':
                 stripped_args[k] = v
