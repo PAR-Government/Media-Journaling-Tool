@@ -22,6 +22,8 @@ import exif
 from numpngw import write_png
 from maskgen import config
 
+Image.MAX_IMAGE_PIXELS = 10000000000
+
 
 image_lock = config.getAndSet('image_lock', RLock())
 image_cache = config.getAndSet('image_cache', LRUCache(maxsize=24))
@@ -172,7 +174,7 @@ def openTiff(filename, isMask=False, args=None):
     return raw
 
 
-def wand_image_extractor(filename, isMask=False):
+def wand_image_extractor(filename, isMask=False,args=None):
     import pgmagick
     im = pgmagick.Image(filename)
     myPilImage = Image.new('RGB', (im.GetWidth(), im.GetHeight()))
@@ -181,7 +183,7 @@ def wand_image_extractor(filename, isMask=False):
                         to_mask=isMask,
                         filename=filename)
 
-def pdf2_image_extractor(filename, isMask=False):
+def pdf2_image_extractor(filename, isMask=False,args=None):
     import PyPDF2
     import io
     from PyPDF2 import generic
@@ -228,7 +230,7 @@ def pdf2_image_extractor(filename, isMask=False):
     return None
 
 
-def convertToPDF(filename, isMask=False):
+def convertToPDF(filename, isMask=False,args=None):
     import platform
     newname = os.path.splitext(filename)[0] + '.png'
     if "Darwin" in platform.platform():
@@ -258,26 +260,29 @@ def defaultOpen(filename, isMask=False, args=None):
     result = ImageWrapper(np.asarray(im), mode=im.mode, info=im.info, to_mask=isMask,filename=filename)
     return None if result.size == (0, 0) else result
 
-def readPNG(filename, isMask=False):
+def readPNG(filename, isMask=False, args=None):
     import itertools
-    exifdata = exif.getexif(filename)
-    if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
-        with open(filename, 'rb') as f:
-            pngdata = png.Reader(file=f).asDirect()
-            image_2d = np.vstack(itertools.imap(np.uint16, pngdata[2]))
-            shape = image_2d.shape[1] / pngdata[0]
-            if shape > 1:
-                image_3d = np.reshape(image_2d,
-                                      (pngdata[1], pngdata[0], image_2d.shape[1] / pngdata[0]))
-                return ImageWrapper(image_3d, to_mask=isMask,filename=filename)
-            else:
-                return ImageWrapper(image_2d,filename=filename)
-    else:
-        result = _openCV2(filename)
-    return ImageWrapper(result,filename=filename)
+    try:
+        return ImageWrapper(_openCV2(filename), filename=filename)
+    except Exception as ex:
+        exifdata = exif.getexif(filename)
+        if 'Bit Depth' in exifdata and exifdata['Bit Depth'] == '16':
+            with open(filename, 'rb') as f:
+                pngdata = png.Reader(file=f).asDirect()
+                image_2d = np.vstack(itertools.imap(np.uint16, pngdata[2]))
+                shape = image_2d.shape[1] / pngdata[0]
+                if shape > 1:
+                    image_3d = np.reshape(image_2d,
+                                          (pngdata[1], pngdata[0], image_2d.shape[1] / pngdata[0]))
+                    return ImageWrapper(image_3d, to_mask=isMask,filename=filename)
+                else:
+                    return ImageWrapper(image_2d,filename=filename)
+        else:
+            raise ex
 
 
-def proxyOpen(filename, isMask=False):
+
+def proxyOpen(filename, isMask=False, args=None):
     proxyname = getProxy(filename)
     if proxyname is not None:
         return openImageFile(proxyname, isMask=isMask)
@@ -312,7 +317,6 @@ def openFromRegistry(filename, isMask=False, args=None):
                 try:
                     if args is not None:
                         try:
-                            inspect.getcallargs(func, filename, isMask=isMask, args=args)
                             result = func(filename, isMask=isMask, args=args)
                         except Exception as e:
                             result = func(filename, isMask=isMask)
@@ -583,6 +587,7 @@ class ImageWrapper:
         if image_format == 'PNG':
             if img_array.dtype == 'uint16':
                write_png(filename, img_array)
+               return
             elif self.mode not in ('RGB','RGBA','L','LA'):
                 img_array = ImageWrapper(img_array.astype('uint8')).convert('RGB').image_array
             Image.fromarray(img_array.astype('uint8')).save(filename, **newargs)
