@@ -38,7 +38,8 @@ def append_segment(row, segment):
                   segment.starttime, segment.endtime, segment.rate, segment.error]
 
 
-def archive_probes(project, directory='.', archive=True, reproduceMask= True):
+def archive_probes(project, directory='.', archive=True, reproduceMask= True, composite_names=['EmptyCompositeBuilder']):
+    from maskgen import mask_rules
     """
     Create an archive containing probe files and CSV file describing the probes.
 
@@ -48,19 +49,26 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
     @param project: str
     @param directory: str
     """
-    if type(project) in ['unicode','str']:
+    if type(project) in [unicode,str]:
+        logging.debug('Loading from {}'.format(project))
         scModel = ImageProjectModel(project)
     else:
         scModel = project
     if reproduceMask:
         for edge_id in scModel.getGraph().get_edges():
             scModel.reproduceMask(edge_id=edge_id)
-    generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel, compositeBuilders=[EmptyCompositeBuilder]),
+    generator = ProbeGenerator(scModel=scModel, processors=[ProbeSetBuilder(scModel, compositeBuilders=[getattr(mask_rules,n) for n in composite_names]),
                                                             DetermineTaskDesignation(scModel, inputFunction=fetch_qaData_designation)])
     probes = generator()
     project_dir = scModel.get_dir()
     csvfilename = os.path.join(project_dir, 'probes.csv')
     items_to_archive = []
+
+    def check_file(probe, description, project_dir, file_name):
+        if os.path.exists(os.path.join(project_dir, file_name)):
+            return
+        logging.getLogger('maskgen').error('Target probe file missing {} for {}:{}:{}'.format(file_name, description, probe.finalNodeId,str(probe.edgeId)))
+
     with open(csvfilename, 'w') as outputfile:
         csvwriter = csv.writer(outputfile, delimiter=',')
         for probe in probes:
@@ -74,9 +82,15 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
             else:
                 donor_node = None
             if probe.donorMaskFileName is not None:
+                check_file(probe, 'donor mask', project_dir,probe.donorMaskFileName)
                 items_to_archive.append(os.path.basename(probe.donorMaskFileName))
             if probe.targetMaskFileName is not None:
+                check_file(probe, 'target mask', project_dir, probe.targetMaskFileName)
                 items_to_archive.append(os.path.basename(probe.targetMaskFileName))
+            if probe.composites is not None:
+                for k,b in probe.composites.iteritems():
+                    if 'file name' in b:
+                        check_file(probe, 'composite mask [{}]]'.format(k), project_dir, b['file name'])
             edge = scModel.getGraph().get_edge(probe.edgeId[0], probe.edgeId[1])
             csvwriter.writerow(append_segment(['summary',
                                                probe.edgeId[0],
@@ -92,6 +106,7 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
                                               None))
             for donor_segment in (probe.donorVideoSegments if probe.donorVideoSegments is not None else []):
                 if donor_segment.filename is not None and len(donor_segment.filename) > 0:
+                    check_file(probe, 'donor segment mask', project_dir, donor_segment.filename)
                     items_to_archive.append(os.path.basename(donor_segment.filename))
                 csvwriter.writerow(append_segment(['donor_segment',
                                                    probe.edgeId[0],
@@ -105,6 +120,7 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
                                                   donor_segment))
             for video_segment in (probe.targetVideoSegments if probe.targetVideoSegments is not None else []):
                 if video_segment.filename is not None and len(video_segment.filename) > 0:
+                    check_file(probe, 'target segment mask', project_dir, video_segment.filename)
                     items_to_archive.append(os.path.basename(video_segment.filename))
                 csvwriter.writerow(append_segment(['target_segment',
                                                    probe.edgeId[0],
@@ -116,6 +132,12 @@ def archive_probes(project, directory='.', archive=True, reproduceMask= True):
                                                    '',
                                                    ''],
                                                   video_segment))
+
+    for item in items_to_archive:
+        if os.path.exists(os.path.join(project_dir, item)):
+            continue
+        logging.getLogger('maskgen').error('Target probe file missing {}')
+
     if archive:
         fname = os.path.join(directory, scModel.getName() + '.tgz')
         archive_file = tarfile.open(fname, "w:gz", errorlevel=2)
@@ -479,7 +501,12 @@ def cleanup_temporary_files(probes = [], scModel = None):
 
 def main():
     import sys
-    archive_probes(sys.argv[1])
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--specification', required=True, help='JSON File')
+    parser.add_argument('--composites', required=False, nargs='+', help='Composites to use')
+    args = parser.parse_args(sys.argv[1:])
+    archive_probes(args.specification,composite_names=['EmptyCompositeBuilder'] if args.composites is None else args.composites)
 
 if __name__ == '__main__':
     main()
