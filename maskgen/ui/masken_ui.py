@@ -1233,7 +1233,13 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
+
+        self.donoredgemenu = Menu(self.master, tearoff=0)
+        self.donoredgemenu.add_command(label="Select", command=self.select)
+        self.donoredgemenu.add_command(label="Inspect", command=self.view)
+        self.donoredgemenu.add_command(label="Remove", command=self.remove)
+        self.donoredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
@@ -1276,6 +1282,8 @@ class MakeGenUI(Frame):
             self.edgemenu.post(event.x_root, event.y_root)
         elif eventName == 'rcNonEditEdge':
             self.filteredgemenu.post(event.x_root, event.y_root)
+        elif eventName == 'rcDonorEdge':
+            self.donoredgemenu.post(event.x_root, event.y_root)
         elif eventName == 'rcGroup':
             self.groupselection = event.items
             self.groupmenu.post(event.x_root, event.y_root)

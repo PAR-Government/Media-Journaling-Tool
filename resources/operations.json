@@ -2829,6 +2829,9 @@
         "default": false,
         "video": true
       },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2887,6 +2890,9 @@
       "includeInMask": {
         "default": false,
         "video": true
+      },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "transitions": [
         "image.image",
