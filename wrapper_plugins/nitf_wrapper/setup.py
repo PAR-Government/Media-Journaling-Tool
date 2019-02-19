@@ -8,10 +8,11 @@ setup(name='nitf_wrapper',
       author_email='eric_robertson@partech.com',
       license='APL',
       packages=find_packages(exclude=["tests"]),
-      install_requires=['nitf'],
+      install_requires=['GDAL'],
       entry_points=
        {'maskgen_image': [
-            'ntf = nitf_wrapper.opener:openNTFFile'
+            'ntf = nitf_wrapper.opener:openNTFFile',
+            'nitf = nitf_wrapper.opener:openNTFFile'
         ]
        },
       zip_safe=False)
