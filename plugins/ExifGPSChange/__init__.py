@@ -70,7 +70,7 @@ def suffix():
 
 
 def operation():
-    return {'name': 'AntiForensicEditExif',
+    return {'name': 'AntiForensicEditExif::GPSChange',
             'category': 'AntiForensic',
             'description': 'Set GPS Location',
             'software': 'exiftool',
