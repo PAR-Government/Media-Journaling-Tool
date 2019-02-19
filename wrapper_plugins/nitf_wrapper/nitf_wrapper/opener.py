@@ -1,31 +1,26 @@
-from nitf import *
-from PIL import Image
+from osgeo import gdal
 import numpy as np
 
 def openNTFFile(filename, isMask=None, args=None):
-    select_band = args['band'] if 'band' in args else None
-    select_image = args['image'] if 'image' in args else 0
-    handle = IOHandle(filename)
-    reader = Reader()
-    record = reader.read(handle)
-    images = record.getImages()
-    if len(images) >= select_image:
-        select_image = len(images) - 1
-    imageReader = reader.newImageReader(select_image)
-    subheader = images[select_image].subheader
-    window = SubWindow()
-    window.numRows = subheader['numRows'].intValue()
-    window.numCols = subheader['numCols'].intValue()
-    window.bandList = range(subheader.getBandCount())
-    nbpp = subheader['numBitsPerPixel'].intValue()
-    bandData = imageReader.read(window)
+    import os
+    print (os.path.exists(filename))
+    drv = gdal.GetDriverByName('NITF')
+    src_ds = gdal.Open(filename,gdal.GA_ReadOnly)
+    select_band = args['band'] if args is not None and 'band' in args  else None
+    select_image = args['image'] if args is not None and 'image' in args else 0
+    to_rgb =  args is None or ('rgb' in args and args['rgb']=='yes')
+    nXSize = src_ds.RasterXSize
+    nYSize = src_ds.RasterYSize
+    count = src_ds.RasterCount
+
     channels = None
     if select_band is None:
-        channels = np.zeros((window.numCols, window.numRows, subheader.getBandCount()),dtype=np.uint8)
-    for band, data in enumerate(bandData):
-        imdata = np.asarray(Image.frombuffer('L', (window.numCols, window.numRows), data, 'raw', 'L', 0, 1))
-        if band == select_band:
-            return imdata
-        elif channels is not None:
-            channels[:,:,band]  = imdata.astype('uint8')
+        data = np.array(src_ds.GetRasterBand(1).ReadAsArray())
+        channels = np.zeros((nYSize, nXSize, count),dtype=np.uint8 if to_rgb else data.dtype)
+        channels[:, :,0] = data
+        for i in range(1,min(count,4)):
+            data = np.array(src_ds.GetRasterBand(i+1).ReadAsArray())
+            channels[:, :, i] = data.astype(channels.dtype)
+    else:
+        channels = np.array(src_ds.GetRasterBand(select_band).ReadAsArray())
     return channels
