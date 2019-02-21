@@ -5159,6 +5159,9 @@
       },
       "optionalparameters": {
       },
+       "compareparameters": {
+        "video_function": "maskgen.video_tools.pasteCompare"
+      },
       "description": "Copy & Paste a series of frames within the same video",
       "includeInMask": {
         "default": true
