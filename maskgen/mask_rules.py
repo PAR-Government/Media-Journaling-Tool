@@ -785,9 +785,7 @@ def video_resize_transform(buildState):
     """
     def vrt_criteria(buildState):
         shapeChange = buildState.shapeChange()
-        args = buildState.arguments()
-        return (shapeChange != (0, 0) and 'interpolation' in args and
-                     args['interpolation'].lower().find('none')>=0)
+        return shapeChange != (0, 0)
     return video_resize_helper(buildState, vrt_criteria)
 
 

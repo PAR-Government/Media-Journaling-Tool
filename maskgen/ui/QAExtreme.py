@@ -500,7 +500,7 @@ class SpatialReviewDisplay(Frame):
                      page.edgeTuple[1]]][0]
 
         if probe.targetVideoSegments is not None:
-            to = self.dialog.scModel.G.get_pathname(probe.edgeId[1])
+            to = os.path.join(self.dialog.scModel.get_dir(),probe.finalImageFileName)
             overlay_file = compose_overlay_name(target_file=to, link=page.link)
             total_range = (probe.targetVideoSegments[0].starttime/1000, probe.targetVideoSegments[-1].endtime/1000)
 
