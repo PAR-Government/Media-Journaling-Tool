@@ -313,7 +313,7 @@ class MetaDataExtractor:
 
         sourceFrames, sourceTime, targetFrames, targetTime, sourceRate, targetRate = result
 
-        if sourceFrames == targetFrames and sourceTime == targetTime:
+        if sourceFrames == targetFrames and int(sourceTime) == int(targetTime):
             return video_masks
 
         def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True):

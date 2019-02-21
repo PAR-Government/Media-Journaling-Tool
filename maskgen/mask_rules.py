@@ -921,9 +921,9 @@ def select_cut_frames_preprocess(mask, edge, target_size):
     fps = 1000.0 / video_tools.get_rate_from_segment(mask)
     video_tools.update_segment(mask,
                                startframe=video_tools.get_start_frame_from_segment(mask) - 1,
-                               endframe=video_tools.get_start_frame_from_segment(mask) + 1,
+                               endframe=video_tools.get_start_frame_from_segment(mask),
                                starttime=video_tools.get_start_time_from_segment(mask) - fps,
-                               endtime=video_tools.get_start_frame_from_segment(mask)+fps)
+                               endtime=video_tools.get_start_time_from_segment(mask))
     if video_tools.get_start_frame_from_segment(mask) < 0:
         video_tools.update_segment(mask,
                                    startframe=1,

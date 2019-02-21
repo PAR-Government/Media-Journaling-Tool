@@ -67,12 +67,15 @@ def upload_projects(args, project):
             raise ValueError('Export Failed')
     return errors
 
+def pick_projects_from_file(filename):
+   with open(filename,'r') as fp:
+        return [x.strip() for x in fp.readlines()]
 
 def main(argv=sys.argv[1:]):
     from functools import partial
     parser = argparse.ArgumentParser()
     parser.add_argument('--threads', default=1, required=False, help='number of projects to build')
-    parser.add_argument('-d', '--projects', help='directory of projects')
+    parser.add_argument('-d', '--projects', help='directory of projects', required=False)
     parser.add_argument('-s', '--s3', help='bucket/path of s3 storage', required=False)
     parser.add_argument('--qa', help="option argument to QA the journal prior to uploading", required=False,
                         action="store_true")
@@ -85,8 +88,11 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('-v', '--skipValidation', help='skip validation',action="store_true")
     parser.add_argument('-i', '--ignore', help='ignore errors', default='', required=False)
     parser.add_argument('--completeFile', default=None, help='A file recording completed projects')
+    parser.add_argument('--projectFile', default=None, help='A file of projects to load',required=False)
     args = parser.parse_args(argv)
-    iterator = pick_projects(args.projects)
+    if args.projects is None and args.projectFile is None:
+        raise ValueError('Requires either --projects of --projectFile')
+    iterator = pick_projects(args.projects) if args.projects is not None else pick_projects_from_file(args.projectFile)
     processor = BatchProcessor(args.completeFile, iterator, threads=args.threads)
     func = partial(upload_projects, args)
     return processor.process(func)
