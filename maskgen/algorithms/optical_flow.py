@@ -252,7 +252,7 @@ def dropFrames(in_file, out_file,
     """
     time_manager = VidTimeManager(startTimeandFrame=start_time, stopTimeandFrame=end_time)
     dropped = createOutput(in_file, out_file, time_manager, codec=codec)
-    return time_manager.getStartFrame(), time_manager.getEndFrame(), dropped
+    return time_manager.getStartFrame(), time_manager.getStartFrame()+dropped -1, dropped
 
 
 class OpticalFlow:

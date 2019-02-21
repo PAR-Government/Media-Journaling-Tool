@@ -402,6 +402,8 @@ def checkCutFrames(op, graph, frm, to):
         frm_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm), media_types=[media_type])
         recordedMasks = extractor.getMasksFromEdge(frm, to, [media_type])
         recorded_change = sum([get_frames_from_segment(i,0) for i in recordedMasks if get_type_of_segment(i)  == media_type])
+        if len(frm_masks) == 0 or len(to_masks) == 0:
+            continue
         diff = get_frames_from_segment(frm_masks[0],0) - get_frames_from_segment(to_masks[0],0)
         if diff != recorded_change:
             if media_type == 'video':
