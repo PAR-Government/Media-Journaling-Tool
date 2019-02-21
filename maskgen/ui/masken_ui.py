@@ -1046,6 +1046,16 @@ class MakeGenUI(Frame):
                         if probe.targetMaskFileName is not None else False,
                     os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites, 'jp2.file name', ''))),
                     os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites,'color.file name', '')))))
+                if probe.targetVideoSegments is not None:
+                    for segment in probe.targetVideoSegments:
+                        logging.getLogger('maskgen').info('{},{},{},{},{},{},{},{}'.format(segment.starttime,
+                                                                                           segment.startframe,
+                                                                                           segment.endtime,
+                                                                                           segment.endframe,
+                                                                                           segment.filename,
+                                                                                           segment.media_type,
+                                                                                           segment.frames,
+                                                                                           segment.error))
 
     def startQA(self):
         from maskgen.validation.core import hasErrorMessages

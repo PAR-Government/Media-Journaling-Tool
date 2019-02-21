@@ -316,16 +316,17 @@ class MetaDataExtractor:
         if sourceFrames == targetFrames and int(sourceTime) == int(targetTime):
             return video_masks
 
-        def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True):
+        def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True,
+                         min_value=0,upper_bound=False):
             # if round_value, return a tuple of value plus rounding error
             import math
             multiplier = -1.0 if inverse else 1.0
             adjustment = existing_value * math.pow(final_rate / orig_rate, multiplier)
             if round_value:
-                v = round(adjustment)
+                v = max(min(round(adjustment),final_rate) if upper_bound else round(adjustment),min_value)
                 e = abs(adjustment - v)
                 return int(v), e
-            return adjustment
+            return max(min(adjustment,final_rate) if upper_bound else adjustment,min_value)
 
         def adjustPositionsFFMPEG(meta, video_frames, hits):
             rate = ffmpeg_api.get_video_frame_rate_from_meta([meta], [video_frames])
@@ -395,14 +396,22 @@ class MetaDataExtractor:
                 new_mask_set.append(mask_set)
                 continue
             startframe, error_start = apply_change(get_start_frame_from_segment(mask_set), float(sourceFrames),
-                                       float(targetFrames), inverse=inverse, round_value=True)
-            endframe, error_end = apply_change(get_end_frame_from_segment(mask_set), float(sourceFrames), float(targetFrames),
-                                                         inverse=inverse,
-                                                         round_value=True)
+                                       float(targetFrames), inverse=inverse, round_value=True,min_value=1)
+            endframe, error_end = apply_change(get_end_frame_from_segment(mask_set),
+                                               float(sourceFrames),
+                                               float(targetFrames),
+                                               inverse=inverse,
+                                               min_value=1,
+                                               round_value=True,
+                                               upper_bound=True)
             endtime = apply_change(get_end_time_from_segment(mask_set), float(sourceTime), targetTime, inverse=inverse,
                                              round_value=False)
-            starttime = apply_change(get_start_time_from_segment(mask_set), sourceTime, targetTime, inverse=inverse,
-                                               round_value=False)
+            starttime = apply_change(get_start_time_from_segment(mask_set),
+                                     sourceTime,
+                                     targetTime,
+                                     inverse=inverse,
+                                     round_value=False,
+                                     upper_bound=True)
 
 
             try:
