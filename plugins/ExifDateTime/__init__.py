@@ -108,7 +108,7 @@ def suffix():
 
 
 def operation():
-    return {'name': 'AntiForensicEditExif',
+    return {'name': 'AntiForensicEditExif::DateTimeChange',
             'category': 'AntiForensic',
             'description': 'Set Date and Time of Video Capture',
             'software': 'exiftool',

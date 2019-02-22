@@ -1375,13 +1375,18 @@ class MakeGenUI(Frame):
         try:
             git_branch = self.prefLoader.get_key('git.branch',default_value='master')
             sha, message = UpdaterGitAPI(branch=git_branch).isOutdated()
-            sha_op, message_op= OperationsUpdaterGitAPI(branch=git_branch).isOutdated()
+            sha_op, message_op = OperationsUpdaterGitAPI(branch=git_branch).isOutdated()
             if sha is not None:
-                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+                update_message = 'Last Update message {0}'.format(message.encode('ascii', errors='xmlcharrefreplace')) \
+                    if message else ''
+                tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha, update_message))
             elif sha_op is not None:
-                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha_op, message_op.encode('ascii', errors='xmlcharrefreplace')))
+                update_message = 'Last Update message {0}'.format(
+                    message_op.encode('ascii', errors='xmlcharrefreplace')) if message_op else ''
+                tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha_op, update_message))
         except:
-            tkMessageBox.showwarning('JT Update Status','Unable to verify latest version of JT due to connection error to GitHub. See logs for details')
+            tkMessageBox.showwarning('JT Update Status', 'Unable to verify latest version of JT due to connection '
+                                                         'error to GitHub. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 
