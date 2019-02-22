@@ -210,7 +210,6 @@ def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
-
             json_data = json.load(f, encoding='utf-8')
         except  ValueError:
             json_data = json.load(f)
