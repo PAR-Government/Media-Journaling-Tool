@@ -2829,6 +2829,9 @@
         "default": false,
         "video": true
       },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2887,6 +2890,9 @@
       "includeInMask": {
         "default": false,
         "video": true
+      },
+      "compareparameters": {
+        "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "transitions": [
         "image.image",
@@ -5152,6 +5158,9 @@
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
       "optionalparameters": {
+      },
+       "compareparameters": {
+        "video_function": "maskgen.video_tools.pasteCompare"
       },
       "description": "Copy & Paste a series of frames within the same video",
       "includeInMask": {

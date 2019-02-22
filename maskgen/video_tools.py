@@ -3299,7 +3299,7 @@ def resizeMask(video_masks, size):
     """
     from functools import partial
     def resizeMaskGivenSize(size, mask):
-         return cv2.resize(mask, size)
+         return cv2.resize(mask, (size[1],size[0]))
     return _maskTransform(video_masks, partial(resizeMaskGivenSize, size))
 
 def xxxreverseMasks(edge_video_masks,composite_video_masks):

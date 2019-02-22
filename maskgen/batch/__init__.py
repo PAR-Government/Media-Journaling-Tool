@@ -10,6 +10,10 @@ def pick_projects(directory):
     :param directory: string containing directory of subdirectories to search
     :return: list projects found under the given directory
     """
+    if os.path.isfile(directory):
+       with open(directory,'r') as fp:
+         return [x.strip() for x in fp.readlines()]
+
     ext = '.json'
     subs = [x[0] for x in os.walk(directory,followlinks=True)]
     projects = []

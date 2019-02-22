@@ -841,6 +841,8 @@ class ImageGraph:
             self.G.graph['creator'] = self.username
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
+        if 'createtime' not in self.G.graph:
+            self.G.graph['createtime'] = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
         if 'updatetime' not in self.G.graph:
             if 'exporttime' in self.G.graph:
                 self.G.graph['updatetime'] = self.G.graph['exporttime']

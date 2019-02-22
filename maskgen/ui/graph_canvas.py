@@ -463,7 +463,8 @@ class MaskGraphCanvas(tk.Canvas):
                 e = self.itemToEdgeIds[item]
                 if e is not None:
                     self.scModel.selectEdge(e[0], e[1])
-                    eventname = 'rcEdge' if self.scModel.isEditableEdge(e[0], e[1]) else 'rcNonEditEdge'
+                    eventname = 'rcEdge' if self.scModel.isEditableEdge(e[0], e[1]) else (
+                        'rcDonorEdge' if self.scModel.isDonorEdge(e[0], e[1]) else 'rcNonEditEdge')
             self._mark(item)
             self.callback(event, eventname if showMenu else 'n')
             if e is not None:

@@ -67,7 +67,6 @@ def upload_projects(args, project):
             raise ValueError('Export Failed')
     return errors
 
-
 def main(argv=sys.argv[1:]):
     from functools import partial
     parser = argparse.ArgumentParser()
@@ -86,10 +85,12 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('-i', '--ignore', help='ignore errors', default='', required=False)
     parser.add_argument('--completeFile', default=None, help='A file recording completed projects')
     args = parser.parse_args(argv)
+
     iterator = pick_projects(args.projects)
     processor = BatchProcessor(args.completeFile, iterator, threads=args.threads)
     func = partial(upload_projects, args)
     return processor.process(func)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

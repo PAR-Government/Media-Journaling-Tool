@@ -210,12 +210,29 @@ def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
-
             json_data = json.load(f, encoding='utf-8')
         except  ValueError:
             json_data = json.load(f)
+        if 'picks' in json_data:
+            return ProjectPicker(json_data)
         return BatchProject(json_data)
     return None
+
+class ProjectPicker:
+
+    def __init__(self,picker_json):
+        self.subs = {}
+        for pick_key, spec_file_name in picker_json['picks'].iteritems():
+            self.subs[pick_key] = loadJSONGraph(spec_file_name)
+
+    def executeForProject(self, project, nodes, workdir=None, global_variables={}):
+        for node in nodes:
+            base_id = project.getBaseNode(node)
+            key = os.path.splitext(project.getGraph().get_filename(base_id))[1][1:].lower()
+            if key in self.subs:
+                if not self.subs[key].executeForProject(project,[node],workdir=workdir,global_variables=global_variables):
+		   return False
+        return True
 
 import string
 class MyFormatter(string.Formatter):

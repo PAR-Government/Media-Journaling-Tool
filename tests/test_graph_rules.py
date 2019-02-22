@@ -32,17 +32,33 @@ class TestToolSet(TestSupport):
         self.assertIsNotNone(result)
 
     # Tests checkSame and checkBigger
-    def test_checkLengthSameOrBigger(self):
+    def test_checkLength(self):
         graph = Mock()
-        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'insert'},
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': '1', 'End Time': '2', 'add type': 'insert'},
                                             'metadatadiff': {}})
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.dir = '.'
         result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # bigger
         self.assertIsNotNone(result)
-        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'replace'},
-                                            'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        graph.get_edge.return_value['metadatadiff'] ={'video': {'nb_frames': ('change', '2', '1')}}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '1', '2')}}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge.return_value['arguments']['add type'] = 'replace'
         result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # same
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b') # smaller
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '2', '1')}}
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '1', '2')}}
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b')
         self.assertIsNotNone(result)
 
     def test_checkAudioLengthBigger(self):
