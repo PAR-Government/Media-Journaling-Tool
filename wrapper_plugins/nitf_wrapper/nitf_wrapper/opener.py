@@ -23,4 +23,4 @@ def openNTFFile(filename, isMask=None, args=None):
             channels[:, :, i] = data.astype(channels.dtype)
     else:
         channels = np.array(src_ds.GetRasterBand(select_band).ReadAsArray())
-    return channels
+    return channels, 'NITF'
