@@ -402,6 +402,8 @@ def checkCutFrames(op, graph, frm, to):
         frm_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm), media_types=[media_type])
         recordedMasks = extractor.getMasksFromEdge(frm, to, [media_type])
         recorded_change = sum([get_frames_from_segment(i,0) for i in recordedMasks if get_type_of_segment(i)  == media_type])
+        if len(frm_masks) == 0 or len(to_masks) == 0:
+            continue
         diff = get_frames_from_segment(frm_masks[0],0) - get_frames_from_segment(to_masks[0],0)
         if diff != recorded_change:
             if media_type == 'video':
@@ -1060,7 +1062,7 @@ def checkLengthSmaller(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1][1]) < int(durationChangeTuple[2][1])):
+            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1]) < int(durationChangeTuple[2])):
         return (Severity.ERROR,"Length of video is not shorter")
 
 def checkSampleRate(op, graph, frm, to):
@@ -1218,7 +1220,7 @@ def checkLengthBigger(op, graph, frm, to):
 
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is None or \
-            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1][1]) > int(durationChangeTuple[2][1])):
+            (durationChangeTuple[0] == 'change' and int(durationChangeTuple[1]) > int(durationChangeTuple[2])):
         return (Severity.ERROR,"Length of video is not longer")
 
 def checkLengthSameOrBigger(op, graph, frm, to):
