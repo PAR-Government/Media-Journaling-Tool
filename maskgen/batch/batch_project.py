@@ -227,10 +227,12 @@ class ProjectPicker:
 
     def executeForProject(self, project, nodes, workdir=None, global_variables={}):
         for node in nodes:
-            base_id = project.getBaseNode(id)
+            base_id = project.getBaseNode(node)
             key = os.path.splitext(project.getGraph().get_filename(base_id))[1][1:].lower()
             if key in self.subs:
-                self.subs[key].executeForProject(project,[node],workdir=workdir,global_variables=global_variables)
+                if not self.subs[key].executeForProject(project,[node],workdir=workdir,global_variables=global_variables):
+		   return False
+        return True
 
 import string
 class MyFormatter(string.Formatter):
