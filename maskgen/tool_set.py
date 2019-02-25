@@ -3299,11 +3299,11 @@ class GrayBlockWriter:
         self.release()
 
     def release(self):
-        self.current_group = None
-        self.dset = None
         if self.current_group is not None:
             self.current_group.attrs['end_time'] = self.last_time
             self.current_group.attrs['end_frame'] = self.last_frame
+        self.current_group = None
+        self.dset = None
         if self.h_file is not None:
             self.h_file.close()
         self.h_file = None
