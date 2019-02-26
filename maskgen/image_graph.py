@@ -253,6 +253,9 @@ class ImageGraph:
         self.tool = tool if tool is not None else 'jtapi'
         self._setup(pathname, projecttype, nodeFilePaths, edgeFilePaths,graphFilePaths)
 
+    def isEdgeFilePath(self,path):
+        return path in self.G.graph['edgeFilePaths']
+
     def addEdgeFilePath(self, path, ownership):
         """
         :param path: the edge propertes path to a filename

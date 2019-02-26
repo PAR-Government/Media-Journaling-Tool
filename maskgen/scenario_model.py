@@ -2465,7 +2465,7 @@ class ImageProjectModel:
                 break
             mod = self.getModificationForEdge(self.start,self.end)
             for key,value in mod.arguments.iteritems():
-                if key in kwargs_copy:
+                if key not in kwargs_copy or not self.getGraph().isEdgeFilePath('arguments.' + key):
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite

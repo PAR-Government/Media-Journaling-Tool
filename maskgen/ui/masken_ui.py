@@ -695,7 +695,7 @@ class MakeGenUI(Frame):
         mim_time = image.file_mtime()
         if cache_name in self.image_cache:
             cache_image, cache_mim_time = self.image_cache[cache_name]
-            if cache_mim_time != mim_time:
+            if cache_mim_time == mim_time:
                 return cache_image
         item = fixTransparency(imageResizeRelative(image, (250, 250), size)).toPIL()
         self.image_cache[cache_name] = (item,mim_time)
