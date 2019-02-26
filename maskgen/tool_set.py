@@ -233,7 +233,7 @@ def fileType(fileName):
         return 'dir'
     suffix = os.path.splitext(fileName)[1].lower()
     suffix = '*' + suffix if len(suffix) > 0 else ''
-    file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
+    file_type = None
     if suffix in [x[1] for x in imagefiletypes] or (os.path.exists(fileName) and imghdr.what(fileName) is not None):
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
@@ -242,6 +242,8 @@ def fileType(fileName):
         file_type = 'zip'
     elif suffix in [x[1] for x in textfiletypes]:
         file_type = 'text'
+    elif suffix in [x[1] for x in videofiletypes] or isVideo(fileName):
+        file_type = 'video'
     return getMimeType(fileName) if file_type is None else file_type
 
 
@@ -2505,22 +2507,25 @@ def composeCloneMask(changemask, startimage, finalimage):
     start_image_array = np.array(startimage)
     final_image_array = np.array(finalimage)
     newmask = np.zeros(start_image_array.shape).astype('uint8')
-    contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for i in range(0, len(contours)):
-        try:
-            cnt = contours[i]
-            x, y, w, h = cv2.boundingRect(cnt)
-            if w <= 2 or h <= 2:
+    try:
+        contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for i in range(0, len(contours)):
+            try:
+                cnt = contours[i]
+                x, y, w, h = cv2.boundingRect(cnt)
+                if w <= 2 or h <= 2:
+                    continue
+                final_image_subarray = final_image_array[y:y + h, x:x + w]
+                for i in range(final_image_subarray.shape[2]):
+                    final_image_subarray[:, :, i] = final_image_subarray[:, :, i] * (mask[y:y + h, x:x + w] / 255)
+                matched_tuple = __findBestMatch(start_image_array, final_image_subarray)
+                if matched_tuple is not None:
+                    newmask[matched_tuple[0]:matched_tuple[2], matched_tuple[1]:matched_tuple[3]] = 255
+            except Exception as e:
+                logging.getLogger('maskgen').warning('Failed to compose clone mask: ' + str(e))
                 continue
-            final_image_subarray = final_image_array[y:y + h, x:x + w]
-            for i in range(final_image_subarray.shape[2]):
-                final_image_subarray[:, :, i] = final_image_subarray[:, :, i] * (mask[y:y + h, x:x + w] / 255)
-            matched_tuple = __findBestMatch(start_image_array, final_image_subarray)
-            if matched_tuple is not None:
-                newmask[matched_tuple[0]:matched_tuple[2], matched_tuple[1]:matched_tuple[3]] = 255
-        except Exception as e:
-            logging.getLogger('maskgen').warning('Failed to compose clone mask: ' + str(e))
-            continue
+    except Exception as e:
+        return changemask.to_array()
     return newmask
 
 
@@ -3299,11 +3304,11 @@ class GrayBlockWriter:
         self.release()
 
     def release(self):
-        self.current_group = None
-        self.dset = None
         if self.current_group is not None:
             self.current_group.attrs['end_time'] = self.last_time
             self.current_group.attrs['end_frame'] = self.last_frame
+        self.current_group = None
+        self.dset = None
         if self.h_file is not None:
             self.h_file.close()
         self.h_file = None

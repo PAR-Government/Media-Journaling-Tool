@@ -318,8 +318,6 @@ class GroupFilterLoader:
         if op is None:
             if fake:
                 return getOperation(name, fake=True, warning=warning)
-            elif warning:
-                logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
         return op
 
     def getOperationsWithinGroup(self, name, fake=False, warning=True):
@@ -343,8 +341,7 @@ class GroupFilterLoader:
         if op is None:
             if fake:
                 return [getOperation(name, fake=True, warning=warning)]
-            elif warning:
-                logging.getLogger('maskgen').warning('Requested missing operation ' + str(name))
+            else:
                 return []
         return [op]
 

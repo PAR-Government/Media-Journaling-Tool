@@ -300,7 +300,10 @@ file_registry = [('png', [readPNG]),
 file_write_registry = {}
 
 for entry_point in iter_entry_points(group='maskgen_image', name=None):
-    file_registry.insert(0, (entry_point.name, [entry_point.load()]))
+    try:
+        file_registry.insert(0, (entry_point.name, [entry_point.load()]))
+    except Exception as ex:
+        logging.getLogger('maskgen').error('Cannot load {} due to {}'.format(entry_point.name,str(ex)))
 
 for entry_point in iter_entry_points(group='maskgen_image_writer', name=None):
     file_write_registry[entry_point.name] = entry_point.load()
