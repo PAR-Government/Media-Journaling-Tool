@@ -3173,7 +3173,7 @@ class OldFormatGroupSetter:
 
 def compose_overlay_name(target_file="", link = tuple()):
     path_tuple = os.path.split(target_file)
-    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.avi')
+    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.' + preferredSuffix())
 
 class GrayBlockOverlayGenerator:
 
