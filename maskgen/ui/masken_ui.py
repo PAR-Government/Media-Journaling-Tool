@@ -12,6 +12,7 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 
+from maskgen.SystemCheckTools import VersionChecker
 from botocore.exceptions import ClientError
 from maskgen.ui.graph_canvas import MaskGraphCanvas
 from maskgen.scenario_model import *
@@ -35,7 +36,7 @@ import logging
 from maskgen.ui.AnalysisViewer import AnalsisViewDialog,loadAnalytics
 from maskgen.graph_output import check_graph_status
 from maskgen.updater import UpdaterGitAPI, OperationsUpdaterGitAPI
-from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder
+from maskgen.mask_rules import Jpeg2000CompositeBuilder, ColorCompositeBuilder, HDF5CompositeBuilder
 import maskgen.preferences_initializer
 from maskgen.software_loader import getMetDataLoader
 from cachetools import LRUCache
@@ -317,25 +318,6 @@ class MakeGenUI(Frame):
 
     def recomputeedgemask(self):
         analysis_params = {}
-        if self.scModel.getEndType() == 'video':
-            d = ItemDescriptionCaptureDialog(self,
-                                             {
-                                                 'video compare': self.scModel.getEdgeItem('video difference',
-                                                                                        default='opencv')
-                                             },
-                                             {
-                                                 "video compare": {
-                                                     "type": "list",
-                                                     "source": "video",
-                                                     "values": [
-                                                         "opencv",
-                                                         "ffmpeg"
-                                                     ],
-                                                     "description": "FFMPEG is faster but less accurate"
-                                                 }
-                                             },
-                                             'Mask Reconstruct')
-            analysis_params = d.argvalues
         errors = self.scModel.reproduceMask(analysis_params=analysis_params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
@@ -364,7 +346,7 @@ class MakeGenUI(Frame):
                     return
 
                 params = d.argvalues
-        errors = self.scModel.reproduceMask(analysis_params=params)
+        errors = self.scModel.reproduceMask(argument_params=params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
@@ -721,7 +703,7 @@ class MakeGenUI(Frame):
         mim_time = image.file_mtime()
         if cache_name in self.image_cache:
             cache_image, cache_mim_time = self.image_cache[cache_name]
-            if cache_mim_time != mim_time:
+            if cache_mim_time == mim_time:
                 return cache_image
         item = fixTransparency(imageResizeRelative(image, (250, 250), size)).toPIL()
         self.image_cache[cache_name] = (item,mim_time)
@@ -878,12 +860,16 @@ class MakeGenUI(Frame):
         self._setTitle()
 
     def systemcheck(self):
+        vc = VersionChecker()
         errors = [self.validator.test(),
                   ffmpeg_api.ffmpeg_tool_check(),
                   exif.toolCheck(),
                   selfVideoTest(),
                   check_graph_status(),
-                  self.notifiers.check_status()]
+                  self.notifiers.check_status(),
+                  vc.check_ffmpeg(),
+                  vc.check_opencv(),
+                  vc.check_dot()]
         error_count = 0
         for error in errors:
             if error is not None:
@@ -1050,19 +1036,34 @@ class MakeGenUI(Frame):
         if tkMessageBox.askyesno('Archive','Archive Probes'):
             archive_probes(self.scModel,reproduceMask=False)
         else:
+            builders = [ColorCompositeBuilder,Jpeg2000CompositeBuilder]  if self.scModel.getGraph().get_project_type() == 'image' else \
+              [HDF5CompositeBuilder]
             generator = ProbeGenerator(scModel=self.scModel,
                                        processors=[ProbeSetBuilder(scModel=self.scModel,
-                                                                   compositeBuilders=[ColorCompositeBuilder,
-                                                                                      Jpeg2000CompositeBuilder]),
+                                                                   compositeBuilders=builders),
                                                    DetermineTaskDesignation(self.scModel, inputFunction=fetch_qaData_designation)])
             ps = generator(saveTargets=False, keepFailures=True)
             for probe in ps:
-                logging.getLogger('maskgen').info('{},{},{},{},{}'.format(
+                logging.getLogger('maskgen').info('{},{},{},{},{},{},{},{}'.format(
                     probe.targetBaseNodeId,
                     probe.edgeId,
                     probe.targetMaskFileName,
                     probe.donorBaseNodeId,
-                    probe.donorMaskFileName))
+                    probe.donorMaskFileName,
+                    os.path.exists(os.path.join(self.scModel.get_dir(),probe.targetMaskFileName)) \
+                        if probe.targetMaskFileName is not None else False,
+                    os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites, 'jp2.file name', ''))),
+                    os.path.exists(os.path.join(self.scModel.get_dir(), getValue(probe.composites,'color.file name', '')))))
+                if probe.targetVideoSegments is not None:
+                    for segment in probe.targetVideoSegments:
+                        logging.getLogger('maskgen').info('{},{},{},{},{},{},{},{}'.format(segment.starttime,
+                                                                                           segment.startframe,
+                                                                                           segment.endtime,
+                                                                                           segment.endframe,
+                                                                                           segment.filename,
+                                                                                           segment.media_type,
+                                                                                           segment.frames,
+                                                                                           segment.error))
 
     def startQA(self):
         from maskgen.validation.core import hasErrorMessages
@@ -1250,7 +1251,13 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
-        self.filteredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
+        self.filteredgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
+
+        self.donoredgemenu = Menu(self.master, tearoff=0)
+        self.donoredgemenu.add_command(label="Select", command=self.select)
+        self.donoredgemenu.add_command(label="Inspect", command=self.view)
+        self.donoredgemenu.add_command(label="Remove", command=self.remove)
+        self.donoredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
@@ -1293,6 +1300,8 @@ class MakeGenUI(Frame):
             self.edgemenu.post(event.x_root, event.y_root)
         elif eventName == 'rcNonEditEdge':
             self.filteredgemenu.post(event.x_root, event.y_root)
+        elif eventName == 'rcDonorEdge':
+            self.donoredgemenu.post(event.x_root, event.y_root)
         elif eventName == 'rcGroup':
             self.groupselection = event.items
             self.groupmenu.post(event.x_root, event.y_root)
@@ -1374,13 +1383,18 @@ class MakeGenUI(Frame):
         try:
             git_branch = self.prefLoader.get_key('git.branch',default_value='master')
             sha, message = UpdaterGitAPI(branch=git_branch).isOutdated()
-            sha_op, message_op= OperationsUpdaterGitAPI(branch=git_branch).isOutdated()
+            sha_op, message_op = OperationsUpdaterGitAPI(branch=git_branch).isOutdated()
             if sha is not None:
-                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha, message.encode('ascii', errors='xmlcharrefreplace')))
+                update_message = 'Last Update message {0}'.format(message.encode('ascii', errors='xmlcharrefreplace')) \
+                    if message else ''
+                tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha, update_message))
             elif sha_op is not None:
-                tkMessageBox.showinfo('Update to JT Available','New version: {}, Last update message: {}'.format(sha_op, message_op.encode('ascii', errors='xmlcharrefreplace')))
+                update_message = 'Last Update message {0}'.format(
+                    message_op.encode('ascii', errors='xmlcharrefreplace')) if message_op else ''
+                tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha_op, update_message))
         except:
-            tkMessageBox.showwarning('JT Update Status','Unable to verify latest version of JT due to connection error to GitHub. See logs for details')
+            tkMessageBox.showwarning('JT Update Status', 'Unable to verify latest version of JT due to connection '
+                                                         'error to GitHub. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 

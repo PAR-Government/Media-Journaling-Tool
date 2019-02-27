@@ -81,7 +81,10 @@ def updateJournal(scModel):
          ('0.5.1105.665737a167', []),
          ('0.5.1130.c118b19ba4', [_fixReplaceAudioOp, _fixSoftwareVersion]),
          ('0.5.1210.5ca3e81782', [_fixCAS]),
-         ('0.6.0103.9d9b6e95f2', [])
+         ('0.6.0103.9d9b6e95f2', []),
+         ('0.6.0117.76365a8b60', []),
+         ('0.6.0208.ae6b74543d', []),
+         ('0.6.0221.e507f325f2', [_fixAddCreateTime])
          ])
 
     def _ConformVersion(version):
@@ -124,6 +127,16 @@ def updateJournal(scModel):
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixAddCreateTime(scModel, gopLoader):
+    times = []
+    for node_id in scModel.G.get_nodes():
+        node = scModel.G.get_node(node_id)
+        ctime = getValue(node,'ctime')
+        if ctime is not None:
+            times.append(ctime)
+    times = sorted(times)
+    scModel.G.setDataItem('createtime',times[0])
 
 def _fixReplaceAudioOp(scModel, gopLoader):
     """

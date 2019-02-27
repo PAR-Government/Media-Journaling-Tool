@@ -210,12 +210,29 @@ def loadJSONGraph(pathname):
     logging.getLogger('maskgen').info('Loading JSON file {}'.format(pathname))
     with open(pathname, "r") as f:
         try:
-
             json_data = json.load(f, encoding='utf-8')
         except  ValueError:
             json_data = json.load(f)
+        if 'picks' in json_data:
+            return ProjectPicker(json_data)
         return BatchProject(json_data)
     return None
+
+class ProjectPicker:
+
+    def __init__(self,picker_json):
+        self.subs = {}
+        for pick_key, spec_file_name in picker_json['picks'].iteritems():
+            self.subs[pick_key] = loadJSONGraph(spec_file_name)
+
+    def executeForProject(self, project, nodes, workdir=None, global_variables={}):
+        for node in nodes:
+            base_id = project.getBaseNode(node)
+            key = os.path.splitext(project.getGraph().get_filename(base_id))[1][1:].lower()
+            if key in self.subs:
+                if not self.subs[key].executeForProject(project,[node],workdir=workdir,global_variables=global_variables):
+		   return False
+        return True
 
 import string
 class MyFormatter(string.Formatter):
@@ -276,7 +293,7 @@ def buildIterator(spec_name, param_spec, global_state, random_selection=False):
     :return: a iterator function to construct an iterator over possible values
     """
     if param_spec['type'] == 'list':
-        new_values =[(value.format(**global_state) if type(value) in ['str','unicode'] else value) for value in param_spec['values']]
+        new_values =[(value.format(**global_state) if type(value) in [str,unicode] else value) for value in param_spec['values']]
         if not random_selection:
             return ListPermuteGroupElement(spec_name, new_values)
         else:
@@ -434,8 +451,11 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     elif spec_type == 'imagefile':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
-        source = getNodeState(specification['source'], local_state)['node']
-        return postProcess(getGraphFromLocalState(local_state).get_image(source)[1])
+        node_state = getNodeState(specification['source'], local_state)
+        if 'node' not in node_state:
+            raise ValueError('Node {} did not generate a project node.  Try using type "input" in {}'.format(
+                specification['source'], specification_name))
+        return postProcess(getGraphFromLocalState(local_state).get_image(node_state['node'])[1])
     elif spec_type == 'input':
         if 'source' not in specification:
             raise ValueError('name attribute missing in  {}'.format(specification_name))
@@ -699,13 +719,13 @@ class PreProcessedMediaOperation(BatchOperation):
     def __init__(self):
         self.index = dict()
 
-    def _fetchArguments(self, directory, node, nodename, image_file_name, arguments):
+    def _fetchArguments(self, directory, node, nodename, image_file_name, arguments, global_state={}):
         import csv
         argcopy = copy.deepcopy(arguments)
         if 'argument file' in node:
             if 'argument names' not in node:
                 raise ValueError("Cannot find argument names in node {}".format(nodename))
-            fullfilename = os.path.join(directory, node['argument file'])
+            fullfilename = os.path.join(directory, node['argument file'].format(**global_state))
             if fullfilename not in self.index:
                 argnames = node['argument names']
                 if not os.path.exists(fullfilename):
@@ -781,11 +801,7 @@ class PreProcessedMediaOperation(BatchOperation):
                 self.logger.debug('Execute image {} on {} with {}'.format(node['description'],
                                                                           filename,
                                                                           str(args)))
-            args = self._fetchArguments(directory,
-                                                                                   node,
-                                                                                   node_name,
-                                                                                   os.path.basename(results[0]),
-                                                                                   args)
+            args = self._fetchArguments(directory, node, node_name, os.path.basename(results[0]), args, global_state)
             args = processValue(MyFormatter(local_state,global_state),args, lambda x:  x)
             filetype = tool_set.fileType(filename)
             opDetails = scenario_model.Modification(node['op'],
@@ -878,6 +894,8 @@ class PluginOperation(BatchOperation):
             args['experiment_id'] = node['experiment_id']
         if node_name in getValue(global_state,'passthrus',[]):
             args['passthru']= True
+        if 'description' in node:
+            args['description'] = node['description'].format(**global_state)
         args['skipRules'] = True
         args['sendNotifications'] = False
         args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
@@ -1012,6 +1030,8 @@ class InputMaskPluginOperation(PluginOperation):
             if (self.logger.isEnabledFor(logging.DEBUG)):
                 self.logger.debug('Plugin {} returned  {}'.format(filter, str(extra_args)))
             if extra_args is not None and type(extra_args) == type({}):
+                if 'override_target' in extra_args:
+                    target = extra_args.pop('override_target')
                 for k, v in extra_args.iteritems():
                     # if k not in kwargs:
                     params[k] = v

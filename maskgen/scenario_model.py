@@ -1694,10 +1694,12 @@ class ImageProjectModel:
                                                                        invert=invert,
                                                                        analysis_params=analysis_params)
 
-    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict()):
+    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict(), argument_params=dict()):
         mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
         edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
+        if len(argument_params) > 0:
+            arguments = argument_params
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
         mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
@@ -1705,6 +1707,7 @@ class ImageProjectModel:
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
                                                      force=True)
+        analysis_params['arguments'] = arguments
         maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
         self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
         if len(errors) == 0:
@@ -1949,6 +1952,7 @@ class ImageProjectModel:
                            edgeFilePaths={'inputmaskname': 'inputmaskownership',
                                           'selectmasks.mask': '',
                                           'videomasks.videosegment': '',
+                                          'substitute subsitute': '',
                                           'substitute videomasks.videosegment': ''},
                            nodeFilePaths={'donors.*': ''},
                            username=username if username is not None else self.username,
@@ -2461,7 +2465,7 @@ class ImageProjectModel:
                 break
             mod = self.getModificationForEdge(self.start,self.end)
             for key,value in mod.arguments.iteritems():
-                if key in kwargs_copy:
+                if key not in kwargs_copy or not self.getGraph().isEdgeFilePath('arguments.' + key):
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
@@ -2482,7 +2486,7 @@ class ImageProjectModel:
             self.notify((self.start, self.end), 'update_edge')
         return subs is not None
 
-    def mediaFromPlugin(self, filter, software=None, passthru=False, **kwargs):
+    def mediaFromPlugin(self, filter, software=None, passthru=False, description=None, **kwargs):
         """
           Use a plugin to create a new media item and link.
           This method is given the plugin name, Image, the full pathname of the image and any additional parameters
@@ -2551,7 +2555,7 @@ class ImageProjectModel:
                     extra_args[name] = value
                     self.G.addEdgeFilePath('arguments.' + name, '')
             opInfo = self.gopLoader.getOperationWithGroups(op['name'], fake=True)
-            description = Modification(op['name'], filter + ':' + op['description'],
+            description = Modification(op['name'], filter + ':' + op['description'] if description is None else description,
                                        category=opInfo.category,
                                        generateMask=opInfo.generateMask,
                                        semanticGroups=graph_args['semanticGroups'] if 'semanticGroups' in graph_args else [],
@@ -2629,7 +2633,8 @@ class ImageProjectModel:
                                        'semanticGroups',
                                        'experiment_id',
                                        'recordInCompositeMask',
-                                       'donorargs'}:
+                                       'donorargs',
+                                       'index'}:
                 parameters[k] = v
                 # if arguments[k]['type'] != 'donor':
                 stripped_args[k] = v

@@ -233,7 +233,7 @@ def fileType(fileName):
         return 'dir'
     suffix = os.path.splitext(fileName)[1].lower()
     suffix = '*' + suffix if len(suffix) > 0 else ''
-    file_type = 'video' if suffix in [x[1] for x in videofiletypes] or isVideo(fileName) else None
+    file_type = None
     if suffix in [x[1] for x in imagefiletypes] or (os.path.exists(fileName) and imghdr.what(fileName) is not None):
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
@@ -242,6 +242,8 @@ def fileType(fileName):
         file_type = 'zip'
     elif suffix in [x[1] for x in textfiletypes]:
         file_type = 'text'
+    elif suffix in [x[1] for x in videofiletypes] or isVideo(fileName):
+        file_type = 'video'
     return getMimeType(fileName) if file_type is None else file_type
 
 
@@ -1210,13 +1212,16 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
         kernel = np.ones((5, 5), np.uint8)
         erosion = cv2.erode(mask, kernel, iterations=2)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        p = np.asarray([item[0] for sublist in contours for item in sublist])
-        if len(p) > 0:
-            area = cv2.contourArea(cv2.convexHull(p))
-            totalArea = cv2.contourArea(
-                np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
-            globalchange = globalchange or area / totalArea > 0.50
+        try:
+            contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            p = np.asarray([item[0] for sublist in contours for item in sublist])
+            if len(p) > 0:
+                area = cv2.contourArea(cv2.convexHull(p))
+                totalArea = cv2.contourArea(
+                    np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
+                globalchange = globalchange or area / totalArea > 0.50
+        except:
+            True,'empty'
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
 
@@ -2107,21 +2112,34 @@ def morphologyCompare(img_one, img_two, arguments= {}):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, arguments={}):
+    gain = int(getValue(arguments, 'gain', 0))
     kernel_size=int(getValue(arguments, 'kernel',3))
+    weight = int(getValue(arguments, 'weight', 1.0))
     smoothing = int(getValue(arguments, 'smoothing', 3))
     algorithm = getValue(arguments, 'filling', 'morphology')
-    aggregate = int(getValue(arguments, 'aggregate', 'max'))
-    min_threshold = int(getValue(arguments, 'minimum threshold', 9))
+    aggregate = getValue(arguments, 'aggregate', 'max')
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     from scipy import signal
     # compute diff in 3 colors
-    diff = (np.abs(img_one - img_two)).astype('uint16')
-    if aggregate == 'max':
-        mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
-        bins=256
+    if aggregate == 'luminance':
+        min_threshold = int(getValue(arguments, 'minimum threshold', 3))
+        img_one = cv2.cvtColor(img_one.astype('uint8'), cv2.COLOR_BGR2YCR_CB)
+        img_two = cv2.cvtColor(img_two.astype('uint8'), cv2.COLOR_BGR2YCR_CB)
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16')))
+        mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
+        bins = 256 + 512/weight
     else:
-        mask = np.sum(diff, 2)
-        bins=768
+        min_threshold = int(getValue(arguments, 'minimum threshold', 9))
+        diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
+        if aggregate == 'max':
+            mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
+            bins=256
+        elif aggregate == 'sum':
+            mask = np.sum(diff, 2)
+            bins=768
+        else:
+            mask = np.mean(diff, 2)
+            bins = 256
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
     hist = moving_average(hist,n=smoothing)  # smooth out the histogram
     minima = signal.argrelmin(hist, order=2)  # find local minima
@@ -2130,13 +2148,14 @@ def mediatedCompare(img_one, img_two, arguments={}):
     else:
         threshold = max(min_threshold,minima[0][0])  # Use first minima
 
+    threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
     if algorithm == 'morphology':
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    else:
+    elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
@@ -2488,22 +2507,25 @@ def composeCloneMask(changemask, startimage, finalimage):
     start_image_array = np.array(startimage)
     final_image_array = np.array(finalimage)
     newmask = np.zeros(start_image_array.shape).astype('uint8')
-    contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for i in range(0, len(contours)):
-        try:
-            cnt = contours[i]
-            x, y, w, h = cv2.boundingRect(cnt)
-            if w <= 2 or h <= 2:
+    try:
+        contours, hierarchy = cv2api.findContours(np.copy(mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for i in range(0, len(contours)):
+            try:
+                cnt = contours[i]
+                x, y, w, h = cv2.boundingRect(cnt)
+                if w <= 2 or h <= 2:
+                    continue
+                final_image_subarray = final_image_array[y:y + h, x:x + w]
+                for i in range(final_image_subarray.shape[2]):
+                    final_image_subarray[:, :, i] = final_image_subarray[:, :, i] * (mask[y:y + h, x:x + w] / 255)
+                matched_tuple = __findBestMatch(start_image_array, final_image_subarray)
+                if matched_tuple is not None:
+                    newmask[matched_tuple[0]:matched_tuple[2], matched_tuple[1]:matched_tuple[3]] = 255
+            except Exception as e:
+                logging.getLogger('maskgen').warning('Failed to compose clone mask: ' + str(e))
                 continue
-            final_image_subarray = final_image_array[y:y + h, x:x + w]
-            for i in range(final_image_subarray.shape[2]):
-                final_image_subarray[:, :, i] = final_image_subarray[:, :, i] * (mask[y:y + h, x:x + w] / 255)
-            matched_tuple = __findBestMatch(start_image_array, final_image_subarray)
-            if matched_tuple is not None:
-                newmask[matched_tuple[0]:matched_tuple[2], matched_tuple[1]:matched_tuple[3]] = 255
-        except Exception as e:
-            logging.getLogger('maskgen').warning('Failed to compose clone mask: ' + str(e))
-            continue
+    except Exception as e:
+        return changemask.to_array()
     return newmask
 
 
@@ -3041,10 +3063,14 @@ class GrayBlockReaderManager:
         else:
             if self.reader is not None:
                 self.reader.close()
+            self.filename = filename
             self.reader = self.reader_type(filename,
                                start_frame=start_frame,
                                start_time=start_time,
                                end_frame=end_frame)
+
+
+
         return self.reader
 
     def close(self):
@@ -3152,7 +3178,7 @@ class OldFormatGroupSetter:
 
 def compose_overlay_name(target_file="", link = tuple()):
     path_tuple = os.path.split(target_file)
-    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.avi')
+    return os.path.join(path_tuple[0], path_tuple[1] + str(hash(link))[:5] + '_overlay.' + preferredSuffix())
 
 class GrayBlockOverlayGenerator:
 
@@ -3278,11 +3304,11 @@ class GrayBlockWriter:
         self.release()
 
     def release(self):
-        self.current_group = None
-        self.dset = None
         if self.current_group is not None:
             self.current_group.attrs['end_time'] = self.last_time
             self.current_group.attrs['end_frame'] = self.last_frame
+        self.current_group = None
+        self.dset = None
         if self.h_file is not None:
             self.h_file.close()
         self.h_file = None
@@ -3297,9 +3323,56 @@ def preferredSuffix(preferences=None):
     if sys.platform.startswith('linux'):
         default_suffix = 'avi'
     if preferences is not None:
-        t_suffix = preferences['vid_suffix']
+        t_suffix = getValue(preferences,'vid_suffix')
         default_suffix = t_suffix if t_suffix is not None else default_suffix
     return default_suffix
+
+class GrayBlockFactory:
+    """
+    Either build the Writer or the Validator
+    """
+    def __init__(self, jt_mask=None):
+        self.jt_mask = jt_mask
+        self.product = None
+
+    def __call__(self, name, fps):
+        self.product = GrayBlockWriter(mask_prefix=name, fps=fps) if self.jt_mask is None else GrayBlockValidator(jt_mask_file=self.jt_mask)
+        return self.product
+
+class GrayBlockValidator:
+    """
+    Compare frames of two video masks to see if one is valid.
+    """
+    def __init__(self, jt_mask_file):
+        self.filename = jt_mask_file
+        self.failed_frames = []
+        self.manager = GrayBlockReaderManager()
+        self.manager.create_reader(jt_mask_file)
+
+    def compareMask(self, mask, inputmask, cur_frame):
+        inputmask = np.invert(inputmask)
+        inputmask[inputmask > 0] = 1
+        mask = np.invert(mask)
+        mask[mask > 0] = 1
+        intersection = inputmask * mask
+        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
+        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        masksize = float(np.sum(mask))
+        unionsize = float(np.sum(union))
+        mismatch = abs(masksize-unionsize)/masksize
+        if mismatch > .05:
+            self.failed_frames.append(cur_frame)
+
+    def write(self, mask, mask_time, frame_number):
+        while(self.manager.reader.current_frame() < frame_number):
+            self.manager.reader.read() #ffwd to where we want to be
+        if self.manager.reader.current_frame() == frame_number:
+            jt_mask = self.manager.reader.read()
+            if jt_mask is not None:
+                self.compareMask(inputmask=mask, mask=jt_mask, cur_frame=frame_number)
+
+    def get_file_name(self):
+        return self.filename
 
 
 class GrayFrameWriter:

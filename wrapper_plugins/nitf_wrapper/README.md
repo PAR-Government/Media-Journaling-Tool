@@ -1,1 +1,1 @@
-First, install  Nitro
+Install GDAL.

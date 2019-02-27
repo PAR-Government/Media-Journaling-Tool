@@ -796,6 +796,12 @@ hutch
 hydroplane
 hypermarket
 ice hockey
+ImageStabilizer-InLens
+ImageStabilizer-InBodyElectronic
+ImageStabilizer-InBodyOptical
+ImageStabilizer-InBodyElectricInLens
+ImageStabilizer-None
+ImageStabilizer-InBodyOpticalInLens
 in-car
 incapacitated
 index finger

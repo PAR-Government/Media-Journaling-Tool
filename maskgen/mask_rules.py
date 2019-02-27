@@ -416,7 +416,7 @@ class BuildState:
                                                                          self.source,
                                                                          self.target,
                                                                          inverse=True,
-                                                                         expectedType=self.compositeMask.media_type))
+                                                                         expectedType=self.donorMask.media_type))
 
 def segmentToVideoSegment (segment):
     return VideoSegment(video_tools.get_rate_from_segment(segment),
@@ -785,9 +785,7 @@ def video_resize_transform(buildState):
     """
     def vrt_criteria(buildState):
         shapeChange = buildState.shapeChange()
-        args = buildState.arguments()
-        return (shapeChange != (0, 0) and 'interpolation' in args and
-                     args['interpolation'].lower().find('none')>=0)
+        return shapeChange != (0, 0)
     return video_resize_helper(buildState, vrt_criteria)
 
 
@@ -803,7 +801,7 @@ def median_stacking(buildState):
         return CompositeImage(buildState.source,
                             buildState.target,
                             buildState.getVideoMetaExtractor().getNodeFileType(buildState.source),
-                              video_tools.inverse_intersection_for_mask(buildState.compositeMask,
+                              video_tools.inverse_intersection_for_mask(buildState.donorMask,
                                                                         getValue(buildState.edge, 'videomasks', [])))
 
 def rotate_transform(buildState):
@@ -923,9 +921,9 @@ def select_cut_frames_preprocess(mask, edge, target_size):
     fps = 1000.0 / video_tools.get_rate_from_segment(mask)
     video_tools.update_segment(mask,
                                startframe=video_tools.get_start_frame_from_segment(mask) - 1,
-                               endframe=video_tools.get_start_frame_from_segment(mask) + 1,
+                               endframe=video_tools.get_start_frame_from_segment(mask),
                                starttime=video_tools.get_start_time_from_segment(mask) - fps,
-                               endtime=video_tools.get_start_frame_from_segment(mask)+fps)
+                               endtime=video_tools.get_start_time_from_segment(mask))
     if video_tools.get_start_frame_from_segment(mask) < 0:
         video_tools.update_segment(mask,
                                    startframe=1,
@@ -3169,16 +3167,16 @@ class GraphCompositeVideoIdAssigner:
         Reset points are algorithmically determined by frame rate, duration and # of frames.
     """
 
-    def updateProbes(self,probes, builder):
+    def updateProbes(self,probes, builder, directory = '.'):
         """
         @type probes : list of Probe
         :param builder:
         :return:
         """
-        self.__buildGroups(probes, builder)
+        self.__buildGroups(probes, builder,directory)
         return probes
 
-    def __buildGroups(self, probes, builder):
+    def __buildGroups(self, probes, builder, directory):
         """
           Build the list of probes assigned to each group
                @type probes : list of Probe
@@ -3194,13 +3192,13 @@ class GraphCompositeVideoIdAssigner:
         for probe in probes:
             if not probe.has_masks_in_target():
                 continue
-            segment = video_tools.get_frame_count(probe.finalImageFileName)
+            segment = video_tools.get_frame_count(os.path.join(directory, probe.finalImageFileName))
             if segment is not None:
                 key = (video_tools.get_rate_from_segment(segment, 30),
                        video_tools.get_frames_from_segment(segment),
                        video_tools.get_end_time_from_segment(segment))
                 if key not in self.group_probes:
-                    self.writers[key] = tool_set.GrayBlockWriter('vmasks_{}'.format(fileid.increment()), key[0])
+                    self.writers[key] = tool_set.GrayBlockWriter(os.path.join(directory,'vmasks_{}'.format(fileid.increment())), key[0])
                     self.group_probes[key] = []
                     self.group_bits[key] = IntObject()
                 self.group_probes[key].append(probe)
@@ -3217,7 +3215,7 @@ class HDF5CompositeBuilder(CompositeBuilder):
 
     def initialize(self, graph, probes):
         self.compositeIdAssigner = GraphCompositeVideoIdAssigner()
-        return self.compositeIdAssigner.updateProbes(probes,'hdf5')
+        return self.compositeIdAssigner.updateProbes(probes,'hdf5',directory=graph.dir)
 
     def build(self, passcount, probe, edge):
         """
@@ -3270,8 +3268,9 @@ class HDF5CompositeBuilder(CompositeBuilder):
                         frame[:,:,comopsite_byte_id] = frame[:,:,comopsite_byte_id] | thisbit
                 if frame is not None:
                     writer.write(frame, frame_time,frame_no)
-                    segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
-                    results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
+                    for segment_with_probe in segments_with_probe:
+                        segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
+                        results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename
                 frame_no += 1
                 frame_time += 1000.0/segment_with_probe[0].rate
             writer.close()

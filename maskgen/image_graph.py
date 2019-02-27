@@ -171,7 +171,7 @@ def find_project_json(prefix, directory):
 
 def findCreatorTool(tool):
     import sys
-    return tool if tool is not None else sys.argv[0]
+    return tool if tool is not None else os.path.split(sys.argv[0])[1]
 
 def createGraph(pathname, projecttype=None, nodeFilePaths={}, edgeFilePaths={}, graphFilePaths={}, arg_checker_callback=None,
                 username=None,tool=None):
@@ -252,6 +252,9 @@ class ImageGraph:
         self.username = username if username is not None else get_username()
         self.tool = tool if tool is not None else 'jtapi'
         self._setup(pathname, projecttype, nodeFilePaths, edgeFilePaths,graphFilePaths)
+
+    def isEdgeFilePath(self,path):
+        return path in self.G.graph['edgeFilePaths']
 
     def addEdgeFilePath(self, path, ownership):
         """
@@ -841,6 +844,8 @@ class ImageGraph:
             self.G.graph['creator'] = self.username
         if 'projecttype' not in self.G.graph and projecttype is not None:
             self.G.graph['projecttype'] = projecttype
+        if 'createtime' not in self.G.graph:
+            self.G.graph['createtime'] = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
         if 'updatetime' not in self.G.graph:
             if 'exporttime' in self.G.graph:
                 self.G.graph['updatetime'] = self.G.graph['exporttime']

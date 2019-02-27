@@ -662,7 +662,7 @@ def run_node_rules(graph, node, external=False, preferences=None):
         proxy = getValue(nodeData,'proxyfile', None)
         if proxy is not None:
             errors.append(
-                (Severity.ERRROR, "Final media {} cannot be hidden by a proxy.".format(nodeData['file']),remove_proxy))
+                (Severity.ERROR, "Final media {} cannot be hidden by a proxy.".format(nodeData['file']),remove_proxy))
 
     if nodeData['nodetype'] == 'base' and not multiplebaseok:
         for othernode in graph.get_nodes():

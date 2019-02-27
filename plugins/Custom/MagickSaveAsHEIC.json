@@ -1,0 +1,27 @@
+{
+    "name": "MagickSaveAsHEIC",
+    "operation": {
+      "name": "OutputHEIC",
+      "category": "Output",
+      "description": "Save Input file as HEIC",
+      "software": "ImageMagick",
+      "version": "7",
+      "arguments":{
+      },
+      "transitions": ["image.image"]
+    },
+    "suffix" : ".heic",
+    "command": {
+      "win": [
+        "magick",
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ],
+      "default": [
+        "convert",
+        "{inputimage}",
+        "{outputimage}"
+      ]
+    }
+}

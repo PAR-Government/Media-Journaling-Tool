@@ -1,4 +1,6 @@
 import os
+from maskgen.exif import *
+
 
 def get_new_position(start, range=0, degrees_of_change=3):
     import random
@@ -11,28 +13,27 @@ def get_new_position(start, range=0, degrees_of_change=3):
                                   random.randint(1, 59),
                                   random.random() * 60)
 
-def get_same_positon(start,range=0):
+
+def get_same_positon(start, range=0):
     if start is None:
-        return get_new_position(start,range=range)
+        return get_new_position(start, range=range)
     return start
 
+
 def modify_value(source, target, tag, name, modifier):
-    import maskgen.exif
-    result = maskgen.exif.getexif(source, args=[tag])
+    result = getexif(source, args=[tag])
     newvalue = modifier(result[name] if name in result else None)
     if newvalue is None:
         newvalue = get_new_position(None)
-    return maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m',
-                                     tag + '=' + newvalue,
-                                     target],
-                                    fix=False)
+    return runexif(['-overwrite_original', '-P', '-q', '-m',
+                    tag + '=' + newvalue, target], fix=False)
 
 
 def relocate(source, target, degrees_of_change):
     import functools
     latfunc = functools.partial(get_new_position, range=90, degrees_of_change=degrees_of_change)
     lonfunc = functools.partial(get_new_position, range=180, degrees_of_change=degrees_of_change)
-    ok = True
+    ok = False
     ok |= modify_value(source, target, '-xmp:gpslatitude', 'GPS Latitude', latfunc)
     ok |= modify_value(source, target, '-exif:gpslatitude', 'GPS Latitude', latfunc)
     ok |= modify_value(source, target, '-exif:gpslongitude', 'GPS Longitude', lonfunc)
@@ -42,8 +43,8 @@ def relocate(source, target, degrees_of_change):
 
 def relocate_to(donor, target):
     import functools
-    ok = True
-    latfunc = functools.partial(get_same_positon, range=90,)
+    ok = False
+    latfunc = functools.partial(get_same_positon, range=90, )
     lonfunc = functools.partial(get_same_positon, range=180)
     ok |= modify_value(donor, target, '-xmp:gpslatitude', 'GPS Latitude', latfunc)
     ok |= modify_value(donor, target, '-exif:gpslatitude', 'GPS Latitude', latfunc)
@@ -53,7 +54,6 @@ def relocate_to(donor, target):
 
 
 def transform(img, source, target, **kwargs):
-    import maskgen.exif
     degrees_of_change = int(kwargs['degrees of change']) if 'degrees of change' in kwargs else 3
     if 'donor' in kwargs and kwargs['donor'] is not None and os.path.exists(kwargs['donor']):
         donor = kwargs['donor']
@@ -61,19 +61,20 @@ def transform(img, source, target, **kwargs):
     else:
         ok = relocate(source, target, degrees_of_change)
     if ok:
-        maskgen.exif.runexif(['-overwrite_original','-P', '-q', '-m', '-XMPToolkit=', target])
+        runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
     return None, 'Failed' if not ok else None
+
 
 def suffix():
     return None
 
 
 def operation():
-    return {'name': 'AntiForensicEditExif',
+    return {'name': 'AntiForensicEditExif::GPSChange',
             'category': 'AntiForensic',
             'description': 'Set GPS Location',
             'software': 'exiftool',
-            'version': '10.23',
+            'version': get_version(),
             'arguments': {
                 'donor': {
                     'type': 'donor',

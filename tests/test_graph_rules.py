@@ -32,17 +32,33 @@ class TestToolSet(TestSupport):
         self.assertIsNotNone(result)
 
     # Tests checkSame and checkBigger
-    def test_checkLengthSameOrBigger(self):
+    def test_checkLength(self):
         graph = Mock()
-        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'insert'},
+        graph.get_edge = Mock(return_value={'arguments': {'Start Time': '1', 'End Time': '2', 'add type': 'insert'},
                                             'metadatadiff': {}})
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.dir = '.'
         result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # bigger
         self.assertIsNotNone(result)
-        graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2, 'add type': 'replace'},
-                                            'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        graph.get_edge.return_value['metadatadiff'] ={'video': {'nb_frames': ('change', '2', '1')}}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '1', '2')}}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge.return_value['arguments']['add type'] = 'replace'
         result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')  # same
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {}
+        result = graph_rules.checkLengthSameOrBigger('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b') # smaller
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '2', '1')}}
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+        graph.get_edge.return_value['metadatadiff'] = {'video': {'nb_frames': ('change', '1', '2')}}
+        result = graph_rules.checkLengthSmaller('op', graph, 'a', 'b')
         self.assertIsNotNone(result)
 
     def test_checkAudioLengthBigger(self):
@@ -432,7 +448,73 @@ class TestToolSet(TestSupport):
         self.assertTrue(len(r)> 0)
         self.assertTrue(r[0] == Severity.ERROR)
 
+    def test_checkMoveMask(self):
+        import numpy as np
+        from maskgen.tool_set import GrayFrameWriter, GrayBlockWriter
+        from maskgen.image_wrap import ImageWrapper
 
+        def edge(a,b):
+            return {}
+
+        mask = np.ones((1092, 720), dtype='uint8') * 255
+        mask[100:250, 100:200] = 0
+        ImageWrapper(mask).save(filename='.\\test_jt_mask.png')
+        self.addFileToRemove(filename='.\\test_jt_mask.png')
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[100:200, 100:200, :] = 255
+        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
+        self.addFileToRemove(filename='.\\test_input_mask.png')
+
+        mockGraph = Mock(get_edge=Mock(return_value={'inputmaskname': self.locateFile('test_input_mask.png'),
+                                                     'maskname': self.locateFile('test_jt_mask.png')}))
+        mockGraph.dir = '.'
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[150:250, 150:250, :] = 255
+        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
+        self.addFileToRemove(filename='.\\test_input_mask.png')
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNotNone(r)
+
+        w = GrayBlockWriter('test_jt', 10)
+        m = np.ones((1092, 720), dtype='uint8') * 255
+        m[100:250, 100:200] = 0
+        for i in range(60):
+            w.write(m, i / 10.0, i)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        w = GrayFrameWriter('test_input', 10)
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[100:200, 100:200, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, 0)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile('test_input_mask_0.avi'),
+            'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10, 'type': 'video', 'frames': 60,
+                            'videosegment':'test_jt_mask_0.0.hdf5', 'starttime': 0, 'endtime': 600},
+                           ]
+        })
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        w = GrayFrameWriter('test_input', 10)
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[150:250, 150:250, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, 0)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNotNone(r)
 
 if __name__ == '__main__':
     unittest.main()

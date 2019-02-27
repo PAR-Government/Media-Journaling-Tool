@@ -81,7 +81,9 @@ def findNodesToExtend(sm, rules):
                             skip = True
                             break
         if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0):
-            if 'finalnode'  in rules:
+            if 'finalnode' in rules:
+                nodes.append(nodename)
+            if 'finalpng' in rules and sm.getGraph().get_filename(nodename).lower().endswith('png'):
                 nodes.append(nodename)
             continue
         if (isTargetOutput and 'outputop' not in rules) or\
