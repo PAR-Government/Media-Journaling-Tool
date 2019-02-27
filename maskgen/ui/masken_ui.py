@@ -309,12 +309,23 @@ class MakeGenUI(Frame):
                                   self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
 
     def add_substitute_mask(self):
+        from maskgen.tool_set import videofiletypes
         edge = self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end)
-        current_file = getValue(edge, 'substitute videomasks.videosegment', None)
-        dialog = FileCaptureDialog(self, 'Substitute Mask', self.scModel.get_dir(), current_file=current_file)
-        result = dialog.item.get()
-        if os.path.exists(result) and current_file != result and not dialog.cancelled:
-            self.scModel.addSubstituteMasks(self, result)
+        if getValue(edge, 'videomasks', None) is not None:
+            current_file = getValue(edge, 'substitute videomasks.videosegment', None)
+            current_file = current_file[0] if current_file is not None else None
+            dialog = FileCaptureDialog(self, 'Substitute Mask', self.scModel.get_dir(), current_file=current_file,
+                                       filetypes=videofiletypes)
+            result = os.path.join(self.scModel.get_dir(),dialog.item.get()) if dialog.item.get() is not '' else None
+            if result is not None:
+                if os.path.exists(result) and current_file != result and not dialog.cancelled:
+                    self.scModel.addSubstituteMasks(filename=result)
+            elif current_file is not None:
+                edge.pop('substitute videomasks')
+                self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
+        else:
+            raise ValueError('Edge does not have videomasks to substitute.')
+
 
     def recomputeedgemask(self):
         analysis_params = {}

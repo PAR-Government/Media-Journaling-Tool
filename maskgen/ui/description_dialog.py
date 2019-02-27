@@ -1727,7 +1727,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
 
 class FileCaptureDialog(tkSimpleDialog.Dialog):
 
-    def __init__(self, parent, name, dir, current_file=None ):
+    def __init__(self, parent, name, dir, current_file=None, filetypes=getMaskFileTypes()):
         """
         :param parent:
         :param scModel:
@@ -1736,6 +1736,7 @@ class FileCaptureDialog(tkSimpleDialog.Dialog):
         self.dir = dir
         self.cancelled = True
         self.current_file = os.path.basename(current_file) if current_file is not None else None
+        self.filetypes = filetypes
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
@@ -1756,7 +1757,7 @@ class FileCaptureDialog(tkSimpleDialog.Dialog):
 
     def changefile(self):
         val = tkFileDialog.askopenfilename(initialdir=self.dir, title="Select File",
-                                           filetypes=getMaskFileTypes())
+                                           filetypes=self.filetypes)
         #suffixes = [type_tuple[1][1:] for type_tuple in getMaskFileTypes()]
         if (val != None and len(val) > 0):
             #if os.path.splitext(val)[1] not in suffixes:

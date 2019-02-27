@@ -1736,11 +1736,11 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         edge['videomasks'] = video_masks
 
 
-def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(0,1), stopTimeandFrame=None):
+def formMaskForSource(source_file_name, mask_file_name, name, startTimeandFrame=(0, 1), stopTimeandFrame=None):
     """
     BUild a mask from file from a source video file.
     Non-Zero values = selected.
-    :param soure_file_name:
+    :param source_file_name:
     :param mask_file_name:
     :param name:
     :param startTimeandFrame:
@@ -1748,7 +1748,7 @@ def formMaskForSource(soure_file_name, mask_file_name, name, startTimeandFrame=(
     :return:
     """
     source_file_tuples = getMaskSetForEntireVideoForTuples(
-        FileMetaDataLocator(soure_file_name),
+        FileMetaDataLocator(source_file_name),
         start_time_tuple=startTimeandFrame,
         end_time_tuple=stopTimeandFrame)
     mask_file_tuples = getMaskSetForEntireVideoForTuples(FileMetaDataLocator(mask_file_name))
@@ -1801,7 +1801,7 @@ def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=N
     update_segment(segment,
                    endframe=time_manager.frameSinceBeginning + offset,
                    endtime=last_time,
-                   videosegment=writer.get_file_name())
+                   videosegment=os.path.split(writer.get_file_name())[1])
     return [segment]
 
 def formMaskDiffForImage(vidFile,

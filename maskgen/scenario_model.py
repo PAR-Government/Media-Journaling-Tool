@@ -742,7 +742,7 @@ class VideoVideoLinkTool(LinkTool):
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
 
-    def addSubstituteMasks(self,start, destination, scModel, op, arguments={},filename=''):
+    def addSubstituteMasks(self,start, destination, scModel, op, arguments={}, filename=''):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         startSegment = getMilliSecondsAndFrameCount(arguments[
@@ -2477,10 +2477,10 @@ class ImageProjectModel:
                                                                   self,
                                                                   edge['op'],
                                                                   arguments=getValue(edge,'arguments',{}),
-                                                                  filename=filename,
-                                                                  videomasks=getValue(edge,'arguments',[])
-                                                                  )
+                                                                  filename=filename)
         if subs is not None:
+            for sub in subs:
+                sub.pop('mask')
             edge['substitute videomasks'] = subs
             self.getGraph().addEdgeFilePath('substitute videomasks.videosegment','')
             self.notify((self.start, self.end), 'update_edge')
