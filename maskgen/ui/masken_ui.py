@@ -323,8 +323,6 @@ class MakeGenUI(Frame):
             elif current_file is not None:
                 edge.pop('substitute videomasks')
                 self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
-        else:
-            raise ValueError('Edge does not have videomasks to substitute.')
 
 
     def recomputeedgemask(self):
