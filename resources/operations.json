@@ -1846,7 +1846,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -1934,7 +1934,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -2034,7 +2034,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Algorithm to suppress difference mask noise"
         },
@@ -2199,7 +2199,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -2642,7 +2642,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -3053,7 +3053,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -3154,7 +3154,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -3224,7 +3224,7 @@
           "type":"list",
           "trigger mask": true,
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -3364,7 +3364,7 @@
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -3894,7 +3894,7 @@
         "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
@@ -3972,7 +3972,7 @@
         "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
@@ -4060,7 +4060,7 @@
          "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
@@ -4140,7 +4140,7 @@
          "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
@@ -4949,7 +4949,7 @@
        "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
@@ -5091,7 +5091,7 @@
          "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": [3,5,7,9],
+          "values": ["3","5","7","9"],
           "defaultvalue":"3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
