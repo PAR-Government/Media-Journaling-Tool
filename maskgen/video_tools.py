@@ -1572,7 +1572,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
                             frames=get_frames_from_segment(entireVideoMaskSet[0]))
     return [change],[]
 
-def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
+def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={},debugger=None):
     """
 
     :param fileOne:
@@ -1584,7 +1584,8 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
     :return:
     @retype: list of dict
     """
-    maskSet, errors =  __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
+    maskSet, errors =  __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments,
+                                 debugger=debugger)
     audioMaskSetOne = getMaskSetForEntireVideo(FileMetaDataLocator(fileOne), media_types=['audio'])
     audioMaskSetTwo = getMaskSetForEntireVideo(FileMetaDataLocator(fileTwo), media_types=['audio'])
     # audio was not dropped
@@ -1608,20 +1609,21 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
             errors.append('Audio must also be cut if the audio and video are in source and target files')
     return maskSet, errors
 
-def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
+def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={},
+                 debugger=None):
     if arguments['add type'] == 'replace':
         return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                          arguments=arguments,
                          compare_function=tool_set.mediatedCompare,
-                         convert_function=tool_set.convert16bitcolor
+                         convert_function=tool_set.convert16bitcolor,debugger=debugger
                          )
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect,
                      arguments=arguments,
                      compare_function=tool_set.morphologyCompare,
-                     convert_function=tool_set.convert16bitcolor)
+                     convert_function=tool_set.convert16bitcolor,debugger=debugger)
 
 
-def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={}):
+def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={},debugger=None):
     import copy
     args = copy.copy(arguments)
     args['distribute_difference'] = True
@@ -1629,20 +1631,28 @@ def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analy
                        compareChange,
                        arguments=args,
                        compare_function=tool_set.morphologyCompare,
-                       convert_function=tool_set.convert16bitcolor)
+                       convert_function=tool_set.convert16bitcolor,
+                     debugger=debugger)
 
-def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
-    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments)
+def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}, debugger=None):
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments,
+                     debugger=debugger)
 
 
-def mediatedDetectedCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}):
+def mediatedDetectedCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,
+                            analysis={},
+                            debugger=None):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                      compare_function=tool_set.mediatedCompare,
                      convert_function = tool_set.convert16bitcolor,
-                     arguments = arguments)
+                     arguments = arguments,
+                     debugger=debugger)
 
-def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
-    return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange, arguments=arguments)
+def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,
+                  analysis={},debugger=None):
+    return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
+                     detectChange, arguments=arguments,
+                     debugger=debugger)
 
 def clampToEnd(filename, sets_tuple, media_type):
     """
@@ -1848,13 +1858,15 @@ def formMaskDiff(fileOne,
                  endSegment=None,
                  analysis=None,
                  alternateFunction=None,
-                 arguments= {}):
+                 arguments= {},
+                 debugger=None):
     preferences = MaskGenLoader()
     diffPref = preferences['video compare']
     diffPref = arguments['video compare'] if 'video compare' in arguments else diffPref
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     if alternateFunction is not None:
-        return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
+        return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments,
+                                 analysis=analysis,debugger=debugger)
     if  diffPref in ['2','ffmpeg']:
         result = __form_mask_using_ffmpeg_diff(fileOne, fileTwo, name_prefix, opName, time_manager)
     else:
@@ -1862,7 +1874,8 @@ def formMaskDiff(fileOne,
                            detectChange,
                            arguments=arguments,
                            compare_function=tool_set.morphologyCompare,
-                           convert_function=tool_set.convert16bitcolor)
+                           convert_function=tool_set.convert16bitcolor,
+                           debugger=debugger)
     if analysis is not None:
         analysis['startframe'] = time_manager.getStartFrame()
         analysis['stopframe'] = time_manager.getEndFrame()
@@ -2491,7 +2504,9 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
 def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
               compare_function=tool_set.morphologyCompare,
               convert_function=tool_set.convert16bitcolor,
-              arguments={}):
+              arguments={},
+              debugger=None):
+    import copy
     """
       compare frame to frame of each video
      :param fileOne:
@@ -2531,7 +2546,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                                                   analysis_components.vid_one.get(cv2api_delegate.prop_fps))
     analysis_components.time_manager = time_manager
     ranges = list()
-    compare_args = arguments if arguments is not None else {}
+    compare_args = copy.copy(arguments) if arguments is not None else {}
     dump_dir =  getValue(arguments,'dump directory',False)
     try:
         done = False
@@ -2557,12 +2572,24 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 imwrite(os.path.join(dump_dir,'two_{}.png'.format(time_manager.frameSinceBeginning)), frame_two)
             if frame_one.shape != frame_two.shape:
                 return getMaskSetForEntireVideo(FileMetaDataLocator(fileOne)),[]
-            analysis_components.mask = tool_set.createMask(ImageWrapper(frame_one),
-                                                           ImageWrapper(frame_two),
-                                                           False,
-                                                           convertFunction=convert_function,
-                                                           alternativeFunction=compare_function,
-                                                           arguments=compare_args)[0].to_array()
+
+            while True:
+                im_one= ImageWrapper(frame_one)
+                im_two = ImageWrapper(frame_two)
+                analysis_components.mask = tool_set.createMask(im_one,
+                                                               im_two,
+                                                               False,
+                                                               convertFunction=convert_function,
+                                                               alternativeFunction=compare_function,
+                                                               arguments=compare_args)[0].to_array()
+                if debugger is None:
+                    break
+                result = debugger(analysis_components, im_one, im_two, compare_args)
+                if result == 'continue':
+                    break
+                elif result  == 'stop':
+                    return ranges,[]
+
             if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
                 done = True
                 break
