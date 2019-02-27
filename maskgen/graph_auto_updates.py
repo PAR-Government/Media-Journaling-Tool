@@ -84,7 +84,7 @@ def updateJournal(scModel):
          ('0.6.0103.9d9b6e95f2', []),
          ('0.6.0117.76365a8b60', []),
          ('0.6.0208.ae6b74543d', []),
-         ('0.6.0221.e507f325f2', [_fixAddCreateTime])
+         ('0.6.0227.b469c4a202', [_fixAddCreateTime])
          ])
 
     def _ConformVersion(version):

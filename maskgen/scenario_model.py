@@ -1186,7 +1186,7 @@ class ImageProjectModel:
         self._save_group(mod.operationName)
 
         if trigger_update:
-            self.reproduceMask()
+            self.reproduceMask(force=False)
         else:
             self.notify((self.start, self.end), 'update_edge')
 
@@ -1694,7 +1694,17 @@ class ImageProjectModel:
                                                                        invert=invert,
                                                                        analysis_params=analysis_params)
 
-    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict(), argument_params=dict()):
+    def reproduceMask(self, skipDonorAnalysis=False,edge_id=None, analysis_params=dict(), argument_params=dict(),
+                      force=True):
+        """
+
+        :param skipDonorAnalysis:
+        :param edge_id:
+        :param analysis_params:
+        :param argument_params:
+        :param force: If True, then force mask creation do not skip.
+        :return:
+        """
         mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
         edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
@@ -1706,7 +1716,7 @@ class ImageProjectModel:
                                                      arguments=arguments,
                                                      skipDonorAnalysis=skipDonorAnalysis,
                                                      analysis_params=analysis_params,
-                                                     force=True)
+                                                     force=force)
         analysis_params['arguments'] = arguments
         maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
         self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
