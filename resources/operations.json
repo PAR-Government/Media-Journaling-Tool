@@ -6584,6 +6584,10 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the areas affected."
+        },
         "homography": {
           "type": "list",
           "source": "image",
