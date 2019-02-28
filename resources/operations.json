@@ -4233,6 +4233,31 @@
         "The file was compressed in a lossless fashion"
       ]
     },
+     {
+      "category": "Output",
+      "name": "OutputFromZip",
+      "mandatoryparameters": {
+      },
+      "rules": [
+      ],
+      "optionalparameters": {
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.copy_transform"
+      },
+      "compareparameters": {
+        "function": "maskgen.tool_set.convertCompare"
+      },
+      "description": "Export the image from zip.",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "collection.image"
+      ],
+      "qaList": [
+      ]
+    },
     {
       "category": "Output",
       "name": "OutputHEIC",

@@ -28,6 +28,8 @@ from maskgen.support import removeValue, getValue
 from maskgen.userinfo import get_username
 from maskgen_loader import MaskGenLoader
 
+collectiontypes = [('collection' , '*.oh.zip')]
+
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
                   ("Raw 2 Panasonic", "*.rw2"), ("ORF Olympus", "*.orf"), ("MDC Minolta", "*.mdc"),
@@ -231,7 +233,11 @@ def getMimeType(filename):
 def fileType(fileName):
     if os.path.isdir(fileName):
         return 'dir'
-    suffix = os.path.splitext(fileName)[1].lower()
+    lowerName = fileName.lower()
+    for collection_type in collectiontypes:
+        if lowerName.endswith(collection_type[1][1:]):
+            return 'collection'
+    suffix = os.path.splitext(lowerName)[1]
     suffix = '*' + suffix if len(suffix) > 0 else ''
     file_type = None
     if suffix in [x[1] for x in imagefiletypes] or (os.path.exists(fileName) and imghdr.what(fileName) is not None):
@@ -945,6 +951,13 @@ class ZipOpener(VideoOpener):
             return ImageOpener.openImage(self, get_icon('RedX.png'))
         return videoFrameImg
 
+class CollectionOpener(ImageOpener):
+    def __init__(self):
+        ImageOpener.__init__(self)
+
+    def openImage(self, filename, isMask=False, args=None):
+        return ImageOpener.openImage(self, get_icon('zip.jpg'))
+
 class TgzOpener(VideoOpener):
     def __init__(self, videoFrameTime=None, preserveSnapshot=True):
         VideoOpener.__init__(self, videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
@@ -1026,7 +1039,10 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                   'm4v', 'mts', 'mpg'] or fileType(filename) == 'video':
         opener = VideoOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in ['zip', 'gz']:
-        opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+        if filename.lower().endswith('oh.zip'):
+            opener = CollectionOpener()
+        else:
+            opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in [ 'tgz']:
         opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif fileType(filename) == 'audio':
