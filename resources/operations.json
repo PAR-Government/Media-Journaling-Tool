@@ -6586,7 +6586,7 @@
       "optionalparameters": {
         "inputmaskname": {
           "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
+          "description": "RGB image. Remove = red; Keep = green; The rest is black."
         },
         "homography": {
           "type": "list",
