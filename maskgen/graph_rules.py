@@ -278,7 +278,7 @@ def _checkTimesForEdge(edge):
             et = getMilliSecondsAndFrameCount(v)
         elif k.endswith('Start Time'):
             st = getMilliSecondsAndFrameCount(v, defaultValue=(0,1))
-    if et is None:
+    if et is None or et in [(0,0),(0,1)]:
         return None
     st = st if st is not None else (0, 1)
     if st[0] > et[0] or (st[0] == et[0] and st[1] > et[1] and st[1] > 0):
