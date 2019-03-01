@@ -1982,7 +1982,6 @@ class AudioReader:
         plt.plot(Time, b, color="green")
         plt.show()
 
-
     def compareToOtherReader(self, anotherReader, min_threshold=3, smooth=32):
         """
         Compare buffer to buffer.
