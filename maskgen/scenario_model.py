@@ -2470,6 +2470,13 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
+    def substitutesAllowed(self):
+        allowed = False
+        modification = self.getDescription()
+        if modification is not None:
+            allowed = getValue(modification.arguments, 'videoinputmaskname', '')
+        return 'disabled' if not allowed else 'normal'
+
     def addSubstituteMasks(self, filename):
         edge = self.getGraph().get_edge(self.start, self.end)
         subs = self.getLinkTool(self.start, self.end).addSubstituteMasks(self.start,

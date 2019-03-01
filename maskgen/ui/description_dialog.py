@@ -15,7 +15,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from maskgen.tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon,convertToVideo
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, videofiletypes, coordsFromString, IntObject, get_icon,convertToVideo
 from maskgen.scenario_model import Modification,ImageProjectModel
 from maskgen.services.probes import CompositeExtender
 from maskgen.video_tools import get_start_frame_from_segment, get_start_time_from_segment, get_file_from_segment,\
@@ -1724,6 +1724,38 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.cancelled = False
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
 
+class SubstituteMaskCaptureDialog(tkSimpleDialog.Dialog):
+    cancelled = True
+
+    def __init__(self, parent, scModel ):
+        """
+        :param parent:
+        :param scModel:
+        @type scModel : ImageProjectModel
+        """
+        self.parent = parent
+        self.scModel = scModel
+        name = scModel.start + ' to ' + scModel.end
+        edge = scModel.getGraph().get_edge(scModel.start, scModel.end)
+        substituteMasks = getValue(edge, 'substitute videomasks', [])
+        self.use_as_substitute = StringVar()
+        self.use_as_substitute.set('yes' if len(substituteMasks) > 0 else 'no')
+        tkSimpleDialog.Dialog.__init__(self, parent, name)
+
+    def body(self, master):
+        row=0
+        self.ChkButton = Checkbutton(master, text="Use inputmask as substitute", variable=self.use_as_substitute, \
+                                                onvalue="yes", offvalue="no")
+        self.ChkButton.grid(row=row, column=0, columnspan=2, sticky=W)
+        return self.ChkButton
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+
+
 
 class FileCaptureDialog(tkSimpleDialog.Dialog):
 
@@ -2190,6 +2222,12 @@ class PropertyFrame(VerticalScrolledFrame):
                partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, getImageFileTypes())
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'file:video':
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, videofiletypes)
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ',
+                                                         takefocus=False,
+                                                         command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
                typematch = '*.' + prop.type[prop.type.find(':')+1:]

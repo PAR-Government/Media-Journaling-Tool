@@ -309,20 +309,20 @@ class MakeGenUI(Frame):
                                   self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
 
     def add_substitute_mask(self):
-        from maskgen.tool_set import videofiletypes
         edge = self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end)
-        if getValue(edge, 'videomasks', None) is not None:
-            current_file = getValue(edge, 'substitute videomasks.videosegment', None)
-            current_file = current_file[0] if current_file is not None else None
-            dialog = FileCaptureDialog(self, 'Substitute Mask', self.scModel.get_dir(), current_file=current_file,
-                                       filetypes=videofiletypes)
-            result = os.path.join(self.scModel.get_dir(),dialog.item.get()) if dialog.item.get() is not '' else None
-            if result is not None:
-                if os.path.exists(result) and current_file != result and not dialog.cancelled:
-                    self.scModel.addSubstituteMasks(filename=result)
-            elif current_file is not None:
+        substituteMasks = getValue(edge, 'substitute videomasks', [])
+        dialog = SubstituteMaskCaptureDialog(self, self.scModel)
+        result = dialog.use_as_substitute.get()
+        vidInputMask = getValue(edge, 'arguments.videoinputmaskname', '')
+        vidInputMask = os.path.join(self.scModel.get_dir(), vidInputMask)
+        if result == 'yes' and os.path.exists(vidInputMask) and not dialog.cancelled:
+            if len(substituteMasks) > 0:
                 edge.pop('substitute videomasks')
-                self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
+            self.scModel.addSubstituteMasks(filename=vidInputMask)
+        elif result == 'no' and len(substituteMasks) > 0:
+            edge.pop('substitute videomasks')
+            self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
+
 
 
     def recomputeedgemask(self):
@@ -1243,7 +1243,7 @@ class MakeGenUI(Frame):
 
         self.nodemenu.add_command(label="Proxy", command=self.nodeproxy)
 
-        self.edgemenu = Menu(self.master, tearoff=0)
+        self.edgemenu = Menu(self.master, tearoff=0, postcommand=self.updateEdgeMenu)
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
@@ -1316,6 +1316,9 @@ class MakeGenUI(Frame):
             self.groupmenu.post(event.x_root, event.y_root)
         elif eventName == 'n':
             self.drawState()
+
+    def updateEdgeMenu(self):
+        self.edgemenu.entryconfig(index=9, state=self.scModel.substitutesAllowed())
 
     def getMergedSuffixes(self):
         filetypes = self.prefLoader.get_key('filetypes')
