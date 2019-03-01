@@ -3325,6 +3325,16 @@
             ]
           }
         },
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video",
+          "rule": {
+            "purpose": [
+              "remove"
+            ]
+          }
+        },
         "Blend Mode": {
           "type": "list",
           "values": [
@@ -4919,6 +4929,11 @@
         "audio": "maskgen.mask_rules.paste_add_audio_frames"
       },
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "kernel": {
           "type": "int[1:27]",
           "defaultvalue": 3,
@@ -5013,6 +5028,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
@@ -5093,6 +5113,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
@@ -5183,6 +5208,11 @@
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        }
       },
        "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
@@ -5223,6 +5253,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        }
       },
       "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": {

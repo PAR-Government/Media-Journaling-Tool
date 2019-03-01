@@ -785,7 +785,7 @@ class VideoVideoLinkTool(LinkTool):
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
 
-    def addSubstituteMasks(self,start, destination, scModel, op, arguments={},filename=''):
+    def addSubstituteMasks(self,start, destination, scModel, op, arguments={}, filename=''):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         startSegment = getMilliSecondsAndFrameCount(arguments[
@@ -2240,14 +2240,33 @@ class ImageProjectModel:
         if self.G.has_node(end):
             self.end = end
 
-    def remove(self):
+    def remove(self, children=False):
+        import copy
         s = self.start
         e = self.end
+        list_to_process= []
+
+        if children:
+            list_to_process = copy.copy(self.G.successors(self.end if self.end is not None else self.start))
+
+        def remove_children(children):
+            for child in children:
+                remove_children(self.G.successors(child))
+                self.G.remove(child)
+                print (child)
+                self.notify((child, None), 'remove')
+
+        remove_children(list_to_process)
+
         """ Remove the selected node or edge """
         if (self.start is not None and self.end is not None):
-            self.G.remove_edge(self.start, self.end)
-            self.labelNodes(self.start)
-            self.labelNodes(self.end)
+            if children:
+                self.G.remove(self.end, None)
+                self.labelNodes(self.start)
+            else:
+                self.G.remove_edge(self.start, self.end)
+                self.labelNodes(self.start)
+                self.labelNodes(self.end)
             self.end = None
         else:
             name = self.start if self.end is None else self.end
@@ -2257,6 +2276,7 @@ class ImageProjectModel:
             self.end = None
             for node in p:
                 self.labelNodes(node)
+
         self.notify((s, e), 'remove')
 
     def getProjectData(self, item, default_value=None):
@@ -2529,6 +2549,23 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
+    def substitutesAllowed(self):
+        allowed = False
+        modification = self.getDescription()
+        if modification is not None:
+            allowed = getValue(modification.arguments, 'videoinputmaskname', '')
+        return 'disabled' if not allowed else 'normal'
+
+    def hasSubstituteMasks(self):
+        edge = self.getGraph().get_edge(self.start, self.end)
+        subs = getValue(edge, 'substitute videomasks', [])
+        return len(subs) > 0
+
+    def removeSubstituteMasks(self):
+        if self.hasSubstituteMasks():
+            edge = self.getGraph().get_edge(self.start, self.end)
+            edge.pop('substitute videomasks')
+
     def addSubstituteMasks(self, filename):
         edge = self.getGraph().get_edge(self.start, self.end)
         subs = self.getLinkTool(self.start, self.end).addSubstituteMasks(self.start,
@@ -2536,10 +2573,10 @@ class ImageProjectModel:
                                                                   self,
                                                                   edge['op'],
                                                                   arguments=getValue(edge,'arguments',{}),
-                                                                  filename=filename,
-                                                                  videomasks=getValue(edge,'arguments',[])
-                                                                  )
+                                                                  filename=filename)
         if subs is not None:
+            for sub in subs:
+                sub.pop('mask')
             edge['substitute videomasks'] = subs
             self.getGraph().addEdgeFilePath('substitute videomasks.videosegment','')
             self.notify((self.start, self.end), 'update_edge')
