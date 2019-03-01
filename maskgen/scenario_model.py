@@ -2507,6 +2507,16 @@ class ImageProjectModel:
             allowed = getValue(modification.arguments, 'videoinputmaskname', '')
         return 'disabled' if not allowed else 'normal'
 
+    def hasSubstituteMasks(self):
+        edge = self.getGraph().get_edge(self.start, self.end)
+        subs = getValue(edge, 'substitute videomasks', [])
+        return len(subs) > 0
+
+    def removeSubstituteMasks(self):
+        if self.hasSubstituteMasks():
+            edge = self.getGraph().get_edge(self.start, self.end)
+            edge.pop('substitute videomasks')
+
     def addSubstituteMasks(self, filename):
         edge = self.getGraph().get_edge(self.start, self.end)
         subs = self.getLinkTool(self.start, self.end).addSubstituteMasks(self.start,

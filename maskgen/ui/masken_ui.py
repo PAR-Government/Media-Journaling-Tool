@@ -310,20 +310,16 @@ class MakeGenUI(Frame):
 
     def add_substitute_mask(self):
         edge = self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end)
-        substituteMasks = getValue(edge, 'substitute videomasks', [])
         dialog = SubstituteMaskCaptureDialog(self, self.scModel)
         result = dialog.use_as_substitute.get()
         vidInputMask = getValue(edge, 'arguments.videoinputmaskname', '')
         vidInputMask = os.path.join(self.scModel.get_dir(), vidInputMask)
         if result == 'yes' and os.path.exists(vidInputMask) and not dialog.cancelled:
-            if len(substituteMasks) > 0:
-                edge.pop('substitute videomasks')
+            self.scModel.removeSubstituteMasks()
             self.scModel.addSubstituteMasks(filename=vidInputMask)
-        elif result == 'no' and len(substituteMasks) > 0:
-            edge.pop('substitute videomasks')
+        elif result == 'no' and self.scModel.hasSubstituteMasks():
+            self.scModel.removeSubstituteMasks()
             self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
-
-
 
     def recomputeedgemask(self):
         analysis_params = {}

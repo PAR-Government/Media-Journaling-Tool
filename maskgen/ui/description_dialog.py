@@ -1737,9 +1737,8 @@ class SubstituteMaskCaptureDialog(tkSimpleDialog.Dialog):
         self.scModel = scModel
         name = scModel.start + ' to ' + scModel.end
         edge = scModel.getGraph().get_edge(scModel.start, scModel.end)
-        substituteMasks = getValue(edge, 'substitute videomasks', [])
         self.use_as_substitute = StringVar()
-        self.use_as_substitute.set('yes' if len(substituteMasks) > 0 else 'no')
+        self.use_as_substitute.set('yes' if self.scModel.hasSubstituteMasks() else 'no')
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
@@ -1759,7 +1758,7 @@ class SubstituteMaskCaptureDialog(tkSimpleDialog.Dialog):
 
 class FileCaptureDialog(tkSimpleDialog.Dialog):
 
-    def __init__(self, parent, name, dir, current_file=None, filetypes=getMaskFileTypes()):
+    def __init__(self, parent, name, dir, current_file=None):
         """
         :param parent:
         :param scModel:
@@ -1768,7 +1767,6 @@ class FileCaptureDialog(tkSimpleDialog.Dialog):
         self.dir = dir
         self.cancelled = True
         self.current_file = os.path.basename(current_file) if current_file is not None else None
-        self.filetypes = filetypes
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
     def body(self, master):
@@ -1789,7 +1787,7 @@ class FileCaptureDialog(tkSimpleDialog.Dialog):
 
     def changefile(self):
         val = tkFileDialog.askopenfilename(initialdir=self.dir, title="Select File",
-                                           filetypes=self.filetypes)
+                                           filetypes=getMaskFileTypes())
         #suffixes = [type_tuple[1][1:] for type_tuple in getMaskFileTypes()]
         if (val != None and len(val) > 0):
             #if os.path.splitext(val)[1] not in suffixes:
