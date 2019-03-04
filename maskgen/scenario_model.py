@@ -649,6 +649,50 @@ class ZipImageLinkTool(VideoImageLinkTool):
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, []
 
+
+class CollectionImageLinkTool(VideoImageLinkTool):
+    """
+    Supports mask construction and meta-data comparison when linking zip to image.
+    """
+    def __init__(self):
+        VideoImageLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.donothing_stream_processor"
+
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(end)
+        mask = np.ones((destIm.size[0],destIm.size[1]),dtype=np.uint8)*255
+        return startIm, destIm, ImageWrapper(mask), {}
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+
+        """
+
+        :param start:
+        :param destination:
+        :param scModel:
+        :param op:
+        :param invert:
+        :param arguments:
+        :param skipDonorAnalysis:
+        :param analysis_params:
+        :return:
+        @type start: str
+        @type destination: str
+        @type scModel: ImageProjectModel
+        @type op: str
+        @type invert: bool
+        @type arguments: dict
+        """
+        startIm, destIm, mask, analysis = self.compare(start, destination, scModel)
+        return mask, analysis, []
+
 class VideoVideoLinkTool(LinkTool):
     """
      Supports mask construction and meta-data comparison when linking video to video.
@@ -675,7 +719,6 @@ class VideoVideoLinkTool(LinkTool):
         if 'errors' in analysis:
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
-
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
@@ -1000,12 +1043,18 @@ class OtherAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         return {}
 
-
-addTools = {'video': VideoAddTool(), 'zip':ZipAddTool(),'audio': OtherAddTool(), 'image': OtherAddTool()}
+addTools = {
+             'video': VideoAddTool(),
+             'zip':ZipAddTool(),
+             'collection': OtherAddTool(),
+             'audio': OtherAddTool(),
+             'image': OtherAddTool()
+            }
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
+             'collection.image': CollectionImageLinkTool(),
              'zip.image':   ZipImageLinkTool(),   'zip.audio': ImageZipAudioLinkTool()}
 
 

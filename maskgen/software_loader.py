@@ -416,7 +416,7 @@ def getFilters(filtertype):
 
 def _load_software_from_resource(fileName):
     fileName = getFileName(fileName)
-    software_set = {'image': {}, 'video': {}, 'audio': {},'zip': {}}
+    software_set = {'image': {}, 'video': {}, 'audio': {},'zip': {}, 'collection':{}}
     category_set = {'gan': [], 'other': []}
     with open(fileName) as f:
         line_no = 0
@@ -433,13 +433,14 @@ def _load_software_from_resource(fileName):
             software_name = columns[2].strip()
             software_category = columns[1].strip().lower()
             versions = [strip_version(x.strip()) for x in columns[3:] if len(x) > 0]
-            if software_type not in ['both', 'image', 'video', 'audio', 'all']:
+            if software_type not in ['both', 'image', 'video', 'audio', 'all', 'collection']:
                 logging.getLogger('maskgen').error('Invalid software type on line ' + str(line_no) + ': ' + l)
             elif len(software_name) > 0:
                 types = ['image', 'video', 'zip'] if software_type == 'both' else [software_type]
                 types = ['image', 'video', 'audio', 'zip'] if software_type == 'all' else types
                 types = ['video', 'audio'] if software_type == 'audio' else types
                 types = ['zip'] if software_type == 'zip' else types
+                types = ['collection'] if software_type == 'collection' else types
                 for stype in types:
                     software_set[stype][software_name] = versions
             category_set[software_category].append(software_name)
