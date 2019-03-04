@@ -470,8 +470,14 @@ def cleanup_temporary_files(probes = [], scModel = None):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         input_mask = getValue(edge, 'inputmaskname', '')
+        video_input_mask = getValue(edge, 'arguments.videomaskname', '')
+        subs = getValue(edge, 'substitute videomasks', [])
+        for sub in subs:
+            hdf5 = get_file_from_segment(sub)
+            used_hdf5.append(hdf5)
         mask = getValue(edge, 'maskname', '')
         used_masks.append(input_mask)
+        used_masks.append(video_input_mask)
         used_masks.append(mask)
         videomasks = getValue(edge, 'videomasks', [])
         for mask in videomasks:
