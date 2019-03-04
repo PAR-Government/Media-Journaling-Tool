@@ -1736,7 +1736,6 @@ class SubstituteMaskCaptureDialog(tkSimpleDialog.Dialog):
         self.parent = parent
         self.scModel = scModel
         name = scModel.start + ' to ' + scModel.end
-        edge = scModel.getGraph().get_edge(scModel.start, scModel.end)
         self.use_as_substitute = StringVar()
         self.use_as_substitute.set('yes' if self.scModel.hasSubstituteMasks() else 'no')
         tkSimpleDialog.Dialog.__init__(self, parent, name)
