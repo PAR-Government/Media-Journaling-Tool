@@ -28,8 +28,6 @@ from maskgen.support import removeValue, getValue
 from maskgen.userinfo import get_username
 from maskgen_loader import MaskGenLoader
 
-collectiontypes = [('collection' , '*.oh.zip')]
-
 imagefiletypes = [("jpeg files", "*.jpg"), ("png files", "*.png"), ("tiff files", "*.tiff"), ("tiff files", "*.tif"),
                   ("Raw NEF", "*.nef"), ("ARW Sony", "*.arw"), ("CRW Canon", "*.crw"), ("raw panasonic", "*.raw"),
                   ("Raw 2 Panasonic", "*.rw2"), ("ORF Olympus", "*.orf"), ("MDC Minolta", "*.mdc"),
@@ -229,23 +227,23 @@ def getMimeType(filename):
             filename
         ))
 
-
 def fileType(fileName):
     if os.path.isdir(fileName):
         return 'dir'
     lowerName = fileName.lower()
-    for collection_type in collectiontypes:
-        if lowerName.endswith(collection_type[1][1:]):
-            return 'collection'
-    suffix = os.path.splitext(lowerName)[1]
-    suffix = '*' + suffix if len(suffix) > 0 else ''
+    suffixes = lowerName.split('.')
+    suffix = '*.' + suffixes[-1] if len(suffixes) > 0 else ''
     file_type = None
-    if suffix in [x[1] for x in imagefiletypes] or (os.path.exists(fileName) and imghdr.what(fileName) is not None):
+    if suffix in ['*.zip', '*.tgz', '*.gz']:
+        file_type = 'zip'
+        if len(suffixes) > 2:
+            content_type = '*.' + suffixes[-2]
+            if  content_type not in [x[1] for x in imagefiletypes]:
+                file_type = 'collection'
+    elif suffix in [x[1] for x in imagefiletypes] or (os.path.exists(fileName) and imghdr.what(fileName) is not None):
         file_type = 'image'
     elif suffix in [x[1] for x in audiofiletypes]:
         file_type = 'audio'
-    elif suffix in ['*.zip', '*.gz']:
-        file_type = 'zip'
     elif suffix in [x[1] for x in textfiletypes]:
         file_type = 'text'
     elif suffix in [x[1] for x in videofiletypes] or isVideo(fileName):
