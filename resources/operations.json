@@ -4700,6 +4700,31 @@
     },
     {
       "category": "Output",
+      "name": "RegionExtract",
+      "descriptions": "Export a subsection (pixel-wise and time-wise) of a video",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "description": "Use of Vid2Vid GAN to replace a face in a video",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "zip.zip",
+        "video.zip"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputAVI",
       "mandatoryparameters": {
         "Video Rotated": {
@@ -5451,6 +5476,30 @@
         "default": false
       },
       "transitions": [
+        "video.video"
+      ]
+    },
+    {
+      "category": "Transform",
+      "name": "Vid2Vid",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "description": "Use of Vid2Vid GAN to replace a face in a video",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "zip.video",
         "video.video"
       ]
     },
