@@ -1,5 +1,5 @@
 {
-  "version": "1.01.07.9d9b6e95f2",
+  "version": "1.02.27.b469c4a202",
   "operations": [
     {
       "category": "Audio",
@@ -1842,13 +1842,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -1930,13 +1930,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -2030,12 +2030,12 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
@@ -2195,13 +2195,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -2638,13 +2638,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3049,13 +3049,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3150,13 +3150,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3220,13 +3220,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "type":"list",
           "trigger mask": true,
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3360,13 +3360,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3891,13 +3891,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "source": "video",
-          "description": "Algorithm to suppress difference mask noise"
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
@@ -3969,13 +3969,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
-        "filling": {
+        "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "source": "video",
-          "description": "Algorithm to suppress difference mask noise"
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "gain": {
           "trigger mask": true,
@@ -4057,13 +4057,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
-         "filling": {
+         "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "source": "video",
-          "description": "Algorithm to suppress difference mask noise"
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "gain": {
           "type":"int[-20:20]",
@@ -4137,13 +4137,13 @@
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
-         "filling": {
+         "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "source": "video",
-          "description": "Algorithm to suppress difference mask noise"
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "minimum threshold": {
           "trigger mask": true,
@@ -4971,13 +4971,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
-       "filling": {
+       "kernel": {
           "trigger mask": true,
           "type":"list",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
           "source": "video",
-          "description": "Algorithm to suppress difference mask noise"
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "gain": {
           "trigger mask": true,
@@ -5112,13 +5112,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "filling": {
+        "kernel": {
          "trigger mask": true,
           "type":"list",
           "source": "video",
-          "values": ["morphology","median","none"],
-          "defaultvalue":"morphology",
-          "description": "Algorithm to suppress difference mask noise"
+          "values": ["3","5","7","9"],
+          "defaultvalue":"3",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
          "trigger mask": true,
@@ -6609,6 +6609,10 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "inputmaskname": {
+          "type": "file:image",
+          "description": "RGB image. Remove = red; Keep = green; The rest is black."
+        },
         "homography": {
           "type": "list",
           "source": "image",

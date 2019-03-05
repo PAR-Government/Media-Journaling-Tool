@@ -1042,7 +1042,10 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
         else:
             opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in [ 'tgz']:
-        opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
+        if fileType(filename) == 'collection':
+            opener = CollectionOpener()
+        else:
+            opener = TgzOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif fileType(filename) == 'audio':
         opener = AudioOpener()
 
