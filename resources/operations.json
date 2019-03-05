@@ -7111,6 +7111,10 @@
         "type": "yesno",
         "description": "Is CGI?"
       },
+      "prnu": {
+        "type": "yesno",
+        "description": "Is Image a PRNU PNG?"
+      },
       "isGAN": {
         "type": "yesno",
         "description": "Is GAN Generated?"
