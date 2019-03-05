@@ -90,6 +90,11 @@ def operation():
                     'defaultvalue': None,
                     'description': 'png that contributes size info'
                 },
+                'inputmaskname': {
+                    'type': 'file:image',
+                    'defaultvalue': None,
+                    'description': 'RGB image. Remove = red; Keep = green; The rest is black.'
+                },
                 'percentage_width': {
                     'type': 'float[0.5:1.0]',
                     'defaultvalue': 1,
