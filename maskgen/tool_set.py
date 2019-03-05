@@ -1037,7 +1037,7 @@ def openImage(filename, videoFrameTime=None, isMask=False, preserveSnapshot=Fals
                   'm4v', 'mts', 'mpg'] or fileType(filename) == 'video':
         opener = VideoOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
     elif prefix in ['zip', 'gz']:
-        if filename.lower().endswith('oh.zip'):
+        if fileType(filename) == 'collection':
             opener = CollectionOpener()
         else:
             opener = ZipOpener(videoFrameTime=videoFrameTime, preserveSnapshot=preserveSnapshot)
