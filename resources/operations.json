@@ -3328,12 +3328,7 @@
         "videoinputmaskname": {
           "type": "file:video",
           "source": "video",
-          "description": "A video file with a transparency highlighting the sampled areas of the video",
-          "rule": {
-            "purpose": [
-              "remove"
-            ]
-          }
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
         },
         "Blend Mode": {
           "type": "list",
