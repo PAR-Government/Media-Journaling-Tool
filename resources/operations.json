@@ -4700,7 +4700,7 @@
     },
     {
       "category": "Output",
-      "name": "RegionExtract",
+      "name": "OutputZIPWithCrop",
       "descriptions": "Export a subsection (pixel-wise and time-wise) of a video",
       "mandatoryparameters": {
         "Start Time": {
@@ -4708,13 +4708,20 @@
           "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
-        "End Time": {
+        "Crop File": {
+          "type": "file:txt",
+          "trigger mask": false,
+          "description": "CSV file describing the x,y coordinates of crop for each frame"
+        }
+      },
+      "optionalparameters": {
+         "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
-      "description": "Use of Vid2Vid GAN to replace a face in a video",
+      "description": "Output a Video to Zip file",
       "includeInMask": {
         "default": false
       },
@@ -5483,24 +5490,13 @@
       "category": "Transform",
       "name": "Vid2Vid",
       "mandatoryparameters": {
-        "Start Time": {
-          "type": "frame_or_time",
-          "trigger mask": true,
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        },
-        "End Time": {
-          "type": "frame_or_time",
-          "trigger mask": true,
-          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }
       },
-      "description": "Use of Vid2Vid GAN to replace a face in a video",
+      "description": "Use of Vid2Vid GAN to replace a face in a zip of images",
       "includeInMask": {
         "default": false
       },
       "transitions": [
-        "zip.video",
-        "video.video"
+        "zip.zip"
       ]
     },
     {
