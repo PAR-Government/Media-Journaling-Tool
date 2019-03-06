@@ -4721,6 +4721,7 @@
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
+      "rules": [],
       "description": "Output a Video to Zip file",
       "includeInMask": {
         "default": false
@@ -5497,7 +5498,9 @@
       },
       "transitions": [
         "zip.zip"
-      ]
+      ],
+      "rules": [],
+      "optionalparameters": {}
     },
     {
       "category": "Transform",
