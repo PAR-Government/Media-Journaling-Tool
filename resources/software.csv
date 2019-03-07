@@ -142,5 +142,6 @@ video,gan,UoMInPainting,2.8,
 video,gan,deepfakes/faceswap,2.1,
 both,other,sips,10.4,
 image,gan,STGAN,20181220,
-image,gan,Generative_Inpainting,20190107,
-image,gan,Edge_Connect,20190108,
+collection,other,unzip,18
+image,gan,Generative_Inpainting,20190107
+image,gan,Edge_Connect,20190108

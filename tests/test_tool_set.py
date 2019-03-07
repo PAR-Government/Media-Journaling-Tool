@@ -24,6 +24,11 @@ class TestToolSet(TestSupport):
         self.addFileToRemove('test.log')
         self.assertEquals(tool_set.fileType(self.locateFile('test.log')), 'text')
         self.assertEquals(tool_set.fileType(self.locateFile('tests/videos/sample1.mov')), 'video')
+        self.assertEquals(tool_set.fileType('foo.dng.zip'), 'zip')
+        self.assertEquals(tool_set.fileType('foo.jpg.zip'), 'zip')
+        self.assertEquals(tool_set.fileType('foo.png.zip'), 'zip')
+        self.assertEquals(tool_set.fileType('foo.oh.zip'), 'collection')
+        self.assertEquals(tool_set.fileType('foo.newgate.zip'), 'collection')
 
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
