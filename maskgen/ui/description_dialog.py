@@ -2102,6 +2102,60 @@ class VerticalScrolledFrame(Frame):
         """
         self._canvas.configure(width=width, height=height)
 
+class IntSliderWidget(Frame):
+
+    def __init__(self, master, label='', min=0, max=30, inital_value=0, **options):
+        Frame.__init__(self, master=master)
+        self.range = (min, max)
+        self.length = options['length'] if 'length' in options else None
+        self.Value = IntVar()
+        self.EntryValue = StringVar()
+        self.Value.set(inital_value)
+        self.EntryValue.set(str(self.Value.get()))
+        options['from_'] = min
+        options['to'] = max
+        options['variable'] = self.Value
+        options['command'] = self.updateEntry
+        options['takefocus'] = 1
+        if 'orient' not in options:
+            options['orient'] = HORIZONTAL
+        if 'tickinterval' not in options:
+            options['tickinterval'] = max
+        self.Scale = Scale(master=self, **options)
+        self.label = Label(master=self, text=label)
+        self.entry = Entry(master=self, textvariable=self.EntryValue, width=6)
+        self.entry.bind('<Return>', self.validateEntry)
+
+    def grid(self, **options):
+        row = getValue(options, 'row', 0)
+        column = getValue(options, 'column', 0)
+        if self.length is None:
+            master_width = self.master.winfo_width()
+            self.Scale.config(length=master_width - 60)
+        Frame.grid(self, options)
+        self.label.grid(row=row, padx=5, sticky='WE')
+        self.Scale.grid(row=row, column=column + 1, sticky='WE')
+        self.entry.grid(row=row, column=column + 2, sticky='WE')
+
+    def validateEntry(self, event=None):
+        valid = False
+        val = self.EntryValue.get()
+        if val.isdigit():
+            valid = self.range[0] <= int(val) <= self.range[1] and val != str(self.get())
+        if valid:
+            self.set(int(self.entry.get()))
+
+    def updateEntry(self, event=None):
+        self.EntryValue.set(str(self.get()))
+
+    def get(self):
+        return int(self.Value.get())
+
+    def set(self, value):
+        self.Value.set(value)
+
+    def hide(self):
+        self.grid_forget()
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
     if cb is not None:
@@ -2222,7 +2276,12 @@ class PropertyFrame(VerticalScrolledFrame):
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
                v = prop.type
            elif prop.type.startswith('int'):
-               widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
+               if prop.type.endswith('slider'):
+                   _match = re.search(r"\[(.*?)\]", prop.type).group(1)
+                   range = _match.split(':')
+                   widget = IntSliderWidget(master, min=int(range[0]), max=int(range[1]), length=100)
+               else:
+                   widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
                v = prop.type
            elif prop.type.startswith('boxpair'):
