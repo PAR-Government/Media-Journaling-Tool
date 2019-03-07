@@ -1882,6 +1882,24 @@ def audioWrite(fileOne, amount, channels=2, block=8192):
         wf.close()
     return amount
 
+def twos_comp_np(vals, bits):
+    """compute the 2's compliment of array of int values vals"""
+    vals[vals &  (1<<(bits-1)) != 0] -= (1<<bits)
+    return vals
+
+def buf_to_int(buffer, width):
+    if width == 1:
+        return np.fromstring(buffer, 'Int8')
+    elif width == 2:
+        return np.fromstring(buffer, 'Int16')
+    elif width == 3:
+        ub_t = np.fromstring(buffer, 'UInt8').astype(np.uint64)
+        lsb = ub_t[2::3]
+        range_shape = lsb.shape[0] * 3
+        ub_t = ((ub_t[0:range_shape:3] << 16) + (ub_t[1:range_shape:3] << 8) + lsb)
+        return twos_comp_np(ub_t.astype(np.int64),24)
+    return np.fromstring(buffer,'Int32')
+
 class AudioReader:
 
 
@@ -1944,14 +1962,14 @@ class AudioReader:
         """
         self.pos = self.block_pos = self.block_pos + self.block
         if self.pos > self.count:
-            self.pos = self.count - 1
+            self.pos = self.count
             return False
-        self.buffer = self.handle.readframes(min(self.count - self.block_pos, self.block))
+        self.buffer = self.handle.readframes( min(self.count - self.block_pos, self.block))
         return True
 
     def getBlock(self, starting_frame, frames):
         """
-        Get a block.  Cannot go backwards. The block read must be at or ahead of the current starting_frame
+        Get a block of frames.  Cannot go backwards. The block read must be at or ahead of the current starting_frame
         :param starting_frame: starting frame
         :param frames: number of frames in block
         :return: a sub block of the current buffer given its offset to starting_frame
@@ -1961,11 +1979,12 @@ class AudioReader:
         while starting_frame > (self.block_pos + self.block):
             self.nextBlock()
         start = starting_frame - self.block_pos
+        #in buffer terms, each channel is separate position
         end = (start+frames) * self.channels
-        buffer = np.fromstring(self.buffer, 'Int16')
+        buffer = buf_to_int(self.buffer, self.width)
         while end > buffer.shape[0]:
             if self.nextBlock():
-                buffer = np.append (buffer,np.fromstring(self.buffer, 'Int16'))
+                buffer = np.append (buffer,buf_to_int(self.buffer, self.width))
             else:
                 break
         return buffer[self.startchannel+start*self.channels:end:self.skipchannel]
@@ -1989,8 +2008,8 @@ class AudioReader:
         :param min_threshold:
         :return: start frame in self that does not match the other
         """
-        a = np.fromstring(self.buffer, 'Int16')
-        b = np.fromstring(anotherReader.buffer, 'Int16')
+        a = buf_to_int(self.buffer, self.width)
+        b = buf_to_int(anotherReader.buffer, anotherReader.width)
         # consider a is stereo, b is mono, so a.skipchannel = 2
         # a is 16, b is 8 in length
         # 8*2  = 16, so a length is the 16 with skip of 2.
@@ -2062,7 +2081,7 @@ class AudioReader:
         :return: the sample # of the begining of the where the block is found in self
         """
         self.syncToFrame(start_frame)
-        a = np.fromstring(self.buffer, 'Int16')
+        a = buf_to_int(self.buffer, self.width)
         if residual is not None:
             a = np.append(residual,a)
         #change to channel positions
@@ -2092,7 +2111,7 @@ class AudioReader:
                 best_p = start_frame_difference + position/self.channels
             position+=self.channels
         if self.hasMore():
-            if not self.nextBlock():
+            if self.nextBlock():
                 # residual is what we need to continue searching a step at a time
                 # skipchannel != 1 in the case where this block is stereo and the other is mono
                 # which means we need double the length to fulfill the obligation of matching
@@ -2172,10 +2191,10 @@ class AudioCompare:
                 end = position[1]
                 if segment is None:
                     start = position[0]
-                    segment = create_segment(startframe=start,
-                               starttime= float(start - 1) / float(framerateone) * 1000.0,
+                    segment = create_segment(startframe=start+1,
+                               starttime= max(0,float(start) / float(framerateone) * 1000.0),
                                endframe= end,
-                               endtime= float(end) / float(framerateone) * 1000.0,
+                               endtime= float(end-1) / float(framerateone) * 1000.0,
                                rate=framerateone,
                                type= 'audio',
                                frames= 1)
@@ -2228,10 +2247,10 @@ class AudioCompare:
                 self.time_manager.updateToNow(position[0] / float(framerateone))
                 start = position[0]
                 end = self.__findMatch(start)
-                section = create_segment(startframe=start,
-                                         starttime=float(start - 1) / float(framerateone),
+                section = create_segment(startframe=start+1,
+                                         starttime=max(0,float(start) / float(framerateone)),
                                          endframe=end,
-                                         endtime=float(end) / float(framerateone),
+                                         endtime=float(end-1) / float(framerateone),
                                          rate=framerateone,
                                          type='audio')
                 break
@@ -2341,7 +2360,7 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
             if diff != 0:
                     errors = ['Could not find sample in source media']
             else:
-                    startframe= position
+                    startframe= position + 1
             endframe = startframe + ftwo.count - 1
             starttime = (startframe-1) / float(fone.framerate)*1000.0
             return [create_segment(
