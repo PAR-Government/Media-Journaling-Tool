@@ -10,7 +10,8 @@ from __future__ import print_function
 import sys
 import importlib
 
-tools = {'extend':'batch_process', 'create':'batch_project', 'export':'bulk_export', 'convert':'batch_journal_conversion'}
+tools = {'extend': 'batch_process', 'create': 'batch_project', 'export': 'bulk_export',
+         'convert': 'batch_journal_conversion', 'merge': 'batch_merge'}
 
 
 def main():
