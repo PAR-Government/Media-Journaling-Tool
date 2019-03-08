@@ -228,6 +228,12 @@ def getMimeType(filename):
         ))
 
 
+def zipFileType(fileName):
+    parts = fileName.lower().split('.')
+    if parts[-1] not in ['zip','gz','tgz']:
+        return None
+    return fileType('.'.join(parts[0:-1]))
+
 def fileType(fileName):
     if os.path.isdir(fileName):
         return 'dir'

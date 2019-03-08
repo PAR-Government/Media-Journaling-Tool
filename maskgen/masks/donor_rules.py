@@ -7,7 +7,7 @@
 # ==============================================================================
 from maskgen.image_wrap import ImageWrapper
 from maskgen.support import getValue
-from maskgen.tool_set import interpolateMask
+from maskgen.tool_set import interpolateMask, zipFileType
 from maskgen.video_tools import get_rate_from_segment, get_start_time_from_segment, \
     get_end_time_from_segment, update_segment, get_type_of_segment
 
@@ -521,3 +521,79 @@ class AllStreamDonor(GeneralStreamDonor):
     def arguments(self):
         return {}
 
+
+class ZipDonor(VideoDonor):
+
+    def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+        """
+        :param graph:
+        :param donor_start:
+        :param donor_end:
+        :param parent_of_end:
+        :param startImTuple:
+        :param destImTuple:
+        @type graph: ImageGraph
+        """
+        self.graph = graph
+        self.donor_start = donor_start
+        self.donor_end = donor_end
+        self.parent_of_end = parent_of_end
+        self.startIm = startImTuple[0]
+        self.destIm = destImTuple[0]
+        self.startFileName = startImTuple[1]
+        self.destFileName = destImTuple[1]
+
+    def _base_arguments(self):
+        return {
+            "Start Time": {
+                "type": "frame_or_time",
+                "defaultvalue": 1,
+                "trigger mask": True,
+                "description": "Start frame number"
+            },
+            "End Time": {
+                "type": "frame_or_time",
+                "defaultvalue": 0,
+                "trigger mask" : True,
+                "description": "End frame number. Leave 0 if ALL"
+            }
+        }
+
+    def arguments(self):
+        args = self._base_arguments()
+        predecessors = self.graph.predecessors(self.donor_start)
+        for pred in predecessors:
+            edge = self.graph.get_edge(pred, self.donor_start)
+            if edge['op'].startswith('Select'):
+                args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',"1")
+                end_def = getValue(edge, 'arguments.End Time', None)
+                if end_def is not None:
+                    args['End Time']['defaultvalue'] = end_def
+        return args
+
+    def create(self,
+               arguments={},
+               invert=False):
+        from maskgen.tool_set import getMilliSecondsAndFrameCount
+        media_types = [zipFileType(self.startFileName)]
+
+        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
+        start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
+        video_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+                                                     start_time_tuple=start_time_tuple,
+                                                     end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
+                                                     media_types=media_types)
+        audio_segments = [x for x in video_set if get_type_of_segment(x) == 'audio']
+        video_segments = [x for x in video_set if get_type_of_segment(x) == 'video']
+
+        if getValue(arguments, 'include audio', 'no') == 'yes':
+            for audio_segment in audio_segments:
+               video_segment = video_segments[0] if len(video_segments) > 0 else audio_segment
+               update_segment(audio_segment,
+                              type='audio',
+                              starttime=get_start_time_from_segment(video_segment),
+                              endtime=get_end_time_from_segment(video_segment),
+                              startframe=int(get_start_time_from_segment(video_segment) * get_rate_from_segment(audio_segment)/1000.0),
+                              endframe=int(get_end_time_from_segment(video_segment)* get_rate_from_segment(audio_segment)/1000.0)+1)
+        return video_set

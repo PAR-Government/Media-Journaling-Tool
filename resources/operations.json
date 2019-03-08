@@ -197,8 +197,7 @@
       "generateMask": "frames",
       "transitions": [
         "video.video",
-        "audio.audio",
-        "video.audio"
+        "audio.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -4376,8 +4375,12 @@
         "audio": "maskgen.mask_rules.sample_rate_change"
       },
       "optionalparameters": {
+        "Audio Sequence File": {
+          "type": "file:txt",
+          "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
+        }
       },
-      "description": "Export the image in the PCM format (wave, aif, etc.).",
+      "description": "Export the stream in the PCM format (wave, aif, etc.).",
       "includeInMask": {
         "default": false
       },

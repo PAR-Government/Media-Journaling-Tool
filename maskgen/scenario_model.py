@@ -1006,6 +1006,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
+             'zip.zip':    ZipZipLinkTool(),
              'zip.image':   ZipImageLinkTool(),   'zip.audio': ImageZipAudioLinkTool()}
 
 

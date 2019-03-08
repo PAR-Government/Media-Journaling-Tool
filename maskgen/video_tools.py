@@ -2426,9 +2426,9 @@ def audioDelete(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
         fone.close()
 
 
-def buildCaptureTool(vidFile):
+def buildCaptureTool(vidFile, fps=30):
     if os.path.splitext(vidFile)[1].lower() == '.zip':
-        return tool_set.ZipCapture(vidFile)
+        return tool_set.ZipCapture(vidFile,fps=fps)
     else:
         return cv2api_delegate.videoCapture(vidFile)
 
@@ -2515,8 +2515,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components = VidAnalysisComponents()
     analysis_components.file_one = fileOne
     analysis_components.file_two = fileTwo
-    analysis_components.vid_one = buildCaptureTool(fileOne)
-    analysis_components.vid_two = buildCaptureTool(fileTwo)
+    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'fps',30))
+    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'fps',30))
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
         np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
