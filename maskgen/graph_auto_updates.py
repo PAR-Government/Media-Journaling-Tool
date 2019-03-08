@@ -111,6 +111,7 @@ def updateJournal(scModel):
         else:
             fixes_needed = -(len(versions) - versions.index(project_version)) if project_version in versions else -len(versions)
     ok = True
+    stop_fix = None
 
     if fixes_needed < 0:
         for id in fixes.keys()[fixes_needed:]:
@@ -118,10 +119,13 @@ def updateJournal(scModel):
             for fix in fixes[id]:
                 logging.getLogger('maskgen').info('Apply fix {} for {}'.format(fix.__name__, id))
                 ok &= apply_fix(fix, scModel, gopLoader)
-    apply_fix(_fixMandatory,scModel, gopLoader)
+                if ok:
+		           stop_fix = fix
+
+    apply_fix(_fixMandatory, scModel, gopLoader)
     #update to the max
-    upgrades = fixes.keys()[-1:]
-    if scModel.getGraph().getVersion() not in upgrades:
+    upgrades = fixes.keys()[-1:] if ok else [stop_fix]
+    if scModel.getGraph().getVersion() not in upgrades and ok:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
