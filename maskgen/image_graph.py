@@ -13,6 +13,7 @@ from maskgen.image_wrap import deleteImage
 import json
 import shutil
 import tarfile
+import numpy as np
 from time import gmtime, strftime, strptime
 import logging
 from maskgen import __version__
@@ -873,6 +874,10 @@ class ImageGraph:
         if len(l) > 0:
             return l[0]
 
+    def json_default(self, o):
+        if isinstance(o, np.int64): return int(o)
+        raise TypeError
+
     def saveas(self, pathname):
         currentdir = self.dir
         fname = os.path.split(pathname)[1]
@@ -886,7 +891,7 @@ class ImageGraph:
         filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
         self._copy_contents(currentdir)
         with open(filename, 'w') as f:
-            jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+            jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8', default=self.json_default)
         self.filesToRemove.clear()
 
     def save(self):
@@ -897,7 +902,7 @@ class ImageGraph:
         usedfiles =set([self.G.node[node_id]['file'] for node_id in self.G.nodes()])
         with self.lock:
             with open(filename, 'w') as f:
-                jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+                jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8', default=self.json_default)
             for f in self.filesToRemove:
                 if os.path.exists(f) and os.path.basename(f) not in usedfiles:
                     os.remove(f)
