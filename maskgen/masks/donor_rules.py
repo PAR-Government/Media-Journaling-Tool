@@ -245,6 +245,9 @@ class VideoInterpolateDonor:
             arguments=arguments)
 
 
+def video_zip_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+    return VideoZipDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
+
 def video_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return VideoDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
@@ -460,27 +463,6 @@ class SampleAudioDonor(AudioDonor):
         """
         AudioDonor.__init__(self,graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
-    #
-    # def create(self,
-    #            arguments={},
-    #            invert=False):
-    #
-    #     from maskgen.tool_set import getMilliSecondsAndFrameCount,VidTimeManager
-    #     from maskgen.video_tools import audioDonor
-    #
-    #     from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
-    #     end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
-    #     start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-    #     audio_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
-    #                                                  start_time_tuple=start_time_tuple,
-    #                                                  end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
-    #                                                  media_types=['audio'])
-    #     time_manager = VidTimeManager(start_time_tuple,end_time_tuple)
-    #     try:
-    #         return [audioDonor(self.startFileName, self.destFileName, time_manager, arguments={})]
-    #     except:
-    #         return audio_set
-
 def all_audio_processor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return AllAudioStreamDonor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
@@ -522,7 +504,7 @@ class AllStreamDonor(GeneralStreamDonor):
         return {}
 
 
-class ZipDonor(VideoDonor):
+class VideoZipDonor(VideoDonor):
 
     def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
         """
@@ -551,6 +533,11 @@ class ZipDonor(VideoDonor):
                 "trigger mask": True,
                 "description": "Start frame number"
             },
+            "fps": {
+                "type": "float:[0:60]",
+                "defaultvalue": 30,
+                "description": "Frames Per Second"
+            },
             "End Time": {
                 "type": "frame_or_time",
                 "defaultvalue": 0,
@@ -574,26 +561,17 @@ class ZipDonor(VideoDonor):
     def create(self,
                arguments={},
                invert=False):
-        from maskgen.tool_set import getMilliSecondsAndFrameCount
+        from maskgen.tool_set import ZipCapture,getMilliSecondsAndFrameCount
+        from maskgen.video_tools import FileMetaDataLocator, \
+            create_segment,recalculate_times_for_segment
         media_types = [zipFileType(self.startFileName)]
-
-        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        capture = ZipCapture(FileMetaDataLocator(self.startFileName).get_filename())
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        video_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
-                                                     start_time_tuple=start_time_tuple,
-                                                     end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
-                                                     media_types=media_types)
-        audio_segments = [x for x in video_set if get_type_of_segment(x) == 'audio']
-        video_segments = [x for x in video_set if get_type_of_segment(x) == 'video']
+        segment = create_segment(startframe=max(1,start_time_tuple[1]),
+                                 endframe=min(end_time_tuple[1],capture.count-1),
+                                 type=media_types[0],
+                                 rate=getValue(arguments,'fps',30))
+        recalculate_times_for_segment(segment)
+        return [segment]
 
-        if getValue(arguments, 'include audio', 'no') == 'yes':
-            for audio_segment in audio_segments:
-               video_segment = video_segments[0] if len(video_segments) > 0 else audio_segment
-               update_segment(audio_segment,
-                              type='audio',
-                              starttime=get_start_time_from_segment(video_segment),
-                              endtime=get_end_time_from_segment(video_segment),
-                              startframe=int(get_start_time_from_segment(video_segment) * get_rate_from_segment(audio_segment)/1000.0),
-                              endframe=int(get_end_time_from_segment(video_segment)* get_rate_from_segment(audio_segment)/1000.0)+1)
-        return video_set

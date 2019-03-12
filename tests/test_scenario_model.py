@@ -130,5 +130,12 @@ class TestScenarioModel(TestSupport):
       self.assertTrue(False,'Should not be here')
 
 
+   def testZipAddTool(self):
+       from maskgen.scenario_model import ZipAddTool
+       z = ZipAddTool()
+       meta = z.getAdditionalMetaData(self.locateFile('zips/test.wav.zip'))
+       self.assertEqual(35.665851,meta['total duration'])
+       self.assertEqual('17.832925', meta['zip content meta'][-1]['duration'])
 if __name__ == '__main__':
+
     unittest.main()

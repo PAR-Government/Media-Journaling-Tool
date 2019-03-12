@@ -4361,6 +4361,11 @@
       "category": "Output",
       "name": "OutputAudioPCM",
       "mandatoryparameters": {
+         "Audio Sequence File": {
+          "type": "file:txt",
+          "source": "zip",
+          "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
+        }
       },
       "rules": [
         "checkLengthSame",
@@ -4373,12 +4378,6 @@
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.sample_rate_change",
         "audio": "maskgen.mask_rules.sample_rate_change"
-      },
-      "optionalparameters": {
-        "Audio Sequence File": {
-          "type": "file:txt",
-          "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
-        }
       },
       "description": "Export the stream in the PCM format (wave, aif, etc.).",
       "includeInMask": {

@@ -924,7 +924,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
         return mask, {}, ()
 
 
-class ImageZipAudioLinkTool(VideoAudioLinkTool):
+class AudioZipAudioLinkTool(VideoAudioLinkTool):
     """
      Supports mask construction and meta-data comparison when linking images to images.
      """
@@ -939,6 +939,36 @@ class ImageZipAudioLinkTool(VideoAudioLinkTool):
         mask, analysis = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         return mask, analysis, []
+
+
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        analysis = dict()
+        if 'metadatadiff' in analysis:
+            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+        if 'errors' in analysis:
+            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+        return None, None, None, analysis
+
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,
+                      analysis_params={}):
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        analysis = dict()
+        analysis['masks count'] = 0
+        analysis['videomasks'] = list()
+        metaDataDiff = video_tools.form_meta_data_diff(startFileName, destFileName, frames=False, media_types=['audio'])
+        analysis = analysis if analysis is not None else {}
+        analysis['metadatadiff'] = metaDataDiff
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
+        return mask, analysis, list()
 
 
 class ImageZipVideoLinkTool(VideoVideoLinkTool):
@@ -988,8 +1018,53 @@ class VideoAddTool(AddTool):
         return parent
 
 class ZipAddTool(AddTool):
+
     def getAdditionalMetaData(self, media):
+        import copy
         from zipfile import ZipFile
+        file_type = zipFileType(media)
+        final_meta = {}
+        final_meta['media'] = []
+        if file_type in ['audio','video']:
+            tool = VideoAddTool()
+            duration = 0.0
+            frames = 0
+            capture = ZipCapture(media,filetypes=audiofiletypes + videofiletypes)
+            details = []
+            while capture.isOpened():
+                if not capture.grab():
+                    break
+                fn = capture.retrieve_file()
+                meta = tool.getAdditionalMetaData(fn)
+                new_meta = {}
+                for item in meta['media']:
+                    if file_type == getValue(item, 'codec_type', 'text'):
+                        if file_type == 'audio':
+                            last_sample = getValue(meta, 'sample_rate', 48000)
+                            last_duration  = float(getValue(item, 'duration', getValue(meta, 'duration_ts', 1) / getValue(meta, 'sample_rate', 48000)))
+                            last_frames = int(last_duration * 48000)
+                            new_meta['audio'] = copy.copy(item)
+                            details.append(item)
+                        else:
+                            last_frames = int(getValue(item, 'nb_frames', 1))
+                            last_duration = video_tools.estimate_duration(item, last_frames)
+                            last_duration = getValue(item, 'duration', last_duration)
+                            last_sample = last_frames/float(last_duration)
+                            new_meta['video'] = copy.copy(item)
+                            details.append(item)
+                        duration += float(last_duration)
+                        frames += last_frames
+                if 'video' in new_meta:
+                    new_meta['video']['duration'] = duration
+                    new_meta['video']['nb_frames'] = frames
+                    final_meta['media'] = [new_meta['video']]
+                if 'audio' in new_meta:
+                    new_meta['audio']['duration'] = duration
+                    new_meta['audio']['duration_ts'] = duration * last_sample
+                    final_meta['media'] = meta['media'] + [new_meta['audio']]
+            final_meta['total duration'] = duration
+            final_meta['zip content meta'] = details
+            return final_meta
         meta = {}
         with ZipFile(media, 'r') as myzip:
             names = myzip.namelist()
@@ -1005,9 +1080,8 @@ addTools = {'video': VideoAddTool(), 'zip':ZipAddTool(),'audio': OtherAddTool(),
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
-             'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
-             'zip.zip':    ZipZipLinkTool(),
-             'zip.image':   ZipImageLinkTool(),   'zip.audio': ImageZipAudioLinkTool()}
+             'audio.audio': AudioAudioLinkTool(), 'zip.video':   ImageZipVideoLinkTool(),
+             'zip.image':   ZipImageLinkTool(),   'zip.audio':   AudioZipAudioLinkTool()}
 
 
 def true_notify(object, message, **kwargs):

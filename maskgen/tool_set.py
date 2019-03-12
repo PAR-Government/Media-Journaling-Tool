@@ -771,6 +771,16 @@ class ZipCapture:
         extracted_file = self.myzip.extract(name, self.dir)
         return True, openImage(extracted_file, isMask=False).to_array()
 
+    def set_to_end(self):
+        self.count = len(self.names)
+
+    def retrieve_file(self):
+        if self.count > len(self.names):
+            return None
+        name = self.names[self.count-1]
+        extracted_file = self.myzip.extract(name, self.dir)
+        return extracted_file
+
     def read(self):
         self.grab()
         return self.retrieve()

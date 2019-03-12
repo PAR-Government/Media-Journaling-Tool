@@ -199,6 +199,10 @@ def get_mask_from_segment(segment, default_value=None):
         return default_value
     return segment['mask']
 
+def recalculate_times_for_segment(segment):
+    segment['starttime'] = get_start_time_from_segment(segment)
+    segment['endtime'] = get_end_time_from_segment(segment)
+
 def get_start_frame_from_segment(segment, default_value=None):
     from math import floor
     if 'startframe' not in segment:
@@ -731,6 +735,11 @@ def meta_key(*args, **kwargs):
     if 'channel' not in kwargs:
         newkargs['channel'] = 0
     return hashkey(*newargs, **newkargs)
+
+def get_audio_duration(dir):
+    FileMetaDataLocator(os.path.join(dir,))
+    segments = getMaskSetForEntireVideoForTuples(locator)
+    return get_end_time_from_segment(segments[-1])
 
 @cached(meta_cache,lock=meta_lock,key=meta_key)
 def getMaskSetForEntireVideoForTuples(locator, start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
@@ -2304,6 +2313,7 @@ def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},ana
     else:
         return audioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
 
+
 def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
     """
     Confirm fileTwo is sampled from fileOne
@@ -2443,7 +2453,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
      @type time_manager: VidTimeManager
      @type img_wrapper: ImageWrapper
      """
-    vid_cap = buildCaptureTool(vidFile)
+    vid_cap = buildCaptureTool(vidFile, fps = getValue(arguments,'fps',30))
     fps = vid_cap.get(cv2api_delegate.prop_fps)
     writer = tool_set.GrayBlockWriter(name_prefix, fps)
     segment = create_segment(rate= fps, type='video', startframe=1, starttime=0, frames=0)
