@@ -194,7 +194,10 @@
       "includeInMask": {
         "default": false
       },
-      "generateMask": "frames",
+       "compareparameters": {
+        "video_function": "maskgen.video_tools.audioDeleteCompare"
+      },
+      "generateMask": "audio",
       "transitions": [
         "video.video",
         "audio.audio",
@@ -220,13 +223,6 @@
             "insert"
           ],
           "description": "Replacing or overlaying."
-        },
-        "filter type": {
-          "type": "list",
-          "values": [
-            "EQ Match",
-            "Other"
-          ]
         },
         "synchronization": {
           "type": "list",
@@ -280,6 +276,13 @@
           "type": "time",
           "trigger mask": true,
           "description": "End time of the audio clip (HH:MI:SS.micro or frame number)"
+        },
+        "filter type": {
+          "type": "list",
+          "values": [
+            "EQ Match",
+            "Other"
+          ]
         }
       },
       "compareparameters": {
@@ -438,7 +441,8 @@
             "Spectral Subtraction",
             "Frequency Stretch",
             "Ratio",
-            "Non Linearity"
+            "Non Linearity",
+            "Time Stretch"
           ],
           "description": "Type of filter"
         },
@@ -959,7 +963,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
@@ -1020,7 +1024,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
@@ -1124,7 +1128,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFrameTimes",
         "check_local",
@@ -1195,7 +1199,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
@@ -1305,7 +1309,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "checkFrameTimes",
@@ -1808,7 +1812,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
@@ -1895,7 +1899,7 @@
         }
       },
       "rules": [
-        "checkLengthSame",
+        "checkDuration",
         "checkSize",
         "checkFileTypeChange",
         "check_local_warn",
@@ -2057,6 +2061,10 @@
        "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "description": "Create objects that were not originally present in an image.",
       "includeInMask": {
@@ -2223,6 +2231,10 @@
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
+       "maskTransformFunction": {
+        "image": "maskgen.mask_rules.resize_transform",
+        "video": "maskgen.mask_rules.output_video_change"
+      },
       "description": "Face Swap with Deep Fake algorithms.",
       "includeInMask": {
         "default": true
@@ -2281,6 +2293,10 @@
       "includeInMask": {
         "default": true
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2336,6 +2352,10 @@
         "image.image",
         "video.video"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate.",
@@ -2407,6 +2427,10 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": {
         "default": true
@@ -2452,7 +2476,7 @@
       },
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",
-        "video": "maskgen.mask_rules.video_resize_transform"
+        "video": "maskgen.mask_rules.output_video_change"
       },
       "generateMask": "meta",
       "rules": [
@@ -2517,6 +2541,10 @@
       "includeInMask": {
         "default": true
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2571,6 +2599,10 @@
       "includeInMask": {
         "default": false,
         "video": true
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "transitions": [
         "image.image",
@@ -2665,6 +2697,10 @@
        "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": {
@@ -2832,6 +2868,10 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2894,6 +2934,10 @@
       "compareparameters": {
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -2938,6 +2982,10 @@
       "includeInMask": {
         "default": false,
         "video": true
+      },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
       },
       "transitions": [
         "image.image",
@@ -2985,6 +3033,10 @@
         "image.image",
         "video.video"
       ],
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate.",
@@ -3179,6 +3231,10 @@
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "includeInMask": {
         "default": true
       },
@@ -3265,6 +3321,10 @@
       "includeInMask": {
         "default": true
       },
+      "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo"
+      },
       "transitions": [
         "image.image",
         "video.video"
@@ -3324,6 +3384,11 @@
               "stacking"
             ]
           }
+        },
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
         },
         "Blend Mode": {
           "type": "list",
@@ -3393,6 +3458,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
+        "video": "maskgen.mask_rules.echo",
+        "audio": "maskgen.mask_rules.echo",
         "image": "maskgen.mask_rules.paste_sampled"
       },
       "transitions": [
@@ -4919,6 +4986,11 @@
         "audio": "maskgen.mask_rules.paste_add_audio_frames"
       },
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "kernel": {
           "type": "int[1:27]",
           "defaultvalue": 3,
@@ -5013,6 +5085,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
@@ -5093,6 +5170,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        },
         "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
@@ -5183,6 +5265,11 @@
         "video": "maskgen.mask_rules.copy_paste_frames"
       },
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        }
       },
        "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
@@ -5223,6 +5310,11 @@
         "checkFrameRateChange_Strict"
       ],
       "optionalparameters": {
+        "videoinputmaskname": {
+          "type": "file:video",
+          "source": "video",
+          "description": "A video file with a transparency highlighting the sampled areas of the video"
+        }
       },
       "description": "Cut & Paste a series of frames within the same video",
       "includeInMask": {
@@ -7075,6 +7167,10 @@
       "cgi": {
         "type": "yesno",
         "description": "Is CGI?"
+      },
+      "prnu": {
+        "type": "yesno",
+        "description": "Is Image a PRNU PNG?"
       },
       "isGAN": {
         "type": "yesno",
