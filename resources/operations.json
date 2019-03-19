@@ -4361,8 +4361,15 @@
       "category": "Output",
       "name": "OutputAudioPCM",
       "mandatoryparameters": {
+      },
+      "optionalparameters": {
+         "sample rate": {
+          "type": "int[1:1000000]",
+          "source": "zip",
+          "description": "Sample rate of file contents"
+        },
          "Audio Sequence File": {
-          "type": "file:txt",
+          "type": "file:csv",
           "source": "zip",
           "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
         }

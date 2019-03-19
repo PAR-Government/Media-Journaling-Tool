@@ -1490,7 +1490,6 @@ def checkSize(op, graph, frm, to):
         return (Severity.ERROR,'operation is not permitted to change the size of the image')
     return None
 
-
 def _getSizeChange(edge):
     change = edge['shape change'] if edge is not None and 'shape change' in edge else None
     if change is not None:

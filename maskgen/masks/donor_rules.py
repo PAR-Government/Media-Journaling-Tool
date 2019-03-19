@@ -245,8 +245,8 @@ class VideoInterpolateDonor:
             arguments=arguments)
 
 
-def video_zip_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
-    return VideoZipDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
+def audio_zip_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+    return AudioZipDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
 def video_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return VideoDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
@@ -504,7 +504,7 @@ class AllStreamDonor(GeneralStreamDonor):
         return {}
 
 
-class VideoZipDonor(VideoDonor):
+class AudioZipDonor(VideoDonor):
 
     def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
         """
@@ -533,10 +533,10 @@ class VideoZipDonor(VideoDonor):
                 "trigger mask": True,
                 "description": "Start frame number"
             },
-            "fps": {
-                "type": "float:[0:60]",
-                "defaultvalue": 30,
-                "description": "Frames Per Second"
+            "sample rate": {
+                "type": "float:[0:600000]",
+                "defaultvalue": 44100,
+                "description": "Samples Per Second"
             },
             "End Time": {
                 "type": "frame_or_time",
@@ -552,7 +552,7 @@ class VideoZipDonor(VideoDonor):
         for pred in predecessors:
             edge = self.graph.get_edge(pred, self.donor_start)
             if edge['op'].startswith('Select'):
-                args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',"1")
+                args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',0)
                 end_def = getValue(edge, 'arguments.End Time', None)
                 if end_def is not None:
                     args['End Time']['defaultvalue'] = end_def
@@ -561,17 +561,23 @@ class VideoZipDonor(VideoDonor):
     def create(self,
                arguments={},
                invert=False):
-        from maskgen.tool_set import ZipCapture,getMilliSecondsAndFrameCount
+        from maskgen.zip_tools import AudioPositions
+        from maskgen.tool_set import getMilliSecondsAndFrameCount
         from maskgen.video_tools import FileMetaDataLocator, \
-            create_segment,recalculate_times_for_segment
-        media_types = [zipFileType(self.startFileName)]
-        capture = ZipCapture(FileMetaDataLocator(self.startFileName).get_filename())
+            create_segment
+        fps = float(getValue(arguments, 'sample rate'))
+        positions = AudioPositions(FileMetaDataLocator(self.startFileName).get_filename(),
+                                 fps=fps)
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        segment = create_segment(startframe=max(1,start_time_tuple[1]),
-                                 endframe=min(end_time_tuple[1],capture.count-1),
-                                 type=media_types[0],
-                                 rate=getValue(arguments,'fps',30))
-        recalculate_times_for_segment(segment)
-        return [segment]
+        return [create_segment(starttime=seg[0],
+                                                 startframe=seg[1],
+                                                 endtime=seg[2],
+                                                 endframe=seg[3],
+                                                 type='audio',
+                                                 frames=seg[3] - seg[1] + 1,
+                                                 rate=fps)
+                                  for seg in positions.get_segments(0,
+                                            initial_start_time=start_time_tuple[0],
+                                            initial_end_time=end_time_tuple[0] if end_time_tuple[0]>start_time_tuple[0] else -1)]
 

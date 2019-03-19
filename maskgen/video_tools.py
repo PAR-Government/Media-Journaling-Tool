@@ -1900,7 +1900,7 @@ class AudioReader:
     left from to right on the other.
     """
 
-    def __init__(self,filename, channel, block=524288):
+    def __init__(self,filename, channel='all', block=524288):
         """
 
         :param filename:
@@ -2026,6 +2026,10 @@ class AudioReader:
         new_base_start = base_start + positions[0][0]
         new_base_end = base_start+ positions[0][-1]
         return self.block_pos+new_base_start,self.block_pos+new_base_end
+
+    def syncToTime(self, set_time):
+        frame = set_time*self.framerate/1000.0
+        self.syncToFrame(frame)
 
     def syncToFrame(self, frame):
         """

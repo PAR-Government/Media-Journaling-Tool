@@ -513,7 +513,7 @@ def differenceInFramesBetweenMillisecondsAndFrame(mandf1, mandf2, rate):
 def getMilliSeconds(v):
     if v is None:
         return None, 0
-    if type(v) == int:
+    if type(v) in [int,float]:
         return v
     dt = None
     coloncount = v.count(':')
@@ -832,8 +832,12 @@ def readFromArchive(filename, filetypes=imagefiletypes, videoFrameTime=None, isM
             time_manager.updateToNow(elapsed_time)
             if time_manager.isPastTime() or videoFrameTime is None:
                 break
-        extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
-        img = openImage(extracted_file, isMask=isMask)
+        if names:
+            extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
+            img = openImage(extracted_file, isMask=isMask)
+        else:
+            extracted_file =''
+            img = openImage('')
         if extracted_file != snapshotFileName and snapshotFileName is not None:
             img.save(snapshotFileName)
         return img
