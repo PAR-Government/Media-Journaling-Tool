@@ -483,7 +483,7 @@ class SpatialReviewDisplay(Frame):
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         spatial_box_label = Label(master=page, text='Spatial Overlay Correct?', wraplength=250, justify=LEFT)
         self.checkbox = Chkbox(parent=page, dialog=page.master, label=spatial_box_label, command=page.cache_designation,
-                               value=page.master.qaData.get_qalink_designation(page.link) != "")
+                               value=page.master.qaData.get_qalink_designation(page.link) is not None)
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col -1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -537,7 +537,7 @@ class TemporalReviewDisplay(Frame):
         chkboxes_col = int(checkbox_info['column']) + 1 if len(checkbox_info) > 0 else 4
         temporal_box_label = Label(master=page, text='Temporal data correct?', wraplength=250, justify=LEFT)
         self.checkbox = Chkbox(parent=page, dialog=page.master, label=temporal_box_label, command=page.cache_designation,
-                               value=page.master.qaData.get_qalink_designation(page.link) != "")
+                               value=page.master.qaData.get_qalink_designation(page.link) is not None)
         self.checkbox.box.grid(row=chkboxes_row, column=chkboxes_col - 1)
         self.checkbox.label.grid(row=chkboxes_row, column=chkboxes_col, columnspan=4, sticky='W')
         self.checkbox.grid_remove() #hide for now, Will be gridded by the frameMove function
@@ -887,8 +887,7 @@ class QAProjectDialog(Toplevel):
 
     def check_ok(self, event=None):
         if self.lastpage != None:
-            for page in self.pages:
-                if bool(page.checkboxes) is not True:
-                    self.lastpage.acceptButton.config(state=DISABLED)
-                    return
-            self.lastpage.acceptButton.config(state=NORMAL)
+            if len(self.errors) == 0 and all(bool(page.checkboxes) for page in self.pages):
+                self.lastpage.acceptButton.config(state=NORMAL)
+            else:
+                self.lastpage.acceptButton.config(state=DISABLED)

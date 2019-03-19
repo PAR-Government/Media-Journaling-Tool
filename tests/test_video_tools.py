@@ -114,6 +114,30 @@ def augmentAudio(filename, outfilname, augmentFunc):
     ftwo.close()
 
 
+def deleteAudio(filename, outfilname, pos, length):
+    import wave
+    import struct
+    import random
+    fone = wave.open(filename, 'rb')
+    countone = fone.getnframes()
+    onechannels = fone.getnchannels()
+    onewidth = fone.getsampwidth()
+    ftwo = wave.open(outfilname, 'wb')
+    ftwo.setparams(fone.getparams())
+    pos = pos * onechannels * onewidth
+    length = length * onechannels * onewidth
+    framesone = fone.readframes(pos)
+    ftwo.writeframes(framesone)
+    fone.readframes(length)
+    countone -= (pos + length)
+    while countone > 0:
+        toRead = min([1024, countone])
+        countone -= toRead
+        framesone = fone.readframes(toRead)
+        ftwo.writeframes(framesone)
+    fone.close()
+    ftwo.close()
+
 def insertAudio(filename, outfilname, pos, length):
     import wave
     import struct
@@ -1654,11 +1678,15 @@ class TestVideoTools(TestSupport):
         self.assertTrue(meta_diff['stereo']['nb_frames'] == ('change', '2563', '2558'))
 
 
+    def test_buf_to_int(self):
+        stream =  np.random.randint(-1000,1000,128,dtype=np.int16)
+        self.assertTrue(np.all(stream == video_tools.buf_to_int(stream.tostring(),2)))
+
     def test_audio_reader(self):
         video_tools.audioWrite('test_tat.0.0.wav', 8192*1024)
         self.filesToKill.append('test_tat.0.0.wav')
         c1 = video_tools.AudioReader('test_tat.0.0.wav','all',block=8192)
-        block = c1.getBlock(10000, 128)
+        block = c1.getBlock(10000,128)
         c1.close()
         c1 = video_tools.AudioReader('test_tat.0.0.wav','all', block=8192)
         position = c1.findBlock(block, 0)
@@ -1818,10 +1846,16 @@ class TestVideoTools(TestSupport):
         singleChannelSample('test_ta.0.0.wav', 'test_ta4.0.0.wav')
         singleChannelSample('test_ta.0.0.wav', 'test_ta5.0.0.wav', skip=1)
         insertAudio('test_ta.0.0.wav', 'test_ta6.0.0.wav', pos=28, length=6)
+        deleteAudio('test_ta.0.0.wav', 'test_ta7.0.0.wav', pos=28, length=6)
+
+        result, errors = video_tools.audioDeleteCompare('test_ta.0.0.wav', 'test_ta7.0.0.wav', 'test_ta_del', VidTimeManager())
+        self.assertEqual(1, len(result))
+        self.assertEqual(113, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(136, video_tools.get_end_frame_from_segment(result[0]))
 
         result, errors = video_tools.audioInsert('test_ta.0.0.wav', 'test_ta6.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
-        self.assertEqual(28, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(29, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(40, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
@@ -1829,16 +1863,16 @@ class TestVideoTools(TestSupport):
 
         result, errors = video_tools.audioCompare('test_ta.0.0.wav', 'test_ta2.0.0.wav', 'test_ta_c', VidTimeManager())
         self.assertEqual(1, len(result))
-        self.assertEqual(6, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(256, video_tools.get_end_frame_from_segment(result[0]))
+        self.assertEqual(7, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(255, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
 
-        result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1', VidTimeManager(startTimeandFrame=(0,6)))
+        result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1', VidTimeManager(startTimeandFrame=(0,7)))
         self.assertEqual(1, len(result))
-        self.assertEqual(6, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(47, video_tools.get_end_frame_from_segment(result[0]))
+        self.assertEqual(7, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(48, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
@@ -1846,8 +1880,8 @@ class TestVideoTools(TestSupport):
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta3.0.0.wav', 'test_ta_s1',
                                                  VidTimeManager(startTimeandFrame=(0, 0)))
         self.assertEqual(1, len(result))
-        self.assertEqual(6, video_tools.get_start_frame_from_segment(result[0]))
-        self.assertEqual(47, video_tools.get_end_frame_from_segment(result[0]))
+        self.assertEqual(7, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(48, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
@@ -1855,7 +1889,8 @@ class TestVideoTools(TestSupport):
 
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta4.0.0.wav', 'test_ta_s2', VidTimeManager(startTimeandFrame=(0,3)))
         self.assertEqual(1, len(result))
-        self.assertEqual(3, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(4, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(24, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
@@ -1863,7 +1898,8 @@ class TestVideoTools(TestSupport):
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta4.0.0.wav', 'test_ta_s2',
                                                  VidTimeManager(startTimeandFrame=(0, 0)))
         self.assertEqual(1, len(result))
-        self.assertEqual(3, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(4, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(24, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)
@@ -1871,7 +1907,8 @@ class TestVideoTools(TestSupport):
         result, errors = video_tools.audioSample('test_ta.0.0.wav', 'test_ta5.0.0.wav', 'test_ta_s3', VidTimeManager(),
                                                  arguments={'Copy Stream': 'right'})
         self.assertEqual(1, len(result))
-        self.assertEqual(3, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(4, video_tools.get_start_frame_from_segment(result[0]))
+        self.assertEqual(24, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(video_tools.get_end_frame_from_segment(result[0]),
                          video_tools.get_start_frame_from_segment(result[0]) + video_tools.get_frames_from_segment(
                              result[0]) - 1)

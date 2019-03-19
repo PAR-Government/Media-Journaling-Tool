@@ -649,6 +649,50 @@ class ZipImageLinkTool(VideoImageLinkTool):
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, []
 
+
+class CollectionImageLinkTool(VideoImageLinkTool):
+    """
+    Supports mask construction and meta-data comparison when linking zip to image.
+    """
+    def __init__(self):
+        VideoImageLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        return "maskgen.masks.donor_rules.donothing_stream_processor"
+
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(end)
+        mask = np.ones((destIm.size[0],destIm.size[1]),dtype=np.uint8)*255
+        return startIm, destIm, ImageWrapper(mask), {}
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+
+        """
+
+        :param start:
+        :param destination:
+        :param scModel:
+        :param op:
+        :param invert:
+        :param arguments:
+        :param skipDonorAnalysis:
+        :param analysis_params:
+        :return:
+        @type start: str
+        @type destination: str
+        @type scModel: ImageProjectModel
+        @type op: str
+        @type invert: bool
+        @type arguments: dict
+        """
+        startIm, destIm, mask, analysis = self.compare(start, destination, scModel)
+        return mask, analysis, []
+
 class VideoVideoLinkTool(LinkTool):
     """
      Supports mask construction and meta-data comparison when linking video to video.
@@ -675,7 +719,6 @@ class VideoVideoLinkTool(LinkTool):
         if 'errors' in analysis:
             analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
         return startIm, destIm, mask, analysis
-
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
@@ -742,7 +785,7 @@ class VideoVideoLinkTool(LinkTool):
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, errors
 
-    def addSubstituteMasks(self,start, destination, scModel, op, arguments={},filename=''):
+    def addSubstituteMasks(self,start, destination, scModel, op, arguments={}, filename=''):
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         startSegment = getMilliSecondsAndFrameCount(arguments[
@@ -923,6 +966,40 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                 mask = startIm.to_mask().invert()
         return mask, {}, ()
 
+class ZipToZipTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        # not correct...TODO
+        return "maskgen.masks.donor_rules.alpha_stream_processor"
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        from support import setPathValue
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        if op == 'Donor':
+            mask = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                      consolidate(arguments, analysis_params), invert=invert)
+            if mask is None:
+                mask = startIm.to_mask().invert()
+        startZip = ZipCapture(startFileName)
+        endZip = ZipCapture(destFileName)
+        analysis = {}
+        analysis['metadatadiff'] = {}
+        if startZip.get_size() != endZip.get_size():
+            setPathValue(analysis['metadatadiff'], 'video.nb_frames', ('change', startZip.get_size(), endZip.get_size()))
+            setPathValue(analysis['metadatadiff'], 'video.duration',
+                         ('change', startZip.get_size()*33.3, endZip.get_size()*33.3))
+
+        return mask, {}, ()
 
 class AudioZipAudioLinkTool(VideoAudioLinkTool):
     """
@@ -1019,7 +1096,14 @@ class AddTool:
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         parent = {}
-        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30, frame_meta=['pkt_duration_time'])
+        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30, frame_meta=['pkt_duration_time'],media_types=['video'])
+        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
+        if indices:
+            if_vfr = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
+        else:
+            if_vfr = False
+        meta, _ = ffmpeg_api.get_meta_from_video(media, show_streams=True,
+                                                      frame_meta=['pkt_duration_time'])
         parent['media'] = meta
         width = 0
         height = 0
@@ -1033,11 +1117,9 @@ class VideoAddTool(AddTool):
                 rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
-        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
-        if indices:
-            meta[indices[0]]['is_vfr'] = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
-            # redundant but requested by NIST
-            parent['is_vfr'] = meta[indices[0]]['is_vfr']
+        meta[indices[0]]['is_vfr'] = if_vfr
+        # redundant but requested by NIST
+        parent['is_vfr'] = if_vfr
         return parent
 
 class ZipAddTool(AddTool):
@@ -1098,13 +1180,21 @@ class OtherAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         return {}
 
-
-addTools = {'video': VideoAddTool(), 'zip':ZipAddTool(),'audio': OtherAddTool(), 'image': OtherAddTool()}
+addTools = {
+             'video': VideoAddTool(),
+             'zip':ZipAddTool(),
+             'collection': OtherAddTool(),
+             'audio': OtherAddTool(),
+             'image': OtherAddTool()
+            }
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool(), 'zip.video':   ImageZipVideoLinkTool(),
-             'zip.image':   ZipImageLinkTool(),   'zip.audio':   AudioZipAudioLinkTool()}
+             'collection.image': CollectionImageLinkTool(),
+             'zip.zip': ZipToZipTool(),'video.zip': ImageZipVideoLinkTool(),
+             'zip.image':   ZipImageLinkTool(),   'zip.audio': AudioZipAudioLinkTool()}
+
 
 
 def true_notify(object, message, **kwargs):
@@ -2068,7 +2158,7 @@ class ImageProjectModel:
 
     def _autocorrect(self):
         if not updateJournal(self):
-            raise AttributeError('Cannot auto update journal')
+            logging.getLogger('maskgen').error('Cannot auto update journal')
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None,tool=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
@@ -2345,6 +2435,9 @@ class ImageProjectModel:
         """ Return the graph/software versio n"""
         return self.G.getVersion()
 
+    def isFrozen(self):
+        return self.G.isFrozen()
+
     def getGraph(self):
         """
         :return: underlying graph
@@ -2598,6 +2691,23 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
+    def substitutesAllowed(self):
+        allowed = False
+        modification = self.getDescription()
+        if modification is not None:
+            allowed = getValue(modification.arguments, 'videoinputmaskname', '')
+        return 'disabled' if not allowed else 'normal'
+
+    def hasSubstituteMasks(self):
+        edge = self.getGraph().get_edge(self.start, self.end)
+        subs = getValue(edge, 'substitute videomasks', [])
+        return len(subs) > 0
+
+    def removeSubstituteMasks(self):
+        if self.hasSubstituteMasks():
+            edge = self.getGraph().get_edge(self.start, self.end)
+            edge.pop('substitute videomasks')
+
     def addSubstituteMasks(self, filename):
         edge = self.getGraph().get_edge(self.start, self.end)
         subs = self.getLinkTool(self.start, self.end).addSubstituteMasks(self.start,
@@ -2605,10 +2715,10 @@ class ImageProjectModel:
                                                                   self,
                                                                   edge['op'],
                                                                   arguments=getValue(edge,'arguments',{}),
-                                                                  filename=filename,
-                                                                  videomasks=getValue(edge,'arguments',[])
-                                                                  )
+                                                                  filename=filename)
         if subs is not None:
+            for sub in subs:
+                sub.pop('mask')
             edge['substitute videomasks'] = subs
             self.getGraph().addEdgeFilePath('substitute videomasks.videosegment','')
             self.notify((self.start, self.end), 'update_edge')
@@ -2985,10 +3095,8 @@ class VideoMaskSetInfo:
     columnValues = {}
 
     def __init__(self, maskset):
-        self.columnValues = {}
         self.maskset = maskset
-        for i in range(len(maskset)):
-            self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
+        self.columnValues = {'{:=02d}'.format(i):self._convert(maskset[i]) for i in range(len(maskset))}
 
     def _convert(self, item):
         return {'Start': self.tofloat(video_tools.get_start_time_from_segment(item)),
