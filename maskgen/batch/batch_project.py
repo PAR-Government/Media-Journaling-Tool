@@ -551,7 +551,8 @@ def pickImageIterator(specification, spec_name, global_state):
         element = FilePermuteGroupElement(spec_name,
                                           directory,
                                           tracking_filename=picklist_name + '.txt',
-                                          fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio','video','image'],
+                                          fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio', 'video',
+                                                                                               'image', 'zip'],
                                           filetypes=specification[
                                               'filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
@@ -642,7 +643,7 @@ class BaseSelectionOperation(BatchOperation):
                                node_name)
         logging.getLogger('maskgen').info('Picking file {}'.format(pick))
         pick_file = os.path.split(pick)[1]
-        name = pick_file[0:pick_file.rfind('.')]
+        name = pick_file[0:pick_file.find('.')]
         dir = os.path.join(global_state['projects'], name)
         now = datetime.now()
         timestampname = 'timestamp name' in node and node['timestamp name']
