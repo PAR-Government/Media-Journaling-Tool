@@ -217,6 +217,43 @@ class TestVideoTools(TestSupport):
             if video_tools.get_file_from_segment(segment) is not None:
                 self.filesToKill.append(video_tools.get_file_from_segment(segment))
 
+
+    def _init_write_zip_files(self, name, alter_funcs):
+        from maskgen.tool_set import ZipWriter
+        try:
+            files = []
+            writer_main = ZipWriter(name,30)
+            rate = 1 / 30.0
+            main_count = 0
+            counters_for_all = [0 for i in alter_funcs]
+            writers = [ZipWriter(name + str(func).split()[1], 30.0) for func in  alter_funcs]
+            for i in range(100):
+                mask = np.random.randint(255, size=(1090, 1920, 3)).astype('uint8')
+                writer_main.write(mask)
+                nextcounts = []
+                for writer, func, counter in zip(writers, alter_funcs, counters_for_all):
+                    result = func(mask, i + 1)
+                    if type(result) == list:
+                        for item in result:
+                            writer.write(item)
+                            counter += 1
+                        nextcounts.append(counter)
+                    else:
+                        writer.write(result)
+                        nextcounts.append(counter + 1)
+                counters_for_all = nextcounts
+                main_count += 1
+        except Exception as ex:
+            print ex
+        finally:
+            writer_main.release()
+            for writer in writers:
+                files.append(writer.filename)
+                writer.release()
+        self.filesToKill.append(writer_main.filename)
+        self.filesToKill.extend(files)
+        return writer_main.filename, files
+
     def _init_write_video_file(self, name, alter_funcs):
         try:
             files = []
@@ -1526,13 +1563,21 @@ class TestVideoTools(TestSupport):
         self.assertTrue(np.all(255 - mask == start_set[0]))
         reader.close()
 
-    def test_all_mods(self):
+    def _compose_zip_files(self, mod_functions):
+        return self._init_write_zip_files('test_td_zip_rs', mod_functions)
+
+    def _compose_video_files(self, mod_functions):
+        return self._init_write_video_file('test_td_rs', mod_functions)
+
+    def test_zip_mods(self):
+        self._test_all_mods(self._compose_zip_files)
+
+    def test_vid_mods(self):
+        self._test_all_mods(self._compose_video_files)
+
+    def _test_all_mods(self, composer):
         mod_functions = [sameForTest, cropForTest, noiseForTest, addForTest, changeForTest]
-        # fileOne,modFiles = 'test_td_rs_mask_0.0.avi',['test_td_rssameForTest_mask_0.0.avi',
-        #                                              'test_td_rscropForTest_mask_0.0.avi',
-        #                                              'test_td_rsnoiseForTest_mask_0.0.avi',
-        #                                              'test_td_rsaddForTest_mask_0.0.avi']
-        fileOne, modFiles = self._init_write_video_file('test_td_rs', mod_functions)
+        fileOne, modFiles = composer(mod_functions)
         analysis = {}
         result_same, errors = video_tools.formMaskDiff(fileOne,
                                                        modFiles[0],

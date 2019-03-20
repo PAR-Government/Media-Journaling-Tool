@@ -701,11 +701,12 @@ class ZipWriter:
 
     def __init__(self, filename,fps=30):
         from zipfile import ZipFile
-        self.filename = filename
-        self.myzip = ZipFile(filename, 'w')
+        postfix = filename[filename.rfind('.'):]
+        self.filename = filename + ('.zip' if postfix not in ['.tgz','.zip'] else '')
+        self.myzip = ZipFile(self.filename, 'w')
         self.count = 0
         self.fps = fps
-        self.prefix = os.path.basename(os.path.splitext(filename)[0])
+        self.prefix = os.path.basename(os.path.splitext(self.filename)[0])
         #self.names = []
 
     def isOpened(self):
@@ -744,6 +745,7 @@ class ZipCapture:
         os.mkdir(self.dir)
         self.names = [name for name in self.myzip.namelist() if len(file_type_matcher.findall(name.lower())) > 0 and  \
                       os.path.basename(name) == name]
+        self.exif = None
 
 
     def get_size(self):
@@ -753,6 +755,12 @@ class ZipCapture:
         #TODO: check names, what else
         return True
 
+    def _extract_name(self,name):
+        extracted_file = os.path.join(self.dir, name)
+        if not os.path.exists(extracted_file):
+            extracted_file = self.myzip.extract(name, self.dir)
+        return extracted_file
+
     def get(self,prop):
         if prop == cv2api.cv2api_delegate.prop_fps:
             return self.fps
@@ -760,23 +768,28 @@ class ZipCapture:
             return self.get_size()
         if prop == cv2api.cv2api_delegate.prop_pos_msec:
             return self.count* 1000.0/self.fps
+        exif = self.get_exif()
+        if prop == cv2api.cv2api_delegate.prop_frame_height:
+            return getExifDimensionsFromData(exif)[0][0]
+        if prop == cv2api.cv2api_delegate.prop_frame_width:
+            return getExifDimensionsFromData(exif)[0][1]
 
     def grab(self):
         self.count+=1
         return self.count <= len(self.names)
 
     def get_exif(self):
-        name = self.names[min(len(self.names)-1,self.count - 1)]
-        extracted_file = os.path.join(self.dir,name)
-        if not os.path.exists(extracted_file):
-            extracted_file = self.myzip.extract(name, self.dir)
-        return exif.getexif(extracted_file)
+        if self.exif is None:
+            name = self.names[min(len(self.names)-1,self.count - 1)]
+            extracted_file = self._extract_name (name)
+            self.exif = exif.getexif(extracted_file)
+        return self.exif
 
     def retrieve(self):
         if self.count > len(self.names):
             return False, None
         name = self.names[self.count-1]
-        extracted_file = self.myzip.extract(name, self.dir)
+        extracted_file =  self._extract_name (name)
         return True, openImage(extracted_file, isMask=False).to_array()
 
     def set_to_end(self):
@@ -786,7 +799,7 @@ class ZipCapture:
         if self.count > len(self.names):
             return None
         name = self.names[self.count-1]
-        extracted_file = self.myzip.extract(name, self.dir)
+        extracted_file = self._extract_name (name)
         return extracted_file
 
     def read(self):
@@ -795,8 +808,10 @@ class ZipCapture:
 
     def release(self):
         import shutil
-        shutil.rmtree(self.dir)
-        self.myzip.close()
+        if self.dir is not None:
+            shutil.rmtree(self.dir)
+            self.myzip.close()
+            self.dir = None
 
 
 def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
@@ -2200,22 +2215,29 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
-def getExifDimensions(filename, crop=False):
-    from maskgen import exif
-    meta = exif.getexif(filename)
-    heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
-    widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
-    height_selections = [(meta[h] if h in meta else None) for h in heights]
-    width_selections =  [(meta[w] if w in meta else None) for w in widths ]
-    if 'png:IHDR.width,height' in meta:
+
+def getExifDimensionsFromData(exif_meta, crop=False):
+    heights = ['Cropped Image Height', 'AF Image Height', 'Image Height', 'Exif Image Height', ] if crop else [
+        'Image Height', 'Exif Image Height']
+    widths = ['Cropped Image Width', 'AF Image Width', 'Image Width', 'Exif Image Width', ] if crop else ['Image Width',
+                                                                                                          'Exif Image Width']
+    height_selections = [(exif_meta[h] if h in exif_meta else None) for h in heights]
+    width_selections = [(exif_meta[w] if w in exif_meta else None) for w in widths]
+    if 'png:IHDR.width,height' in exif_meta:
         try:
-            w,h = [int(x.strip()) for x in meta['png:IHDR.width,height'].split(',')]
+            w, h = [int(x.strip()) for x in exif_meta['png:IHDR.width,height'].split(',')]
             height_selections.append(h)
             width_selections.append(w)
         except:
             pass
     return [(int(height_selections[p]), int(width_selections[p]))
-            for p in range(len(width_selections)) if height_selections[p] is not None and width_selections[p] is not None]
+            for p in range(len(width_selections)) if
+            height_selections[p] is not None and width_selections[p] is not None]
+
+
+def getExifDimensions(filename, crop=False):
+    from maskgen import exif
+    return getExifDimensionsFromData(exif.getexif(filename))
 
 def convertCompare(img1, img2, arguments=dict()):
     analysis = {}

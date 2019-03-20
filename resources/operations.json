@@ -5619,6 +5619,7 @@
       "mandatoryparameters": {
       },
       "description": "Use of Vid2Vid GAN to replace a face in a zip of images",
+      "generateMask": "meta",
       "includeInMask": {
         "default": false
       },

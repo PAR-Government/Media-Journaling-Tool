@@ -2550,8 +2550,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components = VidAnalysisComponents()
     analysis_components.file_one = fileOne
     analysis_components.file_two = fileTwo
-    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'fps',30))
-    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'fps',30))
+    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'Frame Rate',30))
+    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'Frame Rate',30))
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
         np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),

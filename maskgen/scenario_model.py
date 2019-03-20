@@ -964,7 +964,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                                       consolidate(arguments, analysis_params), invert=invert)
             if mask is None:
                 mask = startIm.to_mask().invert()
-        return mask, {}, ()
+        return mask, {}, list()
 
 class ZipToZipTool(VideoVideoLinkTool):
     """
@@ -976,7 +976,7 @@ class ZipToZipTool(VideoVideoLinkTool):
 
     def getDefaultDonorProcessor(self):
         # not correct...TODO
-        return "maskgen.masks.donor_rules.alpha_stream_processor"
+        return "maskgen.masks.donor_rules.all_stream_processors"
 
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
                       skipDonorAnalysis=False, analysis_params={}):
@@ -985,21 +985,44 @@ class ZipToZipTool(VideoVideoLinkTool):
         destIm, destFileName = scModel.getImageAndName(destination)
         mask = ImageWrapper(
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
-        if op == 'Donor':
-            mask = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
-                                      consolidate(arguments, analysis_params), invert=invert)
-            if mask is None:
-                mask = startIm.to_mask().invert()
+
+        analysis = {}
+        errors = list()
+        operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
+        if operation.generateMask in ['audio', 'meta']:
+            maskSet = []
+        elif op == 'Donor' and not skipDonorAnalysis:
+            maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                         consolidate(arguments, analysis_params), invert=invert)
+        else:
+            maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+                                                       os.path.join(scModel.G.dir, start + '_' + destination),
+                                                       op,
+                                                       startSegment=getMilliSecondsAndFrameCount(getValue(arguments,'Start Time',None)),
+                                                       endSegment=getMilliSecondsAndFrameCount(getValue(arguments,'End Time',None)),
+                                                       analysis=analysis,
+                                                       alternateFunction=operation.getVideoCompareFunction(),
+                                                       arguments=consolidate(arguments, analysis_params))
+        for item in maskSet:
+            if video_tools.get_mask_from_segment(item) is not None:
+                mask = ImageWrapper(video_tools.get_mask_from_segment(item))
+                video_tools.drop_mask_from_segment(item)
+
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        analysis['shape change'] = sizeDiff(startIm, destIm)
         startZip = ZipCapture(startFileName)
         endZip = ZipCapture(destFileName)
-        analysis = {}
-        analysis['metadatadiff'] = {}
+        rate = 1.0/float(getValue(arguments, 'Frame Rate', 30))
         if startZip.get_size() != endZip.get_size():
             setPathValue(analysis['metadatadiff'], 'video.nb_frames', ('change', startZip.get_size(), endZip.get_size()))
             setPathValue(analysis['metadatadiff'], 'video.duration',
-                         ('change', startZip.get_size()*33.3, endZip.get_size()*33.3))
+                         ('change', startZip.get_size()*rate, endZip.get_size()*rate))
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='zip.zip',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
 
-        return mask, {}, ()
+        return mask, analysis, errors
 
 class AudioZipAudioLinkTool(VideoAudioLinkTool):
     """
