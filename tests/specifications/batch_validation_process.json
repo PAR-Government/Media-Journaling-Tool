@@ -1,56 +1,51 @@
 {
   "directed": true,
   "graph": {
-    "username": "dupre",
+    "username": "ericrobertson",
     "name": "sample",
-    "organization": "NIST",
+    "organization": "PAR",
     "projectdescription" : "test",
     "technicalsummary" : "Automated",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",
-    "manipulationcategory":"2-Unit",
-    "recompress": true
+    "recompress": false
   },
   "nodes": [
     {
       "op_type": "BaseSelection",
       "image_directory": "{image_dir}",
       "picklist": "imageset",
-      "id": "0"
+      "id": "base"
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "SaveAsPNG",
-      "id": "1",
+      "plugin": "OutputPNG",
+      "id": "png",
       "arguments": {
         "Image Rotated" : {
           "type" : "value",
           "value" :"yes"
+        },
+        "foo" : {
+          "type" : "int[10:100]"
         }
       }
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "MedianBlur",
-      "id": "2",
-      "arguments": {
-        "kernelSize": {
-          "type":"plugin",
-          "name": "kernelSpecs",
-          "parameters" : [2,5]
-        }
-      }
+      "plugin": "GaussianLocalBlur",
+      "id": "blur"
     }
   ],
   "links": [
     {
-      "source": 0,
-      "target": 1
+      "source": "base",
+      "target": "png"
     },
     {
-      "source": 1,
-      "target": 2
+      "source": "png",
+      "target": "blur"
     }
   ],
   "multigraph": false

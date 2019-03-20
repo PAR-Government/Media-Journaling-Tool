@@ -173,7 +173,9 @@ def processSpecification(specification,
                          threads=1,
                          loglevel=None,
                          global_variables='',
-                         initializers=None,passthrus=[]):
+                         initializers=None,
+                         skipValidation=False,
+                         passthrus=[]):
     """
     Perform a plugin operation on all projects in directory
     :param projects_directory: directory of projects
@@ -185,6 +187,7 @@ def processSpecification(specification,
     batch = loadJSONGraph(specification)
     rules = parseRules(extensionRules)
     global_state = updateAndInitializeGlobalState(dict(), global_variables, initializers)
+    global_state['skipvalidation'] = skipValidation
     if len(passthrus) > 0:
         global_state['passthrus'] = passthrus
     if loglevel is not None:
@@ -213,6 +216,7 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('--loglevel', required=False, help='log level')
     parser.add_argument('--global_variables', required=False, help='global state initialization')
     parser.add_argument('--initializers', required=False, help='global state initialization')
+    parser.add_argument('--skip_validation', required=False, action='store_true')
     parser.add_argument('--test', required=False,action='store_true', help='test extension')
     parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
 
@@ -234,6 +238,7 @@ def main(argv=sys.argv[1:]):
                          loglevel=args.loglevel,
                          global_variables=args.global_variables,
                          initializers=args.initializers,
+                         skipValidation=args.skip_validation,
                          passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
     # bulk export to s3
