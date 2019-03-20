@@ -465,6 +465,9 @@ def get_shape_of_video(video_file):
             width = int(item['width'])
         if 'height' in item:
             height = int(item['height'])
+    if width == 0 or height == 0:
+        im = tool_set.openImage(video_file)
+        width, height = im.size
     return width,height
 
 def estimate_duration(meta=[], frame_count=0):
@@ -542,13 +545,19 @@ def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
             duration = getValue(meta[index],'duration', 'N/A')
             if duration[0].lower() == 'n':
                 duration = estimate_duration(meta[index], frame_count)
-            _, frames = ffmpeg_api.get_meta_from_video(video_file,
+            meta, frames = ffmpeg_api.get_meta_from_video(video_file,
                                                        show_streams=True,
                                                        with_frames=True,
                                                        media_types=['video'],
                                                        frame_meta=['pkt_pts_time', 'pkt_dts_time'],
-                                                       frame_start=to_time(float(duration)-1))
+                                                       frame_start=to_time(float(duration)-2))
+            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
             end_time = get_frame_time(frames[index][-1], None, None)
+            try:
+                if duration[0].lower() != 'n':
+                    end_time = min(end_time, float(duration)*1000.0)
+            except:
+                pass
 
     if end_time_tuple in [None, (0, 0)]:
         end_time_tuple = (0, frame_count)
@@ -1183,7 +1192,7 @@ def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=N
     index = indices[0]
     codec = getValue(one_meta[index],'codec_long_name',getValue(one_meta[index],'codec_name', 'raw'))
     # is compressed?
-    execute_compress = 'raw' in codec and not input_filename.endswith('_compressed.' + suffix)
+    execute_compress = 'raw' in codec and '_compressed' not in input_filename
 
     outFileName = os.path.splitext(input_filename)[0] + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()
@@ -1469,13 +1478,15 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_func
        :return:
        """
     if np.sum(vidAnalysisComponents.mask) > 0:
+        # Using end elapsed time.  Pick one.  time_one favors donor, time_two favors composite.
+        # If the frame rate change occurs, then they will not match...!!!!
         mask = vidAnalysisComponents.write(vidAnalysisComponents.mask,
-                                           vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
+                                           vidAnalysisComponents.elapsed_time_two - vidAnalysisComponents.rate_two,
                                            vidAnalysisComponents.time_manager.frameSinceBeginning)
         if len(ranges) == 0 or get_end_time_from_segment(ranges[-1],-1)>=0:
             change = create_segment(mask=mask,
-                                    starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
-                                    rate= vidAnalysisComponents.fps_one,
+                                    starttime=vidAnalysisComponents.elapsed_time_two - vidAnalysisComponents.rate_two,
+                                    rate= vidAnalysisComponents.fps_two,
                                     startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
                                     endframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
                                     endtime=-1,
@@ -1483,16 +1494,17 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_func
                                     type ='video')
             ranges.append(change)
         else:
-            update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1])+1)
-    elif len(ranges) > 0 and get_end_time_from_segment(ranges[-1],-1) < 0:
+            update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
+    elif len(ranges) > 0 and get_end_time_from_segment(ranges[-1], -1) < 0:
         change = ranges[-1]
         update_segment(change,
-                       videosegment= os.path.split(vidAnalysisComponents.writer.filename)[1],
-                       endtime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one * 2,
-                       rate=vidAnalysisComponents.fps,
-                       type='video',
-                       endframe=get_start_frame_from_segment(change) + get_frames_from_segment(change) - 1)
+                        videosegment = os.path.split(vidAnalysisComponents.writer.filename)[1],
+                        endtime = vidAnalysisComponents.elapsed_time_two - vidAnalysisComponents.rate_two * 2,
+                        rate = vidAnalysisComponents.fps,
+                        type = 'video',
+                        endframe =get_start_frame_from_segment(change) + get_frames_from_segment(change) - 1)
         vidAnalysisComponents.writer.release()
+
     return True
 
 def compareChange(vidAnalysisComponents, ranges=list(), arguments={},compare_function=default_compare):
@@ -1900,6 +1912,7 @@ def buf_to_int(buffer, width):
         return twos_comp_np(ub_t.astype(np.int64),24)
     return np.fromstring(buffer,'Int32')
 
+
 class AudioReader:
 
 
@@ -2016,7 +2029,7 @@ class AudioReader:
         # b is 8 (smaller than a*1=16), with a skipchannel of 1
         diff_size = len(a)/self.skipchannel - len(b)/anotherReader.skipchannel
         if diff_size > 0:
-            default_mismatch = self.block_pos + len(b)/anotherReader.skipchannel
+            default_mismatch = self.block_pos + len(b)/anotherReader.skipchannel,self.block_pos + len(a)/self.skipchannel
         else:
             default_mismatch = None
         a = a[self.startchannel:min(len(a),len(b)*self.skipchannel/anotherReader.skipchannel):self.skipchannel]
@@ -2072,7 +2085,9 @@ class AudioReader:
         bychannel_avg = tool_set.moving_average(bychannel_sum / self.channels, smooth)
         return np.sum(abs(bychannel_avg))
 
-    def findBlock(self, block, start_frame, min_threshold=99999999, residual=None):
+    def findBlock(self, block, start_frame,
+                  min_threshold=99999999,
+                  residual=None):
         """
 
         :param block:
@@ -2086,7 +2101,7 @@ class AudioReader:
             a = np.append(residual,a)
         #change to channel positions
         position = (start_frame-self.block_pos) * self.channels + (len(residual) if residual is not None else 0)
-        start_frame_difference = self.block_pos -   (len(residual) if residual is not None else 0)/self.channels
+        start_frame_difference = self.block_pos - (len(residual) if residual is not None else 0)/self.channels
 
         best = min_threshold
         best_p = 0
@@ -2145,7 +2160,8 @@ class AudioReader:
 
 class AudioCompare:
 
-    def __init__(self, fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+    def __init__(self, fileOne, fileTwo, name_prefix, time_manager,arguments={},
+                 analysis={}):
         """
         :param fileOne:
         :param fileTwo:
@@ -2158,6 +2174,8 @@ class AudioCompare:
         self.channel = arguments['Copy Stream'] if 'Copy Stream' in arguments else 'all'
         fileOneAudio,errorsone = toAudio(fileOne)
         fileTwoAudio,errorstwo = toAudio(fileTwo)
+        self.fileOne = fileOne
+        self.fileTwo = fileTwo
         self.fileOneAudio = fileOneAudio
         self.fileTwoAudio = fileTwoAudio
         self.maxdiff = None
@@ -2200,9 +2218,9 @@ class AudioCompare:
                                frames= 1)
                     if self.time_manager.spansToEnd():
                         update_segment(segment,
-                                       endframe = self.ftwo.count,
+                                       endframe = self.ftwo.count -1,
                                        rate=frameratetwo,
-                                       endtime=self.ftwo.count / float(frameratetwo) * 1000.0)
+                                       endtime=(self.ftwo.count -1 )/ float(frameratetwo) * 1000.0)
                         return [segment], []
                 elif self.maxdiff is not None and end - start > self.maxdiff:
                     break
@@ -2246,7 +2264,7 @@ class AudioCompare:
             if position is not None:
                 self.time_manager.updateToNow(position[0] / float(framerateone))
                 start = position[0]
-                end = self.__findMatch(start)
+                end = start + (self.ftwo.count - self.fone.count)
                 section = create_segment(startframe=start+1,
                                          starttime=max(0,float(start) / float(framerateone)),
                                          endframe=end,
@@ -2258,9 +2276,54 @@ class AudioCompare:
             self.ftwo.nextBlock()
         if section is not None:
             return [section], []
+        elif self.ftwo.count > self.fone.count:
+            return [create_segment(startframe=self.fone.count,
+                                         starttime=max(0,float(self.fone.count) / float(framerateone)),
+                                         endframe=self.fone.count,
+                                         endtime=float(self.fone.count) / float(framerateone),
+                                         rate=framerateone,
+                                         type='audio')],[]
         else:
-            return [],['Warning: Could not find insertio point in target media']
-        return sections, errors
+            return [],['Warning: Could not find insertion point in target media']
+
+    def __delete(self):
+        framerateone = self.fone.framerate
+        frameratetwo = self.ftwo.framerate
+        errors = [
+            'Channel selection is all however only one channel is provided.'] if self.channel == 'all' and self.fone.channels > self.ftwo.channels else []
+        segment = None
+        if (self.fone.count - self.ftwo.count) == 0:
+            if self.fone.channels != self.ftwo.channels:
+                return [create_segment(startframe=1,
+                                             starttime=0,
+                                             endframe=self.ftwo.count-1,
+                                             endtime=float(self.ftwo.count - 1) / float(framerateone) * 1000.0,
+                                             rate=framerateone,
+                                             type='audio',
+                                             frames=1)],[]
+            return [],[]
+        while self.fone.hasMore() and self.ftwo.hasMore():
+            position = self.fone.compareToOtherReader(self.ftwo)
+            if position is not None:
+                self.time_manager.updateToNow(position[1] / float(framerateone))
+                if segment is None:
+                    start = position[0]
+                    end = start + (self.fone.count - self.ftwo.count)
+                    segment = create_segment(startframe=start + 1,
+                                             starttime=max(0, float(start) / float(framerateone) * 1000.0),
+                                             endframe=end,
+                                             endtime=float(end - 1) / float(framerateone) * 1000.0,
+                                             rate=framerateone,
+                                             type='audio',
+                                             frames=1)
+                    return  [segment], errors
+            elif segment is None:
+                self.fone.nextBlock()
+                self.ftwo.nextBlock()
+            else:
+                break
+        return [], ['Warning: Could not find deletion point in target media']
+
 
     def __initiateCompare(self,compareFunc):
         import wave
@@ -2302,11 +2365,14 @@ class AudioCompare:
             self.ftwo.close()
             self.fone.close()
 
+    def deleteCompare(self):
+        return clampToEnd(self.fileTwo, self.__initiateCompare(self.__delete), 'audio')
+
     def audioCompare(self):
-        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__compare), 'audio')
+        return clampToEnd(self.fileTwo, self.__initiateCompare(self.__compare), 'audio')
 
     def audioInsert(self):
-        return clampToEnd(self.fileTwoAudio, self.__initiateCompare(self.__insert), 'audio')
+        return clampToEnd(self.fileTwo, self.__initiateCompare(self.__insert), 'audio')
 
 
 def audioInsert(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
@@ -2317,9 +2383,13 @@ def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analys
     ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
     return ac.audioCompare()
 
+def audioDeleteCompare(fileOne, fileTwo,name_prefix, time_manager,arguments={},analysis={}):
+    ac = AudioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
+    return ac.deleteCompare()
+
 def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
     if 'add type' in arguments and arguments['add type'] == 'insert':
-        return audioInsert(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+        return audioInsert(fileOne,fileTwo,name_prefix,time_manager, arguments=arguments,analysis=analysis)
     else:
         return audioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
 
@@ -2376,73 +2446,6 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
     finally:
         fone.close()
     return [],['Unable to open one of the audio streams']
-
-
-def audioDelete(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
-    """
-    :param fileOne:
-    :param fileTwo:
-    :param name_prefix:
-    :param time_manager:
-    :param arguments:
-    :return:
-    @type time_manager: VidTimeManager
-    """
-    import wave
-    fileOneAudio,errorsone = toAudio(fileOne)
-    fileTwoAudio,errorstwo = toAudio(fileTwo)
-    channel = arguments['Copy Stream'] if 'Copy Stream' in arguments else 'all'
-    try:
-        fone = wave.open(fileOneAudio,'rb')
-        try:
-            ftwo = wave.open(fileTwoAudio,'rb')
-            countone = fone.getnframes()
-            counttwo = ftwo.getnframes()
-            onechannels = fone.getnchannels()
-            twochannels = ftwo.getnchannels()
-            onewidth =fone.getsampwidth()
-            twowidth = ftwo.getsampwidth()
-            framerateone = fone.getframerate()
-            if fone.getframerate() != ftwo.getframerate() or onewidth != twowidth:
-                time_manager.updateToNow(float(countone) / float(framerateone))
-                return [create_segment(
-                         startframe= 1,
-                         starttime= 0,
-                         rate= framerateone,
-                         endframe= countone,
-                         type= 'audio',
-                         endtime= float(countone) / float(framerateone),
-                         frames= countone)], []
-            toRead = min([2048, countone, counttwo])
-            framestwo = ftwo.readframes(toRead)
-            framesone = fone.readframes(toRead)
-            skip=onewidth if onechannels != twochannels else 1
-            start=onewidth if channel == 'right' else 0
-            mismatches = []
-            while toRead > 0 and len(mismatches) == 0:
-                mismatches = [i for i in range(len(framestwo)) if framestwo[i] != framesone[i*skip+start]]
-                countone -= toRead
-                counttwo -= toRead
-                toRead = min([2048, countone, counttwo])
-                framestwo = ftwo.readframes(toRead)
-                framesone = fone.readframes(toRead)
-            if len(mismatches) > 0:
-                startframe = mismatches[0]/twowidth
-            else:
-                startframe = ftwo.getnframes() - fone.getnframes()
-            starttime = (startframe-1) / float(framerateone)
-            return [create_segment(
-                     startframe= startframe,
-                     starttime= starttime,
-                     rate= framerateone,
-                     endframe= startframe + ftwo.getnframes() -1 ,
-                     type= 'audio',
-                     endtime= float(startframe + ftwo.getnframes()) / float(framerateone),
-                     frames= ftwo.getnframes())], []
-        finally:
-            ftwo.close()
-    finally:
-        fone.close()
 
 
 def buildCaptureTool(vidFile):
@@ -2861,7 +2864,7 @@ def dropFramesWithoutMask(bounds,
             drop_ef = None
         drop_st = get_start_time_from_segment(bound, 0)
         drop_et = get_end_time_from_segment(bound,0)
-        if drop_et <= drop_st or drop_et < 0.00001:
+        if drop_et < drop_st or drop_et < 0.00001:
             drop_et = None
         new_mask_set = []
         for segment in video_masks:

@@ -8,7 +8,7 @@ class ExifDateTimeTests(unittest.TestCase):
         date = ExifDateTime.random_date("01-01-2010", "12-31-2020")
         assert(date is not False)
         assert(datetime.strptime("01-01-2010", "%m-%d-%Y").date() <=
-               datetime.strptime(date, "%Y-%m-%d").date() <=
+               datetime.strptime(date, "%Y:%m:%d").date() <=
                datetime.strptime("12-31-2020", "%m-%d-%Y").date())
 
         date = ExifDateTime.random_date("12-31-2020", "01-01-2010")
@@ -16,7 +16,7 @@ class ExifDateTimeTests(unittest.TestCase):
 
         date = ExifDateTime.random_date("12-31-2020", "12-31-2020")
         assert(date is not False)
-        assert(datetime.strptime(date, "%Y-%m-%d").date() == datetime.strptime("12-31-2020", "%m-%d-%Y").date())
+        assert(datetime.strptime(date, "%Y:%m:%d").date() == datetime.strptime("12-31-2020", "%m-%d-%Y").date())
 
     def test_random_time(self):
         time = ExifDateTime.random_time("23:00:00", "03:00:00")

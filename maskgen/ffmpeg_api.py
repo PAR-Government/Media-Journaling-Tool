@@ -290,9 +290,8 @@ def get_meta_from_video(file,
             args.extend( ['-select_streams', media_types[0][0]])
         args.extend(['-show_frames', '-show_entries','subtitle=:frame={}'.format(','.join(frame_meta_list))])
         if frame_limit is not None or frame_start is not None:
-            limit = '%+#{}'.format(frame_limit) if frame_limit is not None else ''
-            start = '{}'.format(frame_start) if frame_start is not None else ''
-            args.extend(['-read_intervals', '{}{}'.format(start, limit)])
+            limit = '{}%{}'.format(frame_start if frame_start is not None else '','+#' + str(frame_limit)  if frame_limit is not None else '')
+            args.extend(['-read_intervals', limit])
             frames = runProbe(process_frames_from_stream, args=args)
         else:
             frames = runProbeWithFrames(process_frames_from_stream, args=args)

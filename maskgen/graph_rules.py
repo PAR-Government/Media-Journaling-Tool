@@ -400,10 +400,10 @@ def checkCutFrames(op, graph, frm, to):
     for media_type in ['video','audio']:
         to_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(to), media_types=[media_type])
         frm_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm), media_types=[media_type])
-        recordedMasks = extractor.getMasksFromEdge(frm, to, [media_type])
-        recorded_change = sum([get_frames_from_segment(i,0) for i in recordedMasks if get_type_of_segment(i)  == media_type])
         if len(frm_masks) == 0 or len(to_masks) == 0:
             continue
+        recordedMasks = extractor.getMasksFromEdge(frm, to, [media_type])
+        recorded_change = sum([get_frames_from_segment(i,0) for i in recordedMasks if get_type_of_segment(i)  == media_type])
         diff = get_frames_from_segment(frm_masks[0],0) - get_frames_from_segment(to_masks[0],0)
         if diff != recorded_change:
             if media_type == 'video':
@@ -965,11 +965,20 @@ def checkForDonorAudio(op, graph, frm, to):
         return (Severity.ERROR,'donor image/video missing')
     return None
 
-def checkAudioOnly(op, graph, frm, to):
+def _checkDurationErrorType(op, graph, frm, to, error_type):
     edge = graph.get_edge(frm, to)
-    frames = getValue(edge, 'metadatadiff.video.nb_frames')
-    if  frames is not None:
-        return  (Severity.ERROR,"Length of video has changed")
+    durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
+    if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
+        return (error_type, "Length of video has changed")
+    duration = getValue(edge, 'metadatadiff.video.duration')
+    if  duration is not None:
+        return  (error_type,"Length of video has changed")
+
+def checkDuration(op, graph, frm, to):
+    _checkDurationErrorType(Severity.ERROR)
+
+def checkAudioOnly(op, graph, frm, to):
+    return checkDuration(op, graph, frm, to)
 
 def checkAudioAdd(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -990,10 +999,8 @@ def checkLengthSame(op, graph, frm, to):
      @type frm: str
      @type to: str
     """
-    edge = graph.get_edge(frm, to)
-    durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
-    if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
-        return (Severity.WARNING,"Length of video has changed")
+    def checkDuration(op, graph, frm, to):
+        _checkDurationErrorType(Severity.WARNING)
 
 def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -1044,6 +1051,9 @@ def checkDurationAudio(op, graph, frm, to):
     extractor = MetaDataExtractor(graph)
     fm = get_duration(extractor.getMetaDataLocator(frm),audio=True)
     tm = get_duration(extractor.getMetaDataLocator(to),audio=True)
+    edge = graph.get_edge(frm, to)
+    if getValue(edge, 'arguments.Filter Type','x') in ['Frequency Stretch', 'Time Stretch']:
+        return None
     if fm is not None and abs(fm-tm)>100:
         return (Severity.ERROR,"Duration of media changed")
 

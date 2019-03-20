@@ -9,7 +9,7 @@
 from maskgen.software_loader import getOperations, SoftwareLoader, getRule,strip_version
 from maskgen.support import getValue, ModuleStatus
 from maskgen.tool_set import fileType, openImage, openImageFile, validateAndConvertTypedValue,composeCloneMask,md5_of_file
-from maskgen.image_graph import ImageGraph, GraphProxy
+from maskgen.image_graph import ImageGraph, GraphProxy,current_version
 import os
 from abc import ABCMeta, abstractmethod
 from enum import Enum
@@ -464,6 +464,14 @@ class Validator:
 
         total_errors = []
         finalNodes = []
+
+        upgrades = graph.getDataItem('jt_upgrades',default_value=[])
+        if graph.getVersion() not in upgrades or graph.getVersion() != current_version():
+            total_errors.append(ValidationMessage(Severity.ERROR, '','',
+                                                 'The journal was not upgraded due to an error. Try saving and reopening the journal',
+                                                  'Graph',
+                                                  None))
+
         # check for disconnected nodes
         # check to see if predecessors > 1 consist of donors
         status_cb(ValidationStatus('Connectivity', 'graph', 0))

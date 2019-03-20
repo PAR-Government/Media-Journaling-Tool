@@ -38,6 +38,7 @@ image,gan,DrexelCameraModel,0.1,041218,
 image,gan,DrexelGAN,052118
 both,other,EDIUS Pro,8,
 both,other,Final Cut Pro,10.2,10.1,7.0,6.0,5.1
+both,other,FINDCamera++,0.3,1.1
 both,other,Flame,
 both,other,Flowblade,
 both,other,ForScene,
@@ -145,3 +146,5 @@ image,gan,STGAN,20181220,
 collection,other,unzip,18
 image,gan,Generative_Inpainting,20190107
 image,gan,Edge_Connect,20190108
+video,other,DeepFaceLab,20190301,
+both,other,FINDCamera++,1.1,

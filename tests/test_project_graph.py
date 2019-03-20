@@ -35,6 +35,10 @@ class test_get_frame_count_callable:
         return test_get_frame_count(args[0])
 
 
+class test_get_shape_callable:
+    def __call__(self, *args, **kwargs):
+        return (512,512)
+
 def test_get_frame_count(thing):
     if thing in ['./f1', './f3']:
         return create_segment(starttime=0, startframe=1, endtime=4300, endframe=42, type='video', frames=43, rate=10)
@@ -73,13 +77,15 @@ class TestToolSet(TestSupport):
         graph.dir = '.'
         with patch('maskgen.video_tools.get_frame_count',
                    new_callable=test_get_frame_count_callable):
-            builder.initialize(graph, probes)
+            with patch('maskgen.video_tools.get_shape_of_video',
+                       new_callable=test_get_shape_callable):
+               builder.initialize(graph, probes)
         results = builder.finalize(probes)
         self.assertEqual(1, probe1.composites['hdf5']['bit number'])
         self.assertEqual(1, probe2.composites['hdf5']['bit number'])
         self.assertEqual(2, probe3.composites['hdf5']['bit number'])
-        first = results[(10, 43, 4300)]
-        second = results[(10, 44, 4400)]
+        first = results[(10, 43, 4300, 512, 512)]
+        second = results[(10, 44, 4400, 512, 512)]
         self.assertNotEquals(first, second)
         r = GrayBlockReader(first, start_frame=11, start_time=1000)
         m = r.read()[:,:,0]

@@ -1009,7 +1009,14 @@ class AddTool:
 class VideoAddTool(AddTool):
     def getAdditionalMetaData(self, media):
         parent = {}
-        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30, frame_meta=['pkt_duration_time'])
+        meta, frames = ffmpeg_api.get_meta_from_video(media, show_streams=True, with_frames=True, frame_limit=30, frame_meta=['pkt_duration_time'],media_types=['video'])
+        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
+        if indices:
+            if_vfr = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
+        else:
+            if_vfr = False
+        meta, _ = ffmpeg_api.get_meta_from_video(media, show_streams=True,
+                                                      frame_meta=['pkt_duration_time'])
         parent['media'] = meta
         width = 0
         height = 0
@@ -1023,11 +1030,9 @@ class VideoAddTool(AddTool):
                 rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
-        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
-        if indices:
-            meta[indices[0]]['is_vfr'] = ffmpeg_api.is_vfr(meta[indices[0]], frames=frames[indices[0]])
-            # redundant but requested by NIST
-            parent['is_vfr'] = meta[indices[0]]['is_vfr']
+        meta[indices[0]]['is_vfr'] = if_vfr
+        # redundant but requested by NIST
+        parent['is_vfr'] = if_vfr
         return parent
 
 class ZipAddTool(AddTool):
@@ -2019,7 +2024,7 @@ class ImageProjectModel:
 
     def _autocorrect(self):
         if not updateJournal(self):
-            raise AttributeError('Cannot auto update journal')
+            logging.getLogger('maskgen').error('Cannot auto update journal')
 
     def _setup(self, projectFileName, graph=None, baseImageFileName=None,tool=None):
         projecttype = None if baseImageFileName is None else fileType(baseImageFileName)
@@ -2295,6 +2300,9 @@ class ImageProjectModel:
     def getVersion(self):
         """ Return the graph/software versio n"""
         return self.G.getVersion()
+
+    def isFrozen(self):
+        return self.G.isFrozen()
 
     def getGraph(self):
         """
@@ -2953,10 +2961,8 @@ class VideoMaskSetInfo:
     columnValues = {}
 
     def __init__(self, maskset):
-        self.columnValues = {}
         self.maskset = maskset
-        for i in range(len(maskset)):
-            self.columnValues['{:=02d}'.format(i)] = self._convert(maskset[i])
+        self.columnValues = {'{:=02d}'.format(i):self._convert(maskset[i]) for i in range(len(maskset))}
 
     def _convert(self, item):
         return {'Start': self.tofloat(video_tools.get_start_time_from_segment(item)),

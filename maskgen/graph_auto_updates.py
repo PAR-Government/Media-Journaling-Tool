@@ -17,9 +17,23 @@ import tool_set
 import os
 import traceback
 import sys
+import wrapt
 """
 Support functions for auto-updating journals created with older versions of the tool"
 """
+
+class ModelProxy(wrapt.ObjectProxy):
+
+    def __init__(self, model):
+        super(ModelProxy, self).__init__(model)
+        self.done = set()
+
+    def reproduceMask(self):
+        who = (self.__wrapped__.start, self.__wrapped__.end)
+        if who not in self.done:
+            self.__wrapped__.reproduceMask()
+            self.done.add(who)
+
 def updateJournal(scModel):
     """
      Apply updates
@@ -32,7 +46,7 @@ def updateJournal(scModel):
     upgrades = upgrades if upgrades is not None else []
     gopLoader = scModel.gopLoader
 
-    def apply_fix(fix, scModel, gopLoader):
+    def apply_fix(fix, scModel, gopLoader, id):
         try:
             fix(scModel, gopLoader)
             return True
@@ -72,7 +86,7 @@ def updateJournal(scModel):
          ('0.5.0227.bf007ef4cd', []),
          ('0.5.0401.bf007ef4cd', [_fixTool,_fixInputMasks]),
          ('0.5.0421.65e9a43cd3', [_fixContrastAndAddFlowPlugin,_fixVideoMaskType,_fixCompressor]),
-         ('0.5.0515.afee2e2e08', [_fixVideoMasksEndFrame, _fixOutputCGI]),
+         ('0.5.0515.afee2e2e08', [_fixOutputCGI]),
          ('0.5.0822.b3f4049a83', [_fixErasure, _fix_PosterizeTime_Op, _fixMetaStreamReferences, _repairNodeVideoStats, _fixTimeStrings, _fixDonorVideoMask]),
          ('0.5.0918.25f7a6f767', [_fix_Inpainting_SoftwareName]),
          ('0.5.0918.b370476d40', []),
@@ -84,7 +98,7 @@ def updateJournal(scModel):
          ('0.6.0103.9d9b6e95f2', []),
          ('0.6.0117.76365a8b60', []),
          ('0.6.0208.ae6b74543d', []),
-         ('0.6.0227.b469c4a202', [_fixAddCreateTime])
+         ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame])
          ])
 
     def _ConformVersion(version):
@@ -98,11 +112,12 @@ def updateJournal(scModel):
     matched_versions = [versions.index(p) for p in upgrades if p in versions]
     project_version = scModel.getGraph().getProjectVersion()
     hasNodes = bool(scModel.G.get_nodes())
+    isFrozen = scModel.G.isFrozen()
     if len(matched_versions) > 0:
         # fix what is left
         fixes_needed = max(matched_versions) - len(versions) + 1
     else:
-        if not hasNodes or _ConformVersion(project_version) > versions[-1]:
+        if not hasNodes or _ConformVersion(project_version) > versions[-1] or isFrozen:
             fixes_needed = 0
         elif project_version not in fixes:
             major_version = _ConformVersion(project_version)
@@ -111,22 +126,47 @@ def updateJournal(scModel):
         else:
             fixes_needed = -(len(versions) - versions.index(project_version)) if project_version in versions else -len(versions)
     ok = True
+    stop_fix = None
 
+    scModel = ModelProxy(scModel)
     if fixes_needed < 0:
         for id in fixes.keys()[fixes_needed:]:
             logging.getLogger('maskgen').info('Apply upgrade {}'.format(id))
             for fix in fixes[id]:
                 logging.getLogger('maskgen').info('Apply fix {} for {}'.format(fix.__name__, id))
-                ok &= apply_fix(fix, scModel, gopLoader)
-    apply_fix(_fixMandatory,scModel, gopLoader)
+                ok &= apply_fix(fix, scModel, gopLoader, id)
+                if ok:
+                    stop_fix = fix
+
+    apply_fix(_fixMandatory, scModel, gopLoader,fixes.keys()[-1])
+    if isFrozen:
+        logging.getLogger('maskgen').info('This Journal has been FROZEN. '
+                                          'It does contain probes, but the journal cannot be updated. '
+                                          'This is usually due to files missing from the journal archive.')
     #update to the max
-    upgrades = fixes.keys()[-1:]
-    if scModel.getGraph().getVersion() not in upgrades:
+    upgrades = fixes.keys()[-1:] if ok else [stop_fix]
+    if scModel.getGraph().getVersion() not in upgrades and ok:
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
-    if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
-        scModel.getGraph().setDataItem('autopastecloneinputmask','no')
     return ok
+
+def _fixautopastecloneinputmask(scModel, gopLoader):
+     if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
+        scModel.getGraph().setDataItem('autopastecloneinputmask', 'no')
+
+def _fixAudioDelete(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = gopLoader.getOperationWithGroups(edge['op'], fake=True, warning=False)
+        if op.category in 'Audio' and op.name not in ['AudioSample']:
+            try:
+                if 'videomasks' in edge:
+                    edge.pop('videomasks')
+                scModel.select((frm, to))
+                scModel.reproduceMask()
+            except Exception as e:
+                logging.getLogger('maskgen').warning(
+                    'Could not correct video masks {}->{}: {}'.format(frm, to, e.message))
 
 def _fixAddCreateTime(scModel, gopLoader):
     times = []
@@ -658,23 +698,36 @@ def _fixOutputCGI(scModel, gopLoader):
 
 def _fixVideoMasksEndFrame(scModel, gopLoader):
     from maskgen import video_tools
+    extractor = MetaDataExtractor(scModel.getGraph())
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         masks = edge['videomasks'] if 'videomasks' in edge else []
-        end_time = getValue(edge, 'arguments.End Time')
+        reproduction = False
         for mask in masks:
-            if end_time is None and mask['type'] == 'video':
-                result = video_tools.get_frame_count(scModel.G.get_pathname(frm)) \
+            if mask['type'] in ['video','audio']:
+                end_time = getValue(edge, 'arguments.End Time')
+                result = video_tools.getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm),media_types=[mask['type']]) \
                         if os.path.exists(scModel.G.get_pathname(frm)) else None
-                if result is None or 'endframe' not in result:
+                result = result[0] if result is not None and len(result) > 0 else None
+                if (result is None or 'endframe' not in result) and end_time is None:
                     rate = float(video_tools.get_rate_from_segment(mask))
                     mask['error'] = getValue(mask,'error',0) + 2*float(1000.0/rate)
                     continue
                 diff = result['endframe'] - mask['endframe']
-                if diff > 0 and diff < max(2,min(20,int(0.05 * result['frames']))):
+                if diff > 0 and end_time is None:
                     mask['endtime'] = result['endtime']
                     mask['endframe'] = result['endframe']
                     mask['frames'] = mask['endframe'] - mask['startframe'] + 1
+                else:
+                    reproduction = diff < 0
+        if reproduction:
+            scModel.select((frm,to))
+            try:
+                scModel.reproduceMask()
+            except Exception as e:
+                logging.getLogger('maskgen').warning(
+                    'Could not correct {} masks {}->{}: {}'.format(mask['type'], frm, to, e.message))
+
 
 def _fixVideoMaskType(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():

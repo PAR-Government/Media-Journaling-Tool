@@ -803,6 +803,9 @@ class ImageGraph:
     def getVersion(self):
         return igversion
 
+    def isFrozen(self):
+        return getValue(self.G.graph,'frozen',False)
+
     def getCreatorTool(self):
         return findCreatorTool(self.G.graph['creator_tool'] if 'creator_tool' in self.G.graph else None)
 

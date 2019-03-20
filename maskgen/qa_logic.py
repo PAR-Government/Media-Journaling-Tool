@@ -99,12 +99,14 @@ class ValidationData:
         return self.qaData[link]['caption']
 
     def get_qalink_designation(self, link):
+        from tool_set import getValue
         if link not in self.qaData:
             self.qaData[link] = {}
         if 'designation' not in self.qaData[link]:
             self.qaData[link]['designation'] = ""
             self._qamodel_update()
-        return self.qaData[link]['designation']
+        des = getValue(self.qaData[link],'designation', "")
+        return des if len(des) > 0 else None
 
     def make_link_from_probe(self, probe):
         try:

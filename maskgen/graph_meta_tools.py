@@ -313,7 +313,7 @@ class MetaDataExtractor:
 
         sourceFrames, sourceTime, targetFrames, targetTime, sourceRate, targetRate = result
 
-        if sourceFrames == targetFrames and int(sourceTime) == int(targetTime):
+        if sourceFrames == targetFrames and int(sourceTime*100) == int(targetTime*100):
             return video_masks
 
         def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True,
@@ -413,18 +413,27 @@ class MetaDataExtractor:
                                      round_value=False,
                                      upper_bound=True)
 
-
             try:
                 if endframe == int(getValue(meta_o[index_o], 'nb_frames', 0)) and \
                                 float(getValue(meta_o[index_o], 'duration', 0)) > 0:
                     endtime = float(getValue(meta_o[index_o], 'duration', 0)) * 1000.0
+                elif endtime > targetTime:
+                    message = '{} exceeded target time of {} for {}'.format(sourceTime, target, targetTime)
+                    if (endtime - targetTime) > 300:
+                        logging.getLogger('maskgen').error(message
+                            )
+                    else:
+                        logging.getLogger('maskgen').warn(message
+                        )
+                    endtime=targetTime - (1000.0/targetRate)
+                    endframe=targetFrames-1
             except:
                 pass
             change = create_segment(rate=sourceRate if inverse else targetRate,
                                     type=get_type_of_segment(mask_set),
                                     starttime=starttime,
                                     startframe=startframe,
-                                    error=get_error_from_segment(mask_set) + (max(error_start, error_end) * targetRate),
+                                    error=get_error_from_segment(mask_set) + (max(error_start, error_end) / targetRate * 1000.0),
                                     endtime=endtime,
                                     endframe=endframe,
                                     videosegment=get_file_from_segment(mask_set))
