@@ -1431,9 +1431,14 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
                 break
             last_time = end_time
             end_time = vidAnalysisComponents.time_manager.milliNow
-        update_segment(cut,
-                      endtime=last_time,
-                      endframe=vidAnalysisComponents.time_manager.getEndFrame())
+        if not ret_one:
+            update_segment(cut,
+                           endframe=get_end_frame_from_segment(orig_vid),
+                           endtime=get_end_time_from_segment(orig_vid))
+        else:
+            update_segment(cut,
+                          endtime=last_time,
+                          endframe=vidAnalysisComponents.time_manager.getEndFrame())
         ranges.append(cut)
         return False
     return True
