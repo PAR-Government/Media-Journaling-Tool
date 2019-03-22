@@ -975,7 +975,7 @@ def _checkDurationErrorType(op, graph, frm, to, error_type):
         return  (error_type,"Length of video has changed")
 
 def checkDuration(op, graph, frm, to):
-    _checkDurationErrorType(Severity.ERROR)
+    _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
     return checkDuration(op, graph, frm, to)
@@ -1000,7 +1000,7 @@ def checkLengthSame(op, graph, frm, to):
      @type to: str
     """
     def checkDuration(op, graph, frm, to):
-        _checkDurationErrorType(Severity.WARNING)
+        _checkDurationErrorType(Severity.WARNING, op, graph, frm, to)
 
 def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
