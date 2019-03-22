@@ -22,6 +22,9 @@ from maskgen.video_tools import get_start_frame_from_segment, get_start_time_fro
     get_end_frame_from_segment
 from maskgen.support import getValue
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from tkintertable import TableCanvas, TableModel
 from maskgen.image_wrap import ImageWrapper
 from functools import partial
@@ -506,9 +509,7 @@ class DescriptionCaptureDialog(Toplevel):
                                       information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
-                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[
-                                                                                    0] in self.argvalues else None) \
-                      for argumentTuple in self.arginfo]
+                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None) for argumentTuple in self.arginfo]
         self.argBox = PropertyFrame(self.argBoxMaster, properties,
                                 propertyFunction=EdgePropertyFunction(properties, self.scModel),
                                 changeParameterCB=self.changeParameter,
@@ -2104,7 +2105,7 @@ class VerticalScrolledFrame(Frame):
 
 class IntSliderWidget(Frame):
 
-    def __init__(self, master, label='', min=0, max=30, inital_value=0, **options):
+    def __init__(self, master, label='', min=0, max=30, inital_value=0, command=None, **options):
         Frame.__init__(self, master=master)
         self.range = (min, max)
         self.length = options['length'] if 'length' in options else None
@@ -2112,6 +2113,7 @@ class IntSliderWidget(Frame):
         self.EntryValue = StringVar()
         self.Value.set(inital_value)
         self.EntryValue.set(str(self.Value.get()))
+        self.updateCommand = command
         options['from_'] = min
         options['to'] = max
         options['variable'] = self.Value
@@ -2121,21 +2123,24 @@ class IntSliderWidget(Frame):
             options['orient'] = HORIZONTAL
         if 'tickinterval' not in options:
             options['tickinterval'] = max
-        self.Scale = Scale(master=self, **options)
+        self.scale = Scale(master=self, **options)
         self.label = Label(master=self, text=label)
         self.entry = Entry(master=self, textvariable=self.EntryValue, width=6)
         self.entry.bind('<Return>', self.validateEntry)
+        if self.updateCommand is not None:
+            self.scale.bind('<ButtonRelease-1>', self.ButtonUp)
 
     def grid(self, **options):
         row = getValue(options, 'row', 0)
         column = getValue(options, 'column', 0)
+        self.label.grid(row=row, sticky=W)
+        self.scale.grid(row=row, column=column + 1, sticky=W + E)
+        self.entry.grid(row=row, column=column + 2, sticky=E)
         if self.length is None:
+            self.master.update_idletasks()
             master_width = self.master.winfo_width()
-            self.Scale.config(length=master_width - 60)
-        Frame.grid(self, options)
-        self.label.grid(row=row, padx=5, sticky='WE')
-        self.Scale.grid(row=row, column=column + 1, sticky='WE')
-        self.entry.grid(row=row, column=column + 2, sticky='WE')
+            self.scale.config(length=master_width - 60)
+        Frame.grid(self, **options)
 
     def validateEntry(self, event=None):
         valid = False
@@ -2144,9 +2149,14 @@ class IntSliderWidget(Frame):
             valid = self.range[0] <= int(val) <= self.range[1] and val != str(self.get())
         if valid:
             self.set(int(self.entry.get()))
+            if self.updateCommand is not None:
+                self.updateCommand()
 
     def updateEntry(self, event=None):
         self.EntryValue.set(str(self.get()))
+
+    def ButtonUp(self, event=None):
+        self.updateCommand()
 
     def get(self):
         return int(self.Value.get())
@@ -2156,6 +2166,121 @@ class IntSliderWidget(Frame):
 
     def hide(self):
         self.grid_forget()
+
+class MaskDebuggerUI(Toplevel):
+
+    def build_arginfo(self):
+        arginfo = []
+        op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
+        if op is not None:
+            for k, v in self.op.mandatoryparameters.iteritems():
+                if 'source' in v and v['source'] != self.sourcefiletype:
+                    continue
+                if 'target' in v and v['target'] != self.targetfiletype:
+                    continue
+                arginfo.append((k, v))
+            for k, v in self.op.optionalparameters.iteritems():
+                if 'source' in v and v['source'] != self.sourcefiletype:
+                    continue
+                if 'target' in v and v['target'] != self.targetfiletype:
+                    continue
+                arginfo.append((k, v))
+        return arginfo
+
+    def __init__(self, master, scModel, description=None):
+        from PIL import Image
+        Toplevel.__init__(self, master=master)
+        self.scModel = scModel
+        self.sourcefiletype = self.scModel.getStartType()
+        self.targetfiletype = self.scModel.getEndType()
+        self.edge = scModel.G.get_edge(scModel.start, scModel.end)
+        self.op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
+        self.arginfo = self.build_arginfo()
+        self.argvalues = description.arguments if description is not None else {}
+        self.description = description if description is not None else Modification('', '')
+
+        hist = plt.hist(x=[1,2,3,4,5], bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)[0]
+        self.histogram = HistogramViewer(master=self, histogram=hist)
+        self.mask_preview = ttk.Notebook(master=self)
+        self.images = [ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black")),
+                       ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black")),
+                       ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))]
+        self.preview_frames = [Frame(master=self.mask_preview),
+                               Frame(master=self.mask_preview),
+                               Frame(master=self.mask_preview)]
+        self.raw_image = Label(master=self.preview_frames[0], image=self.images[0])
+        self.mask_image = Label(master=self.preview_frames[1], image=self.images[1])
+        self.overlay_image = Label(master=self.preview_frames[2], image=self.images[2])
+        self.mask_preview.add(child=self.preview_frames[0], text='raw')
+        self.mask_preview.add(child=self.preview_frames[1], text='mask')
+        self.mask_preview.add(child=self.preview_frames[2], text='overlay')
+        self.frame_select = IntSliderWidget(master=self, command=self.select_frame)
+        properties = [ProjectProperty(name=argumentTuple[0],
+                                      description=argumentTuple[0],
+                                      information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
+                                      type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
+                                      values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
+                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None) for argumentTuple in self.arginfo]
+        self.property_frame = PropertyFrame(parent=self, properties=properties,
+                                            propertyFunction=EdgePropertyFunction(properties, self.scModel),
+                                            changeParameterCB=self.changeParameter,
+                                            dir=self.scModel.G.get_dir())
+        self.buttons_frame = Frame(master=self)
+        self.generate = Button(master=self.buttons_frame, text='Generate Frame')
+        self.finish = Button(master= self.buttons_frame, text='Finish Generation')
+        self.cancel = Button(master= self.buttons_frame, text='Cancel')
+
+    def grid(self, **options):
+        Toplevel.grid(self, **options)
+        row = getValue(options, 'row', 0)
+        column = getValue(options, 'column', 0)
+        self.histogram.grid(row=row, column=column, sticky=W)
+        self.raw_image.grid()
+        self.mask_image.grid()
+        self.overlay_image.grid()
+        self.mask_preview.grid(row=row, column=column + 1, sticky=E)
+        self.property_frame.grid(row=row + 2, column=column, columnspan=2, sticky=W+E)
+        self.frame_select.grid(row=row + 1, column=column, columnspan=2, sticky=W+E)
+        self.generate.grid(row=0, column=0, padx=5)
+        self.finish.grid(row=0, column=1)
+        self.buttons_frame.grid(row=row + 3, column= column, columnspan=2, sticky=S)
+
+    def select_frame(self):
+        from PIL import Image
+        frame_num = self.frame_select.get()
+        self.images[0] = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "green"))
+        self.raw_image.config(image=self.images[0])
+        self.mask_image.config(image=self.images[1])
+        self.overlay_image.config(image=self.images[2])
+        self.histogram.hist_data = [5,4,3,2,1]
+        self.histogram.plot_histogram()
+
+    def changeParameter(self, name, value):
+        self.argvalues[name] = value
+        if name == 'inputmaskname' and value is not None:
+            self.inputMaskName = value
+
+
+class HistogramViewer(Frame):
+
+    def __init__(self, master, histogram):
+        Frame.__init__(self, master=master)
+        self.hist_data = histogram
+        self.figure = Figure(figsize=(6, 4), dpi=100)
+        self.fcanvas = FigureCanvasTkAgg(self.figure, master=self)
+        self.subplot = self.figure.add_subplot(111)
+
+    def grid(self, **options):
+        Frame.grid(self, **options)
+        row = getValue(options, 'row', 0)
+        column = getValue(options, 'column', 0)
+        self.plot_histogram()
+        self.fcanvas.get_tk_widget().grid(row=row, column=column, sticky=N + S + E + W)
+
+    def plot_histogram(self):
+        self.subplot.clear()
+        self.subplot.plot(self.hist_data, color='blue')
+        self.fcanvas.draw()
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
     if cb is not None:
@@ -2279,7 +2404,7 @@ class PropertyFrame(VerticalScrolledFrame):
                if prop.type.endswith('slider'):
                    _match = re.search(r"\[(.*?)\]", prop.type).group(1)
                    range = _match.split(':')
-                   widget = IntSliderWidget(master, min=int(range[0]), max=int(range[1]), length=100)
+                   widget = IntSliderWidget(master, min=int(range[0]), max=int(range[1]), length=200)
                else:
                    widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
