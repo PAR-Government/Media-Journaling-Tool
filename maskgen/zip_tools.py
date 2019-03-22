@@ -90,9 +90,11 @@ class Positions:
         seg_end, some_file_duration = self.get_durations(some_file,final_end_time=final_end_time)
         return (seg_end - some_file_duration) <= tolerance
 
+    def get_total_duration(self):
+        return self.positions[-1][0] + self._get_duration(self.positions[-1][2])
+
     def get_durations(self, some_file, final_end_time=-1):
         """
-
         :param some_file:
         :param initial_start_time:
         :param final_end_time:
@@ -152,12 +154,16 @@ class AudioPositions(Positions):
                 if position[2] not in self.names:
                     raise ValueError('Missing {} from audio zip file'.format(position[2]))
         else:
+            meta = self.audio_metadata_extractor(self.names[0])
+            self.fps = int(meta['sample_rate'])
             positions = []
             positions.append(
                 Positions.to_segment(0, is_time=True, fps=self.fps) + (self.names[0],))
             last = 0
             for name_pos in range(len(self.names)-1):
-                meta = self.audio_metadata_extractor(self.names[name_pos])
+                # get duration of last for start of next
+                if name_pos > 0:
+                    meta = self.audio_metadata_extractor(self.names[name_pos])
                 last = float(meta['duration'])*1000.0 + last
                 if int(meta['sample_rate']) != self.fps:
                     raise ValueError('Mismatched sample rate {} from audio zip file {}'.format(self.fps,int(meta['sample_rate']) ))

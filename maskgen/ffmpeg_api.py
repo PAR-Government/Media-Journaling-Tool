@@ -325,6 +325,10 @@ def get_frame_attribute(fileOne, attribute, default=None, audio=False):
 
     return default
 
+def get_audio_frame_rate_from_meta(meta):
+    index = get_stream_indices_of_type(meta, 'audio')[0]
+    return int(getValue(meta[index],'sample_rate',None))
+
 def get_video_frame_rate_from_meta(meta, frames):
     index = get_stream_indices_of_type(meta, 'video')[0]
     r = getValue(meta[index],'r_frame_rate','30/1')
@@ -336,6 +340,10 @@ def get_video_frame_rate_from_meta(meta, frames):
         return float(parts[0]) / int(parts[1]) if len(parts) > 0 and int(parts[1]) != 0 else float(parts[0])
     return len(frames[index])/float(getValue(meta[index],'duration',1)) if len(index) < len(frames) else \
         float(getValue(meta[index], 'nb_frames', 30))/float(getValue(meta[index],'duration',1))
+
+def get_duraton_from_meta(meta, media_type='video'):
+    index = get_stream_indices_of_type(meta, media_type)[0]
+    return getValue(meta[index], 'duration')
 
 def is_vfr(meta, frames=[]):
     """

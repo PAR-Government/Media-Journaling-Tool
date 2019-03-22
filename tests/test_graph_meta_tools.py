@@ -57,8 +57,8 @@ class TestMetaExtractor(TestSupport):
         self.assertTrue(len(newMasks) > len(masks))
         self.assertTrue(video_tools.get_start_frame_from_segment(newMasks[1]) == 1)
         self.assertTrue(video_tools.get_end_frame_from_segment(newMasks[1]) == 803)
-        self.assertTrue(video_tools.get_rate_from_segment(newMasks[1]) == 28.25)
-        self.assertTrue(video_tools.get_end_time_from_segment(newMasks[1]) == 59348.333)
+        self.assertTrue(1352,int(video_tools.get_rate_from_segment(newMasks[1]) *100))
+        self.assertTrue(5934833 ,int(video_tools.get_end_time_from_segment(newMasks[1])*100))
         source = self.locateFile('tests/videos/Sample1_slow.mov')
         masks = [video_tools.create_segment(endframe= 441000,
                                             rate= 44100,
@@ -88,12 +88,12 @@ class TestMetaExtractor(TestSupport):
 
 
 
-    def testWarp(self):
+    def test_warp(self):
         source = self.locateFile('tests/videos/sample1.mov')
         target = 'sample1_ffr_ex.mov'
-        source_set = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(source),
+        source_set = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(
                                                           start_time='29', end_time='55')
-        target_set = video_tools.getMaskSetForEntireVideoForTuples(video_tools.FileMetaDataLocator(target),
+        target_set = video_tools.FileMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
                                                                    start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
                                                                    end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
         print(source_set[0])
@@ -136,7 +136,7 @@ class TestMetaExtractor(TestSupport):
         source_set = target_set
         source = target
         target = 'sample1_ffr_2_ex.mov'
-        target_set = video_tools.getMaskSetForEntireVideoForTuples(video_tools.FileMetaDataLocator(target),
+        target_set = video_tools.FileMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
                                                                    start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
                                                                    end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
         new_mask_set = extractor.warpMask(new_mask_set, source, target)

@@ -3246,7 +3246,7 @@ def compose_overlay_name(target_file="", link = tuple()):
 class GrayBlockOverlayGenerator:
 
     def __init__(self, locator, segments = [], target_file = None, output_file = ""):
-        from video_tools import getMaskSetForEntireVideo, get_frames_from_segment
+        from video_tools import get_frames_from_segment
 
         self.target_file = target_file
         self.output_file = output_file
@@ -3266,7 +3266,7 @@ class GrayBlockOverlayGenerator:
             mask_prefix=self.overlay_mask_name,
             fps=self.reader.fps)
 
-        self.last_frame = get_frames_from_segment(getMaskSetForEntireVideo(locator)[0])
+        self.last_frame = get_frames_from_segment(locator.getMaskSetForEntireVideo()[0])
 
     def updateSegment(self):
         self.segment_index += 1

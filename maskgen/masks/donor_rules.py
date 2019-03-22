@@ -315,10 +315,10 @@ class VideoDonor:
         from maskgen.tool_set import getMilliSecondsAndFrameCount
         media_types = ['video', 'audio'] if getValue(arguments, 'include audio', 'no') == 'yes' else ['video']
 
-        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        from maskgen.video_tools import FileMetaDataLocator
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        video_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+        video_set= FileMetaDataLocator(self.startFileName).getMaskSetForEntireVideoForTuples(
                                                      start_time_tuple=start_time_tuple,
                                                      end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
                                                      media_types=media_types)
@@ -414,11 +414,11 @@ class GeneralStreamDonor:
     def create(self,
                arguments={},
                invert=False):
-        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        from maskgen.video_tools import  FileMetaDataLocator
         from maskgen.tool_set import getMilliSecondsAndFrameCount
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        return getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+        return FileMetaDataLocator(self.startFileName).getMaskSetForEntireVideoForTuples(
                                                  start_time_tuple=start_time_tuple,
                                                  end_time_tuple=end_time_tuple if end_time_tuple[0] > 0 else None,
                                                  media_types=self.media_types())

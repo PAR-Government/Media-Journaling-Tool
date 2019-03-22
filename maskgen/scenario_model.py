@@ -747,7 +747,7 @@ class VideoVideoLinkTool(LinkTool):
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         if op != 'Donor' and operation.generateMask not in ['audio', 'all']:
-            maskSet = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(startFileName))
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo()
             if maskSet is None:
                 maskSet = list()
             errors = list()
@@ -878,8 +878,7 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         else:
-            maskSet = video_tools.getMaskSetForEntireVideo(
-                video_tools.FileMetaDataLocator(startFileName), media_types=['audio'])
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo( media_types=['audio'])
             if maskSet is None:
                 maskSet = list()
                 errors = list()
@@ -990,6 +989,9 @@ class ZipToZipTool(VideoVideoLinkTool):
         errors = list()
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         if operation.generateMask in ['audio', 'meta']:
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo()
+            if maskSet is None:
+                maskSet = list()
             maskSet = []
         elif op == 'Donor' and not skipDonorAnalysis:
             maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
@@ -1011,13 +1013,13 @@ class ZipToZipTool(VideoVideoLinkTool):
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         analysis['shape change'] = sizeDiff(startIm, destIm)
-        startZip = ZipCapture(startFileName)
-        endZip = ZipCapture(destFileName)
-        rate = 1.0/float(getValue(arguments, 'Frame Rate', 30))
+        rate = float(getValue(arguments, 'Frame Rate', 30))
+        startZip = ZipCapture(startFileName,fps=rate)
+        endZip = ZipCapture(destFileName,fps=rate)
         if startZip.get_size() != endZip.get_size():
             setPathValue(analysis['metadatadiff'], 'video.nb_frames', ('change', startZip.get_size(), endZip.get_size()))
             setPathValue(analysis['metadatadiff'], 'video.duration',
-                         ('change', startZip.get_size()*rate, endZip.get_size()*rate))
+                         ('change', startZip.get_size()/rate, endZip.get_size()/rate))
         self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='zip.zip',
                           arguments=consolidate(arguments, analysis_params),
                           start=start, end=destination, scModel=scModel)
@@ -1054,7 +1056,7 @@ class AudioZipAudioLinkTool(VideoAudioLinkTool):
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
         analysis = dict()
 
-        maskSet = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(destFileName),
+        maskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo(
                                                        media_types=['audio'])
         if not len(maskSet):
             raise ValueError("Cannot find audio data target file {}".format(destFileName))
@@ -1186,6 +1188,7 @@ class ZipAddTool(AddTool):
                     new_meta['video']['duration'] = duration
                     new_meta['video']['nb_frames'] = frames
                     final_meta['media'] = [new_meta['video']]
+
                 if 'audio' in new_meta:
                     new_meta['audio']['duration'] = duration
                     new_meta['audio']['duration_ts'] = duration * last_sample

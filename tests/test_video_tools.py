@@ -295,22 +295,16 @@ class TestVideoTools(TestSupport):
     def test_duration(self):
         expected = 59350
         locator = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov'))
-        duration = video_tools.get_duration(locator)
+        duration = locator.get_duration()
         self.assertTrue(abs(duration - expected) < 1)
-        duration = video_tools.get_duration(locator, audio=True)
+        duration = locator.get_duration(audio=True)
         self.assertTrue(abs(duration - expected) < 2)
-        with patch('maskgen.mask_rules.BuildState', spec=locator) as mock_locator:
-            mock_locator.get_frame_attribute = Mock(return_value=None)
-            mock_locator.get_filename = locator.get_filename
-            mock_locator.get_meta = locator.get_meta
-            duration = video_tools.get_duration(mock_locator)
-            self.assertTrue(abs(duration - expected) < 1)
 
     def test_frame_rate(self):
         locator = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov'))
-        rate = video_tools.get_frame_rate(locator)
-        self.assertTrue(abs(rate - 28.25) < 0.1)
-        rate = video_tools.get_frame_rate(locator, audio=True)
+        rate = locator.get_frame_rate()
+        self.assertTrue(abs(rate - 13.529) < 0.1)
+        rate = locator.get_frame_rate(audio=True)
         self.assertTrue(abs(rate - 44100) < 1)
 
     def test_meta(self):
@@ -338,28 +332,28 @@ class TestVideoTools(TestSupport):
         #self.assertEqual(1700, int(video_tools.get_start_time_from_segment(result)))
         #self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
-        result = video_tools.get_frame_count('sample1_ffr.mov', (0, 21), (0, 593))
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').get_frame_count((0, 21), (0, 593))
         self.assertEqual(59200.0, round(video_tools.get_end_time_from_segment(result)))
         self.assertEqual(573, video_tools.get_frames_from_segment(result))
         self.assertEqual(593, video_tools.get_end_frame_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
-        result = video_tools.get_frame_count('sample1_ffr.mov', (2010, 0), (59200, 0))
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').get_frame_count((2010, 0), (59200, 0))
         self.assertEqual(59200.0, round(video_tools.get_end_time_from_segment(result)))
         self.assertEqual(573, video_tools.get_frames_from_segment(result))
         self.assertEqual(593, video_tools.get_end_frame_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
-        result = video_tools.get_frame_count('sample1_ffr.mov', (0, 21), None)
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').get_frame_count((0, 21), None)
         self.assertEqual(575, video_tools.get_frames_from_segment(result))
         self.assertEqual(595, video_tools.get_end_frame_from_segment(result))
         self.assertEqual(59400.0, video_tools.get_end_time_from_segment(result))
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result))
 
-        result = video_tools.get_frame_count('sample1_ffr.mov', (2010, 0), None)
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').get_frame_count((2010, 0), None)
         self.assertEqual(575, video_tools.get_frames_from_segment(result))
         self.assertEqual(595, video_tools.get_end_frame_from_segment(result))
         self.assertEqual(59400.0, video_tools.get_end_time_from_segment(result))
@@ -370,7 +364,7 @@ class TestVideoTools(TestSupport):
 
     def test_frame_binding_ffr(self):
 
-        result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_ffr.mov'),
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').getMaskSetForEntireVideo(
                                                       start_time='00:00:02.01',
                                                       end_time='00:00:59.29')
         self._add_mask_files_to_kill(result)
@@ -380,7 +374,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result[0]))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_ffr.mov'),
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').getMaskSetForEntireVideo(
                                                       start_time='00:00:02.01:02')
         self._add_mask_files_to_kill(result)
         self.assertEqual(2200.0, round(video_tools.get_start_time_from_segment(result[0])))
@@ -388,7 +382,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(23, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(573, video_tools.get_frames_from_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_ffr.mov'),
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').getMaskSetForEntireVideo(
                                                       start_time='00:00:02.01')
         self._add_mask_files_to_kill(result)
         self.assertEqual(575, video_tools.get_frames_from_segment(result[0]))
@@ -397,7 +391,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result[0]))
         self.assertEqual(21, video_tools.get_start_frame_from_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_ffr.mov'),
+        result = video_tools.FileMetaDataLocator('sample1_ffr.mov').getMaskSetForEntireVideo(
                                                       start_time='23',
                                                       end_time='29')
         self._add_mask_files_to_kill(result)
@@ -407,7 +401,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(29, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(29 - 23 + 1, video_tools.get_frames_from_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('videos/Sample2_ffr.mxf'),
+        result = video_tools.FileMetaDataLocator('videos/Sample2_ffr.mxf').getMaskSetForEntireVideo(
                                                       start_time=21, end_time=None)  # ffr vid with 'N/A' nbframes.
         self._add_mask_files_to_kill(result)
         self.assertEqual(567.0, round(video_tools.get_start_time_from_segment(result[0])))
@@ -481,8 +475,8 @@ class TestVideoTools(TestSupport):
 
     def test_frame_binding_vfr(self):
 
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')))  # Variable FR
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+            )  # Variable FR
         self._add_mask_files_to_kill(result)
         self.assertEqual(0.0, video_tools.get_start_time_from_segment(result[0]))
         self.assertEqual(1, video_tools.get_start_frame_from_segment(result[0]))
@@ -491,8 +485,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(59348.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual('video', video_tools.get_type_of_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_slow.mov')))  # Constant FR
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_slow.mov')).getMaskSetForEntireVideo(
+            )  # Constant FR
         self._add_mask_files_to_kill(result)
         self.assertEqual(0.0, video_tools.get_start_time_from_segment(result[0]))
         self.assertEqual(1, video_tools.get_start_frame_from_segment(result[0]))
@@ -501,8 +495,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result[0]))
         self.assertEqual('video', video_tools.get_type_of_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_slow.mov')),
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_slow.mov')).getMaskSetForEntireVideo(
             start_time='00:00:02.01')  # Constant FR
         self._add_mask_files_to_kill(result)
         self.assertEqual(2000.0, video_tools.get_start_time_from_segment(result[0]))
@@ -512,8 +505,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(59500.0, video_tools.get_end_time_from_segment(result[0]))
         self.assertEqual('video', video_tools.get_type_of_segment(result[0]))
 
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_swap.mov')),
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_swap.mov')).getMaskSetForEntireVideo(
             start_time='00:00:02.01', end_time='00:00:59.29')  # Variable FR, swapped streams, fails to grab all frames
         self._add_mask_files_to_kill(result)
         self.assertEqual(59221.0, round(video_tools.get_end_time_from_segment(result[0])))
@@ -522,27 +514,26 @@ class TestVideoTools(TestSupport):
         self.assertEqual(23, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(1982.0, round(video_tools.get_start_time_from_segment(result[0])))
 
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_swap.mov')),
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1_swap.mov')).getMaskSetForEntireVideo(
             start_time='00:00:02.01')  # Variable FR, swapped streams.
         self._add_mask_files_to_kill(result)
         self.assertEqual(1982.0, round(video_tools.get_start_time_from_segment(result[0])))
         self.assertEqual(23, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(803 - 23 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='00:00:02.01')
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+             start_time='00:00:02.01')
         self._add_mask_files_to_kill(result)
         self.assertEqual(1982.0, round(video_tools.get_start_time_from_segment(result[0])))
         self.assertEqual(23, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(803 - 23 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='00:00:02.01:02')
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+             start_time='00:00:02.01:02')
         self._add_mask_files_to_kill(result)
         self.assertEqual(2123.0, round(video_tools.get_start_time_from_segment(result[0])))
         self.assertEqual(24, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(780, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='00:00:02.01',
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+            start_time='00:00:02.01',
             end_time='00:00:04.01')
         self._add_mask_files_to_kill(result)
         self.assertEqual(1982.0, round(video_tools.get_start_time_from_segment(result[0])))
@@ -550,8 +541,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(3965.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual(47, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(47 - 23 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='23',
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+            start_time='23',
             end_time='29')
         self._add_mask_files_to_kill(result)
         self.assertEqual(1982.0, round(video_tools.get_start_time_from_segment(result[0])))
@@ -559,8 +550,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2548.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual(29, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(29 - 23 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='29',
+        result =  video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+            start_time='29',
             end_time='55')
         self._add_mask_files_to_kill(result)
         self.assertEqual(2548.0, round(video_tools.get_start_time_from_segment(result[0])))
@@ -568,16 +559,15 @@ class TestVideoTools(TestSupport):
         self.assertEqual(4532.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual(55, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(55 - 29 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='29')
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+             start_time='29')
         self._add_mask_files_to_kill(result)
         self.assertEqual(2548.0, round(video_tools.get_start_time_from_segment(result[0])))
         self.assertEqual(29, video_tools.get_start_frame_from_segment(result[0]))
         self.assertEqual(59348.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual(803, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(803 - 29 + 1, video_tools.get_frames_from_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')),
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
             media_types=['audio'])
         self._add_mask_files_to_kill(result)
         self.assertEqual(0.0, video_tools.get_start_time_from_segment(result[0]))
@@ -586,8 +576,7 @@ class TestVideoTools(TestSupport):
         self.assertEqual(2617262, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(59348.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual('audio', video_tools.get_type_of_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')),
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
             start_time='1',
             media_types=['video'])
         self._add_mask_files_to_kill(result)
@@ -597,8 +586,8 @@ class TestVideoTools(TestSupport):
         self.assertEqual(803, video_tools.get_end_frame_from_segment(result[0]))
         self.assertEqual(59348.0, round(video_tools.get_end_time_from_segment(result[0])))
         self.assertEqual('video', video_tools.get_type_of_segment(result[0]))
-        result = video_tools.getMaskSetForEntireVideo(
-            video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')), start_time='00:00:02.01',
+        result = video_tools.FileMetaDataLocator(self.locateFile('tests/videos/sample1.mov')).getMaskSetForEntireVideo(
+            start_time='00:00:02.01',
             end_time='00:00:04',
             media_types=['audio'])
         self._add_mask_files_to_kill(result)
@@ -1164,8 +1153,8 @@ class TestVideoTools(TestSupport):
         self.filesToKill.append('part1.mov')
         self.filesToKill.append('part2.mov')
         self.filesToKill.append('sample1_cut_full.mov')
-        orig_vid = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(source))
-        cut_vid = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator('sample1_cut_full.mov'))
+        orig_vid = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo()
+        cut_vid = video_tools.FileMetaDataLocator('sample1_cut_full.mov').getMaskSetForEntireVideo()
         diff_in_frames = video_tools.get_frames_from_segment(orig_vid[0]) - video_tools.get_frames_from_segment(
             cut_vid[0])
         maskSet, errors = video_tools.cutCompare(source, 'sample1_cut_full.mov', 'sample1',
@@ -1692,9 +1681,9 @@ class TestVideoTools(TestSupport):
 
     def testMaskSet(self):
         source = self.locateFile('tests/videos/sample1.mov')
-        source_set1 = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(source),
+        source_set1 = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(
                                                            start_time='29', end_time='55')
-        source_set2 = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(source),
+        source_set2 = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(
                                                            start_time='29', end_time='55')
         self.assertEquals(source_set1, source_set2)
 

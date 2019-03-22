@@ -11,9 +11,9 @@ import logging
 from maskgen import ffmpeg_api
 from maskgen.cv2api import cv2api_delegate
 from maskgen.support import getValue
-from maskgen.tool_set import GrayBlockReader, fileType,getMilliSecondsAndFrameCount
-from maskgen.video_tools import get_shape_of_video, get_frame_time, getMaskSetForEntireVideo, \
-    getMaskSetForEntireVideoForTuples, MetaDataLocator, get_end_time_from_segment, get_start_frame_from_segment, \
+from maskgen.tool_set import getMilliSecondsAndFrameCount
+from maskgen.video_tools import get_shape_of_video, get_frame_time, MetaDataLocator, \
+    get_end_time_from_segment, get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, get_start_time_from_segment, get_end_frame_from_segment,\
     get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment,transfer_masks
 
@@ -63,17 +63,8 @@ class ExtractorMetaDataLocator(MetaDataLocator):
         self.extractor = extractor
         self.source = source
 
-    def get_meta(self, with_frames=False, show_streams=True, media_types=['video']):
-        return self.extractor.getVideoMeta(self.source,
-                                           show_streams=show_streams,
-                                           with_frames=with_frames,
-                                           media_types=media_types)
-
     def get_filename(self):
         return self.extractor.getNodeFile(self.source)
-
-    def get_frame_attribute(self, name, default=None, audio=False):
-        return self.extractor.getVideoMetaItem(self.source, name, default=default, audio=audio)
 
 def _match_stream(meta, streams):
     """
@@ -92,9 +83,8 @@ def _match_stream(meta, streams):
     return None
 
 
-class VideoMetaDataExtractorTool:
-
-    def __init__(self, graph):
+class MetaDataExtractor:
+    def __init__(self, graph=None):
         self.graph = graph
 
     def __get_cache_from_graph(self, source):
@@ -102,9 +92,6 @@ class VideoMetaDataExtractorTool:
         if node is not None:
             return getValue(node, 'media', {})
         return {}
-
-    def getMaskSetForEntireVideoForTuples(self, locator, media_types=['video']):
-        return getMaskSetForEntireVideoForTuples(locator, media_types=media_types)
 
     def getVideoMeta(self, source, with_frames=False, show_streams=True, media_types=['video', 'audio']):
         """
@@ -115,111 +102,15 @@ class VideoMetaDataExtractorTool:
         :param media_types:
         :return:
         """
-        source_file = self.graph.get_image_path(source)
-        meta, frames = ffmpeg_api.get_meta_from_video(source_file, with_frames=with_frames, show_streams=show_streams,
-                                                      media_types=media_types)
+        meta, frames = self.getMetaDataLocator(source).get_meta(with_frames=with_frames,
+                                                 show_streams=show_streams,
+                                                 media_types=media_types)
         node_meta = self.__get_cache_from_graph(source)
         for item in meta:
             match = _match_stream(item, node_meta)
             if match is not None:
                 item.update(match)
         return meta, frames
-
-    def getVideoMetaItem(self, source, attribute, default=None, audio=False):
-        """
-        Featch meta data, overwriting any keys from the cache in the instance graph's node identified by source.
-        :param source: source node id
-        :param with_frames:
-        :param show_streams:
-        :param media_types:
-        :return:
-        """
-        node_meta = self.__get_cache_from_graph(source)
-        matched_value = None
-        match_codec = 'video' if not audio else 'audio'
-        for item in node_meta:
-            if getValue(item, 'codec_type') == match_codec and matched_value is None:
-                matched_value = getValue(item, attribute)
-        if matched_value is not None:
-            return matched_value
-        source_file = self.graph.get_image_path(source)
-        if fileType(source_file) not in ['audio', 'video']:
-            return default
-        return ffmpeg_api.get_frame_attribute(source_file, attribute, default=default, audio=audio)
-
-class AudioMetaDataExtractorTool(VideoMetaDataExtractorTool):
-
-    def __init__(self,graph):
-        VideoMetaDataExtractorTool.__init__(self,graph)
-
-    def getMaskSetForEntireVideoForTuples(self, locator, media_types=['audio']):
-        return getMaskSetForEntireVideoForTuples(locator, media_types=media_types)
-
-class ZipMetaDataExtractorTool(VideoMetaDataExtractorTool):
-
-    def __init__(self,graph):
-        VideoMetaDataExtractorTool.__init__(self,graph)
-
-    def getMaskSetForEntireVideoForTuples(self, locator, media_types=['video']):
-        return getMaskSetForEntireVideoForTuples(locator, media_types=media_types)
-
-    def getVideoMeta(self, source, with_frames=False, show_streams=True, media_types=['video', 'audio']):
-        import zip_tools
-        """
-        Featch meta data, overwriting any keys from the cache in the instance graph's node identified by source.
-        :param source: source node id
-        :param with_frames:
-        :param show_streams:
-        :param media_types:
-        :return:
-        """
-        source_file = self.graph.get_image_path(source)
-        meta  = zip_tools.get_meta_from_zip(source_file,media_types=['image'])
-        node_meta = self.__get_cache_from_graph(source)
-        for item in meta:
-            match = _match_stream(item, node_meta)
-            if match is not None:
-                item.update(match)
-        return meta, []
-
-class MetaDataExtractor:
-    def __init__(self, graph=None):
-        self.graph = graph
-        self.tools = {'zip': ZipMetaDataExtractorTool(graph),
-                      'audio':AudioMetaDataExtractorTool(graph),
-                      'video':AudioMetaDataExtractorTool(graph)}
-
-    def _get_tool(self,source):
-        return self.tools[fileType(self.graph.get_node(source)['file'])]
-
-    def __get_cache_from_graph(self, source):
-        node = self.graph.get_node(source)
-        if node is not None:
-            return getValue(node, 'media', {})
-        return {}
-
-    def getVideoMetaItem(self, source, attribute, default=None, audio=False):
-        """
-        Featch meta data, overwriting any keys from the cache in the instance graph's node identified by source.
-        :param source: source node id
-        :param with_frames:
-        :param show_streams:
-        :param media_types:
-        :return:
-        """
-        return self._get_tool(source).getVideoMetaItem(source, attribute, default=default, audio=audio)
-
-
-    def getVideoMeta(self, source, with_frames=False, show_streams=True, media_types=['video', 'audio']):
-        """
-        Featch meta data, overwriting any keys from the cache in the instance graph's node identified by source.
-        :param source: source node id
-        :param with_frames:
-        :param show_streams:
-        :param media_types:
-        :return:
-        """
-        return self._get_tool(source).getVideoMeta(source, with_frames=with_frames, show_streams=show_streams, media_types=media_types)
 
     def getNodeFileType(self, nodeid):
         return self.graph.getNodeFileType(nodeid)
@@ -269,9 +160,9 @@ class MetaDataExtractor:
                                               )
             et = getValue(edge, 'arguments.End Time',None)
             et = getMilliSecondsAndFrameCount(et) if et not in [None,'0'] else None
-            result = self._get_tool(source).getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source),
-                                              st if startTime is None else startTime,
-                                              et if endTime is None else endTime,
+            result = self.getMetaDataLocator(source).getMaskSetForEntireVideo(
+                                              start_time_tuple=st if startTime is None else startTime,
+                                              end_time_tuple=et if endTime is None else endTime,
                                               media_types=media_types,
                                               channel=channel)
             if result is None or len(result) == 0:
@@ -297,9 +188,9 @@ class MetaDataExtractor:
             if not change:
                 return None
 
-        maskSource = self._get_tool(source).getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source),
+        maskSource = self.getMetaDataLocator(source).getMaskSetForEntireVideoForTuples(
                                                                               media_types=[expectedType])
-        maskTarget = self._get_tool(target).getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(target),
+        maskTarget = self.getMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
                                                                               media_types=[expectedType])
         return get_frames_from_segment(maskSource[0]), get_end_time_from_segment(maskSource[0]), \
                get_frames_from_segment(maskTarget[0]), get_end_time_from_segment(maskTarget[0]), \
@@ -314,7 +205,6 @@ class MetaDataExtractor:
         :return: new set of masks
         """
         from math import floor
-        from video_tools import get_frame_rate
 
         def _get_frame_time(frame):
             if 'pkt_pts_time' in frame.keys() and frame['pkt_pts_time'] != 'N/A':
@@ -333,14 +223,14 @@ class MetaDataExtractor:
         video_masks = [mask for mask in masks if get_type_of_segment(mask)== 'video']
         audio_masks = [mask for mask in masks if get_type_of_segment(mask) == 'audio']
         if len(video_masks) == 0 and hasVideo:
-            entire_mask = self._get_tool(source).getMaskSetForEntireVideoForTuples(self.getMetaDataLocator(source),
+            entire_mask = self.getMetaDataLocator(source).getMaskSetForEntireVideoForTuples(
                                                                                    media_types=['video'])[0]
             upper_bounds = (get_end_frame_from_segment(entire_mask), get_end_time_from_segment(entire_mask))
             new_masks = list(audio_masks)
             for mask in audio_masks:
                 end_time = min(get_end_time_from_segment(mask), upper_bounds[1])
                 new_mask = mask.copy()
-                rate = get_frame_rate(self.getMetaDataLocator(source))
+                rate = self.getMetaDataLocator(source).get_frame_rate()
                 if not isVFR:
                     start_frame = int(get_start_time_from_segment(mask) * rate / 1000.0) + 1
                     end_frame = int(end_time * rate / 1000.0)
