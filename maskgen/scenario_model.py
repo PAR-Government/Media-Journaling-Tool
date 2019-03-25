@@ -1580,7 +1580,7 @@ class ImageProjectModel:
             mynode = self.getGraph().get_node(nodeid)
             md5 = md5_of_file(os.path.join(self.G.dir, mynode['file']),
                                                            raiseError=False)
-            matches[md5] = mynode
+            matches[md5] = nodeid
             myfiles[mynode['file']] = md5
         for nodeid in project.getGraph().get_nodes():
             theirnode = project.getGraph().get_node(nodeid)
