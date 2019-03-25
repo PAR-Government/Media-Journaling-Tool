@@ -1000,7 +1000,7 @@ def checkLengthSame(op, graph, frm, to):
      @type to: str
     """
     def checkDuration(op, graph, frm, to):
-        _checkDurationErrorType(Severity.WARNING, op, graph, frm, to)
+        _checkDurationErrorType(op, graph, frm, to, Severity.WARNING)
 
 def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
