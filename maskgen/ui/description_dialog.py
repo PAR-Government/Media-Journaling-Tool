@@ -2263,9 +2263,10 @@ class MaskDebuggerUI(Toplevel):
 
 class HistogramViewer(Frame):
 
-    def __init__(self, master, histogram):
+    def __init__(self, master, histogram, span=(0,1)):
         Frame.__init__(self, master=master)
         self.hist_data = histogram
+        self.highlight = span
         self.figure = Figure(figsize=(6, 4), dpi=100)
         self.fcanvas = FigureCanvasTkAgg(self.figure, master=self)
         self.subplot = self.figure.add_subplot(111)
@@ -2280,7 +2281,13 @@ class HistogramViewer(Frame):
     def plot_histogram(self):
         self.subplot.clear()
         self.subplot.plot(self.hist_data, color='blue')
+        if self.highlight[1] - self.highlight[0] != 0:
+            self.subplot.axvspan(xmin=self.highlight[0], xmax=self.highlight[1], color='red', alpha=0.5)
         self.fcanvas.draw()
+
+    def set_span(self, span=(0,0)):
+        self.highlight = span
+        self.plot_histogram()
 
 def notifyCB(obj,name, type, row, cb,a1,a2,a3):
     if cb is not None:
