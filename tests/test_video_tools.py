@@ -1154,6 +1154,7 @@ class TestVideoTools(TestSupport):
         self.filesToKill.append('part2.mov')
         self.filesToKill.append('sample1_cut_full.mov')
         orig_vid = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo()
+        orig_audio = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(media_types=['audio'])
         cut_vid = video_tools.FileMetaDataLocator('sample1_cut_full.mov').getMaskSetForEntireVideo()
         diff_in_frames = video_tools.get_frames_from_segment(orig_vid[0]) - video_tools.get_frames_from_segment(
             cut_vid[0])
@@ -1178,6 +1179,24 @@ class TestVideoTools(TestSupport):
         self.assertEqual(20, video_tools.get_frames_from_segment(videoSet[0]))
         self.assertEqual(101, video_tools.get_start_frame_from_segment(videoSet[0]))
         self.assertEqual(120, video_tools.get_end_frame_from_segment(videoSet[0]))
+
+        cut_vid = video_tools.FileMetaDataLocator('part1.mov').getMaskSetForEntireVideo()
+        cut_audio = video_tools.FileMetaDataLocator('part1.mov').getMaskSetForEntireVideo(media_types=['audio'])
+        diff_in_frames = video_tools.get_frames_from_segment(orig_vid[0]) - video_tools.get_frames_from_segment(
+            cut_vid[0])
+        maskSet, errors = video_tools.cutCompare(source, 'part1.mov', 'sample1',
+                                                 tool_set.VidTimeManager(startTimeandFrame=(12000, 0)))
+        videoSet = [mask for mask in maskSet if video_tools.get_type_of_segment(mask) == 'video']
+        self.assertEquals(diff_in_frames, video_tools.get_frames_from_segment(videoSet[0]))
+        audioSet = [mask for mask in maskSet if video_tools.get_type_of_segment(mask) == 'audio']
+        diff_in_frames = video_tools.get_frames_from_segment(orig_audio[0]) - video_tools.get_frames_from_segment(
+            cut_audio[0])
+        self.assertEqual(1, len(audioSet))
+        self.assertEquals(diff_in_frames, int(video_tools.get_frames_from_segment(audioSet[0])))
+        self.assertEqual(int(round(video_tools.get_start_time_from_segment(videoSet[0]))),
+                             int(round(video_tools.get_start_time_from_segment(audioSet[0]))))
+        self.assertEquals(int(video_tools.get_end_time_from_segment(audioSet[0])),
+                          int((video_tools.get_end_frame_from_segment(audioSet[0])-1)/video_tools.get_rate_from_segment(audioSet[0])*1000.0))
 
     def test_align_streams_meta(self):
         meta_and_frames = ([{'codec_type': 'video'}, {'codec_type': 'audio', 'channel_layout': 'mono'}],  # normal

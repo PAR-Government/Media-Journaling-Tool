@@ -5,7 +5,7 @@ from maskgen.graph_meta_tools import MetaDataExtractor, GraphProxy, get_meta_dat
 import os
 
 
-class TestMetaExtractor(TestSupport):
+class TestGraphMetaTools(TestSupport):
 
     def __init__(self, stuff):
         TestSupport.__init__(self,stuff)
@@ -96,10 +96,8 @@ class TestMetaExtractor(TestSupport):
         target_set = video_tools.FileMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
                                                                    start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
                                                                    end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
-        print(source_set[0])
         extractor = MetaDataExtractor(GraphProxy(source,target))
         new_mask_set = extractor.warpMask(source_set, source, source)
-        print(new_mask_set[0])
         self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(source_set[0]))
         self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(source_set[0]))
         self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(source_set[0]))
@@ -139,7 +137,7 @@ class TestMetaExtractor(TestSupport):
         target_set = video_tools.FileMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
                                                                    start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
                                                                    end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
-        new_mask_set = extractor.warpMask(new_mask_set, source, target)
+        new_mask_set = extractor.warpMask(source_set, source, target)
         self.assertTrue(video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(target_set[0]))
         self.assertTrue(video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(target_set[0]))
         self.assertTrue(video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(target_set[0]))

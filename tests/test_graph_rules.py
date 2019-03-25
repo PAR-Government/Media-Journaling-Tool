@@ -5,6 +5,8 @@ from test_support import TestSupport
 from mock import MagicMock, Mock, patch
 from maskgen.validation.core import Severity
 from maskgen import video_tools
+
+
 class TestToolSet(TestSupport):
 
     def test_aproject(self):
@@ -115,21 +117,21 @@ class TestToolSet(TestSupport):
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
         graph.predecessors = Mock(return_value=['ai','c'])
-        def duration(x,audio=True):
+        def duration(x, default=None, audio=True):
             return {'ai': 59348.345, 'b':60348.345}[x.source]
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        with patch('maskgen.video_tools.MetaDataLocator',spec=duration) as cm:
+            cm.duration = duration
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ai', 'b')
             self.assertIsNone(result)
 
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+        with patch('maskgen.video_tools.MetaDataLocator.get_duration',spec=duration) as cm:
             cm.side_effect = duration
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNotNone(result)
 
         def duration(x,audio=True):
             return {'ai': 59348.345, 'b':1000.0}[x.source]
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
+        with patch('maskgen.video_tools.MetaDataLocator.get_duration',spec=duration) as cm:
             cm.side_effect = duration
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNone(result)
@@ -458,13 +460,13 @@ class TestToolSet(TestSupport):
 
         mask = np.ones((1092, 720), dtype='uint8') * 255
         mask[100:250, 100:200] = 0
-        ImageWrapper(mask).save(filename='.\\test_jt_mask.png')
-        self.addFileToRemove(filename='.\\test_jt_mask.png')
+        ImageWrapper(mask).save(filename='test_jt_mask.png')
+        self.addFileToRemove(filename='test_jt_mask.png')
 
         input_mask = np.zeros((1092, 720, 3), dtype='uint8')
         input_mask[100:200, 100:200, :] = 255
-        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
-        self.addFileToRemove(filename='.\\test_input_mask.png')
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
 
         mockGraph = Mock(get_edge=Mock(return_value={'inputmaskname': self.locateFile('test_input_mask.png'),
                                                      'maskname': self.locateFile('test_jt_mask.png')}))
@@ -474,31 +476,31 @@ class TestToolSet(TestSupport):
 
         input_mask = np.zeros((1092, 720, 3), dtype='uint8')
         input_mask[150:250, 150:250, :] = 255
-        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
-        self.addFileToRemove(filename='.\\test_input_mask.png')
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
 
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNotNone(r)
 
         w = GrayBlockWriter('test_jt', 10)
         m = np.ones((1092, 720), dtype='uint8') * 255
-        m[100:250, 100:200] = 0
+        m[100:200, 100:200] = 0
         for i in range(60):
-            w.write(m, i / 10.0, i)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
-
+        checkname = w.filename
         w = GrayFrameWriter('test_input', 10)
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[100:200, 100:200, :] = 255
         for i in range(60):
-            w.write(m, i / 10.0, 0)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
 
-        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile('test_input_mask_0.avi'),
+        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile(w.filename),
             'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10, 'type': 'video', 'frames': 60,
-                            'videosegment':'test_jt_mask_0.0.hdf5', 'starttime': 0, 'endtime': 600},
+                            'videosegment':checkname, 'starttime': 0, 'endtime': 600},
                            ]
         })
 
@@ -509,12 +511,38 @@ class TestToolSet(TestSupport):
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[150:250, 150:250, :] = 255
         for i in range(60):
-            w.write(m, i / 10.0, 0)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
 
+        mockGraph.get_edge = Mock(spec=edge, return_value={'inputmaskname': self.locateFile(w.filename),
+                                                           'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10,
+                                                                           'type': 'video', 'frames': 60,
+                                                                           'videosegment': checkname, 'starttime': 0,
+                                                                           'endtime': 600},
+                                                                          ]
+                                                           })
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
-        self.assertIsNotNone(r)
+        self.assertIsNone(r)
+
+
+        w = GrayFrameWriter('test_input', 10)
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[150:300, 150:300, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, i+1)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        mockGraph.get_edge = Mock(spec=edge, return_value={'inputmaskname': self.locateFile(w.filename),
+                                                           'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10,
+                                                                           'type': 'video', 'frames': 60,
+                                                                           'videosegment': checkname, 'starttime': 0,
+                                                                           'endtime': 600},
+                                                                          ]
+                                                           })
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
 
 if __name__ == '__main__':
     unittest.main()

@@ -387,7 +387,7 @@ class VidTimeManager:
         return self.frameCountWhenStarted if self.startTimeandFrame else 1
 
     def getEndFrame(self):
-        return self.frameCountWhenStopped if self.stopTimeandFrame else self.frameSinceBeginning
+        return self.frameCountWhenStopped if self.stopTimeandFrame and self.frameCountWhenStopped else self.frameSinceBeginning
 
     def updateToNow(self, milliNow, frames=1):
         """
@@ -417,8 +417,7 @@ class VidTimeManager:
                         self.beforeStartTime = False
 
     def setStopFrame(self, frame):
-        ""
-        if self.stopTimeandFrame[0] > 0:
+        if self.stopTimeandFrame is not None and self.stopTimeandFrame[0] > 0:
             self.frameCountSinceStop = self.frameSinceBeginning
         self.stopTimeandFrame = (0,frame)
 

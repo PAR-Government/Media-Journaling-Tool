@@ -15,7 +15,8 @@ from maskgen.tool_set import getMilliSecondsAndFrameCount
 from maskgen.video_tools import get_shape_of_video, get_frame_time, MetaDataLocator, \
     get_end_time_from_segment, get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, get_start_time_from_segment, get_end_frame_from_segment,\
-    get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment,transfer_masks
+    get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment,transfer_masks, \
+    recalculate_times_for_segment
 
 
 def get_meta_data_change_from_edge(edge, expectedType='video'):
@@ -204,8 +205,6 @@ class MetaDataExtractor:
         :param masks:
         :return: new set of masks
         """
-        from math import floor
-
         def _get_frame_time(frame):
             if 'pkt_pts_time' in frame.keys() and frame['pkt_pts_time'] != 'N/A':
                 return float(frame['pkt_pts_time']) * 1000
@@ -217,12 +216,12 @@ class MetaDataExtractor:
             return abs(dist) if dist <= 0 else float('inf')
 
         meta_and_frames = self.getVideoMeta(source, show_streams=True, with_frames=False, media_types=['video'])
-        hasVideo = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video')
-        meta = meta_and_frames[0][0]
+        indices = ffmpeg_api.get_stream_indices_of_type(meta_and_frames[0], 'video')
+        meta = meta_and_frames[indices[0]][0]
         isVFR = ffmpeg_api.is_vfr(meta)
-        video_masks = [mask for mask in masks if get_type_of_segment(mask)== 'video']
+        video_masks = [mask for mask in masks if get_type_of_segment(mask) == 'video']
         audio_masks = [mask for mask in masks if get_type_of_segment(mask) == 'audio']
-        if len(video_masks) == 0 and hasVideo:
+        if len(video_masks) == 0 and indices:
             entire_mask = self.getMetaDataLocator(source).getMaskSetForEntireVideoForTuples(
                                                                                    media_types=['video'])[0]
             upper_bounds = (get_end_frame_from_segment(entire_mask), get_end_time_from_segment(entire_mask))
@@ -230,7 +229,7 @@ class MetaDataExtractor:
             for mask in audio_masks:
                 end_time = min(get_end_time_from_segment(mask), upper_bounds[1])
                 new_mask = mask.copy()
-                rate = self.getMetaDataLocator(source).get_frame_rate()
+                rate = get_rate_from_segment(entire_mask)
                 if not isVFR:
                     start_frame = int(get_start_time_from_segment(mask) * rate / 1000.0) + 1
                     end_frame = int(end_time * rate / 1000.0)
@@ -409,6 +408,8 @@ class MetaDataExtractor:
                                     endtime=endtime,
                                     endframe=endframe,
                                     videosegment=get_file_from_segment(mask_set))
+            if not isVFR:
+                recalculate_times_for_segment(change)
             new_mask_set.append(change)
             hits.append((get_start_time_from_segment(change), 'starttime', change))
             hits.append((get_end_time_from_segment(change), 'endime', change))

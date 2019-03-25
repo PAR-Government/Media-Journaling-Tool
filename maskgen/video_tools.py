@@ -200,6 +200,10 @@ def get_mask_from_segment(segment, default_value=None):
     return segment['mask']
 
 def recalculate_times_for_segment(segment):
+    if 'starttime' in segment:
+        segment.pop('starttime')
+    if 'endtime' in segment:
+        segment.pop('endtime')
     segment['starttime'] = get_start_time_from_segment(segment)
     segment['endtime'] = get_end_time_from_segment(segment)
 
@@ -232,7 +236,7 @@ def get_end_time_from_segment(segment, default_value=None):
     if 'endtime' not in segment:
         if default_value is not None:
             return default_value
-        segment['endtime'] = getValue(segment,'endframe',1)*1000.0/segment['rate']
+        segment['endtime'] = (getValue(segment,'endframe',1)-1)*1000.0/segment['rate']
     return segment['endtime']
 
 def get_rate_from_segment(segment, default_value=None):
@@ -1604,12 +1608,21 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
     :param ranges: collection of meta-data describing then range of cut frames
     :return:
     """
-    orig_vid = FileMetaDataLocator(vidAnalysisComponents.file_one).getMaskSetForEntireVideo()
-    cut_vid = FileMetaDataLocator(vidAnalysisComponents.file_two).getMaskSetForEntireVideo()
-    diff_in_frames = get_frames_from_segment(orig_vid[0]) - get_frames_from_segment(cut_vid[0])
+    orig_vid = FileMetaDataLocator(vidAnalysisComponents.file_one).getMaskSetForEntireVideo()[0]
+    cut_vid = FileMetaDataLocator(vidAnalysisComponents.file_two).getMaskSetForEntireVideo()[0]
+    diff_in_frames = get_frames_from_segment(orig_vid) - get_frames_from_segment(cut_vid)
     vidAnalysisComponents.time_manager.setStopFrame (vidAnalysisComponents.time_manager.frameSinceBeginning + diff_in_frames - 1)
-    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
-        end_time = vidAnalysisComponents.time_manager.milliNow
+    if not vidAnalysisComponents.vid_two.isOpened():
+        ranges.append(create_segment(starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
+                             startframe=vidAnalysisComponents.time_manager.frameSinceBeginning+1,
+                             rate=vidAnalysisComponents.fps_one,
+                             type='video',
+                             endframe = get_end_frame_from_segment(orig_vid),
+                             endtime = get_end_time_from_segment(orig_vid),
+                             mask=  vidAnalysisComponents.frame_one_mask if type(vidAnalysisComponents.mask) == int else vidAnalysisComponents.mask))
+        return False
+    if __changeCount(vidAnalysisComponents.mask) > 0:
+        last_time = end_time = vidAnalysisComponents.time_manager.milliNow
         cut = create_segment(starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                              startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
                              rate=vidAnalysisComponents.fps_one,
@@ -1625,12 +1638,18 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
                 break
             vidAnalysisComponents.time_manager.updateToNow(
                 vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec))
-            end_time = vidAnalysisComponents.time_manager.milliNow
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-        update_segment(cut,
-                      endtime=end_time,
-                      endframe=vidAnalysisComponents.time_manager.getEndFrame())
+            last_time = end_time
+            end_time = vidAnalysisComponents.time_manager.milliNow
+        if not ret_one:
+            update_segment(cut,
+                           endframe=get_end_frame_from_segment(orig_vid),
+                           endtime=get_end_time_from_segment(orig_vid))
+        else:
+            update_segment(cut,
+                          endtime=last_time,
+                          endframe=vidAnalysisComponents.time_manager.getEndFrame())
         ranges.append(cut)
         return False
     return True
@@ -1810,7 +1829,7 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
     if len(maskSet) > 0 and len(audioMaskSetOne) > 0 and len(audioMaskSetTwo)>0:
         # audio was changed
         if get_frames_from_segment(audioMaskSetOne[0]) != get_frames_from_segment(audioMaskSetTwo[0]):
-            startframe = (get_start_frame_from_segment(maskSet[0])-1)/get_rate_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])
+            startframe = (get_start_frame_from_segment(maskSet[0])-1)/get_rate_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0]) + 1
             #int(get_start_time_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])/1000.0)
             realframediff = get_frames_from_segment(audioMaskSetOne[0]) - get_frames_from_segment(audioMaskSetTwo[0])
             realtimediff = get_end_time_from_segment(audioMaskSetOne[0]) - get_end_time_from_segment(audioMaskSetTwo[0])
