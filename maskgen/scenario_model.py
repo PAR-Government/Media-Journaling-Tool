@@ -1142,7 +1142,8 @@ class VideoAddTool(AddTool):
                 rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
-        meta[indices[0]]['is_vfr'] = if_vfr
+        if indices:
+            meta[indices[0]]['is_vfr'] = if_vfr
         # redundant but requested by NIST
         parent['is_vfr'] = if_vfr
         return parent

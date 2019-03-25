@@ -12,6 +12,7 @@ from maskgen.software_loader import getOperation
 from maskgen.support import getPathValuesFunc
 from mock import patch, Mock
 from test_support import TestSupport
+from maskgen.video_tools import FileMetaDataLocator
 
 def compose_segment_mask(name, length, start_frame, rate, corner):
     from maskgen.tool_set import GrayBlockWriter
@@ -30,20 +31,22 @@ def compose_segment_mask(name, length, start_frame, rate, corner):
 from maskgen.video_tools import create_segment
 
 
-class test_get_frame_count_callable:
-    def __call__(self, *args, **kwargs):
-        return test_get_frame_count(args[0])
+class ExtendedFileMetaDataLocator(FileMetaDataLocator):
 
+    def __init__(self,filename):
+        FileMetaDataLocator.__init__(self,filename)
+
+    def get_frame_count(self, start_time_tuple=(0, 1), end_time_tuple=None, audio=False):
+        if self.get_filename()[-2:] in ['f1', 'f3']:
+            return create_segment(starttime=0, startframe=1, endtime=4300, endframe=42, type='video', frames=43,
+                                  rate=10)
+        else:
+            return create_segment(starttime=0, startframe=1, endtime=4400, endframe=43, type='video', frames=44,
+                                  rate=10)
 
 class test_get_shape_callable:
     def __call__(self, *args, **kwargs):
         return (512,512)
-
-def test_get_frame_count(thing):
-    if thing in ['./f1', './f3']:
-        return create_segment(starttime=0, startframe=1, endtime=4300, endframe=42, type='video', frames=43, rate=10)
-    else:
-        return create_segment(starttime=0, startframe=1, endtime=4400, endframe=43, type='video', frames=44, rate=10)
 
 
 class TestToolSet(TestSupport):
@@ -75,8 +78,7 @@ class TestToolSet(TestSupport):
         builder = HDF5CompositeBuilder()
         graph = Mock()
         graph.dir = '.'
-        with patch('maskgen.video_tools.get_frame_count',
-                   new_callable=test_get_frame_count_callable):
+        with patch('maskgen.video_tools.FileMetaDataLocator', new=ExtendedFileMetaDataLocator) as fm:
             with patch('maskgen.video_tools.get_shape_of_video',
                        new_callable=test_get_shape_callable):
                builder.initialize(graph, probes)

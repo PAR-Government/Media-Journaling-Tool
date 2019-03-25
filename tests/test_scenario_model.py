@@ -136,6 +136,8 @@ class TestScenarioModel(TestSupport):
        meta = z.getAdditionalMetaData(self.locateFile('zips/test.wav.zip'))
        self.assertEqual(35.665851,meta['total duration'])
        self.assertEqual('17.832925', meta['zip content meta'][-1]['duration'])
+       self.assertEquals('786432',meta['media'][0]['duration_ts'])
+
 if __name__ == '__main__':
 
     unittest.main()

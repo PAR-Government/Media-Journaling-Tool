@@ -716,11 +716,22 @@ class VideoMetaLocatorTool:
 
         return segment
 
-    def get_meta(self,with_frames=False,show_streams=False,media_types=['video']):
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time','pkt_duration_time'],
+                 frame_limit = None,
+                 frame_start = None):
         return ffmpeg_api.get_meta_from_video(self.locator.get_filename(),
                                                       with_frames=with_frames,
+                                                      count_frames=count_frames,
                                                       show_streams=show_streams,
-                                                      media_types=media_types)
+                                                      media_types=media_types,
+                                                      frame_start=frame_start,
+                                                      frame_meta=frame_meta,
+                                                      frame_limit=frame_limit)
 
     def get_frame_rate(self, default=None):
         """
@@ -793,20 +804,30 @@ class ZipMetaLocatorTool(VideoMetaLocatorTool):
         VideoMetaLocatorTool.__init__(self,locator)
         self.fps = 30.0
 
-    def get_meta(self, with_frames=False, show_streams=False, media_types=['video']):
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None):
         import zip_tools
         from tool_set import ZipCapture
         zip_capture = ZipCapture(self.locator.get_filename())
         meta = []
+        frames = []
         for media in media_types:
             if media == 'video':
+                length = zip_capture.get_size()
                 meta.append({
-                    'nb_frames' : str(zip_capture.get_size()),
+                    'nb_frames' : str(length),
+                    'nb_read_frames': str(length),
                     'duration' : str(zip_capture.get_size() / self.fps),
                     'width': zip_capture.get(cv2api_delegate.prop_frame_width),
                     'height': zip_capture.get(cv2api_delegate.prop_frame_height),
                     'r_frame_rate': '{}/100'.format(int(self.fps*100)),
-                    'avg_frame_rate': '{}/1'.format(int(self.fps*100)),
+                    'avg_frame_rate': '{}/100'.format(int(self.fps*100)),
                     'codec_type': 'video',
                     'codec_name': 'raw',
                     'codec_long_name': 'raw'
@@ -815,16 +836,26 @@ class ZipMetaLocatorTool(VideoMetaLocatorTool):
                 positions = zip_tools.AudioPositions(self.locator.get_filename())
                 self.fps = positions.fps
                 dur = positions.get_total_duration()
+                length = int(dur * positions.fps)
                 meta.append({
-                    'duration_ts': str(int(dur * positions.fps)),
+                    'duration_ts': str(length),
                     'duration': str(dur),
                     'sample_rate': '{}'.format(positions.fps),
                     'codec_type': 'audio',
                     'codec_name': 'aac',
                     'codec_long_name': 'aac'
                 })
-
-        return meta,[]
+        if with_frames:
+            for i in range(1,length+1):
+                if frame_limit is not None and len(frames) >= frame_limit:
+                    break
+                current_time = (i-1)/self.fps
+                if frame_start is not None and current_time < frame_start:
+                    continue
+                frames.append({'pkt_pts_time':current_time,
+                               'pkt_dts_time':current_time,
+                               'pkt_duration_time':1.0/self.fps})
+        return meta,frames
 
     def get_frame_rate(self,default):
         """
@@ -860,11 +891,24 @@ class MetaDataLocator:
                       'video':VideoMetaLocatorTool(self)}
         pass
 
-    def get_meta(self,with_frames=False, show_streams=True,media_types=['video']):
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None
+                 ):
         return self._get_tool().get_meta(
-                                         with_frames=with_frames,
-                                         show_streams=show_streams,
-                                         media_types=media_types)
+            with_frames=with_frames,
+            show_streams=show_streams,
+            count_frames=count_frames,
+            media_types=media_types,
+            frame_meta=frame_meta,
+            frame_limit=frame_limit,
+            frame_start=frame_start
+        )
 
     def get_filename(self):
         return ''
