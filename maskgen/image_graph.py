@@ -773,7 +773,8 @@ class ImageGraph:
         return self.G.has_node(name)
 
     def getDataItem(self, item, default_value=None):
-        return self.G.graph[item] if item in self.G.graph else default_value
+        return self.G.graph[item] if item in self.G.graph else \
+            (self.G.graph[item.lower()] if item in self.G.graph else default_value)
 
     def setDataItem(self, item, value, excludeUpdate=False):
         value = self._updatGraphPathValue(item, value)

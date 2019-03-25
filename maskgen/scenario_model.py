@@ -1814,6 +1814,7 @@ class ImageProjectModel:
                     analysis[k] = v
             if 'recordMaskInComposite' in mod.arguments:
                 mod.recordMaskInComposite = mod.arguments.pop('recordMaskInComposite')
+                mod.recordMaskInComposite = getValue(analysis,'global','yes') == 'no' | mod.recordMaskInComposite
 
             self.__addEdge(self.start, self.end, mask, maskname, mod, analysis)
 

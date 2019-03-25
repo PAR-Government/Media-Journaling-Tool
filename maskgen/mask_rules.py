@@ -1062,7 +1062,7 @@ def copy_add_audio(buildState):
     start_time_value = tool_set.getMilliSecondsAndFrameCount(start_time)
     copy_start_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge, 'arguments.Copy Start Time'))
     copy_end_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge,'arguments.Copy End Time'))
-    end_time = (start_time_value[0] + (copy_end_time[0] - copy_start_time[0]) ,0)
+    end_time = (start_time_value[0] + (copy_end_time[0] - copy_start_time[0]), 0) if copy_end_time is not None else None
     return add_audio(buildState, start_time=start_time, end_time=end_time)
 
 def add_audio(buildState, start_time = None, end_time=None):
@@ -1944,7 +1944,7 @@ def image_selection(buildState):
                                     returnEmpty=False,
                                     fillWithUserBoundaries=True)
 
-def echo(buildState):
+def warp_output(buildState):
     """
     Assumes frame rate has not changed.
     :param buildState:
@@ -1953,6 +1953,19 @@ def echo(buildState):
     @rtype: CompositeImage
     """
     return buildState.warpMask()
+
+def echo(buildState):
+    """
+    Assumes frame rate has not changed.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    if buildState.isComposite:
+        return buildState.compositeMask
+    else:
+        return buildState.donorMask
 
 
 def sample_rate_change(buildState):

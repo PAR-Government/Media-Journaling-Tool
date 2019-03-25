@@ -413,7 +413,7 @@ def executeParamSpec(specification_name, specification, global_state, local_stat
     if spec_type == 'mask':
         if 'source' not in specification:
             raise ValueError('source attribute missing in  {}'.format(specification_name))
-        target = getNodeState(specification['source'], local_state)['node']
+        target = getNodeState(specification['target'], local_state)['node']
         source = getNoneDonorPredecessor(getGraphFromLocalState(local_state), target)
         invert = specification['invert'] if 'invert' in specification else False
         edge = getGraphFromLocalState(local_state).get_edge(source,target)
@@ -551,7 +551,8 @@ def pickImageIterator(specification, spec_name, global_state):
         element = FilePermuteGroupElement(spec_name,
                                           directory,
                                           tracking_filename=picklist_name + '.txt',
-                                          fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio','video','image'],
+                                          fileCheckFunction=lambda x: tool_set.fileType(x) in ['audio', 'video',
+                                                                                               'image', 'zip'],
                                           filetypes=specification[
                                               'filetypes'] if 'filetypes' in specification else None)
         global_state['picklists'][picklist_name] = element
@@ -642,7 +643,7 @@ class BaseSelectionOperation(BatchOperation):
                                node_name)
         logging.getLogger('maskgen').info('Picking file {}'.format(pick))
         pick_file = os.path.split(pick)[1]
-        name = pick_file[0:pick_file.rfind('.')]
+        name = pick_file[0:pick_file.find('.')]
         dir = os.path.join(global_state['projects'], name)
         now = datetime.now()
         timestampname = 'timestamp name' in node and node['timestamp name']
@@ -896,7 +897,7 @@ class PluginOperation(BatchOperation):
             args['passthru']= True
         if 'description' in node:
             args['description'] = node['description'].format(**global_state)
-        args['skipRules'] = True
+        args['skipRules'] = getValue(global_state,'skipvalidation', False)
         args['sendNotifications'] = False
         args['semanticGroups'] = node['semanticGroups'] if 'semanticGroups' in node else []
         if (self.logger.isEnabledFor(logging.DEBUG)):
@@ -1124,6 +1125,15 @@ def findBaseImageNodes(graph, node):
             graph.node[node]['op_type'] == 'BaseSelection']
 
 
+def checkGraph(graph):
+    if 'projectDescription' in graph:
+        graph['projectdescription'] = graph['projectDescription']
+    if 'technicalSummary' in graph:
+        graph['technicalsummary'] = graph['technicalSummary']
+    for item in ['projectdescription','organization','technicalsummary','name']:
+        if item not in graph:
+            raise ValueError('Missing {} in project graph'.format(item))
+
 class BatchProject:
     logger = logging.getLogger('maskgen')
 
@@ -1138,6 +1148,7 @@ class BatchProject:
             self.G = json_data
         else:
             self.G = separate_paths(json_graph.node_link_graph(remap_links(json_data), multigraph=False, directed=True))
+        checkGraph(self.G.graph)
         initial_user(maskGenPreferences,
                      username=getValue(self.G.graph,'username',
                                                       defaultValue=maskGenPreferences.get_key('username')))
@@ -1432,6 +1443,7 @@ def createGlobalState(projectDirectory, stateDirectory,
                       permuteGroupManager=None,
                       removeBadProjects=True,
                       stopOnError=False,
+                      skipValidation=False,
                       fromFailedStateFile=None):
     """
     :param projectDirectory: directory for resulting projects
@@ -1446,6 +1458,7 @@ def createGlobalState(projectDirectory, stateDirectory,
             'workdir': stateDirectory,
             'removebadprojects' : removeBadProjects,
             'stoponerror': stopOnError,
+            'skipvalidation': skipValidation,
             'permutegroupsmanager': permuteGroupManager if permuteGroupManager is not None else \
                                                         PermuteGroupManager(dir=stateDirectory,
                                                         fromFailedStateFile=fromFailedStateFile)}
@@ -1578,6 +1591,7 @@ class BatchExecutor:
                  initializers=None,
                  loglevel=50,
                  threads_count=1,
+                 skipValidation=False,
                  removeBadProjects=True,
                  stopOnError=False,
                  fromFailedStateFile=None,
@@ -1594,6 +1608,7 @@ class BatchExecutor:
         :param stopOnError: stop processing if an error occurs
         :param fromFailedStateFile: a file containing failed state of permutations groups from which to run
         :param passthrus: list of plugins to pass thru / do not run
+        :param skipValidation: If True, do not validate project after completion
         @type results : str
         @type workdir : str
         @type global_variables : dict
@@ -1628,7 +1643,8 @@ class BatchExecutor:
                                               permuteGroupManager=self.permutegroupsmanager,
                                               removeBadProjects=removeBadProjects,
                                               stopOnError=stopOnError,
-                                              fromFailedStateFile=fromFailedStateFile)
+                                              fromFailedStateFile=fromFailedStateFile,
+                                              skipValidation=skipValidation)
         self.initialState = updateAndInitializeGlobalState(self.initialState,
                                                            global_variables=global_variables,
                                                            initializers=initializers)
@@ -1688,6 +1704,7 @@ class BatchExecutor:
         batchProject.loadPermuteGroups(globalState)
         project_directory, project_name = batchProject.executeOnce(globalState)
         notify_function(batchProject.getName(), myid, project_directory, project_name)
+        return project_directory, project_name
 
     def finish(self):
         """
@@ -1720,10 +1737,16 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('--export',required=False, help='export to given s3 url')
     parser.add_argument('--keep_failed',required=False,action='store_true')
     parser.add_argument('--stop_on_error', required=False, action='store_true')
+    parser.add_argument('--skip_validation', required=False, action='store_true')
     parser.add_argument('--test', required=False, action='store_true')
     parser.add_argument('--passthrus', required=False, default='none', help='plugins to passthru')
     parser.add_argument('--redactions', required=False, default='', help='comma separated list of file argument to exclude from export')
     args = parser.parse_args(argv)
+    prefLoader = MaskGenLoader()
+
+    if prefLoader.get_key('skip_compare',default_value=False):
+        logging.getLogger('maskgen').ERROR('skip_compare is set.  This should not be used in batch mode')
+        return
 
     batchProject = loadJSONGraph(args.specification)
     be = BatchExecutor(args.projects,
@@ -1736,6 +1759,7 @@ def main(argv=sys.argv[1:]):
                        removeBadProjects=not args.keep_failed,
                        fromFailedStateFile=args.from_state,
                        testMode=args.test,
+                       skipValidation=args.skip_validation,
                        passthrus=args.passthrus.split(',') if args.passthrus != 'none' else [])
 
     notify = partial(export_notify,args.export, args.redactions.split(',')) if args.export is not None else do_nothing_notify
