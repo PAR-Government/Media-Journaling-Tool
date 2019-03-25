@@ -1575,20 +1575,23 @@ class ImageProjectModel:
         # link from their node id to my node id
         merge_point = dict()
         myfiles = dict()
+        matches = dict()
         for nodeid in self.getGraph().get_nodes():
             mynode = self.getGraph().get_node(nodeid)
-            myfiles[mynode['file']] = (nodeid, md5_of_file(os.path.join(self.G.dir, mynode['file']),
-                                                           raiseError=False))
+            md5 = md5_of_file(os.path.join(self.G.dir, mynode['file']),
+                                                           raiseError=False)
+            matches[md5] = nodeid
+            myfiles[mynode['file']] = md5
         for nodeid in project.getGraph().get_nodes():
             theirnode = project.getGraph().get_node(nodeid)
             theirfilemd5 = md5_of_file(os.path.join(project.get_dir(), theirnode['file']),
                                        raiseError=False)
             if theirnode['file'] in myfiles:
-                if myfiles[theirnode['file']][1] != theirfilemd5:
+                if myfiles[theirnode['file']] != theirfilemd5:
                     logging.getLogger('maskgen').warn(
                         'file {} is in both projects but MD5 is different'.format(theirnode['file']))
-                else:
-                    merge_point[nodeid] = myfiles[theirnode['file']][0]
+            if theirfilemd5 in matches:
+                    merge_point[nodeid] = matches[theirfilemd5]
         if len(merge_point) == 0:
             return 'No merge points found'
         for nodeid in project.getGraph().get_nodes():
