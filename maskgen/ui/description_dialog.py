@@ -2187,9 +2187,7 @@ class MaskDebuggerUI(Toplevel):
                 arginfo.append((k, v))
         return arginfo
 
-    def __init__(self, master, scModel, description=None):
-        from PIL import Image
-        Toplevel.__init__(self, master=master)
+    def __init__(self, master, scModel, debugger=None, description=None):
         self.scModel = scModel
         self.sourcefiletype = self.scModel.getStartType()
         self.targetfiletype = self.scModel.getEndType()
@@ -2198,8 +2196,23 @@ class MaskDebuggerUI(Toplevel):
         self.arginfo = self.build_arginfo()
         self.argvalues = description.arguments if description is not None else {}
         self.description = description if description is not None else Modification('', '')
+        self.master = master
+        self.result = None
+        Toplevel.__init__(self, master=master)
+        self.transient(master=master)
+        self.initial_focus = self.body(master=self)
+        self.grab_set()
+        if not self.initial_focus:
+            self.initial_focus = self
+        self.protocol(name="WM_DELETE_WINDOW", func=lambda: self.apply('stop'))
+        self.initial_focus.focus_set()
+        self.body(master=master)
+        self.wait_window(self)
 
-        hist = plt.hist(x=[1,2,3,4,5], bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)[0]
+
+    def body(self, master):
+        from PIL import Image
+        hist = plt.hist(x=[1, 2, 3, 4, 5], bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)[0]
         self.histogram = HistogramViewer(master=self, histogram=hist)
         self.mask_preview = ttk.Notebook(master=self)
         self.images = [ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black")),
@@ -2217,18 +2230,22 @@ class MaskDebuggerUI(Toplevel):
         self.frame_select = IntSliderWidget(master=self, command=self.select_frame)
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
-                                      information=argumentTuple[1]['description'] if 'description' in argumentTuple[1] else '',
+                                      information=argumentTuple[1]['description'] if 'description' in argumentTuple[
+                                          1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
-                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[0] in self.argvalues else None) for argumentTuple in self.arginfo]
+                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[
+                                                                                    0] in self.argvalues else None) for
+                      argumentTuple in self.arginfo]
         self.property_frame = PropertyFrame(parent=self, properties=properties,
                                             propertyFunction=EdgePropertyFunction(properties, self.scModel),
                                             changeParameterCB=self.changeParameter,
                                             dir=self.scModel.G.get_dir())
         self.buttons_frame = Frame(master=self)
-        self.generate = Button(master=self.buttons_frame, text='Generate Frame')
-        self.finish = Button(master= self.buttons_frame, text='Finish Generation')
-        self.cancel = Button(master= self.buttons_frame, text='Cancel')
+        self.generate = Button(master=self.buttons_frame, text='Generate Frame', command=lambda: self.apply('continue'))
+        self.finish = Button(master=self.buttons_frame, text='Finish Generation', command=lambda: self.apply('finish'))
+        self.cancel = Button(master=self.buttons_frame, text='Cancel', command=lambda: self.apply('stop'))
+        self.grid()
 
     def grid(self, **options):
         Toplevel.grid(self, **options)
@@ -2243,7 +2260,8 @@ class MaskDebuggerUI(Toplevel):
         self.frame_select.grid(row=row + 1, column=column, columnspan=2, sticky=W+E)
         self.generate.grid(row=0, column=0, padx=5)
         self.finish.grid(row=0, column=1)
-        self.buttons_frame.grid(row=row + 3, column= column, columnspan=2, sticky=S)
+        self.cancel.grid(row=0, column=2, padx=5)
+        self.buttons_frame.grid(row=row + 3, column= column, columnspan=3, sticky=S)
 
     def select_frame(self):
         from PIL import Image
@@ -2260,6 +2278,13 @@ class MaskDebuggerUI(Toplevel):
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
 
+    def apply(self, result):
+        self.result = result
+        self.withdraw()
+        self.update_idletasks()
+        self.master.focus_set()
+        self.destroy()
+        return self.result
 
 class HistogramViewer(Frame):
 

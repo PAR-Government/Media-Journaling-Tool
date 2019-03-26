@@ -33,6 +33,25 @@ count_lock = RLock()
 meta_cache = LRUCache(maxsize=124)
 count_cache = LRUCache(maxsize=124)
 
+class MaskDebugger:
+
+    def __init__(self, master_ui, scModel):
+        self.master_ui = master_ui
+        self.scModel = scModel
+
+    def __call__(self, analysis_components, im_one, im_two, compare_args):
+        """
+
+        :param analysis_components:
+        :param im_one:
+        :param im_two:
+        :param compare_args:
+        :return: Calls up the MaskDebugger Dialog, will return 'continue', 'stop', 'finish'
+        """
+        from maskgen.ui.description_dialog import MaskDebuggerUI
+        return MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
+
+
 def create_segment(starttime=None,
                    startframe=None,
                    endtime=None,
@@ -2584,10 +2603,13 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 if debugger is None:
                     break
                 result = debugger(analysis_components, im_one, im_two, compare_args)
-                if result == 'continue':
+                if result == 'continue': #generate the next frame
                     break
-                elif result  == 'stop':
+                elif result  == 'stop': #toss all
                     return ranges,[]
+                elif result == 'finish': #Done Debugging, Generate all.
+                    debugger = None
+                    break
 
             if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
                 done = True
