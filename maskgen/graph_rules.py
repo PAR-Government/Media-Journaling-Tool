@@ -28,7 +28,7 @@ from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions,GrayBlockValidator
 from video_tools import get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
@@ -963,20 +963,20 @@ def checkForDonorAudio(op, graph, frm, to):
         return (Severity.ERROR,'donor image/video missing')
     return None
 
-def _checkDurationErrorType(op, graph, frm, to, error_type):
+def _checkDurationErrorType(op, graph, frm, to, error_type,media_type='video'):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
-        return (error_type, "Length of video has changed")
-    duration = getValue(edge, 'metadatadiff.video.duration')
+        return (error_type, "Length of {} has changed".format(media_type))
+    duration = getValue(edge, 'metadatadiff.{}.duration'.format(media_type))
     if  duration is not None:
-        return  (error_type,"Length of video has changed")
+        return  (error_type,"Length of {} has changed".format(media_type))
 
 def checkDuration(op, graph, frm, to):
-    _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
+    return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
-    return checkDuration(op, graph, frm, to)
+    return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioAdd(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -998,6 +998,7 @@ def checkLengthSame(op, graph, frm, to):
      @type to: str
     """
     return _checkDurationErrorType(op, graph, frm, to, Severity.WARNING)
+
 
 def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -1267,14 +1268,17 @@ def checkMoveMask(op, graph, frm,to):
     def compareMask(mask, inputmask):
         inputmask[inputmask > 0] = 1
         mask[mask > 0] = 1
-        intersection = inputmask * mask
-        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
-        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        mask_remains = mask * np.clip(1 - inputmask, 0, 1).astype(dtype='uint8')
+        inputmask_remains = inputmask * np.clip(1 -  mask , 0, 1).astype(dtype='uint8')
         masksize = float(np.sum(mask))
-        unionsize = float(np.sum(union))
-        mismatch = abs(masksize - unionsize) / masksize
-        if mismatch > .05:
+        inputmask_remainssize = float(np.sum(inputmask_remains))
+        mask_remainssize = float(np.sum(mask_remains))
+        mismatch = abs(mask_remainssize - inputmask_remainssize) / masksize
+        if mismatch > 0.05:
             return (Severity.ERROR, 'input mask does not represent the moved pixels')
+
+    def vidCompareMask(mask, inputmask):
+        return compareMask(255-mask, 255-inputmask) is None
 
     edge = graph.get_edge(frm, to)
     videomasks = getValue(edge, 'videomasks', defaultValue=[])
@@ -1289,13 +1293,14 @@ def checkMoveMask(op, graph, frm,to):
             for mask in videomasks:
                 segment_file = getValue(mask, 'videosegment', None)
                 if segment_file is not None:
-                    writer_factory = GrayBlockFactory(jt_mask=os.path.join(graph.dir, segment_file))
+                    writer_factory = GrayBlockFactory(writer=GrayBlockValidator(os.path.join(graph.dir, segment_file),
+                                                                                vidCompareMask))
                     videoMasksFromVid(
                         vidFile=os.path.join(graph.dir, inputmaskname),
                         name=inputmaskname,
                         startTimeandFrame=(0, 1),
                         writerFactory=writer_factory)
-                    if len(writer_factory.product.failed_frames) > 0:
+                    if len(writer_factory.writer.failed_frames) > 0:
                         return (Severity.ERROR, 'input mask does not represent the moved pixels')
 
     except Exception as ex:

@@ -530,7 +530,7 @@ class AudioZipDonor(VideoDonor):
         return {
             "Start Time": {
                 "type": "frame_or_time",
-                "defaultvalue": 1,
+                "defaultvalue": "00:00:00.000000",
                 "trigger mask": True,
                 "description": "Start frame number"
             },
@@ -541,7 +541,6 @@ class AudioZipDonor(VideoDonor):
             },
             "End Time": {
                 "type": "frame_or_time",
-                "defaultvalue": 0,
                 "trigger mask" : True,
                 "description": "End frame number. Leave 0 if ALL"
             }
@@ -549,14 +548,11 @@ class AudioZipDonor(VideoDonor):
 
     def arguments(self):
         args = self._base_arguments()
-        predecessors = self.graph.predecessors(self.donor_start)
-        for pred in predecessors:
-            edge = self.graph.get_edge(pred, self.donor_start)
-            if edge['op'].startswith('Select'):
-                args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',0)
-                end_def = getValue(edge, 'arguments.End Time', None)
-                if end_def is not None:
-                    args['End Time']['defaultvalue'] = end_def
+        edge = self.graph.get_edge(self.donor_start,self.donor_end)
+        args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',"1")
+        end_def = getValue(edge, 'arguments.End Time', None)
+        if end_def is not None:
+            args['End Time']['defaultvalue'] = end_def
         return args
 
     def create(self,
@@ -566,19 +562,19 @@ class AudioZipDonor(VideoDonor):
         from maskgen.tool_set import getMilliSecondsAndFrameCount
         from maskgen.video_tools import FileMetaDataLocator, \
             create_segment
-        fps = float(getValue(arguments, 'sample rate'))
+        fps = float(getValue(arguments, 'sample rate',0))
         positions = AudioPositions(FileMetaDataLocator(self.startFileName).get_filename(),
                                  fps=fps)
+        duration = positions.get_total_duration()
+        rate = positions.fps
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        return [create_segment(starttime=seg[0],
-                                                 startframe=seg[1],
-                                                 endtime=seg[2],
-                                                 endframe=seg[3],
+        if end_time_tuple[0] <= start_time_tuple[0]:
+            end_time_tuple= (duration,0)
+        return [create_segment(starttime=float(start_time_tuple[0]),
+                                                 startframe=int(start_time_tuple[0]*rate/1000.0)+1,
+                                                 endtime=float(end_time_tuple[0]),
+                                                 endframe=int(end_time_tuple[0]*rate/1000.0)+1,
                                                  type='audio',
-                                                 frames=seg[3] - seg[1] + 1,
-                                                 rate=fps)
-                                  for seg in positions.get_segments(0,
-                                            initial_start_time=start_time_tuple[0],
-                                            initial_end_time=end_time_tuple[0] if end_time_tuple[0]>start_time_tuple[0] else -1)]
+                                                 rate=rate)]
 

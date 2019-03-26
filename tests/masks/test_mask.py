@@ -2,7 +2,7 @@ import unittest
 from tests.test_support import TestSupport
 from mock import  Mock
 from maskgen.masks.donor_rules import VideoDonor, AudioDonor, AllStreamDonor, AllAudioStreamDonor, \
-    VideoDonorWithoutAudio, InterpolateDonor
+    VideoDonorWithoutAudio, InterpolateDonor,AudioZipDonor
 from maskgen.video_tools import get_type_of_segment, get_start_time_from_segment, get_start_frame_from_segment, \
     get_end_time_from_segment, get_end_frame_from_segment
 
@@ -67,7 +67,7 @@ class TestDonorRules(TestSupport):
 
         def lkup_edge(x, y):
             return \
-            {'ab': {'op': 'NoSelect'}, 'de': {'op': 'SelectSomething', 'arguments': {'Start Time': 20, 'End Time': 100}}}[
+            {'ab': {'op': 'NoSelect'}, 'ef': {'op': 'SelectSomething', 'arguments': {'Start Time': "00:00:00.000000"}}}[
                 x + y]
 
         graph.predecessors = lkup_preds
@@ -111,6 +111,41 @@ class TestDonorRules(TestSupport):
         self.assertEqual(0, len(donor.arguments()))
         self.assertEqual(['audio'],donor.media_types())
 
+
+    def test_audio_zip_donor(self):
+        graph = Mock()
+
+        def lkup_preds(x):
+            return {'b': ['a'], 'e': ['d']}[x]
+
+        def lkup_edge(x, y):
+            return \
+            {'ab': {'op': 'NoSelect'}, 'ef': {'op': 'SelectSomething', 'arguments': {'Start Time': "00:00:00.000000"}}}[
+                x + y]
+
+        graph.predecessors = lkup_preds
+        graph.get_edge = lkup_edge
+        graph.dir = '.'
+
+        donor = AudioZipDonor(graph,  'e', 'f', 'x', (None, self.locateFile('tests/zips/test.wav.zip')),
+                           (None, self.locateFile('tests/videos/sample1.mov')))
+        args = donor.arguments()
+        self.assertEqual("00:00:00.000000", args['Start Time']['defaultvalue'])
+        segments = donor.create(arguments={'Start Time': "00:00:09.11", 'End Time': "00:00:16.32", 'sample rate':44100})
+        for segment in segments:
+            self.assertEqual(401752, get_start_frame_from_segment(segment))
+            self.assertEqual(719713, get_end_frame_from_segment(segment))
+            self.assertAlmostEqual(9110, get_start_time_from_segment(segment),places=1)
+            self.assertEqual(16320.0, int(get_end_time_from_segment(segment)))
+
+        segments = donor.create(
+            arguments={'Start Time': "00:00:00.00", 'End Time': "00:00:00.00", 'sample rate': 44100})
+
+        for segment in segments:
+            self.assertEqual(1, get_start_frame_from_segment(segment))
+            self.assertEqual(1572865, get_end_frame_from_segment(segment))
+            self.assertAlmostEqual(0.0, get_start_time_from_segment(segment),places=1)
+            self.assertEqual(35665, int(get_end_time_from_segment(segment)))
 
     def test_image_donor(self):
         import numpy as np

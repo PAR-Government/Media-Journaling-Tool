@@ -238,6 +238,12 @@ class CompositeImage:
             return np.sum(self.mask) == 0
         return self.videomasks is None or len(self.videomasks) == 0
 
+    def createEmptyMask(self,media_type='video'):
+        if self.mask is not None:
+            return np.zeros(self.mask.shape,dtype=self.mask.dtype)
+        else:
+            return None if self.videomasks is None else [v for v in self.videomasks if video_tools.get_type_of_segment(v) != media_type]
+
     def isImage(self):
         return self.media_type == 'image'
 
@@ -393,6 +399,12 @@ class BuildState:
         """
         self.compositeMask = composite_image if self.isComposite else None
         self.donorMask = composite_image if not self.isComposite else None
+
+    def emptyMask(self,media_type='video'):
+        if self.isComposite:
+            return self.compositeMask.create(self.compositeMask.createEmptyMask(media_type=media_type))
+        else:
+            return self.donorMask.create(self.donorMask.createEmptyMask(media_type=media_type))
 
     def warpMask(self, media_type=None):
         if self.isComposite:
@@ -1962,6 +1974,19 @@ def sample_rate_change(buildState):
         @rtype: CompositeImage
         """
     return buildState.warpMask(media_type='audio')
+
+def audio_selection(buildState):
+    """
+    TODO
+    For use of zip to audio.
+    Use Audio Positions to build donor.
+    Use Audio Positions to substract out masks.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return buildState.emptyMask(media_type='audio')
 
 def output_video_change(buildState):
     """

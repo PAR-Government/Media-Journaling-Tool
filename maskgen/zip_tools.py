@@ -59,7 +59,7 @@ class Positions:
         end_position = int(end_time*self.fps/1000.0)+1
         return self.start_time, int(self.start_time*self.fps/1000.0)+1,end_time,end_position
 
-    def get_segments(self, initial_start_time, final_end_time=-1):
+    def get_segments(self, initial_start_time=0, final_end_time=-1):
         subs = self.sub_positions(initial_start_time, final_end_time).positions
         start_time = initial_start_time
         segs = []

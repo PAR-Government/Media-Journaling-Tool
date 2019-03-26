@@ -4,7 +4,7 @@ from maskgen.scenario_model import loadProject
 from test_support import TestSupport
 from mock import MagicMock, Mock, patch
 from maskgen.validation.core import Severity
-from maskgen import video_tools
+from maskgen import video_tools,graph_meta_tools
 
 
 class TestToolSet(TestSupport):
@@ -117,25 +117,28 @@ class TestToolSet(TestSupport):
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
         graph.predecessors = Mock(return_value=['ai','c'])
-        def duration(x, default=None, audio=True):
-            return {'ai': 59348.345, 'b':60348.345}[x.source]
-        with patch('maskgen.video_tools.MetaDataLocator',spec=duration) as cm:
-            cm.duration = duration
+        class MyExtractor:
+            def __init__(self,x):
+                self.x = x
+            def get_duration(self,audio=False):
+                return {'ai': 59348.345, 'b': 60348.345}[self.x]
+
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ai', 'b')
             self.assertIsNone(result)
 
-        with patch('maskgen.video_tools.MetaDataLocator.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNotNone(result)
 
-        def duration(x,audio=True):
-            return {'ai': 59348.345, 'b':1000.0}[x.source]
-        with patch('maskgen.video_tools.MetaDataLocator.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        class MyExtractor2:
+            def __init__(self,x):
+                self.x = x
+            def get_duration(self,audio=False):
+                return {'ai': 59348.345, 'b': 1000.0}[self.x]
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor2) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNone(result)
-
 
 
     def test_checkAudioLength(self):
@@ -176,7 +179,7 @@ class TestToolSet(TestSupport):
     def test_checkAudioOnly(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
-                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+                                            'metadatadiff': {'audio':{'duration':('change',1,2)}}})
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
@@ -459,7 +462,7 @@ class TestToolSet(TestSupport):
             return {}
 
         mask = np.ones((1092, 720), dtype='uint8') * 255
-        mask[100:250, 100:200] = 0
+        mask[100:200, 100:200] = 0
         ImageWrapper(mask).save(filename='test_jt_mask.png')
         self.addFileToRemove(filename='test_jt_mask.png')
 
@@ -480,6 +483,14 @@ class TestToolSet(TestSupport):
         self.addFileToRemove(filename='test_input_mask.png')
 
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[150:300, 150:250, :] = 255
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNotNone(r)
 
         w = GrayBlockWriter('test_jt', 10)
@@ -490,7 +501,7 @@ class TestToolSet(TestSupport):
         w.close()
         self.addFileToRemove(w.filename)
         checkname = w.filename
-        w = GrayFrameWriter('test_input', 10)
+        w = GrayFrameWriter('test_input', 10, preferences={'vid_codec':'raw'})
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[100:200, 100:200, :] = 255
         for i in range(60):
@@ -507,7 +518,7 @@ class TestToolSet(TestSupport):
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNone(r)
 
-        w = GrayFrameWriter('test_input', 10)
+        w = GrayFrameWriter('test_input', 10,preferences={'vid_codec':'raw'})
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[150:250, 150:250, :] = 255
         for i in range(60):
@@ -526,7 +537,7 @@ class TestToolSet(TestSupport):
         self.assertIsNone(r)
 
 
-        w = GrayFrameWriter('test_input', 10)
+        w = GrayFrameWriter('test_input', 10, preferences={'vid_codec':'raw'})
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[150:300, 150:300, :] = 255
         for i in range(60):
@@ -542,7 +553,7 @@ class TestToolSet(TestSupport):
                                                                           ]
                                                            })
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
-        self.assertIsNone(r)
+        self.assertIsNotNone(r)
 
 if __name__ == '__main__':
     unittest.main()

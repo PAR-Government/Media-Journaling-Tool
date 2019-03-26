@@ -884,6 +884,75 @@ class ZipMetaLocatorTool(VideoMetaLocatorTool):
         duration = self.get_meta(show_streams=True,media_types=[zipFileType(self.locator.get_filename())])
         return float(duration) * 1000.0
 
+class ImageMetaLocatorTool(VideoMetaLocatorTool):
+
+    def __init__(self, locator):
+        """
+        @type locator: MetaDataLocator
+        """
+        VideoMetaLocatorTool.__init__(self,locator)
+
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None):
+        meta = []
+        frames = []
+        img = tool_set.openImage(self.locator.get_filename())
+        for media in media_types:
+            if media == 'video':
+                meta.append({
+                    'nb_frames' : '1',
+                    'nb_read_frames': '1',
+                    'duration' : '0.0333',
+                    'width': img.size[0],
+                    'height': img.size[1],
+                    'r_frame_rate': '3000/100',
+                    'avg_frame_rate': '3000/100',
+                    'codec_type': 'video',
+                    'codec_name': 'raw',
+                    'codec_long_name': 'raw'
+                })
+            else:
+                meta.append({
+                    'duration_ts': "0",
+                    'duration': "0",
+                    'sample_rate': '48800',
+                    'codec_type': 'audio',
+                    'codec_name': 'aac',
+                    'codec_long_name': 'aac'
+                })
+        if with_frames:
+            frames = [{'pkt_pts_time':0,
+                               'pkt_dts_time':0,
+                               'pkt_duration_time': 0.0333}]
+        return meta,frames
+
+    def get_frame_rate(self,default):
+        """
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        return 30.0
+
+    def get_duration(self,default=None):
+        """
+            duration in milliseconds for media
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        return  0.0333
+
 class MetaDataLocator:
     """
     Locate a file and its meta data
@@ -891,6 +960,7 @@ class MetaDataLocator:
 
     def __init__(self):
         self.tools = {'zip': ZipMetaLocatorTool(self),
+                      'image': ImageMetaLocatorTool(self),
                       'audio':AudioMetaLocatorTool(self),
                       'video':VideoMetaLocatorTool(self)}
         pass
@@ -2024,7 +2094,7 @@ def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=N
         time_manager.updateToNow(elapsed_time)
         if time_manager.isBeforeTime():
             update_segment(segment,
-                           startframe=time_manager.frameSinceBeginning+ offset,
+                           startframe=time_manager.frameSinceBeginning+     offset,
                            starttime=offset*(1000.0/fps) + elapsed_time - 1000.0/fps)
             continue
         if time_manager.isPastTime():

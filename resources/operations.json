@@ -4476,7 +4476,8 @@
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.sample_rate_change",
-        "audio": "maskgen.mask_rules.sample_rate_change"
+        "audio": "maskgen.mask_rules.sample_rate_change",
+        "zip":   "maskgen.mask_rules.audio_selection"
       },
       "description": "Export the stream in the PCM format (wave, aif, etc.).",
       "includeInMask": {

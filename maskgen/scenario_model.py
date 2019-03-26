@@ -965,7 +965,7 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                 mask = startIm.to_mask().invert()
         return mask, {}, list()
 
-class ZipToZipTool(VideoVideoLinkTool):
+class ZipZipLinkTool(VideoVideoLinkTool):
     """
      Supports mask construction and meta-data comparison when linking images to images.
      """
@@ -1050,7 +1050,8 @@ class AudioZipAudioLinkTool(VideoAudioLinkTool):
                       analysis_params={}):
         from zip_tools import AudioPositions
         from support import setPathValue
-        from video_tools import create_segment, get_start_time_from_segment,update_segment,get_rate_from_segment
+        from video_tools import create_segment, get_start_time_from_segment, get_end_time_from_segment,\
+            update_segment,get_rate_from_segment
         startIm, startFileName = scModel.getImageAndName(start)
         destIm, destFileName = scModel.getImageAndName(destination)
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
@@ -1063,6 +1064,8 @@ class AudioZipAudioLinkTool(VideoAudioLinkTool):
 
         node = scModel.getGraph().get_node(start)
         meta_data = getValue(node,'zip content meta')
+        if meta_data is None:
+            meta_data = getValue(ZipAddTool().getAdditionalMetaData(startFileName),'zip content meta')
 
         def audio_metadata_extractor(filename):
             return meta_data[os.path.basename(filename)]
@@ -1072,7 +1075,7 @@ class AudioZipAudioLinkTool(VideoAudioLinkTool):
                                    position_file_name=getValue(arguments,'Audio Sequence File'),
                                    fps=int(fps),
                                    audio_metadata_extractor=audio_metadata_extractor if meta_data is not None else None)
-        analysis['videomasks'] = [create_segment(starttime=seg[0],
+        segments = [create_segment(starttime=seg[0],
                                                  startframe=seg[1],
                                                  endtime=seg[2],
                                                  endframe=seg[3],
@@ -1080,17 +1083,20 @@ class AudioZipAudioLinkTool(VideoAudioLinkTool):
                                                  frames=seg[3]-seg[1]+1,
                                                  rate=fps)
                                      for seg in positions.get_segments(0)]
-        analysis['masks count'] = len(analysis['videomasks'])
+        analysis['masks count'] = 0
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = {}
-        durations = positions.get_durations(destFileName)
-        if abs(durations[0] - durations[1]) > 0.001:
-            setPathValue(analysis['metadatadiff'],'audio.duration',('change',durations[0],durations[1]))
-            analysis['videomasks'] = [seg for seg in analysis['videomasks'] if get_start_time_from_segment(seg) < durations[1]]
+        analysis['videomasks'] = segments
+        cap_end_time  = get_end_time_from_segment(maskSet[0])
+        if abs(get_end_time_from_segment(segments[-1]) - cap_end_time) > 0.001:
+            setPathValue(analysis['metadatadiff'],
+                         'audio.duration',
+                         ('change',get_end_time_from_segment(segments[-1]),cap_end_time))
+            analysis['videomasks'] = [seg for seg in analysis['videomasks'] if get_start_time_from_segment(seg) < cap_end_time]
             lastseg = analysis['videomasks'][-1]
             update_segment(lastseg,
-                           endtime = durations[1]-1000.0/get_rate_from_segment(lastseg),
-                           endframe = int(durations[1]*get_rate_from_segment(lastseg)/1000)+ 1)
+                           endtime = cap_end_time,
+                           endframe = int(cap_end_time*get_rate_from_segment(lastseg)/1000)+ 1)
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
                           arguments=consolidate(arguments, analysis_params),
                           start=start, end=destination, scModel=scModel)
@@ -1219,7 +1225,7 @@ linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkT
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
              'audio.audio': AudioAudioLinkTool(), 'zip.video':   ImageZipVideoLinkTool(),
              'collection.image': CollectionImageLinkTool(),
-             'zip.zip': ZipToZipTool(),'video.zip': ImageZipVideoLinkTool(),
+             'zip.zip': ZipZipLinkTool(), 'video.zip': ImageZipVideoLinkTool(),
              'zip.image':   ZipImageLinkTool(),   'zip.audio': AudioZipAudioLinkTool()}
 
 
@@ -1741,7 +1747,7 @@ class ImageProjectModel:
             mynode = self.getGraph().get_node(nodeid)
             md5 = md5_of_file(os.path.join(self.G.dir, mynode['file']),
                                                            raiseError=False)
-            matches[md5] = mynode
+            matches[md5] = nodeid
             myfiles[mynode['file']] = md5
         for nodeid in project.getGraph().get_nodes():
             theirnode = project.getGraph().get_node(nodeid)
