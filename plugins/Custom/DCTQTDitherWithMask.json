@@ -1,5 +1,5 @@
 {
-    "name": "DCTQTDither",
+    "name": "DCTQTDitherWithMask",
     "operation": {
       "name": "AntiForensicDither",
       "category": "AntiForensic",
@@ -10,7 +10,11 @@
         "donor": {
           "type":"donor",
           "description": "Donor quantization table file."
-        }
+        },
+        "mask": {
+          "type": "imagefile",
+          "defaultvalue":"",
+          "description": "Mask of region to dither."
       },
       "transitions": ["image.image"]
     },
@@ -18,6 +22,9 @@
     "command": {
       "default": [
         "JPEG_DCT_Modify",
+        "-i",
+        "-m",
+        "{mask}",
         "{inputimage}",
         "{donor}",
         "{outputimage}"

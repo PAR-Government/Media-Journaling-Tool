@@ -10,3 +10,4 @@ hp_tool/dist/*
 hp_tool/build/*
 hp_tool/hptool.egg-info/*
 maskgen.egg-info/*
+/build/
