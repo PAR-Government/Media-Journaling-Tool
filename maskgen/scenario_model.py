@@ -988,11 +988,11 @@ class ZipZipLinkTool(VideoVideoLinkTool):
         analysis = {}
         errors = list()
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
+        rate = float(getValue(arguments, 'Frame Rate', 30))
         if operation.generateMask in ['audio', 'meta']:
             maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo()
             if maskSet is None:
                 maskSet = list()
-            maskSet = []
         elif op == 'Donor' and not skipDonorAnalysis:
             maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
                                          consolidate(arguments, analysis_params), invert=invert)
@@ -1013,7 +1013,6 @@ class ZipZipLinkTool(VideoVideoLinkTool):
         analysis['masks count'] = len(maskSet)
         analysis['videomasks'] = maskSet
         analysis['shape change'] = sizeDiff(startIm, destIm)
-        rate = float(getValue(arguments, 'Frame Rate', 30))
         startZip = ZipCapture(startFileName,fps=rate)
         endZip = ZipCapture(destFileName,fps=rate)
         if startZip.get_size() != endZip.get_size():
@@ -1025,6 +1024,55 @@ class ZipZipLinkTool(VideoVideoLinkTool):
                           start=start, end=destination, scModel=scModel)
 
         return mask, analysis, errors
+
+
+class ZipVideoLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        # not correct...TODO
+        return "maskgen.masks.donor_rules.all_stream_processors"
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        from support import setPathValue
+        from video_tools import get_rate_from_segment, get_frames_from_segment
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+
+        analysis = {}
+        maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo(start_time=getValue(arguments,'Start Time',0),
+                                                                                          end_time=getValue(arguments,'End Time'))
+        endMaskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo()
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        rate = get_rate_from_segment(maskSet[0])
+        length = get_frames_from_segment(maskSet[0])
+        if length != get_frames_from_segment(endMaskSet[0]) or rate != get_rate_from_segment(endMaskSet[0]):
+            setPathValue(analysis['metadatadiff'], 'video.nb_frames',
+                         ('change', length, get_frames_from_segment(endMaskSet[0])))
+            setPathValue(analysis['metadatadiff'], 'video.duration',
+                         ('change', length/float(rate), get_frames_from_segment(endMaskSet[0]) / float(get_rate_from_segment(endMaskSet[0]))))
+            setPathValue(analysis['metadatadiff'], 'video.avg_frame_rate',
+                         ('change', rate,get_rate_from_segment(endMaskSet[0])))
+        return mask, analysis, []
+
+
+class VideoZipLinkTool(ZipVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        ZipVideoLinkTool.__init__(self)
+
 
 class AudioZipAudioLinkTool(VideoAudioLinkTool):
     """
@@ -1223,9 +1271,9 @@ addTools = {
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
-             'audio.audio': AudioAudioLinkTool(), 'zip.video':   ImageZipVideoLinkTool(),
+             'audio.audio': AudioAudioLinkTool(), 'zip.video':   ZipVideoLinkTool(),
              'collection.image': CollectionImageLinkTool(),
-             'zip.zip': ZipZipLinkTool(), 'video.zip': ImageZipVideoLinkTool(),
+             'zip.zip': ZipZipLinkTool(), 'video.zip': VideoZipLinkTool(),
              'zip.image':   ZipImageLinkTool(),   'zip.audio': AudioZipAudioLinkTool()}
 
 

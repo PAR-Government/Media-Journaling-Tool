@@ -801,12 +801,12 @@ class AudioMetaLocatorTool(VideoMetaLocatorTool):
 
 class ZipMetaLocatorTool(VideoMetaLocatorTool):
 
-    def __init__(self, locator):
+    def __init__(self, locator, fps=30.0):
         """
         @type locator: MetaDataLocator
         """
         VideoMetaLocatorTool.__init__(self,locator)
-        self.fps = 30.0
+        self.fps = fps
 
     def get_meta(self,
                  with_frames=False,
@@ -1862,6 +1862,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
                 break
             compare_result, analysis_result  = tool_set.cropCompare(frame_one, frame_two, arguments=analysis)
             analysis.update(analysis_result)
+            break
             # go a few more rounds?
         analysis_components.mask = 0
     finally:

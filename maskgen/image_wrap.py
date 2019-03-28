@@ -764,10 +764,10 @@ class ImageWrapper:
         return ImageWrapper(gray.astype('float32'))
 
     def resize(self, size, flag):
-        ima = self.image_array if len(self.image_array.shape) < 3 else self.image_array[:,:,:4]
-        if str(self.image_array.dtype) == 'uint8':
+        ima = self.image_array
+        if str(self.image_array.dtype) == 'uint8' and (len(ima.shape) < 3 or ima.shape[2] < 5):
             return ImageWrapper(np.asarray(Image.fromarray(ima).resize(size, flag)))
-        return ImageWrapper(cv2.resize(ima, size, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC))
+        return ImageWrapper(cv2.resize(ima, (size[1],size[0]), fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC))
 
     def invert(self):
         if str(self.image_array.dtype).startswith('f'):

@@ -57,7 +57,7 @@ class Positions:
     def _get_meta_data(self,position_data):
         end_time = self._get_duration(position_data[2])
         end_position = int(end_time*self.fps/1000.0)+1
-        return self.start_time, int(self.start_time*self.fps/1000.0)+1,end_time,end_position
+        return self.start_time, int(self.start_time*self.fps/1000.0)+1, end_time, end_position
 
     def get_segments(self, initial_start_time=0, final_end_time=-1):
         subs = self.sub_positions(initial_start_time, final_end_time).positions
@@ -68,11 +68,14 @@ class Positions:
             seg_start = max(start_time, subs[p][0])
             end_time = self._get_duration(subs[p][2])
             # could end before the start of next
-            seg_end = min(seg_start+end_time, subs[p+1][0]-1.0/self.fps)
+            seg_end = min(seg_start+end_time, subs[p+1][0]-(1.0/self.fps))
             segs.append((seg_start, int(seg_start*self.fps/1000.0)+1, seg_end, int(seg_end*self.fps/1000.0)+1))
         p = len(subs)-1
-        seg_start = subs[p][0]
-        seg_end = seg_start + self._get_duration(subs[p][2])
+        seg_start = max(start_time, subs[p][0])
+        end_time = self._get_duration(subs[p][2])
+        seg_end = seg_start + end_time
+        if final_end_time > 0 and final_end_time > initial_start_time and final_end_time < seg_end:
+                seg_end = final_end_time
         segs.append((seg_start,
                     int(seg_start * self.fps / 1000.0) + 1,
                     seg_end,

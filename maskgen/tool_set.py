@@ -698,7 +698,7 @@ def outputVideoFrame(filename, outputName=None, videoFrameTime=None, isMask=Fals
 
 class ZipWriter:
 
-    def __init__(self, filename,fps=30):
+    def __init__(self, filename, fps=30):
         from zipfile import ZipFile
         postfix = filename[filename.rfind('.'):]
         self.filename = filename + ('.zip' if postfix not in ['.tgz','.zip'] else '')
@@ -728,6 +728,11 @@ class ZipWriter:
         os.remove(fname)
 
     def release(self):
+        fn = 'meta.csv'
+        with open(fn,'w') as fp:
+            fp.write('fram_rate,{}\n'.format(self.fps))
+        self.myzip.write(fn, fn)
+        os.remove('meta.csv')
         self.myzip.close()
 
 class ZipCapture:
@@ -742,10 +747,21 @@ class ZipCapture:
         self.count = 0
         self.dir = os.path.join(os.path.dirname(os.path.abspath(self.filename)) ,  uuid.uuid4().__str__())
         os.mkdir(self.dir)
+        if 'meta.csv' in self.myzip.namelist():
+            self.loadMeta()
         self.names = [name for name in self.myzip.namelist() if len(file_type_matcher.findall(name.lower())) > 0 and  \
                       os.path.basename(name) == name]
         self.exif = None
 
+    def loadMeta(self):
+        self.meta = {}
+        if 'meta.csv' in self.myzip.namelist():
+            fn = self._extract_name('meta.csv')
+            with open(fn,mode='r') as fp:
+                for line in fp.readlines():
+                    parts = line.split(',')
+                    self.meta[parts[0].lower().strip()] = ','.join(parts[1:])
+            self.fps = self.fps if 'frame_rate' not in self.meta else float(self.meta['frame_rate'])
 
     def get_size(self):
         return len(self.names)

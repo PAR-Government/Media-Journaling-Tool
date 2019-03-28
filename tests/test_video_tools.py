@@ -1578,14 +1578,18 @@ class TestVideoTools(TestSupport):
         return self._init_write_video_file('test_td_rs', mod_functions)
 
     def test_zip_mods(self):
-        self._test_all_mods(self._compose_zip_files)
+        self._test_all_mods(self._compose_zip_files, 3300)
 
     def test_vid_mods(self):
-        self._test_all_mods(self._compose_video_files)
+        self._test_all_mods(self._compose_video_files, None)
 
-    def _test_all_mods(self, composer):
+    def _test_all_mods(self, composer, endTime):
+        from maskgen.video_tools import FileMetaDataLocator, get_end_time_from_segment
         mod_functions = [sameForTest, cropForTest, noiseForTest, addForTest, changeForTest]
         fileOne, modFiles = composer(mod_functions)
+        maskSet = FileMetaDataLocator(fileOne).getMaskSetForEntireVideoForTuples()
+        if endTime is not None:
+            self.assertEquals(3300.00, get_end_time_from_segment(maskSet[0]))
         analysis = {}
         result_same, errors = video_tools.formMaskDiff(fileOne,
                                                        modFiles[0],

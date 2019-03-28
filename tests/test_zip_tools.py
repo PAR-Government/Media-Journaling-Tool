@@ -54,7 +54,6 @@ class TestZipTool(TestSupport):
             self.assertTrue(p1.positions[0] == p2.positions[0])
         os.remove('positions.csv')
 
-
     def test_get_segments(self):
         p2 = TestPositions([(1000, TestZipTool.to_frame(1000), 'foo1.wav'),
                                   (5000, TestZipTool.to_frame(5000), 'foo2.wav'),
@@ -70,7 +69,21 @@ class TestZipTool(TestSupport):
                             ],duration=8000)
         segments = p2.get_segments(6000, 11000)
         self.assertEquals(int(segments[0][2]*100), 999999)
+        self.assertEquals(segments[1][2], 11000.0)
+
+        segments = p2.get_segments(6000, -1)
+        self.assertEquals(int(segments[0][2]*100), 999999)
+        self.assertEquals(segments[1][0], 10000.0)
+        self.assertEquals(segments[1][1], 480001.)
         self.assertEquals(segments[1][2], 18000.0)
+
+        p2 = TestPositions([(1000, TestZipTool.to_frame(1000), 'foo1.wav'),
+                            (5000, TestZipTool.to_frame(5000), 'foo2.wav'),
+                            (10000, TestZipTool.to_frame(10000), 'foo3.wav')
+                            ], duration=8000)
+        segments = p2.get_segments(6000, 9000)
+        self.assertEquals(int(segments[0][2] * 100), 900000)
+        self.assertEquals(int(segments[0][0] * 100), 600000)
 
     def test_audio_without_positions(self):
         audio = zip_tools.AudioPositions(self.locateFile('zips/test.wav.zip'),fps=44100)

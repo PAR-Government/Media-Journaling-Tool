@@ -563,6 +563,7 @@ class AudioZipDonor(VideoDonor):
         from maskgen.video_tools import FileMetaDataLocator, \
             create_segment
         fps = float(getValue(arguments, 'sample rate',0))
+        # use AudioPostions to determine duration and rate
         positions = AudioPositions(FileMetaDataLocator(self.startFileName).get_filename(),
                                  fps=fps)
         duration = positions.get_total_duration()
