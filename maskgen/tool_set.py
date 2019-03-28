@@ -227,6 +227,12 @@ def getMimeType(filename):
             filename
         ))
 
+def zipFileType(fileName):
+    parts = fileName.lower().split('.')
+    if parts[-1] not in ['zip','gz','tgz']:
+        return None
+    return fileType('.'.join(parts[0:-1]))
+
 def fileType(fileName):
     if os.path.isdir(fileName):
         return 'dir'
@@ -510,7 +516,7 @@ def differenceInFramesBetweenMillisecondsAndFrame(mandf1, mandf2, rate):
 def getMilliSeconds(v):
     if v is None:
         return None, 0
-    if type(v) == int:
+    if type(v) in [int,float]:
         return v
     dt = None
     coloncount = v.count(':')
@@ -692,13 +698,14 @@ def outputVideoFrame(filename, outputName=None, videoFrameTime=None, isMask=Fals
 
 class ZipWriter:
 
-    def __init__(self, filename,fps=30):
+    def __init__(self, filename, fps=30):
         from zipfile import ZipFile
-        self.filename = filename
-        self.myzip = ZipFile(filename, 'w')
+        postfix = filename[filename.rfind('.'):]
+        self.filename = filename + ('.zip' if postfix not in ['.tgz','.zip'] else '')
+        self.myzip = ZipFile(self.filename, 'w')
         self.count = 0
         self.fps = fps
-        self.prefix = os.path.basename(os.path.splitext(filename)[0])
+        self.prefix = os.path.basename(os.path.splitext(self.filename)[0])
         #self.names = []
 
     def isOpened(self):
@@ -721,6 +728,11 @@ class ZipWriter:
         os.remove(fname)
 
     def release(self):
+        fn = 'meta.csv'
+        with open(fn,'w') as fp:
+            fp.write('fram_rate,{}\n'.format(self.fps))
+        self.myzip.write(fn, fn)
+        os.remove('meta.csv')
         self.myzip.close()
 
 class ZipCapture:
@@ -735,38 +747,75 @@ class ZipCapture:
         self.count = 0
         self.dir = os.path.join(os.path.dirname(os.path.abspath(self.filename)) ,  uuid.uuid4().__str__())
         os.mkdir(self.dir)
+        if 'meta.csv' in self.myzip.namelist():
+            self.loadMeta()
         self.names = [name for name in self.myzip.namelist() if len(file_type_matcher.findall(name.lower())) > 0 and  \
                       os.path.basename(name) == name]
+        self.exif = None
+
+    def loadMeta(self):
+        self.meta = {}
+        if 'meta.csv' in self.myzip.namelist():
+            fn = self._extract_name('meta.csv')
+            with open(fn,mode='r') as fp:
+                for line in fp.readlines():
+                    parts = line.split(',')
+                    self.meta[parts[0].lower().strip()] = ','.join(parts[1:])
+            self.fps = self.fps if 'frame_rate' not in self.meta else float(self.meta['frame_rate'])
+
+    def get_size(self):
+        return len(self.names)
 
     def isOpened(self):
         #TODO: check names, what else
         return True
 
+    def _extract_name(self,name):
+        extracted_file = os.path.join(self.dir, name)
+        if not os.path.exists(extracted_file):
+            extracted_file = self.myzip.extract(name, self.dir)
+        return extracted_file
+
     def get(self,prop):
         if prop == cv2api.cv2api_delegate.prop_fps:
             return self.fps
         if prop == cv2api.cv2api_delegate.prop_frame_count:
-            return self.count
+            return self.get_size()
         if prop == cv2api.cv2api_delegate.prop_pos_msec:
             return self.count* 1000.0/self.fps
+        exif = self.get_exif()
+        if prop == cv2api.cv2api_delegate.prop_frame_height:
+            return getExifDimensionsFromData(exif)[0][0]
+        if prop == cv2api.cv2api_delegate.prop_frame_width:
+            return getExifDimensionsFromData(exif)[0][1]
 
     def grab(self):
         self.count+=1
         return self.count <= len(self.names)
 
     def get_exif(self):
-        name = self.names[min(len(self.names)-1,self.count - 1)]
-        extracted_file = os.path.join(self.dir,name)
-        if not os.path.exists(extracted_file):
-            extracted_file = self.myzip.extract(name, self.dir)
-        return exif.getexif(extracted_file)
+        if self.exif is None:
+            name = self.names[min(len(self.names)-1,self.count - 1)]
+            extracted_file = self._extract_name (name)
+            self.exif = exif.getexif(extracted_file)
+        return self.exif
 
     def retrieve(self):
         if self.count > len(self.names):
             return False, None
         name = self.names[self.count-1]
-        extracted_file = self.myzip.extract(name, self.dir)
+        extracted_file =  self._extract_name (name)
         return True, openImage(extracted_file, isMask=False).to_array()
+
+    def set_to_end(self):
+        self.count = len(self.names)
+
+    def retrieve_file(self):
+        if self.count > len(self.names):
+            return None
+        name = self.names[self.count-1]
+        extracted_file = self._extract_name (name)
+        return extracted_file
 
     def read(self):
         self.grab()
@@ -774,8 +823,10 @@ class ZipCapture:
 
     def release(self):
         import shutil
-        shutil.rmtree(self.dir)
-        self.myzip.close()
+        if self.dir is not None:
+            shutil.rmtree(self.dir)
+            self.myzip.close()
+            self.dir = None
 
 
 def readFromZip(filename, filetypes=imagefiletypes, videoFrameTime=None, isMask=False, snapshotFileName=None, fps=30):
@@ -819,8 +870,12 @@ def readFromArchive(filename, filetypes=imagefiletypes, videoFrameTime=None, isM
             time_manager.updateToNow(elapsed_time)
             if time_manager.isPastTime() or videoFrameTime is None:
                 break
-        extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
-        img = openImage(extracted_file, isMask=isMask)
+        if names:
+            extracted_file = archive.extract(name, os.path.dirname(os.path.abspath(filename)))
+            img = openImage(extracted_file, isMask=isMask)
+        else:
+            extracted_file =''
+            img = openImage('')
         if extracted_file != snapshotFileName and snapshotFileName is not None:
             img.save(snapshotFileName)
         return img
@@ -2175,22 +2230,29 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
 
-def getExifDimensions(filename, crop=False):
-    from maskgen import exif
-    meta = exif.getexif(filename)
-    heights= ['Cropped Image Height', 'AF Image Height', 'Image Height','Exif Image Height', ] if crop else ['Image Height','Exif Image Height']
-    widths = ['Cropped Image Width', 'AF Image Width','Image Width','Exif Image Width', ] if crop else ['Image Width','Exif Image Width']
-    height_selections = [(meta[h] if h in meta else None) for h in heights]
-    width_selections =  [(meta[w] if w in meta else None) for w in widths ]
-    if 'png:IHDR.width,height' in meta:
+
+def getExifDimensionsFromData(exif_meta, crop=False):
+    heights = ['Cropped Image Height', 'AF Image Height', 'Image Height', 'Exif Image Height', ] if crop else [
+        'Image Height', 'Exif Image Height']
+    widths = ['Cropped Image Width', 'AF Image Width', 'Image Width', 'Exif Image Width', ] if crop else ['Image Width',
+                                                                                                          'Exif Image Width']
+    height_selections = [(exif_meta[h] if h in exif_meta else None) for h in heights]
+    width_selections = [(exif_meta[w] if w in exif_meta else None) for w in widths]
+    if 'png:IHDR.width,height' in exif_meta:
         try:
-            w,h = [int(x.strip()) for x in meta['png:IHDR.width,height'].split(',')]
+            w, h = [int(x.strip()) for x in exif_meta['png:IHDR.width,height'].split(',')]
             height_selections.append(h)
             width_selections.append(w)
         except:
             pass
     return [(int(height_selections[p]), int(width_selections[p]))
-            for p in range(len(width_selections)) if height_selections[p] is not None and width_selections[p] is not None]
+            for p in range(len(width_selections)) if
+            height_selections[p] is not None and width_selections[p] is not None]
+
+
+def getExifDimensions(filename, crop=False):
+    from maskgen import exif
+    return getExifDimensionsFromData(exif.getexif(filename))
 
 def convertCompare(img1, img2, arguments=dict()):
     analysis = {}
@@ -3199,7 +3261,7 @@ def compose_overlay_name(target_file="", link = tuple()):
 class GrayBlockOverlayGenerator:
 
     def __init__(self, locator, segments = [], target_file = None, output_file = ""):
-        from video_tools import getMaskSetForEntireVideo, get_frames_from_segment
+        from video_tools import get_frames_from_segment
 
         self.target_file = target_file
         self.output_file = output_file
@@ -3219,7 +3281,7 @@ class GrayBlockOverlayGenerator:
             mask_prefix=self.overlay_mask_name,
             fps=self.reader.fps)
 
-        self.last_frame = get_frames_from_segment(getMaskSetForEntireVideo(locator)[0])
+        self.last_frame = get_frames_from_segment(locator.getMaskSetForEntireVideo()[0])
 
     def updateSegment(self):
         self.segment_index += 1
@@ -3347,37 +3409,22 @@ class GrayBlockFactory:
     """
     Either build the Writer or the Validator
     """
-    def __init__(self, jt_mask=None):
-        self.jt_mask = jt_mask
-        self.product = None
+    def __init__(self, writer =None):
+        self.writer = writer
 
     def __call__(self, name, fps):
-        self.product = GrayBlockWriter(mask_prefix=name, fps=fps) if self.jt_mask is None else GrayBlockValidator(jt_mask_file=self.jt_mask)
-        return self.product
+        return GrayBlockWriter(mask_prefix=name, fps=fps) if self.writer is None else self.writer
 
-class GrayBlockValidator:
+class GrayBlockValidator():
     """
     Compare frames of two video masks to see if one is valid.
     """
-    def __init__(self, jt_mask_file):
+    def __init__(self, jt_mask_file, validation_function):
         self.filename = jt_mask_file
         self.failed_frames = []
         self.manager = GrayBlockReaderManager()
+        self.validation_function = validation_function
         self.manager.create_reader(jt_mask_file)
-
-    def compareMask(self, mask, inputmask, cur_frame):
-        inputmask = np.invert(inputmask)
-        inputmask[inputmask > 0] = 1
-        mask = np.invert(mask)
-        mask[mask > 0] = 1
-        intersection = inputmask * mask
-        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
-        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
-        masksize = float(np.sum(mask))
-        unionsize = float(np.sum(union))
-        mismatch = abs(masksize-unionsize)/masksize
-        if mismatch > .05:
-            self.failed_frames.append(cur_frame)
 
     def write(self, mask, mask_time, frame_number):
         while(self.manager.reader.current_frame() < frame_number):
@@ -3385,7 +3432,8 @@ class GrayBlockValidator:
         if self.manager.reader.current_frame() == frame_number:
             jt_mask = self.manager.reader.read()
             if jt_mask is not None:
-                self.compareMask(inputmask=mask, mask=jt_mask, cur_frame=frame_number)
+                if not self.validation_function(jt_mask,mask):
+                    self.failed_frames.append(frame_number)
 
     def get_file_name(self):
         return self.filename

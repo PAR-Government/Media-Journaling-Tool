@@ -8,7 +8,6 @@
 
 import logging
 from image_wrap import openImageFile,ImageWrapper
-from video_tools import get_frame_rate
 from graph_meta_tools import MetaDataExtractor
 from software_loader import SoftwareLoader, getFileName
 import numpy as np
@@ -558,7 +557,7 @@ def _fixTimeStrings(scModel, gopLoader):
             for k,v in args.iteritems():
                 if 'Time' in k and  v.count(':') == 3:
                     m,f = getMilliSecondsAndFrameCount(v)
-                    rate = get_frame_rate(extractor.getMetaDataLocator(frm))
+                    rate = extractor.getMetaDataLocator(frm).get_frame_rate()
                     if rate is not None:
                         m += int(f*1000.0/rate)
                     v = getDurationStringFromMilliseconds(m)
@@ -706,7 +705,7 @@ def _fixVideoMasksEndFrame(scModel, gopLoader):
         for mask in masks:
             if mask['type'] in ['video','audio']:
                 end_time = getValue(edge, 'arguments.End Time')
-                result = video_tools.getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm),media_types=[mask['type']]) \
+                result = extractor.getMetaDataLocator(frm).getMaskSetForEntireVideo(media_types=[mask['type']]) \
                         if os.path.exists(scModel.G.get_pathname(frm)) else None
                 result = result[0] if result is not None and len(result) > 0 else None
                 if (result is None or 'endframe' not in result) and end_time is None:

@@ -7,7 +7,7 @@
 # ==============================================================================
 from maskgen.image_wrap import ImageWrapper
 from maskgen.support import getValue
-from maskgen.tool_set import interpolateMask
+from maskgen.tool_set import interpolateMask, zipFileType
 from maskgen.video_tools import get_rate_from_segment, get_start_time_from_segment, \
     get_end_time_from_segment, update_segment, get_type_of_segment
 
@@ -245,6 +245,9 @@ class VideoInterpolateDonor:
             arguments=arguments)
 
 
+def audio_zip_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+    return AudioZipDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
+
 def video_donor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return VideoDonor(graph,donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
@@ -312,10 +315,10 @@ class VideoDonor:
         from maskgen.tool_set import getMilliSecondsAndFrameCount
         media_types = ['video', 'audio'] if getValue(arguments, 'include audio', 'no') == 'yes' else ['video']
 
-        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        from maskgen.video_tools import FileMetaDataLocator
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        video_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+        video_set= FileMetaDataLocator(self.startFileName).getMaskSetForEntireVideoForTuples(
                                                      start_time_tuple=start_time_tuple,
                                                      end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
                                                      media_types=media_types)
@@ -411,11 +414,11 @@ class GeneralStreamDonor:
     def create(self,
                arguments={},
                invert=False):
-        from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
+        from maskgen.video_tools import  FileMetaDataLocator
         from maskgen.tool_set import getMilliSecondsAndFrameCount
         end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
         start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-        return getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
+        return FileMetaDataLocator(self.startFileName).getMaskSetForEntireVideoForTuples(
                                                  start_time_tuple=start_time_tuple,
                                                  end_time_tuple=end_time_tuple if end_time_tuple[0] > 0 else None,
                                                  media_types=self.media_types())
@@ -460,27 +463,6 @@ class SampleAudioDonor(AudioDonor):
         """
         AudioDonor.__init__(self,graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
-    #
-    # def create(self,
-    #            arguments={},
-    #            invert=False):
-    #
-    #     from maskgen.tool_set import getMilliSecondsAndFrameCount,VidTimeManager
-    #     from maskgen.video_tools import audioDonor
-    #
-    #     from maskgen.video_tools import getMaskSetForEntireVideoForTuples, FileMetaDataLocator
-    #     end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
-    #     start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
-    #     audio_set= getMaskSetForEntireVideoForTuples(FileMetaDataLocator(self.startFileName),
-    #                                                  start_time_tuple=start_time_tuple,
-    #                                                  end_time_tuple=end_time_tuple if end_time_tuple[1] > start_time_tuple[1] else None,
-    #                                                  media_types=['audio'])
-    #     time_manager = VidTimeManager(start_time_tuple,end_time_tuple)
-    #     try:
-    #         return [audioDonor(self.startFileName, self.destFileName, time_manager, arguments={})]
-    #     except:
-    #         return audio_set
-
 def all_audio_processor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
     return AllAudioStreamDonor(graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple)
 
@@ -520,4 +502,80 @@ class AllStreamDonor(GeneralStreamDonor):
 
     def arguments(self):
         return {}
+
+
+
+class AudioZipDonor(VideoDonor):
+
+    def __init__(self, graph, donor_start, donor_end, parent_of_end, startImTuple, destImTuple):
+        """
+        :param graph:
+        :param donor_start:
+        :param donor_end:
+        :param parent_of_end:
+        :param startImTuple:
+        :param destImTuple:
+        @type graph: ImageGraph
+        """
+        self.graph = graph
+        self.donor_start = donor_start
+        self.donor_end = donor_end
+        self.parent_of_end = parent_of_end
+        self.startIm = startImTuple[0]
+        self.destIm = destImTuple[0]
+        self.startFileName = startImTuple[1]
+        self.destFileName = destImTuple[1]
+
+    def _base_arguments(self):
+        return {
+            "Start Time": {
+                "type": "frame_or_time",
+                "defaultvalue": "00:00:00.000000",
+                "trigger mask": True,
+                "description": "Start frame number"
+            },
+            "sample rate": {
+                "type": "float:[0:600000]",
+                "defaultvalue": 44100,
+                "description": "Samples Per Second"
+            },
+            "End Time": {
+                "type": "frame_or_time",
+                "trigger mask" : True,
+                "description": "End frame number. Leave 0 if ALL"
+            }
+        }
+
+    def arguments(self):
+        args = self._base_arguments()
+        edge = self.graph.get_edge(self.donor_start,self.donor_end)
+        args['Start Time']['defaultvalue'] = getValue(edge,'arguments.Start Time',"1")
+        end_def = getValue(edge, 'arguments.End Time', None)
+        if end_def is not None:
+            args['End Time']['defaultvalue'] = end_def
+        return args
+
+    def create(self,
+               arguments={},
+               invert=False):
+        from maskgen.zip_tools import AudioPositions
+        from maskgen.tool_set import getMilliSecondsAndFrameCount
+        from maskgen.video_tools import FileMetaDataLocator, \
+            create_segment
+        fps = float(getValue(arguments, 'sample rate',0))
+        # use AudioPostions to determine duration and rate
+        positions = AudioPositions(FileMetaDataLocator(self.startFileName).get_filename(),
+                                 fps=fps)
+        duration = positions.get_total_duration()
+        rate = positions.fps
+        end_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'End Time', "00:00:00"))
+        start_time_tuple = getMilliSecondsAndFrameCount(getValue(arguments, 'Start Time', '00:00:00'))
+        if end_time_tuple[0] <= start_time_tuple[0]:
+            end_time_tuple= (duration,0)
+        return [create_segment(starttime=float(start_time_tuple[0]),
+                                                 startframe=int(start_time_tuple[0]*rate/1000.0)+1,
+                                                 endtime=float(end_time_tuple[0]),
+                                                 endframe=int(end_time_tuple[0]*rate/1000.0)+1,
+                                                 type='audio',
+                                                 rate=rate)]
 

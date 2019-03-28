@@ -9,7 +9,7 @@
 import shutil
 import os
 import maskgen
-
+from maskgen.video_tools import FileMetaDataLocator
 """
 Convenience plugin to combine donation and splice connecting in one operation.
 """
@@ -18,7 +18,7 @@ Convenience plugin to combine donation and splice connecting in one operation.
 def transform(img, source, target, **kwargs):
     if 'Final Media' in kwargs:
         shutil.copy(kwargs['Final Media'], target)
-        mask_set = maskgen.video_tools.getMaskSetForEntireVideo(kwargs['donor'],media_types=['audio'])
+        mask_set = FileMetaDataLocator(kwargs['donor']).getMaskSetForEntireVideo(media_types=['audio'])
         return {'rename_target': os.path.split(kwargs['Final Media'])[1],
                 'startframe':mask_set[0]['startframe'],
                 'endframe':mask_set[0]['endframe']}, None
