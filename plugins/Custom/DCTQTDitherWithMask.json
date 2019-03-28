@@ -6,28 +6,31 @@
       "description": "The DCT coefficients of a host JPEG file will be modified to ameliorate double-compression artifacts caused by incorporation of data from a donor JPEGfile",
       "software": "JPEG_DCT_Modify",
       "version": "0.2",
-      "arguments":{
+      "arguments": {
         "donor": {
-          "type":"donor",
+          "type": "donor",
           "description": "Donor quantization table file."
         },
         "mask": {
-          "type": "imagefile",
-          "defaultvalue":"",
+          "type": "file:image",
+          "defaultvalue": "",
           "description": "Mask of region to dither."
+        }
       },
-      "transitions": ["image.image"]
-    },
-    "suffix" : ".jpg",
-    "command": {
-      "default": [
-        "JPEG_DCT_Modify",
-        "-i",
-        "-m",
-        "{mask}",
-        "{inputimage}",
-        "{donor}",
-        "{outputimage}"
-      ]
-    }
+        "transitions": [
+          "image.image"
+        ]
+      },
+      "suffix": ".jpg",
+      "command": {
+        "default": [
+          "JPEG_DCT_Modify",
+          "-i",
+          "-m",
+          "{mask}",
+          "{inputimage}",
+          "{donor}",
+          "{outputimage}"
+        ]
+      }
 }
