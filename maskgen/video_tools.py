@@ -787,10 +787,10 @@ class AudioMetaLocatorTool(VideoMetaLocatorTool):
         :param audio:
         :return:
         """
-        meta, _ = self.locator.get_meta(media_types=['audio'], show_streams=True)
+        meta, _ = self.locator.get_meta(media_types=['audio','video'], show_streams=True)
         duration = ffmpeg_api.get_duraton_from_meta(meta,media_type='audio')
         if duration is None or duration[0] == 'N':
-            maskset = self.getMaskSetForEntireVideo(media_types=['audio'])
+            maskset = self.locator.getMaskSetForEntireVideo(media_types=['audio'])
             if not maskset:
                 return default
             frames = get_frames_from_segment(maskset[0])

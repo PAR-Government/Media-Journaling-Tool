@@ -345,8 +345,10 @@ def get_video_frame_rate_from_meta(meta, frames):
         float(getValue(meta[index], 'nb_frames', 30))/float(getValue(meta[index],'duration',1))
 
 def get_duraton_from_meta(meta, media_type='video'):
-    index = get_stream_indices_of_type(meta, media_type)[0]
-    return getValue(meta[index], 'duration')
+    indices = get_stream_indices_of_type(meta, media_type)
+    if len(indices) == 0:
+        return None
+    return getValue(meta[indices[0]], 'duration')
 
 def test_meta(self):
     meta, frames = get_meta_from_video(self.locateFile('tests/videos/sample1.mov'), with_frames=True)
