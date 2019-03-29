@@ -742,7 +742,7 @@ class VideoMetaLocatorTool:
         :param default:
         :return:
         """
-        meta,frames = self.locator.get_meta()
+        meta,frames = self.locator.get_meta(show_streams=True)
         return ffmpeg_api.get_video_frame_rate_from_meta(meta,frames)
 
     def get_duration(self, default=None):
@@ -752,7 +752,7 @@ class VideoMetaLocatorTool:
         :param audio:
         :return:
         """
-        meta, frames = self.locator.get_meta()
+        meta, frames = self.locator.get_meta(show_streams=True)
         duration = ffmpeg_api.get_duraton_from_meta(meta)
         if duration is None or duration[0] == 'N':
             maskset = self.getMaskSetForEntireVideo(media_types=['video'])
@@ -777,7 +777,7 @@ class AudioMetaLocatorTool(VideoMetaLocatorTool):
         :param audio:
         :return:
         """
-        meta, _ = self.locator.get_meta(media_types=['audio'])
+        meta, _ = self.locator.get_meta(media_types=['audio'], show_streams=True)
         return ffmpeg_api.get_audio_frame_rate_from_meta(meta)
 
     def get_duration(self,default=None):
@@ -787,7 +787,7 @@ class AudioMetaLocatorTool(VideoMetaLocatorTool):
         :param audio:
         :return:
         """
-        meta, _ = self.locator.get_meta(media_types=['audio'])
+        meta, _ = self.locator.get_meta(media_types=['audio'], show_streams=True)
         duration = ffmpeg_api.get_duraton_from_meta(meta,media_type='audio')
         if duration is None or duration[0] == 'N':
             maskset = self.getMaskSetForEntireVideo(media_types=['audio'])
