@@ -159,6 +159,38 @@ class TestToolSet(TestSupport):
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
         self.assertEqual(1, result)
 
+    def test_checkFrameRate(self):
+        from maskgen.graph_meta_tools import GraphProxy
+        source = self.locateFile('tests/videos/sample1.mov')
+        target = self.locateFile('tests/videos/sample1_slow.mov')
+        graph = GraphProxy(source, 'b')
+        op = Mock()
+        op.category = 'Paste'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertTrue(result)
+        op.category = 'Audio'
+        target = self.locateFile('tests/videos/sample2_ffr.mxf')
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertTrue(result)
+        target = source
+        op.category = 'Paste'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertFalse(result)
+        op.category = 'Audio'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertFalse(result)
+
+    def test_checkDuration(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        result = graph_rules.checkDuration('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        result = graph_rules.checkAudioOnly('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value = {'metadatadiff': {'video': {}}}
+        result = graph_rules.checkDuration('op', graph, 'a', 'b')
+        self.assertIsNone(result)
+
     def test_checkSampleRate(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},

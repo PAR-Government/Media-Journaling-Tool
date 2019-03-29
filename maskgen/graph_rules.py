@@ -976,7 +976,7 @@ def checkDuration(op, graph, frm, to):
     return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
-    return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
+    return _checkDurationErrorType(op, graph, frm, to, Severity.ERROR, media_type='audio')
 
 def checkAudioAdd(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
