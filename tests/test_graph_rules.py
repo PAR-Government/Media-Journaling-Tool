@@ -211,7 +211,7 @@ class TestToolSet(TestSupport):
     def test_checkAudioOnly(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
-                                            'metadatadiff': {'audio':{'duration':('change',1,2)}}})
+                                            'metadatadiff': {}})
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
