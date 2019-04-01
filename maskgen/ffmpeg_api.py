@@ -112,22 +112,7 @@ def process_frames_from_stream(stream, errorstream):
 def process_meta_from_streams(stream, errorstream):
     streams = []
     meta = {}
-    bit_rate = None
     video_stream = None
-    try:
-        while True:
-            line = errorstream.readline()
-            if line is None or len(line) == 0:
-                break
-            pos = line.find('bitrate:')
-            if pos > 0:
-                bit_rate = line[pos+9:].strip()
-                pos = bit_rate.find(' ')
-                if pos > 0:
-                    bit_rate = str(int(bit_rate[0:pos]) * 1024)
-                    break
-    except:
-        pass
     while True:
         line = stream.readline()
         if line is None or len(line) == 0:
@@ -135,6 +120,11 @@ def process_meta_from_streams(stream, errorstream):
         if '[STREAM]' in line or '[FORMAT]' in line:
             while True:
                 line = stream.readline()
+                if '[/FORMAT]' in line:
+                    bit_rate = getValue(meta,'bit_rate',None)
+                    if bit_rate is not None and video_stream is not None:
+                        streams[video_stream]['bit_rate'] = bit_rate
+                    break
                 if '[/STREAM]' in line:
                     index = __add_meta_to_list(streams, meta, index_id ='index')
                     if getValue(meta,'codec_type','na') == 'video' and video_stream is None:
@@ -147,15 +137,8 @@ def process_meta_from_streams(stream, errorstream):
                     setting = line.split('=')
                     if len(setting) < 2 or len(setting[1]) == 0:
                         continue
-                    meta[setting[0]] = '='.join(setting[1:]).strip()
-    if len(meta) > 0:
-        index = __add_meta_to_list(streams, meta, index_id='index')
-        if getValue(meta, 'codec_type', 'na') == 'video' and video_stream is None:
-            video_stream = index
-    if bit_rate is not None and video_stream is not None and \
-            ('bit_rate' is not streams[video_stream]  or \
-                     streams[video_stream]['bit_rate'] == 'N/A'):
-        streams[video_stream]['bit_rate'] = bit_rate
+                    if setting[0] not in meta:
+                        meta[setting[0]] = ''.join(setting[1:]).strip()
     return streams
 
 
@@ -225,7 +208,7 @@ def get_meta_from_video(file,
                    if len(frames) > 0 else frames
 
     def runProbeWithFrames(func, args=None):
-        ffmpegcommand = [get_ffprobe_tool(),'-loglevel','error']
+        ffmpegcommand = [get_ffprobe_tool(),'-loglevel','error', '-show_format']
         if args != None:
             ffmpegcommand.extend(args)
         ffmpegcommand.append(file)
@@ -267,7 +250,7 @@ def get_meta_from_video(file,
         raise ValueError("{} not found".format(file))
 
     def runProbe(func, args=None):
-        ffmpegcommand = [get_ffprobe_tool(), '-loglevel','error', file]
+        ffmpegcommand = [get_ffprobe_tool(), '-loglevel','error',  '-show_format', file]
         if args != None:
             ffmpegcommand.extend(args)
         process = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
