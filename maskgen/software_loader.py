@@ -209,8 +209,8 @@ class Operation:
 
     def getParameterValuesForType(self, param_name, ftype, default_value=[]):
         param = getValue(self.mandatoryparameters, param_name, getValue(self.optionalparameters, param_name,
-                                                                        default_value))
-        return getValue(param, ftype + ':values', getValue(param, 'values', default_value), [])
+                                                                        {}))
+        return getValue(param, ftype + ':values', getValue(param, 'values', default_value), default_value)
 
     def getDonorProcessor(self, default_processor = None):
         if  self.donor_processor is not None:
