@@ -766,7 +766,7 @@ class PreProcessedMediaOperation(BatchOperation):
         predecessors = [getNodeState(predecessor, local_state)['node'] for predecessor in graph.predecessors(node_name) \
                         if predecessor != connect_to_node_name and 'node' in getNodeState(predecessor, local_state)]
         predecessor_state = getNodeState(connect_to_node_name, local_state)
-        local_state['model'].selectImage(predecessor_state['node'])
+        local_state['model'].selectNode(predecessor_state['node'])
         if 'usebaseimage' in node and node['usebaseimage']:
             base = local_state['model'].getBaseNode(local_state['model'].start)
             self.logger.debug("Using base image {0}".format(base))
@@ -823,7 +823,7 @@ class PreProcessedMediaOperation(BatchOperation):
             my_state['output'] = results[0]
             my_state['node'] = local_state['model'].nextId()
             for predecessor in predecessors:
-                local_state['model'].selectImage(predecessor)
+                local_state['model'].selectNode(predecessor)
                 if (self.logger.isEnabledFor(logging.DEBUG)):
                     self.logger.debug('Project {} connect {} to {}'.format(local_state['model'].getName(),
                                                                            predecessor,
@@ -832,7 +832,7 @@ class PreProcessedMediaOperation(BatchOperation):
                                              sendNotifications=False,
                                              skipDonorAnalysis='skip_donor_analysis' in node and node[
                                                  'skip_donor_analysis'])
-                local_state['model'].selectImage(my_state['node'])
+                local_state['model'].selectNode(my_state['node'])
         elif len(results) > 1:
             raise ValueError('Directory {} contains more than one matching media for {}: {}'.format(
                 directory, filename, str([os.path.basename(r) for r in results])))
@@ -875,7 +875,7 @@ class PluginOperation(BatchOperation):
         predecessor_state = getNodeState(connect_to_node_name, local_state)
         if 'node' not in predecessor_state:
             self.logger.error('{} is not valid predecessor for {}.  Is it labeled as connect:False?'.format(connect_to_node_name,node_name))
-        local_state['model'].selectImage(predecessor_state['node'])
+        local_state['model'].selectNode(predecessor_state['node'])
         im, filename = local_state['model'].currentImage()
         plugin_name = node['plugin']
         plugin_op = plugins.getOperation(plugin_name)
@@ -924,7 +924,7 @@ class PluginOperation(BatchOperation):
                                                                        str(getValue(edge,'arguments',defaultValue={}))))
         my_state['output'] = local_state['model'].getNextImageFile()
         for predecessor in predecessors:
-            local_state['model'].selectImage(predecessor)
+            local_state['model'].selectNode(predecessor)
             if (self.logger.isEnabledFor(logging.DEBUG)):
                 self.logger.debug('Project {} connect {} to {}'.format(local_state['model'].getName(),
                                                                        predecessor,
@@ -933,7 +933,7 @@ class PluginOperation(BatchOperation):
                                          sendNotifications=False,
                                          skipDonorAnalysis='skip_donor_analysis' in node and node[
                                              'skip_donor_analysis'])
-            local_state['model'].selectImage(my_state['node'])
+            local_state['model'].selectNode(my_state['node'])
         return my_state['node']
 
 
@@ -968,7 +968,7 @@ class InputMaskPluginOperation(PluginOperation):
             predecessor_state = getNodeState(connect_to_node_name, local_state)
         if 'node' not in predecessor_state:
             raise ValueError('image selection operation requires a source node')
-        local_state['model'].selectImage(predecessor_state['node'])
+        local_state['model'].selectNode(predecessor_state['node'])
         if 'usebaseimage' in node and node['usebaseimage']:
             base = local_state['model'].getBaseNode(local_state['model'].start)
             self.logger.debug("Using base image {0}".format(base))

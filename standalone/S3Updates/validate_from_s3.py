@@ -188,9 +188,9 @@ def recompressAsVideo(scModel):
                 donor = scModel.getBaseNode(edge[1])
             else:
                 donor = predecessors[0]
-            scModel.selectImage(edge[1])
+            scModel.selectNode(edge[1])
             scModel.remove()
-            scModel.selectImage(edge[0])
+            scModel.selectNode(edge[0])
             scModel.mediaFromPlugin('CompressAsVideo', donor=donor)
 
 def run_auto_update(project):
