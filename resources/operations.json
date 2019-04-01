@@ -200,8 +200,7 @@
       "generateMask": "audio",
       "transitions": [
         "video.video",
-        "audio.audio",
-        "video.audio"
+        "audio.audio"
       ],
       "qaList": [
         "Time Stamps Ok?"
@@ -4455,6 +4454,18 @@
       "name": "OutputAudioPCM",
       "mandatoryparameters": {
       },
+      "optionalparameters": {
+         "sample rate": {
+          "type": "int[1:1000000]",
+          "source": "zip",
+          "description": "Sample rate of file contents"
+        },
+         "Audio Sequence File": {
+          "type": "file:csv",
+          "source": "zip",
+          "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
+        }
+      },
       "rules": [
         "checkLengthSame",
         "checkAudioOutputType",
@@ -4465,11 +4476,10 @@
       },
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.sample_rate_change",
-        "audio": "maskgen.mask_rules.sample_rate_change"
+        "audio": "maskgen.mask_rules.sample_rate_change",
+        "zip":   "maskgen.mask_rules.audio_selection"
       },
-      "optionalparameters": {
-      },
-      "description": "Export the image in the PCM format (wave, aif, etc.).",
+      "description": "Export the stream in the PCM format (wave, aif, etc.).",
       "includeInMask": {
         "default": false
       },
@@ -4788,6 +4798,34 @@
       "transitions": [
         "video.video",
         "audio.audio"
+      ]
+    },
+    {
+      "category": "Output",
+      "name": "OutputZIP",
+      "descriptions": "Export a subsection (pixel-wise and time-wise) of a video",
+      "mandatoryparameters": {
+        "Start Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "optionalparameters": {
+         "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        }
+      },
+      "rules": [],
+      "description": "Output a Video to Zip file",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "zip.zip",
+        "video.zip"
       ]
     },
     {
@@ -5574,6 +5612,22 @@
     },
     {
       "category": "Transform",
+      "name": "Vid2Vid",
+      "mandatoryparameters": {
+      },
+      "description": "Use of Vid2Vid GAN to replace a face in a zip of images",
+      "generateMask": "meta",
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "zip.zip"
+      ],
+      "rules": [],
+      "optionalparameters": {}
+    },
+    {
+      "category": "Transform",
       "name": "FrameBlend",
       "mandatoryparameters": {
         "Start Time": {
@@ -6195,7 +6249,8 @@
       },
       "transitions": [
         "image.image",
-        "video.video"
+        "video.video",
+        "zip.zip"
       ]
     },
     {
@@ -6497,7 +6552,8 @@
       "generateMask": "meta",
       "transitions": [
         "image.image",
-        "video.video"
+        "video.video",
+        "zip.zip"
       ]
     },
     {

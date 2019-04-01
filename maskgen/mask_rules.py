@@ -238,6 +238,12 @@ class CompositeImage:
             return np.sum(self.mask) == 0
         return self.videomasks is None or len(self.videomasks) == 0
 
+    def createEmptyMask(self,media_type='video'):
+        if self.mask is not None:
+            return np.zeros(self.mask.shape,dtype=self.mask.dtype)
+        else:
+            return None if self.videomasks is None else [v for v in self.videomasks if video_tools.get_type_of_segment(v) != media_type]
+
     def isImage(self):
         return self.media_type == 'image'
 
@@ -394,6 +400,12 @@ class BuildState:
         self.compositeMask = composite_image if self.isComposite else None
         self.donorMask = composite_image if not self.isComposite else None
 
+    def emptyMask(self,media_type='video'):
+        if self.isComposite:
+            return self.compositeMask.create(self.compositeMask.createEmptyMask(media_type=media_type))
+        else:
+            return self.donorMask.create(self.donorMask.createEmptyMask(media_type=media_type))
+
     def warpMask(self, media_type=None):
         if self.isComposite:
             return self.compositeMask.create(self.meta_extractor.warpMask(self.compositeMask.videomasks,
@@ -528,7 +540,7 @@ def _prepare_video_masks(meta_extractor,
         if not returnEmpty:
             return None
         if fillWithUserBoundaries:
-            video_masks = video_tools.getMaskSetForEntireVideo(meta_extractor.getMetaDataLocator(source),
+            video_masks = meta_extractor.getMetaDataLocator(source).getMaskSetForEntireVideo(
                                                  start_time = getValue(edge,'arguments.Start Time',
                                                                        defaultValue='00:00:00.000'),
                                                  end_time = getValue(edge,'arguments.End Time'),
@@ -1788,8 +1800,7 @@ def image_to_video(buildState):
     """
     if buildState.isComposite:
         return _prepare_video_masks(buildState.meta_extractor,
-                                    video_tools.getMaskSetForEntireVideo(
-                                        buildState.meta_extractor.getMetaDataLocator(buildState.target)),
+                                    buildState.meta_extractor.getMetaDataLocator(buildState.target)).getMaskSetForEntireVideo(
                                     'video',
                                     buildState.source,
                                     buildState.target,
@@ -1928,7 +1939,7 @@ def image_selection(buildState):
         return video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
                                                                  defaultValue='00:00:00.000'))
     else:
-        masks = video_tools.getMaskSetForEntireVideo(buildState.meta_extractor.getMetaDataLocator(buildState.source),
+        masks = buildState.meta_extractor.getMetaDataLocator(buildState.source).getMaskSetForEntireVideo(
                                              start_time=getValue(buildState.edge, 'arguments.Frame Time',
                                                                  defaultValue='00:00:00.000'),
                                              end_time=getValue(buildState.edge, 'arguments.Frame Time',
@@ -1976,6 +1987,19 @@ def sample_rate_change(buildState):
         @rtype: CompositeImage
         """
     return buildState.warpMask(media_type='audio')
+
+def audio_selection(buildState):
+    """
+    TODO
+    For use of zip to audio.
+    Use Audio Positions to build donor.
+    Use Audio Positions to substract out masks.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return buildState.emptyMask(media_type='audio')
 
 def output_video_change(buildState):
     """
@@ -3028,7 +3052,7 @@ class CompositeDelegate:
                     startMask = None
                 elif tool_set.fileType(fullpath) in ['video','audio'] and 'videomasks' in edge:
                     startMask = _prepare_video_masks(self.meta_extractor,
-                                                     video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(fullpath)),
+                                                     video_tools.FileMetaDataLocator(fullpath).getMaskSetForEntireVideo(),
                                                      # TODO: need to reconsider this and base the type on the videomask type
                                                      tool_set.fileType(fullpath),
                                                      edge_id[0],
@@ -3244,7 +3268,7 @@ class GraphCompositeVideoIdAssigner:
             if not probe.has_masks_in_target():
                 continue
             video_file = os.path.join(directory, probe.finalImageFileName)
-            segment = video_tools.get_frame_count(video_file)
+            segment = video_tools.FileMetaDataLocator(video_file).get_frame_count()
             key = self.key_function(segment, video_file)
             rate = video_tools.get_rate_from_segment(segment, 30) if segment is not None else 30
             if key not in self.group_probes:

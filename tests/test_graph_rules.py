@@ -4,7 +4,9 @@ from maskgen.scenario_model import loadProject
 from test_support import TestSupport
 from mock import MagicMock, Mock, patch
 from maskgen.validation.core import Severity
-from maskgen import video_tools
+from maskgen import video_tools,graph_meta_tools
+
+
 class TestToolSet(TestSupport):
 
     def test_aproject(self):
@@ -115,25 +117,28 @@ class TestToolSet(TestSupport):
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
         graph.predecessors = Mock(return_value=['ai','c'])
-        def duration(x,audio=True):
-            return {'ai': 59348.345, 'b':60348.345}[x.source]
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        class MyExtractor:
+            def __init__(self,x):
+                self.x = x
+            def get_duration(self,audio=False):
+                return {'ai': 59348.345, 'b': 60348.345}[self.x]
+
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ai', 'b')
             self.assertIsNone(result)
 
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNotNone(result)
 
-        def duration(x,audio=True):
-            return {'ai': 59348.345, 'b':1000.0}[x.source]
-        with patch('maskgen.video_tools.get_duration',spec=duration) as cm:
-            cm.side_effect = duration
+        class MyExtractor2:
+            def __init__(self,x):
+                self.x = x
+            def get_duration(self,audio=False):
+                return {'ai': 59348.345, 'b': 1000.0}[self.x]
+        with patch.object(graph_meta_tools.MetaDataExtractor, 'getMetaDataLocator',side_effect=MyExtractor2) as cm:
             result = graph_rules.checkAudioLengthDonor('op', graph, 'ar', 'b')
             self.assertIsNone(result)
-
 
 
     def test_checkAudioLength(self):
@@ -153,6 +158,38 @@ class TestToolSet(TestSupport):
                                             'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
         result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
         self.assertEqual(1, result)
+
+    def test_checkFrameRate(self):
+        from maskgen.graph_meta_tools import GraphProxy
+        source = self.locateFile('tests/videos/sample1.mov')
+        target = self.locateFile('tests/videos/sample1_slow.mov')
+        graph = GraphProxy(source, 'b')
+        op = Mock()
+        op.category = 'Paste'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertTrue(result)
+        op.category = 'Audio'
+        target = self.locateFile('tests/videos/sample2_ffr.mxf')
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertTrue(result)
+        target = source
+        op.category = 'Paste'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertFalse(result)
+        op.category = 'Audio'
+        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        self.assertFalse(result)
+
+    def test_checkDuration(self):
+        graph = Mock()
+        graph.get_edge = Mock(return_value={'metadatadiff': {'video': {'nb_frames': ('change', 1, 2)}}})
+        result = graph_rules.checkDuration('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        result = graph_rules.checkAudioOnly('op', graph, 'a', 'b')
+        self.assertIsNotNone(result)
+        graph.get_edge.return_value = {'metadatadiff': {'video': {}}}
+        result = graph_rules.checkDuration('op', graph, 'a', 'b')
+        self.assertIsNone(result)
 
     def test_checkSampleRate(self):
         graph = Mock()
@@ -174,7 +211,7 @@ class TestToolSet(TestSupport):
     def test_checkAudioOnly(self):
         graph = Mock()
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
-                                            'metadatadiff': {'video':{'duration':('change',1,2)}}})
+                                            'metadatadiff': {}})
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
@@ -457,14 +494,14 @@ class TestToolSet(TestSupport):
             return {}
 
         mask = np.ones((1092, 720), dtype='uint8') * 255
-        mask[100:250, 100:200] = 0
-        ImageWrapper(mask).save(filename='.\\test_jt_mask.png')
-        self.addFileToRemove(filename='.\\test_jt_mask.png')
+        mask[100:200, 100:200] = 0
+        ImageWrapper(mask).save(filename='test_jt_mask.png')
+        self.addFileToRemove(filename='test_jt_mask.png')
 
         input_mask = np.zeros((1092, 720, 3), dtype='uint8')
         input_mask[100:200, 100:200, :] = 255
-        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
-        self.addFileToRemove(filename='.\\test_input_mask.png')
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
 
         mockGraph = Mock(get_edge=Mock(return_value={'inputmaskname': self.locateFile('test_input_mask.png'),
                                                      'maskname': self.locateFile('test_jt_mask.png')}))
@@ -474,45 +511,79 @@ class TestToolSet(TestSupport):
 
         input_mask = np.zeros((1092, 720, 3), dtype='uint8')
         input_mask[150:250, 150:250, :] = 255
-        ImageWrapper(input_mask).save(filename='.\\test_input_mask.png')
-        self.addFileToRemove(filename='.\\test_input_mask.png')
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
+
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+        input_mask = np.zeros((1092, 720, 3), dtype='uint8')
+        input_mask[150:300, 150:250, :] = 255
+        ImageWrapper(input_mask).save(filename='test_input_mask.png')
+        self.addFileToRemove(filename='test_input_mask.png')
 
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNotNone(r)
 
         w = GrayBlockWriter('test_jt', 10)
         m = np.ones((1092, 720), dtype='uint8') * 255
-        m[100:250, 100:200] = 0
+        m[100:200, 100:200] = 0
         for i in range(60):
-            w.write(m, i / 10.0, i)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
-
-        w = GrayFrameWriter('test_input', 10)
+        checkname = w.filename
+        w = GrayFrameWriter('test_input', 10, preferences={'vid_codec':'raw'})
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[100:200, 100:200, :] = 255
         for i in range(60):
-            w.write(m, i / 10.0, 0)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
 
-        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile('test_input_mask_0.avi'),
+        mockGraph.get_edge = Mock(spec=edge, return_value={ 'inputmaskname': self.locateFile(w.filename),
             'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10, 'type': 'video', 'frames': 60,
-                            'videosegment':'test_jt_mask_0.0.hdf5', 'starttime': 0, 'endtime': 600},
+                            'videosegment':checkname, 'starttime': 0, 'endtime': 600},
                            ]
         })
 
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNone(r)
 
-        w = GrayFrameWriter('test_input', 10)
+        w = GrayFrameWriter('test_input', 10,preferences={'vid_codec':'raw'})
         m = np.zeros((1092, 720, 3), dtype='uint8')
         m[150:250, 150:250, :] = 255
         for i in range(60):
-            w.write(m, i / 10.0, 0)
+            w.write(m, i / 10.0, i+1)
         w.close()
         self.addFileToRemove(w.filename)
 
+        mockGraph.get_edge = Mock(spec=edge, return_value={'inputmaskname': self.locateFile(w.filename),
+                                                           'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10,
+                                                                           'type': 'video', 'frames': 60,
+                                                                           'videosegment': checkname, 'starttime': 0,
+                                                                           'endtime': 600},
+                                                                          ]
+                                                           })
+        r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
+        self.assertIsNone(r)
+
+
+        w = GrayFrameWriter('test_input', 10, preferences={'vid_codec':'raw'})
+        m = np.zeros((1092, 720, 3), dtype='uint8')
+        m[150:300, 150:300, :] = 255
+        for i in range(60):
+            w.write(m, i / 10.0, i+1)
+        w.close()
+        self.addFileToRemove(w.filename)
+
+        mockGraph.get_edge = Mock(spec=edge, return_value={'inputmaskname': self.locateFile(w.filename),
+                                                           'videomasks': [{'startframe': 1, 'endframe': 60, 'rate': 10,
+                                                                           'type': 'video', 'frames': 60,
+                                                                           'videosegment': checkname, 'starttime': 0,
+                                                                           'endtime': 600},
+                                                                          ]
+                                                           })
         r = graph_rules.checkMoveMask('Op', mockGraph, 'a', 'b')
         self.assertIsNotNone(r)
 

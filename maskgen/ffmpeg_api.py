@@ -112,22 +112,7 @@ def process_frames_from_stream(stream, errorstream):
 def process_meta_from_streams(stream, errorstream):
     streams = []
     meta = {}
-    bit_rate = None
     video_stream = None
-    try:
-        while True:
-            line = errorstream.readline()
-            if line is None or len(line) == 0:
-                break
-            pos = line.find('bitrate:')
-            if pos > 0:
-                bit_rate = line[pos+9:].strip()
-                pos = bit_rate.find(' ')
-                if pos > 0:
-                    bit_rate = str(int(bit_rate[0:pos]) * 1024)
-                    break
-    except:
-        pass
     while True:
         line = stream.readline()
         if line is None or len(line) == 0:
@@ -135,6 +120,11 @@ def process_meta_from_streams(stream, errorstream):
         if '[STREAM]' in line or '[FORMAT]' in line:
             while True:
                 line = stream.readline()
+                if '[/FORMAT]' in line:
+                    bit_rate = getValue(meta,'bit_rate',None)
+                    if bit_rate is not None and video_stream is not None:
+                        streams[video_stream]['bit_rate'] = bit_rate
+                    break
                 if '[/STREAM]' in line:
                     index = __add_meta_to_list(streams, meta, index_id ='index')
                     if getValue(meta,'codec_type','na') == 'video' and video_stream is None:
@@ -147,15 +137,8 @@ def process_meta_from_streams(stream, errorstream):
                     setting = line.split('=')
                     if len(setting) < 2 or len(setting[1]) == 0:
                         continue
-                    meta[setting[0]] = '='.join(setting[1:]).strip()
-    if len(meta) > 0:
-        index = __add_meta_to_list(streams, meta, index_id='index')
-        if getValue(meta, 'codec_type', 'na') == 'video' and video_stream is None:
-            video_stream = index
-    if bit_rate is not None and video_stream is not None and \
-            ('bit_rate' is not streams[video_stream]  or \
-                     streams[video_stream]['bit_rate'] == 'N/A'):
-        streams[video_stream]['bit_rate'] = bit_rate
+                    if setting[0] not in meta:
+                        meta[setting[0]] = ''.join(setting[1:]).strip()
     return streams
 
 
@@ -225,7 +208,7 @@ def get_meta_from_video(file,
                    if len(frames) > 0 else frames
 
     def runProbeWithFrames(func, args=None):
-        ffmpegcommand = [get_ffprobe_tool()]
+        ffmpegcommand = [get_ffprobe_tool(),'-loglevel','error', '-show_format']
         if args != None:
             ffmpegcommand.extend(args)
         ffmpegcommand.append(file)
@@ -267,7 +250,7 @@ def get_meta_from_video(file,
         raise ValueError("{} not found".format(file))
 
     def runProbe(func, args=None):
-        ffmpegcommand = [get_ffprobe_tool(), file]
+        ffmpegcommand = [get_ffprobe_tool(), '-loglevel','error',  '-show_format', file]
         if args != None:
             ffmpegcommand.extend(args)
         process = Popen(ffmpegcommand, stdout=PIPE, stderr=PIPE)
@@ -305,7 +288,10 @@ def get_frame_attribute(fileOne, attribute, default=None, audio=False):
     ffmpegcommand = get_ffprobe_tool()
     results = []
     errors = _run_command([ffmpegcommand,
-                          '-show_entries', 'stream={},codec_type'.format(attribute),
+                           '-loglevel',
+                           'error',
+                           '-show_entries',
+                           'stream={},codec_type'.format(attribute),
                           fileOne],
                          outputCollector=results)
     if len(results) > 0:
@@ -325,17 +311,35 @@ def get_frame_attribute(fileOne, attribute, default=None, audio=False):
 
     return default
 
+def get_audio_frame_rate_from_meta(meta):
+    index = get_stream_indices_of_type(meta, 'audio')[0]
+    return int(getValue(meta[index],'sample_rate',None))
+
 def get_video_frame_rate_from_meta(meta, frames):
     index = get_stream_indices_of_type(meta, 'video')[0]
-    r = getValue(meta[index],'r_frame_rate','30/1')
+    r = getValue(meta[index],'r_frame_rate','N')
     avg = getValue(meta[index],'avg_frame_rate',r)
     parts = avg.split('/')
-    if parts[0] == 'N':
+    if parts[0] in ['N', '0'] and r != avg:
         parts = r.split('/')
-    if parts[0] != 'N':
+    if parts[0] not in ['N','0']:
         return float(parts[0]) / int(parts[1]) if len(parts) > 0 and int(parts[1]) != 0 else float(parts[0])
     return len(frames[index])/float(getValue(meta[index],'duration',1)) if len(index) < len(frames) else \
         float(getValue(meta[index], 'nb_frames', 30))/float(getValue(meta[index],'duration',1))
+
+def get_duraton_from_meta(meta, media_type='video'):
+    indices = get_stream_indices_of_type(meta, media_type)
+    if len(indices) == 0:
+        return None
+    return getValue(meta[indices[0]], 'duration')
+
+def test_meta(self):
+    meta, frames = get_meta_from_video(self.locateFile('tests/videos/sample1.mov'), with_frames=True)
+    self.assertEqual(803, len(frames[0]))
+    self.assertEqual(2557, len(frames[1]))
+    meta, frames = get_meta_from_video(self.locateFile('tests/videos/sample1.mov'), show_streams=True)
+    self.assertEqual('yuv420p', meta[0]['pix_fmt'])
+    self.assertEqual('audio', meta[1]['codec_type'])
 
 def is_vfr(meta, frames=[]):
     """
@@ -353,11 +357,10 @@ def is_vfr(meta, frames=[]):
     avg = getValue(meta,'avg_frame_rate','N/A').lower()
     r = getValue(meta,'r_frame_rate','N/A').lower()
     if (r[0] != 'n' and r != avg) or r[0] in ['n','0'] or nb[0] in ['n','0']:
-        return True
-    # approach requires frames which is more expensive to gather but more accurate
-    frame_durations = set([frame['pkt_duration_time'] for frame in frames[0:100]]) if len(frames) > 0 else []
-    if len(frame_durations) > 1:
-        return True
+        # approach requires frames which is more expensive to gather but more accurate
+        frame_durations = set([frame['pkt_duration_time'] for frame in frames[0:100]]) if len(frames) > 0 else []
+        if len(frame_durations) != 1 or len(frames)  == 0:
+            return True
     return False
 
 def ffmpeg_overlay(source, mask, output):

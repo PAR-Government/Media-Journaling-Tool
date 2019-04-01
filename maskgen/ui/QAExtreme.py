@@ -16,7 +16,7 @@ from maskgen.tool_set import imageResizeRelative, openImage,get_username, GrayBl
 import os
 import numpy as np
 import maskgen.qa_logic
-from maskgen.video_tools import getMaskSetForEntireVideo, get_end_time_from_segment
+from maskgen.video_tools import get_end_time_from_segment
 import maskgen.tool_set
 import random
 import maskgen.scenario_model
@@ -563,8 +563,8 @@ class TemporalReviewDisplay(Frame):
                 if (page.master.getFileNameForNode(probe.finalNodeId) == page.edgeTuple[1]):
                     prolist.append(probe)
         try:
-            tsec = get_end_time_from_segment(getMaskSetForEntireVideo(
-                page.master.meta_extractor.getMetaDataLocator(page.master.lookup[page.edgeTuple[1]][0]),
+            tsec = get_end_time_from_segment(
+                page.master.meta_extractor.getMetaDataLocator(page.master.lookup[page.edgeTuple[1]][0]).getMaskSetForEntireVideo(
                 media_types=probe.media_types())[0]) / 1000.0
         except Exception as ex:
             logging.getLogger("maskgen").error(ex.message)

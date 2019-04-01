@@ -748,7 +748,7 @@ class VideoVideoLinkTool(LinkTool):
             np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
         operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
         if op != 'Donor' and operation.generateMask not in ['audio', 'all']:
-            maskSet = video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(startFileName))
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo()
             if maskSet is None:
                 maskSet = list()
             errors = list()
@@ -879,8 +879,7 @@ class AudioVideoLinkTool(VideoVideoLinkTool):
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params))
         else:
-            maskSet = video_tools.getMaskSetForEntireVideo(
-                video_tools.FileMetaDataLocator(startFileName), media_types=['audio'])
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo( media_types=['audio'])
             if maskSet is None:
                 maskSet = list()
                 errors = list()
@@ -965,10 +964,118 @@ class ImageVideoLinkTool(VideoVideoLinkTool):
                                       consolidate(arguments, analysis_params), invert=invert)
             if mask is None:
                 mask = startIm.to_mask().invert()
-        return mask, {}, ()
+        return mask, {}, list()
+
+class ZipZipLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        # not correct...TODO
+        return "maskgen.masks.donor_rules.all_stream_processors"
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        from support import setPathValue
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+
+        analysis = {}
+        errors = list()
+        operation = scModel.gopLoader.getOperationWithGroups(op, fake=True)
+        rate = float(getValue(arguments, 'Frame Rate', 30))
+        if operation.generateMask in ['audio', 'meta']:
+            maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo()
+            if maskSet is None:
+                maskSet = list()
+        elif op == 'Donor' and not skipDonorAnalysis:
+            maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
+                                         consolidate(arguments, analysis_params), invert=invert)
+        else:
+            maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
+                                                       os.path.join(scModel.G.dir, start + '_' + destination),
+                                                       op,
+                                                       startSegment=getMilliSecondsAndFrameCount(getValue(arguments,'Start Time',None)),
+                                                       endSegment=getMilliSecondsAndFrameCount(getValue(arguments,'End Time',None)),
+                                                       analysis=analysis,
+                                                       alternateFunction=operation.getVideoCompareFunction(),
+                                                       arguments=consolidate(arguments, analysis_params))
+        for item in maskSet:
+            if video_tools.get_mask_from_segment(item) is not None:
+                mask = ImageWrapper(video_tools.get_mask_from_segment(item))
+                video_tools.drop_mask_from_segment(item)
+
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        analysis['shape change'] = sizeDiff(startIm, destIm)
+        startZip = ZipCapture(startFileName,fps=rate)
+        endZip = ZipCapture(destFileName,fps=rate)
+        if startZip.get_size() != endZip.get_size():
+            setPathValue(analysis['metadatadiff'], 'video.nb_frames', ('change', startZip.get_size(), endZip.get_size()))
+            setPathValue(analysis['metadatadiff'], 'video.duration',
+                         ('change', startZip.get_size()/rate, endZip.get_size()/rate))
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='zip.zip',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
+
+        return mask, analysis, errors
 
 
-class ImageZipAudioLinkTool(VideoAudioLinkTool):
+class ZipVideoLinkTool(VideoVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoVideoLinkTool.__init__(self)
+
+    def getDefaultDonorProcessor(self):
+        # not correct...TODO
+        return "maskgen.masks.donor_rules.all_stream_processors"
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False, analysis_params={}):
+        from support import setPathValue
+        from video_tools import get_rate_from_segment, get_frames_from_segment
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(
+            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+
+        analysis = {}
+        maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo(start_time=getValue(arguments,'Start Time',0),
+                                                                                          end_time=getValue(arguments,'End Time'))
+        endMaskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo()
+        analysis['masks count'] = len(maskSet)
+        analysis['videomasks'] = maskSet
+        rate = get_rate_from_segment(maskSet[0])
+        length = get_frames_from_segment(maskSet[0])
+        if length != get_frames_from_segment(endMaskSet[0]) or rate != get_rate_from_segment(endMaskSet[0]):
+            setPathValue(analysis['metadatadiff'], 'video.nb_frames',
+                         ('change', length, get_frames_from_segment(endMaskSet[0])))
+            setPathValue(analysis['metadatadiff'], 'video.duration',
+                         ('change', length/float(rate), get_frames_from_segment(endMaskSet[0]) / float(get_rate_from_segment(endMaskSet[0]))))
+            setPathValue(analysis['metadatadiff'], 'video.avg_frame_rate',
+                         ('change', rate,get_rate_from_segment(endMaskSet[0])))
+        return mask, analysis, []
+
+
+class VideoZipLinkTool(ZipVideoLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        ZipVideoLinkTool.__init__(self)
+
+
+class ZipAudioLinkTool(VideoAudioLinkTool):
     """
      Supports mask construction and meta-data comparison when linking images to images.
      """
@@ -976,13 +1083,149 @@ class ImageZipAudioLinkTool(VideoAudioLinkTool):
     def __init__(self):
         VideoAudioLinkTool.__init__(self)
 
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        analysis = dict()
+        if 'metadatadiff' in analysis:
+            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+        if 'errors' in analysis:
+            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+        return None, None, None, analysis
+
     def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
-                      skipDonorAnalysis=False, analysis_params={}):
+                      skipDonorAnalysis=False,
+                      analysis_params={}):
+        from zip_tools import AudioPositions
+        from support import setPathValue
+        from video_tools import create_segment, get_start_time_from_segment, get_end_time_from_segment,\
+            update_segment,get_rate_from_segment
         startIm, startFileName = scModel.getImageAndName(start)
-        #destIm, destFileName = scModel.getImageAndName(destination)
-        mask, analysis = ImageWrapper(
-            np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8')), {}
-        return mask, analysis, []
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        analysis = dict()
+
+        maskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo(
+                                                       media_types=['audio'])
+        if not len(maskSet):
+            raise ValueError("Cannot find audio data target file {}".format(destFileName))
+
+        node = scModel.getGraph().get_node(start)
+        meta_data = getValue(node,'zip content meta')
+        if meta_data is None:
+            meta_data = getValue(ZipAddTool().getAdditionalMetaData(startFileName),'zip content meta')
+
+        def audio_metadata_extractor(filename):
+            return meta_data[os.path.basename(filename)]
+
+        fps = float(getValue(arguments,'sample rate',maskSet[-1]['rate']))
+        positions = AudioPositions(startFileName,
+                                   position_file_name=getValue(arguments,'Audio Sequence File'),
+                                   fps=int(fps),
+                                   audio_metadata_extractor=audio_metadata_extractor if meta_data is not None else None)
+        segments = [create_segment(starttime=seg[0],
+                                                 startframe=seg[1],
+                                                 endtime=seg[2],
+                                                 endframe=seg[3],
+                                                 type='audio',
+                                                 frames=seg[3]-seg[1]+1,
+                                                 rate=fps)
+                                     for seg in positions.get_segments(0)]
+        analysis['masks count'] = 0
+        analysis = analysis if analysis is not None else {}
+        analysis['metadatadiff'] = {}
+        analysis['videomasks'] = segments
+        cap_end_time  = get_end_time_from_segment(maskSet[0])
+        if abs(get_end_time_from_segment(segments[-1]) - cap_end_time) > 0.001:
+            setPathValue(analysis['metadatadiff'],
+                         'audio.duration',
+                         ('change',get_end_time_from_segment(segments[-1]),cap_end_time))
+            analysis['videomasks'] = [seg for seg in analysis['videomasks'] if get_start_time_from_segment(seg) < cap_end_time]
+            lastseg = analysis['videomasks'][-1]
+            update_segment(lastseg,
+                           endtime = cap_end_time,
+                           endframe = int(cap_end_time*get_rate_from_segment(lastseg)/1000)+ 1)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
+        return mask, analysis, list()
+
+class AudioZipLinkTool(VideoAudioLinkTool):
+    """
+     Supports mask construction and meta-data comparison when linking images to images.
+     """
+
+    def __init__(self):
+        VideoAudioLinkTool.__init__(self)
+
+    def compare(self, start, end, scModel, arguments={}):
+        """ Compare the 'start' image node to the image node with the name in the  'destination' parameter.
+            Return both images, the mask set and the meta-data diff results
+        """
+        analysis = dict()
+        if 'metadatadiff' in analysis:
+            analysis['metadatadiff'] = VideoMetaDiff(analysis['metadatadiff'])
+        if 'errors' in analysis:
+            analysis['errors'] = VideoMaskSetInfo(analysis['errors'])
+        return None, None, None, analysis
+
+    def compareImages(self, start, destination, scModel, op, invert=False, arguments={},
+                      skipDonorAnalysis=False,
+                      analysis_params={}):
+        from zip_tools import AudioPositions
+        from support import setPathValue
+        from video_tools import create_segment, get_start_time_from_segment, get_end_time_from_segment,\
+            update_segment,get_rate_from_segment
+        startIm, startFileName = scModel.getImageAndName(start)
+        destIm, destFileName = scModel.getImageAndName(destination)
+        mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
+        analysis = dict()
+
+        maskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo(
+                                                       media_types=['audio'])
+        if not len(maskSet):
+            raise ValueError("Cannot find audio data target file {}".format(destFileName))
+
+        node = scModel.getGraph().get_node(start)
+        meta_data = getValue(node,'zip content meta')
+        if meta_data is None:
+            meta_data = getValue(ZipAddTool().getAdditionalMetaData(startFileName),'zip content meta')
+
+        def audio_metadata_extractor(filename):
+            return meta_data[os.path.basename(filename)]
+
+        fps = float(getValue(arguments,'sample rate',maskSet[-1]['rate']))
+        positions = AudioPositions(startFileName,
+                                   position_file_name=getValue(arguments,'Audio Sequence File'),
+                                   fps=int(fps),
+                                   audio_metadata_extractor=audio_metadata_extractor if meta_data is not None else None)
+        segments = [create_segment(starttime=seg[0],
+                                                 startframe=seg[1],
+                                                 endtime=seg[2],
+                                                 endframe=seg[3],
+                                                 type='audio',
+                                                 frames=seg[3]-seg[1]+1,
+                                                 rate=fps)
+                                     for seg in positions.get_segments(0)]
+        analysis['masks count'] = 0
+        analysis = analysis if analysis is not None else {}
+        analysis['metadatadiff'] = {}
+        analysis['videomasks'] = segments
+        cap_end_time  = get_end_time_from_segment(maskSet[0])
+        if abs(get_end_time_from_segment(segments[-1]) - cap_end_time) > 0.001:
+            setPathValue(analysis['metadatadiff'],
+                         'audio.duration',
+                         ('change',get_end_time_from_segment(segments[-1]),cap_end_time))
+            analysis['videomasks'] = [seg for seg in analysis['videomasks'] if get_start_time_from_segment(seg) < cap_end_time]
+            lastseg = analysis['videomasks'][-1]
+            update_segment(lastseg,
+                           endtime = cap_end_time,
+                           endframe = int(cap_end_time*get_rate_from_segment(lastseg)/1000)+ 1)
+        self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
+                          arguments=consolidate(arguments, analysis_params),
+                          start=start, end=destination, scModel=scModel)
+        return mask, analysis, list()
 
 
 class ImageZipVideoLinkTool(VideoVideoLinkTool):
@@ -1031,14 +1274,61 @@ class VideoAddTool(AddTool):
                 rotation = int(item['rotation'])
         parent['shape'] = (width, height)
         parent['rotation'] = rotation
-        meta[indices[0]]['is_vfr'] = if_vfr
+        if indices:
+            meta[indices[0]]['is_vfr'] = if_vfr
         # redundant but requested by NIST
         parent['is_vfr'] = if_vfr
         return parent
 
 class ZipAddTool(AddTool):
+
     def getAdditionalMetaData(self, media):
+        import copy
         from zipfile import ZipFile
+        file_type = zipFileType(media)
+        final_meta = {}
+        final_meta['media'] = []
+        if file_type in ['audio','video']:
+            tool = VideoAddTool()
+            duration = 0.0
+            frames = 0
+            capture = ZipCapture(media,filetypes=audiofiletypes + videofiletypes)
+            details = {}
+            while capture.isOpened():
+                if not capture.grab():
+                    break
+                fn = capture.retrieve_file()
+                meta = tool.getAdditionalMetaData(fn)
+                new_meta = {}
+                for item in meta['media']:
+                    if file_type == getValue(item, 'codec_type', 'text'):
+                        if file_type == 'audio':
+                            last_sample = getValue(meta, 'sample_rate', 48000)
+                            last_duration  = float(getValue(item, 'duration', getValue(meta, 'duration_ts', 1) / getValue(meta, 'sample_rate', 48000)))
+                            last_frames = int(last_duration * 48000)
+                            new_meta['audio'] = copy.copy(item)
+                            details[os.path.basename(fn)] = item
+                        else:
+                            last_frames = int(getValue(item, 'nb_frames', 1))
+                            last_duration = video_tools.estimate_duration(item, last_frames)
+                            last_duration = getValue(item, 'duration', last_duration)
+                            last_sample = last_frames/float(last_duration)
+                            new_meta['video'] = copy.copy(item)
+                            details[os.path.basename(fn)] = item
+                        duration += float(last_duration)
+                        frames += last_frames
+                if 'video' in new_meta:
+                    new_meta['video']['duration'] = duration
+                    new_meta['video']['nb_frames'] = frames
+                    final_meta['media'] = [new_meta['video']]
+
+                if 'audio' in new_meta:
+                    new_meta['audio']['duration'] = duration
+                    new_meta['audio']['duration_ts'] = duration * last_sample
+                    final_meta['media'] = meta['media'] + [new_meta['audio']]
+            final_meta['total duration'] = duration
+            final_meta['zip content meta'] = details
+            return final_meta
         meta = {}
         with ZipFile(media, 'r') as myzip:
             names = myzip.namelist()
@@ -1059,9 +1349,13 @@ addTools = {
 linkTools = {'image.image': ImageImageLinkTool(), 'video.video': VideoVideoLinkTool(),
              'image.video': ImageVideoLinkTool(), 'video.image': VideoImageLinkTool(),
              'video.audio': VideoAudioLinkTool(), 'audio.video': AudioVideoLinkTool(),
-             'audio.audio': AudioAudioLinkTool(), 'zip.video':ImageZipVideoLinkTool(),
+             'audio.audio': AudioAudioLinkTool(), 'zip.video':   ZipVideoLinkTool(),
              'collection.image': CollectionImageLinkTool(),
-             'zip.image':   ZipImageLinkTool(),   'zip.audio': ImageZipAudioLinkTool()}
+             'zip.zip': ZipZipLinkTool(), 'video.zip': VideoZipLinkTool(),
+             'zip.image':   ZipImageLinkTool(),
+             'zip.audio': ZipAudioLinkTool(),
+             'audio.zip': AudioZipLinkTool()}
+
 
 
 def true_notify(object, message, **kwargs):

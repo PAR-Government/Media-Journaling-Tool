@@ -1,5 +1,4 @@
 import networkx as nx
-import numpy as np
 from maskgen.mask_rules import *
 from mock import *
 from test_support import TestSupport
@@ -214,6 +213,50 @@ class TestMaskRules(TestSupport):
             })]
             result = replace_audio(mock_composite)
             self.assertEqual(0, len(result.videomasks))
+
+
+    def test_audio_selection(self):
+        # TODO: Placeholer for final implementaton
+        edge = {u'maskname': u'output_mask.png',
+                u'inputmaskname': None,
+                'empty mask': 'no',
+                u'op': u'OutputAudioPCM'}
+        mask = video_tools.create_segment(
+            starttime=1400,
+            startframe=15,
+            endtime=2400,
+            endframe=25,
+            frames=11,
+            rate=10,
+            error=0,
+            type='video')
+        mask1 = video_tools.create_segment(
+            starttime=1400,
+            startframe=15,
+            endtime=2400,
+            endframe=25,
+            frames=11,
+            rate=10,
+            error=0,
+            type='audio')
+        cm = CompositeImage('a', 'b', 'video', [mask, mask1])
+        graph = Mock()
+        graph.get_node = Mock(return_value={'shape': '(3984, 2988)'})
+        buildState = BuildState(edge,
+                                np.random.randint(0, 255, (3984, 2988, 3), dtype=np.uint8),
+                                np.random.randint(0, 255, (3784, 2788, 3), dtype=np.uint8),
+                                np.zeros((3984, 2988), dtype=np.uint8),
+                                (3984, 2988),
+                                (3784, 2788),
+                                directory='.',
+                                donorMask=None,
+                                compositeMask=cm,
+                                pred_edges=None,
+                                graph=graph)
+        result = audio_selection(buildState)
+        self.assertEqual(1, len(result.videomasks))
+        self.assertEqual('video', video_tools.get_type_of_segment(result.videomasks[0]))
+
 
     def test_output(self):
         edge = {u'maskname': u'output_mask.png',

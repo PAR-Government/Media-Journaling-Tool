@@ -23,14 +23,13 @@ from graph_meta_tools import MetaDataExtractor
 from image_graph import ImageGraph
 from maskgen import maskGenPreferences
 from maskgen.validation.core import Severity
-from maskgen.video_tools import get_frame_rate
 from software_loader import  getProjectProperties, getRule, getMetDataLoader
 from support import getValue,setPathValue
 from tool_set import  openImageFile, fileTypeChanged, fileType, \
     getMilliSecondsAndFrameCount, toIntTuple, differenceBetweenFrame, differenceBetweeMillisecondsAndFrame, \
     getDurationStringFromMilliseconds, getFileMeta,  openImage, \
-    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions
-from video_tools import getMaskSetForEntireVideo, get_duration, get_type_of_segment, \
+    deserializeMatrix,isHomographyOk,dateTimeStampCompare, getExifDimensions,GrayBlockValidator
+from video_tools import get_type_of_segment, \
     get_end_frame_from_segment,get_end_time_from_segment,get_start_time_from_segment,get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, is_raw_or_lossy_compressed
 
@@ -125,7 +124,7 @@ def checkFrameTimeAlignment(op,graph, frm, to):
     file = extractor.getNodeFile(frm)
     if fileType(file) not in ['audio','video']:
         return
-    real_segments = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm),start_time=st, end_time=et,
+    real_segments = extractor.getMetaDataLocator(frm).getMaskSetForEntireVideo(start_time=st, end_time=et,
                                           media_types=['video','audio'])
     if real_segments is None:
         return
@@ -221,7 +220,7 @@ def checkAddFrameTime(op, graph, frm, to):
     filename = extractor.getNodeFile(frm)
     if fileType(filename) not in ['audio','video']:
         return
-    real_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm),start_time=st,media_types=['video','audio'])
+    real_masks = extractor.getMetaDataLocator(frm).getMaskSetForEntireVideo(start_time=st,media_types=['video','audio'])
     for segment in masks:
         start_value = get_start_time_from_segment(segment) if get_type_of_segment(segment) == 'audio' else \
             get_start_frame_from_segment(segment)
@@ -330,8 +329,8 @@ def checkFrameRateChange(op, graph, frm, to):
     :return:
     """
     extractor = MetaDataExtractor(graph)
-    from_rate = get_frame_rate(extractor.getMetaDataLocator(frm), audio=op.category == 'Audio',default=0)
-    to_rate = get_frame_rate(extractor.getMetaDataLocator(to),audio=op.category == 'Audio', default=0)
+    from_rate = extractor.getMetaDataLocator(frm).get_frame_rate(audio=op.category == 'Audio',default=0)
+    to_rate = extractor.getMetaDataLocator(to).get_frame_rate(audio=op.category == 'Audio', default=0)
     if from_rate is not None and to_rate is not None and abs(from_rate - to_rate) > 0.001:
         return True
     return False
@@ -368,14 +367,14 @@ def checkCropLength(op, graph, frm, to):
     locator = extractor.getMetaDataLocator(to)
     file = os.path.join(graph.dir, graph.get_node(to)['file'])
     if fileType(file) == 'audio':
-        rate = get_frame_rate(locator, default=44000, audio=True)
+        rate = locator.get_frame_rate(default=44000, audio=True)
         givenDifference = differenceBetweeMillisecondsAndFrame(et, st, rate)
-        duration_to = get_duration(locator, audio=True)
+        duration_to = locator.get_duration(audio=True)
         if abs(duration_to - givenDifference) > 100:
             return (Severity.ERROR, 'Actual amount of cropped frames in milliseconds is {} '.format(duration_to))
         return None
     else:
-        segments = getMaskSetForEntireVideo(locator, media_types=['video'])
+        segments = locator.getMaskSetForEntireVideo(media_types=['video'])
         if not segments or len(segments) == 0:
             return (Severity.ERROR, 'Video channel not found in {} '.format(locator.get_filename))
         givenDifference = differenceBetweenFrame(et, st, get_rate_from_segment(segments[0],default_value=29.97))
@@ -398,8 +397,8 @@ def checkCutFrames(op, graph, frm, to):
     """
     extractor = MetaDataExtractor(graph)
     for media_type in ['video','audio']:
-        to_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(to), media_types=[media_type])
-        frm_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm), media_types=[media_type])
+        to_masks = extractor.getMetaDataLocator(to).getMaskSetForEntireVideo(media_types=[media_type])
+        frm_masks = extractor.getMetaDataLocator(frm).getMaskSetForEntireVideo( media_types=[media_type])
         if len(frm_masks) == 0 or len(to_masks) == 0:
             continue
         recordedMasks = extractor.getMasksFromEdge(frm, to, [media_type])
@@ -578,10 +577,10 @@ def checkAudioLength_Loose(op, graph, frm, to):
         return (Severity.ERROR, "Audio duration does not match")
 
 def _getSegment(filename, edge,media_types=['audio']):
-    from video_tools import getMaskSetForEntireVideoForTuples,FileMetaDataLocator
+    from video_tools import FileMetaDataLocator
     end_time_tuple = getMilliSecondsAndFrameCount(getValue(edge, 'arguments.End Time', "00:00:00"))
     start_time_tuple = getMilliSecondsAndFrameCount(getValue(edge, 'arguments.Start Time', '00:00:00'))
-    return getMaskSetForEntireVideoForTuples(FileMetaDataLocator(filename),
+    return FileMetaDataLocator(filename).getMaskSetForEntireVideoForTuples(
                                              start_time_tuple=start_time_tuple,
                                              end_time_tuple=end_time_tuple if end_time_tuple[0] > 0 else None,
                                              media_types=media_types)
@@ -589,7 +588,6 @@ def checkAudioLengthDonor(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type', 'replace')
     if addType in ['replace','insert','overlay']:
-        from video_tools import get_duration
         from math import floor
         donor_id, donor_edge = getDonorEdge(graph, to)
         if donor_id == None:
@@ -598,7 +596,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
         donor_segments = getValue(donor_edge,'videomasks',[])
 
         extractor = MetaDataExtractor(graph)
-        to_duration = get_duration(extractor.getMetaDataLocator(to), audio=True)
+        to_duration = extractor.getMetaDataLocator(to).get_duration(audio=True)
 
         user_segments = _getSegment(graph.get_image_path(to),edge)
         if user_segments is not None:
@@ -609,7 +607,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
         if len(donor_segments) > 1:
             return (Severity.ERROR, 'Expected only donor segment selected from audio')
         elif len(donor_segments) == 0:
-            donor_duration = get_duration(extractor.getMetaDataLocator(donor_id), audio=True)
+            donor_duration = extractor.getMetaDataLocator(donor_id).get_duration(audio=True)
         else:
             segment = donor_segments[0]
             donor_duration = get_end_time_from_segment(segment) - get_start_time_from_segment(segment)
@@ -624,7 +622,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
                 if floor(abs(donor_duration - user_duration)) > get_rate_from_segment(segment)/1000.0:
                     return (Severity.ERROR, "Audio duration does not match the Donor")
         elif addType == 'insert':
-            from_duration = get_duration(extractor.getMetaDataLocator(frm), audio=True)
+            from_duration = extractor.getMetaDataLocator(frm).get_duration(audio=True)
             if abs(to_duration - (from_duration + donor_duration)) > get_rate_from_segment(segment)/100.0:
                 return (Severity.ERROR, "Audio duration does not match the donor plus original")
     else:
@@ -965,20 +963,21 @@ def checkForDonorAudio(op, graph, frm, to):
         return (Severity.ERROR,'donor image/video missing')
     return None
 
-def _checkDurationErrorType(op, graph, frm, to, error_type):
+def _checkDurationErrorType(op, graph, frm, to, error_type,media_type='video'):
     edge = graph.get_edge(frm, to)
     durationChangeTuple = getValue(edge, 'metadatadiff.video.nb_frames')
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
-        return (error_type, "Length of video has changed")
-    duration = getValue(edge, 'metadatadiff.video.duration')
-    if  duration is not None:
-        return  (error_type,"Length of video has changed")
+        return (error_type, "Length of {} has changed".format(media_type))
+    duration = getValue(edge, 'metadatadiff.{}.duration'.format(media_type))
+    if duration is not None:
+        return (error_type,"Length of {} has changed".format(media_type))
 
 def checkDuration(op, graph, frm, to):
-    _checkDurationErrorType(Severity.ERROR)
+    return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
-    return checkDuration(op, graph, frm, to)
+    #Checks if the video stream changed.
+    return _checkDurationErrorType(op, graph, frm, to, Severity.ERROR)
 
 def checkAudioAdd(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -999,8 +998,8 @@ def checkLengthSame(op, graph, frm, to):
      @type frm: str
      @type to: str
     """
-    def checkDuration(op, graph, frm, to):
-        _checkDurationErrorType(Severity.WARNING)
+    return _checkDurationErrorType(op, graph, frm, to, Severity.WARNING)
+
 
 def checkAudioTimeFormat(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
@@ -1049,8 +1048,8 @@ def checkDurationAudio(op, graph, frm, to):
          @type to: str
     """
     extractor = MetaDataExtractor(graph)
-    fm = get_duration(extractor.getMetaDataLocator(frm),audio=True)
-    tm = get_duration(extractor.getMetaDataLocator(to),audio=True)
+    fm = extractor.getMetaDataLocator(frm).get_duration(audio=True)
+    tm = extractor.getMetaDataLocator(to).get_duration(audio=True)
     edge = graph.get_edge(frm, to)
     if getValue(edge, 'arguments.Filter Type','x') in ['Frequency Stretch', 'Time Stretch']:
         return None
@@ -1202,8 +1201,8 @@ def checkPasteFrameLength(op, graph, frm, to):
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type')
     extractor = MetaDataExtractor(graph)
-    to_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(to),  media_types=['video'])
-    frm_masks = getMaskSetForEntireVideo(extractor.getMetaDataLocator(frm), media_types=['video'])
+    to_masks = extractor.getMetaDataLocator(to).getMaskSetForEntireVideo(  media_types=['video'])
+    frm_masks = extractor.getMetaDataLocator(frm).getMaskSetForEntireVideo(media_types=['video'])
     recordedMasks = extractor.getMasksFromEdge(frm, to, ['video'])
     recorded_change = sum([get_frames_from_segment(i,0) for i in recordedMasks if get_type_of_segment(i) == 'video'])
     diff = get_frames_from_segment(to_masks[0],0) - get_frames_from_segment(frm_masks[0],0)
@@ -1270,14 +1269,17 @@ def checkMoveMask(op, graph, frm,to):
     def compareMask(mask, inputmask):
         inputmask[inputmask > 0] = 1
         mask[mask > 0] = 1
-        intersection = inputmask * mask
-        difference = np.clip(mask - inputmask, 0, 1).astype(dtype='uint8')
-        union = np.clip(intersection + difference, 0, 1).astype(dtype='uint8')
+        mask_remains = mask * np.clip(1 - inputmask, 0, 1).astype(dtype='uint8')
+        inputmask_remains = inputmask * np.clip(1 -  mask , 0, 1).astype(dtype='uint8')
         masksize = float(np.sum(mask))
-        unionsize = float(np.sum(union))
-        mismatch = abs(masksize - unionsize) / masksize
-        if mismatch > .05:
+        inputmask_remainssize = float(np.sum(inputmask_remains))
+        mask_remainssize = float(np.sum(mask_remains))
+        mismatch = abs(mask_remainssize - inputmask_remainssize) / masksize
+        if mismatch > 0.05:
             return (Severity.ERROR, 'input mask does not represent the moved pixels')
+
+    def vidCompareMask(mask, inputmask):
+        return compareMask(255-mask, 255-inputmask) is None
 
     edge = graph.get_edge(frm, to)
     videomasks = getValue(edge, 'videomasks', defaultValue=[])
@@ -1292,13 +1294,14 @@ def checkMoveMask(op, graph, frm,to):
             for mask in videomasks:
                 segment_file = getValue(mask, 'videosegment', None)
                 if segment_file is not None:
-                    writer_factory = GrayBlockFactory(jt_mask=os.path.join(graph.dir, segment_file))
+                    writer_factory = GrayBlockFactory(writer=GrayBlockValidator(os.path.join(graph.dir, segment_file),
+                                                                                vidCompareMask))
                     videoMasksFromVid(
                         vidFile=os.path.join(graph.dir, inputmaskname),
                         name=inputmaskname,
                         startTimeandFrame=(0, 1),
                         writerFactory=writer_factory)
-                    if len(writer_factory.product.failed_frames) > 0:
+                    if len(writer_factory.writer.failed_frames) > 0:
                         return (Severity.ERROR, 'input mask does not represent the moved pixels')
 
     except Exception as ex:
@@ -1499,7 +1502,6 @@ def checkSize(op, graph, frm, to):
     if change is not None and (change[0] != 0 or change[1] != 0):
         return (Severity.ERROR,'operation is not permitted to change the size of the image')
     return None
-
 
 def _getSizeChange(edge):
     change = edge['shape change'] if edge is not None and 'shape change' in edge else None

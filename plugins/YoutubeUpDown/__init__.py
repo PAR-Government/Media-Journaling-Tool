@@ -283,7 +283,7 @@ def get_valid_resolution(source, target_resolution):
 
 def waitForProcessing(youtube, youtubeID, source, quality):
     #scale the wait time by duration and wait longer if we target better quality
-    waitTime = int((video_tools.get_duration(video_tools.FileMetaDataLocator(source))/1000))
+    waitTime = int((video_tools.FileMetaDataLocator(source).get_duration()/1000))
     target_res = int(quality[:-1])
     #Just guessing on most of these, might need to wait even longer for 1440 and 4k
     if target_res >= 2160:

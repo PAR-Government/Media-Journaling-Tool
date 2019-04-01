@@ -133,8 +133,8 @@ def otsu(hist):
 
 
 def __build_histogram_for_single_frame(filename):
-    cap = cv2api_delegate.videoCapture(filename)
-    hist = np.zeros(256).astype('int64')
+    cap = buildCaptureTool(filename, fps=30)
+    hist = np.zeros(256).astype('filename')
     bins = np.asarray(range(257))
     pixelCount = 0.0
     while (cap.isOpened()):
@@ -152,7 +152,7 @@ def __build_masks_from_videofile(filename, histandcount):
     maskprefix = os.path.splitext(filename)[0]
     histnorm = histandcount[0] / histandcount[1]
     values = np.where((histnorm <= 0.95) & (histnorm > (256 / histandcount[1])))[0]
-    cap = cv2api_delegate.videoCapture(filename)
+    cap = buildCaptureTool(filename, fps=30)
     while (cap.isOpened()):
         ret, frame = cap.read()
         if not ret:
@@ -199,6 +199,14 @@ def get_mask_from_segment(segment, default_value=None):
         return default_value
     return segment['mask']
 
+def recalculate_times_for_segment(segment):
+    if 'starttime' in segment:
+        segment.pop('starttime')
+    if 'endtime' in segment:
+        segment.pop('endtime')
+    segment['starttime'] = get_start_time_from_segment(segment)
+    segment['endtime'] = get_end_time_from_segment(segment)
+
 def get_start_frame_from_segment(segment, default_value=None):
     from math import floor
     if 'startframe' not in segment:
@@ -228,7 +236,7 @@ def get_end_time_from_segment(segment, default_value=None):
     if 'endtime' not in segment:
         if default_value is not None:
             return default_value
-        segment['endtime'] = getValue(segment,'endframe',1)*1000.0/segment['rate']
+        segment['endtime'] = (getValue(segment,'endframe',1)-1)*1000.0/segment['rate']
     return segment['endtime']
 
 def get_rate_from_segment(segment, default_value=None):
@@ -281,7 +289,7 @@ def build_masks_from_green_mask(filename, time_manager, fidelity=1, morphology=T
     :param time_manager: tool_set.VidTimeManager
     :return:
     """
-    capIn = cv2api_delegate.videoCapture(filename)
+    capIn = buildCaptureTool(filename, fps=30)
     capOut = tool_set.GrayBlockWriter(os.path.splitext(filename)[0],
                              capIn.get(cv2api_delegate.prop_fps))
     amountRead = 0
@@ -493,124 +501,6 @@ def get_frame_time(video_frame, last_time, rate):
                 return last_time + rate
             return None
 
-@cached(count_cache,lock=count_lock)
-def get_frame_count(video_file, start_time_tuple=(0, 1), end_time_tuple=None):
-    """
-    Provie a meta set with frame count givn the constraints.
-
-    :param video_file:
-    :param start_time_tuple:
-    :param end_time_tuple:
-    :return:
-    """
-    frmcnt = 0
-    startcomplete = False
-    segment = create_segment(starttime=0,startframe=1,endtime=0,endframe=1,frames=0,rate=0)
-    # first assume FFR.
-    meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False, media_types=['video'])
-    indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
-    if not indices:
-        return None
-    index= indices[0]
-    open_ended = end_time_tuple in [None, (0, 0), (0,1)]
-    open_started = start_time_tuple in [(0, 1),None]
-    missing_frame_count = getValue(meta[index],'nb_frames','n').lower()[0] in ['0','n']
-    end_time = None
-    def to_time(x):
-        return '%d:%d' % (x/60,x%60)
-    frame_count = int(meta[indices[0]]['nb_frames']) if not missing_frame_count else None
-    is_vfr = ffmpeg_api.is_vfr(meta[index],frames)
-    # Not FFR, then need to pull more data from frames
-    if missing_frame_count or is_vfr:
-        # do not incur this cost unless vfr or open started and missing frame count
-        # ffr missing frame count is an odd case, but lets trap it here
-        if open_ended and (open_started or not is_vfr) and missing_frame_count:
-            meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=False,
-                                                          media_types=['video'],
-                                                          count_frames=True)
-            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-
-            # would be odd that this did not work
-            if frame_count is None and getValue(meta[index],'nb_read_frames','n').lower()[0] not in ['0','n']:
-                frame_count = int(meta[index]['nb_read_frames'])
-
-        if not (open_ended and open_started) or frame_count is None:
-            # need to pull the frame info to find the start and end frames.
-            meta, frames = ffmpeg_api.get_meta_from_video(video_file, show_streams=True, with_frames=True,
-                                                          media_types=['video'], frame_meta=['pkt_pts_time','pkt_dts_time','pkt_duration_time'])
-            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-            frame_count = len(frames[index])
-        else:
-            # get the last frames, as we have the count and it is not open ended or open started
-            duration = getValue(meta[index],'duration', 'N/A')
-            if duration[0].lower() == 'n':
-                duration = estimate_duration(meta[index], frame_count)
-            meta, frames = ffmpeg_api.get_meta_from_video(video_file,
-                                                       show_streams=True,
-                                                       with_frames=True,
-                                                       media_types=['video'],
-                                                       frame_meta=['pkt_pts_time', 'pkt_dts_time'],
-                                                       frame_start=to_time(float(duration)-2))
-            index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
-            end_time = get_frame_time(frames[index][-1], None, None)
-            try:
-                if duration[0].lower() != 'n':
-                    end_time = min(end_time, float(duration)*1000.0)
-            except:
-                pass
-
-    if end_time_tuple in [None, (0, 0)]:
-        end_time_tuple = (0, frame_count)
-
-    if start_time_tuple in [None, (0, 0)]:
-        start_time_tuple = (0, 1)
-
-    rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
-    if not is_vfr:
-        update_segment(segment,**maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
-        return segment
-
-    if open_ended and open_started and end_time is not None:
-        update_segment(segment,
-                       rate=rate,
-                       startframe=1,
-                       starttime=0,
-                       endframe=frame_count,
-                       endtime=end_time
-                       )
-        return segment
-
-    video_frames = frames[index]
-    time_manager = tool_set.VidTimeManager(startTimeandFrame=start_time_tuple,stopTimeandFrame=end_time_tuple)
-    aptime = 0
-    lasttime = 0
-    for pos in range(1,len(video_frames)):
-        frmcnt += 1
-        aptime = get_frame_time(video_frames[pos], aptime, rate)
-        time_manager.updateToNow(aptime)
-        if not time_manager.beforeStartTime and not startcomplete:
-                startcomplete = True
-                update_segment(segment,
-                               starttime=lasttime,
-                               startframe=time_manager.frameCountWhenStarted,
-                               endtime=lasttime,
-                               endframe=time_manager.frameCountWhenStarted,
-                               rate=rate)
-        elif time_manager.isEnd():
-                break
-        lasttime = aptime
-    if not time_manager.isEnd():
-        update_segment(segment, endtime=aptime, endframe=len(video_frames))
-    else:
-        update_segment(segment, endtime=lasttime, endframe=frmcnt)
-
-    if not startcomplete and aptime > 0:
-        update_segment(segment, starttime=lasttime, startframe=frmcnt,rate=rate)
-
-    return segment
-
-def get_frame_count_only(video_file):
-    return get_frames_from_segment(get_frame_count(video_file))
 
 def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
     """
@@ -634,19 +524,541 @@ def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
                           endframe=int(endframe),
                           rate=rate)
 
+
+def meta_key(*args, **kwargs):
+    import copy
+    newkargs = copy.copy(kwargs)
+    newargs = tuple([args[0].get_filename()])
+    if 'media_types' in kwargs:
+        newkargs['media_types'] = '.'.join(sorted(kwargs['media_types']))
+    else:
+        newkargs['media_types'] = 'video'
+    if 'start_time_tuple' not in kwargs:
+        newkargs['start_time_tuple'] = (0, 1)
+    if 'channel' not in kwargs:
+        newkargs['channel'] = 0
+    return hashkey(*newargs, **newkargs)
+
+
+class VideoMetaLocatorTool:
+
+    def __init__(self, locator):
+        """
+        @type locator: MetaDataLocator
+        """
+        self.locator= locator
+
+    def getMaskSetForEntireVideoForTuples(self, start_time_tuple=(0, 1),
+                                          end_time_tuple=None,
+                                          media_types=['video'],
+                                          channel=0):
+        """
+        build a mask set for the entire video
+        :param locator: a function that returns video_file, meta, frames
+        :return: list of dict
+        @type locator: MetaDataLocator
+        """
+        video_file = self.locator.get_filename()
+        meta, frames = self.locator.get_meta(show_streams=True, media_types=media_types)
+        found_num = 0
+        results = []
+        for item in meta:
+            if 'codec_type' in item and item['codec_type'] in media_types:
+                if found_num != channel:
+                    found_num += 1
+                    continue
+                if item['codec_type'] == 'video':
+                    rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
+                else:
+                    rate = float(item['sample_rate'])
+                segment = create_segment(rate=rate, type=item['codec_type'])
+                if item['codec_type'] == 'video':
+                    maskupdate = self.get_frame_count(
+                                                 start_time_tuple=start_time_tuple,
+                                                 end_time_tuple=end_time_tuple)
+                    update_segment(segment, **maskupdate)
+                    update_segment(segment, mask=np.zeros((int(item['height']), int(item['width'])), dtype=np.uint8))
+                else:
+                    starttime = start_time_tuple[0] + (start_time_tuple[1] - 1) / rate * 1000.0
+                    startframe = int(starttime * rate / 1000.0) + 1
+                    if end_time_tuple is not None:
+                        endtime = end_time_tuple[0] + end_time_tuple[1] / rate * 1000.0
+                    else:
+                        endtime = float(item['duration']) * 1000 if (
+                        'duration' in item and item['duration'][0] != 'N') else 1000 * int(item['nb_frames']) / rate
+                    endframe = int(endtime * rate / 1000.0)
+                    update_segment(segment,
+                                   type=item['codec_type'],
+                                   startframe=startframe,
+                                   starttime=starttime,
+                                   endframe=endframe,
+                                   rate=rate,
+                                   endtime=endtime)
+                if start_time_tuple == end_time_tuple:
+                    update_segment(segment,
+                                   endtime=get_start_time_from_segment(segment),
+                                   endframe=get_start_frame_from_segment(segment))
+                results.append(segment)
+        return results
+
+    @cached(count_cache, lock=count_lock)
+    def get_frame_count(self, start_time_tuple=(0, 1), end_time_tuple=None):
+        """
+        Provie a meta set with frame count givn the constraints.
+        :param start_time_tuple:
+        :param end_time_tuple:
+        :return:
+        """
+        frmcnt = 0
+        startcomplete = False
+        segment = create_segment(starttime=0, startframe=1, endtime=0, endframe=1, frames=0, rate=0)
+        # first assume FFR.
+        meta, frames = self.get_meta(show_streams=True, with_frames=False,
+                                                      media_types=['video'])
+        indices = ffmpeg_api.get_stream_indices_of_type(meta, 'video')
+        if not indices:
+            return None
+        index = indices[0]
+        open_ended = end_time_tuple in [None, (0, 0), (0, 1)]
+        open_started = start_time_tuple in [(0, 1), None]
+        missing_frame_count = getValue(meta[index], 'nb_frames', 'n').lower()[0] in ['0', 'n']
+        end_time = None
+
+        def to_time(x):
+            return '%d:%d' % (x / 60, x % 60)
+
+        frame_count = int(meta[indices[0]]['nb_frames']) if not missing_frame_count else None
+        is_vfr = ffmpeg_api.is_vfr(meta[index], frames)
+        # Not FFR, then need to pull more data from frames
+        if missing_frame_count or is_vfr:
+            # do not incur this cost unless vfr or open started and missing frame count
+            # ffr missing frame count is an odd case, but lets trap it here
+            if open_ended and (open_started or not is_vfr) and missing_frame_count:
+                meta, frames = self.get_meta(show_streams=True, with_frames=False,
+                                                              media_types=['video'],
+                                                              count_frames=True)
+                index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+
+                # would be odd that this did not work
+                if frame_count is None and getValue(meta[index], 'nb_read_frames', 'n').lower()[0] not in ['0', 'n']:
+                    frame_count = int(meta[index]['nb_read_frames'])
+
+            if not (open_ended and open_started) or frame_count is None:
+                # need to pull the frame info to find the start and end frames.
+                meta, frames = self.get_meta(show_streams=True, with_frames=True,
+                                                              media_types=['video'],
+                                                              frame_meta=['pkt_pts_time', 'pkt_dts_time',
+                                                                          'pkt_duration_time'])
+                index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+                frame_count = len(frames[index])
+            else:
+                # get the last frames, as we have the count and it is not open ended or open started
+                duration = getValue(meta[index], 'duration', 'N/A')
+                if duration[0].lower() == 'n':
+                    duration = estimate_duration(meta[index], frame_count)
+                meta, frames = self.get_meta(
+                                                              show_streams=True,
+                                                              with_frames=True,
+                                                              media_types=['video'],
+                                                              frame_meta=['pkt_pts_time', 'pkt_dts_time'],
+                                                              frame_start=to_time(float(duration) - 2))
+                index = ffmpeg_api.get_stream_indices_of_type(meta, 'video')[0]
+                end_time = get_frame_time(frames[index][-1], None, None)
+                try:
+                    if duration[0].lower() != 'n':
+                        end_time = min(end_time, float(duration) * 1000.0)
+                except:
+                    pass
+
+        if end_time_tuple in [None, (0, 0)]:
+            end_time_tuple = (0, frame_count)
+
+        if start_time_tuple in [None, (0, 0)]:
+            start_time_tuple = (0, 1)
+
+        rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
+        if not is_vfr:
+            update_segment(segment, **maskSetFromConstraints(rate, start_time_tuple, end_time_tuple))
+            return segment
+
+        if open_ended and open_started and end_time is not None:
+            update_segment(segment,
+                           rate=rate,
+                           startframe=1,
+                           starttime=0,
+                           endframe=frame_count,
+                           endtime=end_time
+                           )
+            return segment
+
+        video_frames = frames[index]
+        time_manager = tool_set.VidTimeManager(startTimeandFrame=start_time_tuple, stopTimeandFrame=end_time_tuple)
+        aptime = 0
+        lasttime = 0
+        for pos in range(1, len(video_frames)):
+            frmcnt += 1
+            aptime = get_frame_time(video_frames[pos], aptime, rate)
+            time_manager.updateToNow(aptime)
+            if not time_manager.beforeStartTime and not startcomplete:
+                startcomplete = True
+                update_segment(segment,
+                               starttime=lasttime,
+                               startframe=time_manager.frameCountWhenStarted,
+                               endtime=lasttime,
+                               endframe=time_manager.frameCountWhenStarted,
+                               rate=rate)
+            elif time_manager.isEnd():
+                break
+            lasttime = aptime
+        if not time_manager.isEnd():
+            update_segment(segment, endtime=aptime, endframe=len(video_frames))
+        else:
+            update_segment(segment, endtime=lasttime, endframe=frmcnt)
+
+        if not startcomplete and aptime > 0:
+            update_segment(segment, starttime=lasttime, startframe=frmcnt, rate=rate)
+
+        return segment
+
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time','pkt_duration_time'],
+                 frame_limit = None,
+                 frame_start = None):
+        return ffmpeg_api.get_meta_from_video(self.locator.get_filename(),
+                                                      with_frames=with_frames,
+                                                      count_frames=count_frames,
+                                                      show_streams=show_streams,
+                                                      media_types=media_types,
+                                                      frame_start=frame_start,
+                                                      frame_meta=frame_meta,
+                                                      frame_limit=frame_limit)
+
+    def get_frame_rate(self, default=None):
+        """
+        :param default:
+        :return:
+        """
+        meta,frames = self.locator.get_meta(show_streams=True)
+        return ffmpeg_api.get_video_frame_rate_from_meta(meta,frames)
+
+    def get_duration(self, default=None):
+        """
+            duration in milliseconds for media
+        :param default:
+        :param audio:
+        :return:
+        """
+        meta, frames = self.locator.get_meta(show_streams=True)
+        duration = ffmpeg_api.get_duraton_from_meta(meta)
+        if duration is None or duration[0] == 'N':
+            maskset = self.getMaskSetForEntireVideo(media_types=['video'])
+            if not maskset:
+                return default
+            frames = get_frames_from_segment(maskset[0])
+            rate = get_rate_from_segment(maskset[0])
+            return 1000.0 * int(frames) / float(rate)
+        return float(duration) * 1000.0
+
+class AudioMetaLocatorTool(VideoMetaLocatorTool):
+
+    def __init__(self, locator):
+        """
+        @type locator: MetaDataLocator
+        """
+        VideoMetaLocatorTool.__init__(self,locator)
+
+    def get_frame_rate(self,default):
+        """
+        :param default:
+        :param audio:
+        :return:
+        """
+        meta, _ = self.locator.get_meta(media_types=['audio'], show_streams=True)
+        return ffmpeg_api.get_audio_frame_rate_from_meta(meta)
+
+    def get_duration(self,default=None):
+        """
+        duration in milliseconds for media
+        :param default:
+        :param audio:
+        :return:
+        """
+        meta, _ = self.locator.get_meta(media_types=['audio','video'], show_streams=True)
+        duration = ffmpeg_api.get_duraton_from_meta(meta,media_type='audio')
+        if duration is None or duration[0] == 'N':
+            maskset = self.locator.getMaskSetForEntireVideo(media_types=['audio'])
+            if not maskset:
+                return default
+            frames = get_frames_from_segment(maskset[0])
+            rate = get_rate_from_segment(maskset[0])
+            return 1000.0 * int(frames) / float(rate)
+        return float(duration) * 1000.0
+
+
+class ZipMetaLocatorTool(VideoMetaLocatorTool):
+
+    def __init__(self, locator, fps=30.0):
+        """
+        @type locator: MetaDataLocator
+        """
+        VideoMetaLocatorTool.__init__(self,locator)
+        self.fps = fps
+
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None):
+        import zip_tools
+        from tool_set import ZipCapture
+        zip_capture = ZipCapture(self.locator.get_filename())
+        meta = []
+        frames = []
+        for media in media_types:
+            if media == 'video':
+                length = zip_capture.get_size()
+                meta.append({
+                    'nb_frames' : str(length),
+                    'nb_read_frames': str(length),
+                    'duration' : str(zip_capture.get_size() / self.fps),
+                    'width': zip_capture.get(cv2api_delegate.prop_frame_width),
+                    'height': zip_capture.get(cv2api_delegate.prop_frame_height),
+                    'r_frame_rate': '{}/100'.format(int(self.fps*100)),
+                    'avg_frame_rate': '{}/100'.format(int(self.fps*100)),
+                    'codec_type': 'video',
+                    'codec_name': 'raw',
+                    'codec_long_name': 'raw'
+                })
+            else:
+                positions = zip_tools.AudioPositions(self.locator.get_filename())
+                self.fps = positions.fps
+                dur = positions.get_total_duration()
+                length = int(dur * positions.fps)
+                meta.append({
+                    'duration_ts': str(length),
+                    'duration': str(dur),
+                    'sample_rate': '{}'.format(positions.fps),
+                    'codec_type': 'audio',
+                    'codec_name': 'aac',
+                    'codec_long_name': 'aac'
+                })
+        if with_frames:
+            for i in range(1,length+1):
+                if frame_limit is not None and len(frames) >= frame_limit:
+                    break
+                current_time = (i-1)/self.fps
+                if frame_start is not None and current_time < frame_start:
+                    continue
+                frames.append({'pkt_pts_time':current_time,
+                               'pkt_dts_time':current_time,
+                               'pkt_duration_time':1.0/self.fps})
+        return meta,frames
+
+    def get_frame_rate(self,default):
+        """
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        return self.fps
+
+    def get_duration(self,default=None):
+        """
+            duration in milliseconds for media
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        from tool_set import zipFileType
+        duration = self.get_meta(show_streams=True,media_types=[zipFileType(self.locator.get_filename())])
+        return float(duration) * 1000.0
+
+class ImageMetaLocatorTool(VideoMetaLocatorTool):
+
+    def __init__(self, locator):
+        """
+        @type locator: MetaDataLocator
+        """
+        VideoMetaLocatorTool.__init__(self,locator)
+
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None):
+        meta = []
+        frames = []
+        img = tool_set.openImage(self.locator.get_filename())
+        for media in media_types:
+            if media == 'video':
+                meta.append({
+                    'nb_frames' : '1',
+                    'nb_read_frames': '1',
+                    'duration' : '0.0333',
+                    'width': img.size[0],
+                    'height': img.size[1],
+                    'r_frame_rate': '3000/100',
+                    'avg_frame_rate': '3000/100',
+                    'codec_type': 'video',
+                    'codec_name': 'raw',
+                    'codec_long_name': 'raw'
+                })
+            else:
+                meta.append({
+                    'duration_ts': "0",
+                    'duration': "0",
+                    'sample_rate': '48800',
+                    'codec_type': 'audio',
+                    'codec_name': 'aac',
+                    'codec_long_name': 'aac'
+                })
+        if with_frames:
+            frames = [{'pkt_pts_time':0,
+                               'pkt_dts_time':0,
+                               'pkt_duration_time': 0.0333}]
+        return meta,frames
+
+    def get_frame_rate(self,default):
+        """
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        return 30.0
+
+    def get_duration(self,default=None):
+        """
+            duration in milliseconds for media
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        return  0.0333
+
 class MetaDataLocator:
+    """
+    Locate a file and its meta data
+    """
 
     def __init__(self):
+        self.tools = {'zip': ZipMetaLocatorTool(self),
+                      'image': ImageMetaLocatorTool(self),
+                      'audio':AudioMetaLocatorTool(self),
+                      'video':VideoMetaLocatorTool(self)}
         pass
 
-    def get_meta(self,with_frames=False, show_streams=True,media_types=['video']):
-        pass
+    def get_meta(self,
+                 with_frames=False,
+                 show_streams=False,
+                 count_frames=False,
+                 media_types=['video'],
+                 frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+                 frame_limit=None,
+                 frame_start=None
+                 ):
+        return self._get_tool().get_meta(
+            with_frames=with_frames,
+            show_streams=show_streams,
+            count_frames=count_frames,
+            media_types=media_types,
+            frame_meta=frame_meta,
+            frame_limit=frame_limit,
+            frame_start=frame_start
+        )
 
     def get_filename(self):
-        pass
+        return ''
 
-    def get_frame_attribute(self, name, default=None, audio=False):
-        pass
+    def _get_tool(self):
+        """
+
+        :return:
+        @rtype VideoMetaDataLocatorTool
+        """
+        return self.tools[tool_set.fileType(self.get_filename())]
+
+    def get_frame_rate(self, default=None, audio=False):
+        """
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        """
+        if audio:
+            return self.tools['audio'].get_frame_rate(default=default)
+        else:
+            return self._get_tool().get_frame_rate(default=default)
+
+    def get_duration(self, default=None, audio=False):
+        """
+            duration in milliseconds for media
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        if audio:
+            return self.tools['audio'].get_duration(default=default)
+        else:
+            return self._get_tool().get_duration(default=default)
+
+    def get_frame_count(self, start_time_tuple=(0, 1), end_time_tuple=None, audio=False):
+        """
+            duration in milliseconds for media
+        :param locator:
+        :param default:
+        :param audio:
+        :return:
+        @type locator: MetaDataLocator
+        """
+        if audio:
+            return self.tools['audio'].get_frame_count(start_time_tuple=start_time_tuple,
+                                                    end_time_tuple=end_time_tuple)
+        else:
+            return self._get_tool().get_frame_count(start_time_tuple=start_time_tuple,
+                                                    end_time_tuple=end_time_tuple)
+
+    def getMaskSetForEntireVideo(self, start_time='00:00:00.000', end_time=None, media_types=['video'], channel=0):
+        """
+           build a mask set for the entire video
+           :param locator: a function that returns video_file, meta, frames
+           :return: list of dict
+           @type locator: MetaDataLocator
+           """
+        return self.getMaskSetForEntireVideoForTuples(
+                                                 start_time_tuple=tool_set.getMilliSecondsAndFrameCount(start_time,
+                                                                                                        defaultValue=(
+                                                                                                        0, 1)),
+                                                 end_time_tuple=tool_set.getMilliSecondsAndFrameCount(
+                                                     end_time) if end_time is not None and end_time != '0' else None,
+                                                 media_types=media_types, channel=channel)
+
+    @cached(meta_cache, lock=meta_lock, key=meta_key)
+    def getMaskSetForEntireVideoForTuples(self, start_time_tuple=(0, 1), end_time_tuple=None, media_types=['video'],
+                                          channel=0):
+        return self._get_tool().getMaskSetForEntireVideoForTuples(start_time_tuple=start_time_tuple,
+                                             end_time_tuple=end_time_tuple,
+                                             media_types=media_types,
+                                             channel=channel)
 
 class FileMetaDataLocator(MetaDataLocator):
 
@@ -655,143 +1067,12 @@ class FileMetaDataLocator(MetaDataLocator):
         self.video_filename = video_filename
 
     def get_meta(self, with_frames=False, show_streams=True, media_types=['video']):
-        return ffmpeg_api.get_meta_from_video(self.video_filename,
-                                              with_frames=with_frames,
-                                              show_streams=show_streams,
-                                              media_types=media_types)
-
+        return self._get_tool().get_meta(with_frames=with_frames,
+                                  show_streams=show_streams,
+                                  media_types=media_types)
 
     def get_filename(self):
         return self.video_filename
-
-    def get_frame_attribute(self, name, default=None, audio=False):
-        return ffmpeg_api.get_frame_attribute(self.video_filename, name, default=default, audio=audio)
-
-def get_frame_rate(locator, default=None, audio=False):
-    """
-
-    :param locator:
-    :param default:
-    :param audio:
-    :return:
-    @type locator: MetaDataLocator
-    """
-    rate = locator.get_frame_attribute( 'sample_rate' if audio else 'r_frame_rate', default=None, audio=audio)
-    if not audio and rate is None:
-        rate =locator.get_frame_attribute('avg_frame_rate', default=rate, audio=audio)
-    if rate is None:
-        duration = locator.get_frame_attribute('duration', default=None, audio=audio)
-        frames = locator.get_frame_attribute('nb_frames', default=None, audio=audio)
-        if frames is not None and duration is not None:
-            rate = frames + '/' + duration
-    if rate is None:
-        return default
-    parts = rate.split('/')
-    if len(parts) == 1 and float(rate) > 0:
-        return float(rate)
-    if len(parts) == 2 and float(parts[1]) > 0:
-        return float(parts[0]) / float(parts[1])
-    return default
-
-
-
-
-def get_duration(locator, default=None, audio=False):
-    """
-        duration in milliseconds for media
-    :param locator:
-    :param default:
-    :param audio:
-    :return:
-    @type locator: MetaDataLocator
-    """
-    duration = locator.get_frame_attribute('duration', default=None, audio=audio)
-    if duration is None or duration[0]== 'N':
-        maskset = getMaskSetForEntireVideo(locator,media_types=['audio'] if audio else ['video'])
-        if not maskset:
-            return default
-        frames= get_frames_from_segment(maskset[0])
-        rate = get_rate_from_segment(maskset[0])
-        return 1000.0 * int(frames) / float(rate)
-    return float(duration) *1000.0
-
-def getMaskSetForEntireVideo(locator, start_time='00:00:00.000', end_time=None, media_types=['video'],channel=0):
-    """
-       build a mask set for the entire video
-       :param locator: a function that returns video_file, meta, frames
-       :return: list of dict
-       @type locator: MetaDataLocator
-       """
-    return getMaskSetForEntireVideoForTuples(locator,
-                                      start_time_tuple=tool_set.getMilliSecondsAndFrameCount(start_time, defaultValue=(0,1)),
-                                      end_time_tuple = tool_set.getMilliSecondsAndFrameCount(end_time) if end_time is not None and end_time != '0' else None,
-                                      media_types=media_types,channel=channel)
-
-def meta_key(*args, **kwargs):
-    import copy
-    newkargs  = copy.copy(kwargs)
-    newargs = tuple([args[0].get_filename()])
-    if 'media_types'  in kwargs:
-        newkargs['media_types'] = '.'.join(sorted(kwargs['media_types']))
-    else:
-        newkargs['media_types'] = 'video'
-    if 'start_time_tuple' not in kwargs:
-        newkargs['start_time_tuple'] = (0,1)
-    if 'channel' not in kwargs:
-        newkargs['channel'] = 0
-    return hashkey(*newargs, **newkargs)
-
-@cached(meta_cache,lock=meta_lock,key=meta_key)
-def getMaskSetForEntireVideoForTuples(locator, start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
-                                 channel=0):
-    """
-    build a mask set for the entire video
-    :param locator: a function that returns video_file, meta, frames
-    :return: list of dict
-    @type locator: MetaDataLocator
-    """
-    video_file = locator.get_filename()
-    meta, frames = locator.get_meta(show_streams=True, media_types=media_types)
-    found_num = 0
-    results = []
-    for item in meta:
-        if 'codec_type' in item and item['codec_type'] in media_types:
-            if found_num != channel:
-                found_num+=1
-                continue
-            if item['codec_type'] == 'video':
-                rate = ffmpeg_api.get_video_frame_rate_from_meta(meta, frames)
-            else:
-                rate = float(item['sample_rate'])
-            segment = create_segment(rate=rate,type=item['codec_type'])
-            if item['codec_type'] == 'video':
-                maskupdate = get_frame_count(video_file,
-                                                 start_time_tuple=start_time_tuple,
-                                                 end_time_tuple=end_time_tuple)
-                update_segment(segment,**maskupdate)
-                update_segment(segment,mask= np.zeros((int(item['height']),int(item['width'])),dtype = np.uint8))
-            else:
-                starttime = start_time_tuple[0] + (start_time_tuple[1]-1)/rate*1000.0
-                startframe = int(starttime*rate/1000.0) + 1
-                if end_time_tuple is not None:
-                    endtime = end_time_tuple[0] + end_time_tuple[1] / rate * 1000.0
-                else:
-                    endtime = float(item['duration']) * 1000 if ('duration' in item and item['duration'][0] != 'N') else 1000 * int(item['nb_frames']) / rate
-                endframe = int(endtime*rate/1000.0)
-                update_segment(segment,
-                               type=item['codec_type'],
-                               startframe=startframe,
-                               starttime=starttime,
-                               endframe=endframe,
-                               rate=rate,
-                               endtime=endtime)
-            if start_time_tuple == end_time_tuple:
-                update_segment(segment,
-                               endtime=get_start_time_from_segment(segment),
-                               endframe=get_start_frame_from_segment(segment))
-            results.append(segment)
-    return results
-
 
 def get_ffmpeg_version():
     command = [ffmpeg_api.get_ffmpeg_tool(),'-version']
@@ -1257,10 +1538,10 @@ def toAudio(fileOne,outputName=None, channel=None, start=None,end=None):
         ss = None
         to = None
         if start is not None:
-            rate = get_frame_rate(FileMetaDataLocator(fileOne), audio=True)
+            rate = FileMetaDataLocator(fileOne).get_frame_rate(audio=True)
             ss = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(start,rate=rate)[0])
         if end is not None:
-            rate = get_frame_rate(FileMetaDataLocator(fileOne), audio=True)
+            rate = FileMetaDataLocator(fileOne).get_frame_rate(audio=True)
             to = tool_set.getDurationStringFromMilliseconds(tool_set.getMilliSecondsAndFrameCount(end,rate=rate)[0])
         if channel == 'left':
             fullCommand = [ffmpegcommand,'-y','-i', fileOne, '-map_channel', '0.1.0',  '-vn']
@@ -1397,12 +1678,21 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
     :param ranges: collection of meta-data describing then range of cut frames
     :return:
     """
-    orig_vid = getMaskSetForEntireVideo(FileMetaDataLocator(vidAnalysisComponents.file_one))
-    cut_vid = getMaskSetForEntireVideo(FileMetaDataLocator(vidAnalysisComponents.file_two))
-    diff_in_frames = get_frames_from_segment(orig_vid[0]) - get_frames_from_segment(cut_vid[0])
+    orig_vid = FileMetaDataLocator(vidAnalysisComponents.file_one).getMaskSetForEntireVideo()[0]
+    cut_vid = FileMetaDataLocator(vidAnalysisComponents.file_two).getMaskSetForEntireVideo()[0]
+    diff_in_frames = get_frames_from_segment(orig_vid) - get_frames_from_segment(cut_vid)
     vidAnalysisComponents.time_manager.setStopFrame (vidAnalysisComponents.time_manager.frameSinceBeginning + diff_in_frames - 1)
-    if __changeCount(vidAnalysisComponents.mask) > 0 or not vidAnalysisComponents.vid_two.isOpened():
-        end_time = vidAnalysisComponents.time_manager.milliNow
+    if not vidAnalysisComponents.vid_two.isOpened():
+        ranges.append(create_segment(starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
+                             startframe=vidAnalysisComponents.time_manager.frameSinceBeginning+1,
+                             rate=vidAnalysisComponents.fps_one,
+                             type='video',
+                             endframe = get_end_frame_from_segment(orig_vid),
+                             endtime = get_end_time_from_segment(orig_vid),
+                             mask=  vidAnalysisComponents.frame_one_mask if type(vidAnalysisComponents.mask) == int else vidAnalysisComponents.mask))
+        return False
+    if __changeCount(vidAnalysisComponents.mask) > 0:
+        last_time = end_time = vidAnalysisComponents.time_manager.milliNow
         cut = create_segment(starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
                              startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
                              rate=vidAnalysisComponents.fps_one,
@@ -1418,12 +1708,18 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
                 break
             vidAnalysisComponents.time_manager.updateToNow(
                 vidAnalysisComponents.vid_one.get(cv2api_delegate.prop_pos_msec))
-            end_time = vidAnalysisComponents.time_manager.milliNow
             if vidAnalysisComponents.time_manager.isPastTime():
                 break
-        update_segment(cut,
-                      endtime=end_time,
-                      endframe=vidAnalysisComponents.time_manager.getEndFrame())
+            last_time = end_time
+            end_time = vidAnalysisComponents.time_manager.milliNow
+        if not ret_one:
+            update_segment(cut,
+                           endframe=get_end_frame_from_segment(orig_vid),
+                           endtime=get_end_time_from_segment(orig_vid))
+        else:
+            update_segment(cut,
+                          endtime=last_time,
+                          endframe=vidAnalysisComponents.time_manager.getEndFrame())
         ranges.append(cut)
         return False
     return True
@@ -1533,10 +1829,10 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
     :param analysis:
     :return:
     """
-    entireVideoMaskSet = getMaskSetForEntireVideo(FileMetaDataLocator(fileOne))
+    entireVideoMaskSet = FileMetaDataLocator(fileOne).getMaskSetForEntireVideo()
     analysis_components = VidAnalysisComponents()
-    analysis_components.vid_one = cv2api_delegate.videoCapture(fileOne)
-    analysis_components.vid_two = cv2api_delegate.videoCapture(fileTwo)
+    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'Frame Rate',30))
+    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'Frame Rate',30))
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
         np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
@@ -1566,6 +1862,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
                 break
             compare_result, analysis_result  = tool_set.cropCompare(frame_one, frame_two, arguments=analysis)
             analysis.update(analysis_result)
+            break
             # go a few more rounds?
         analysis_components.mask = 0
     finally:
@@ -1597,13 +1894,13 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, anal
     @retype: list of dict
     """
     maskSet, errors =  __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments)
-    audioMaskSetOne = getMaskSetForEntireVideo(FileMetaDataLocator(fileOne), media_types=['audio'])
-    audioMaskSetTwo = getMaskSetForEntireVideo(FileMetaDataLocator(fileTwo), media_types=['audio'])
+    audioMaskSetOne = FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(media_types=['audio'])
+    audioMaskSetTwo = FileMetaDataLocator(fileTwo).getMaskSetForEntireVideo(media_types=['audio'])
     # audio was not dropped
     if len(maskSet) > 0 and len(audioMaskSetOne) > 0 and len(audioMaskSetTwo)>0:
         # audio was changed
         if get_frames_from_segment(audioMaskSetOne[0]) != get_frames_from_segment(audioMaskSetTwo[0]):
-            startframe = (get_start_frame_from_segment(maskSet[0])-1)/get_rate_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])
+            startframe = (get_start_frame_from_segment(maskSet[0])-1)/get_rate_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0]) + 1
             #int(get_start_time_from_segment(maskSet[0])*get_rate_from_segment(audioMaskSetOne[0])/1000.0)
             realframediff = get_frames_from_segment(audioMaskSetOne[0]) - get_frames_from_segment(audioMaskSetTwo[0])
             realtimediff = get_end_time_from_segment(audioMaskSetOne[0]) - get_end_time_from_segment(audioMaskSetTwo[0])
@@ -1665,7 +1962,7 @@ def clampToEnd(filename, sets_tuple, media_type):
     @type filename: str
     @type sets: list
     """
-    real_segments = getMaskSetForEntireVideo(FileMetaDataLocator(filename),
+    real_segments = FileMetaDataLocator(filename).getMaskSetForEntireVideo(
                              media_types=[media_type])
     if sets_tuple is None:
         return real_segments
@@ -1683,7 +1980,7 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
         video_masks = getValue(edge, 'videomasks', [])
         if len(video_masks) > 0:
             return
-        video_masks = getMaskSetForEntireVideo(FileMetaDataLocator(graph.get_image_path(source)),
+        video_masks = FileMetaDataLocator(graph.get_image_path(source)).getMaskSetForEntireVideo(
                                                            start_time=getValue(edge, 'arguments.Start Time',
                                                                                defaultValue='00:00:00.000'),
                                                            end_time=getValue(edge, 'arguments.End Time'),
@@ -1731,8 +2028,8 @@ def fixVideoMasks(graph, source, edge, media_types=['video'], channel=0):
                         return findFinal(graph, succ)
             finalNode = findFinal(graph, source)
             if finalNode is not None:
-                return getMaskSetForEntireVideo(
-                    FileMetaDataLocator(os.path.join(graph.dir, getValue(graph.get_node(finalNode), 'file'))),
+                return FileMetaDataLocator(os.path.join(graph.dir,
+                                                        getValue(graph.get_node(finalNode), 'file'))).getMaskSetForEntireVideo(
                     start_time=start_time, end_time=end_time, media_types=media_types)
             return []
 
@@ -1759,11 +2056,10 @@ def formMaskForSource(source_file_name, mask_file_name, name, startTimeandFrame=
     :param stopTimeandFrame:
     :return:
     """
-    source_file_tuples = getMaskSetForEntireVideoForTuples(
-        FileMetaDataLocator(source_file_name),
+    source_file_tuples = FileMetaDataLocator(source_file_name).getMaskSetForEntireVideoForTuples(
         start_time_tuple=startTimeandFrame,
         end_time_tuple=stopTimeandFrame)
-    mask_file_tuples = getMaskSetForEntireVideoForTuples(FileMetaDataLocator(mask_file_name))
+    mask_file_tuples = FileMetaDataLocator(mask_file_name).getMaskSetForEntireVideoForTuples()
     if get_frames_from_segment(source_file_tuples[0]) != get_frames_from_segment(mask_file_tuples[0]):
         return None
     subs = videoMasksFromVid(mask_file_name,
@@ -1799,7 +2095,7 @@ def videoMasksFromVid(vidFile, name, startTimeandFrame=(0,1), stopTimeandFrame=N
         time_manager.updateToNow(elapsed_time)
         if time_manager.isBeforeTime():
             update_segment(segment,
-                           startframe=time_manager.frameSinceBeginning+ offset,
+                           startframe=time_manager.frameSinceBeginning+     offset,
                            starttime=offset*(1000.0/fps) + elapsed_time - 1000.0/fps)
             continue
         if time_manager.isPastTime():
@@ -1922,7 +2218,7 @@ class AudioReader:
     left from to right on the other.
     """
 
-    def __init__(self,filename, channel, block=524288):
+    def __init__(self,filename, channel='all', block=524288):
         """
 
         :param filename:
@@ -2049,6 +2345,10 @@ class AudioReader:
         new_base_start = base_start + positions[0][0]
         new_base_end = base_start+ positions[0][-1]
         return self.block_pos+new_base_start,self.block_pos+new_base_end
+
+    def syncToTime(self, set_time):
+        frame = set_time*self.framerate/1000.0
+        self.syncToFrame(frame)
 
     def syncToFrame(self, frame):
         """
@@ -2393,6 +2693,7 @@ def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},ana
     else:
         return audioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
 
+
 def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
     """
     Confirm fileTwo is sampled from fileOne
@@ -2447,10 +2748,9 @@ def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysi
         fone.close()
     return [],['Unable to open one of the audio streams']
 
-
-def buildCaptureTool(vidFile):
+def buildCaptureTool(vidFile, fps=30):
     if os.path.splitext(vidFile)[1].lower() == '.zip':
-        return tool_set.ZipCapture(vidFile)
+        return tool_set.ZipCapture(vidFile,fps=fps)
     else:
         return cv2api_delegate.videoCapture(vidFile)
 
@@ -2465,7 +2765,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
      @type time_manager: VidTimeManager
      @type img_wrapper: ImageWrapper
      """
-    vid_cap = buildCaptureTool(vidFile)
+    vid_cap = buildCaptureTool(vidFile, fps = getValue(arguments,'fps',30))
     fps = vid_cap.get(cv2api_delegate.prop_fps)
     writer = tool_set.GrayBlockWriter(name_prefix, fps)
     segment = create_segment(rate= fps, type='video', startframe=1, starttime=0, frames=0)
@@ -2537,8 +2837,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components = VidAnalysisComponents()
     analysis_components.file_one = fileOne
     analysis_components.file_two = fileTwo
-    analysis_components.vid_one = buildCaptureTool(fileOne)
-    analysis_components.vid_two = buildCaptureTool(fileTwo)
+    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'Frame Rate',30))
+    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'Frame Rate',30))
     analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
     analysis_components.frame_one_mask = \
         np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
@@ -2577,7 +2877,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 imwrite(os.path.join(dump_dir,'one_{}.png'.format(time_manager.frameSinceBeginning)), frame_one)
                 imwrite(os.path.join(dump_dir,'two_{}.png'.format(time_manager.frameSinceBeginning)), frame_two)
             if frame_one.shape != frame_two.shape:
-                return getMaskSetForEntireVideo(FileMetaDataLocator(fileOne)),[]
+                return FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(),[]
             analysis_components.mask = tool_set.createMask(ImageWrapper(frame_one),
                                                            ImageWrapper(frame_two),
                                                            False,
@@ -2640,7 +2940,7 @@ def interpolateMask(mask_file_name_prefix,
     if tool_set.fileType(start_file_name) == 'image':
         image = tool_set.openImage(start_file_name)
         new_mask_set = []
-        destination_video = cv2api_delegate.videoCapture(dest_file_name)
+        destination_video = buildCaptureTool(dest_file_name, fps=getValue(arguments, 'Frame Rate', 30))
         try:
             for mask_set in video_masks:
                 rate = reader.fps
@@ -3591,7 +3891,7 @@ def insertFrames(bounds,
         new_mask_set = insertFramesWithoutMaskForBound(bound, new_mask_set, expectedType=expectedType)
     return new_mask_set
 
-def pullFrameNumber(video_file, frame_number):
+def pullFrameNumber(video_file, frame_number, fps=30):
     """
 
     :param video_file:
@@ -3599,7 +3899,7 @@ def pullFrameNumber(video_file, frame_number):
     :return:
     """
 
-    video_capture = cv2api_delegate.videoCapture(video_file)
+    video_capture = buildCaptureTool(video_file, fps)
     while (video_capture.isOpened() and frame_number > 0):
         ret = video_capture.grab()
         if not ret:
