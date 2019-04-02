@@ -2858,7 +2858,7 @@ class ImageProjectModel:
 
     def substitutesAllowed(self):
         allowed = False
-        modification = self.getDescription()
+        modification = self.getCurrentEdgeModification()
         if modification is not None:
             allowed = getValue(modification.arguments, 'videoinputmaskname', '')
         return 'disabled' if not allowed else 'normal'
