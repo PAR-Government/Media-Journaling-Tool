@@ -30,8 +30,8 @@ def getFileName(fileName, path=None):
         logging.getLogger('maskgen').info( 'Loading ' + fileName)
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
-    places.extend([os.path.join(x,'resources') for x in sys.path if 'maskgen' in x or
-                   (path is not None and path in x)])
+    places.extend([os.path.join(x, 'resources') for x in sys.path if 'maskgen' in x or not x.endswith('egg') and \
+                          os.path.exists(os.path.join(x, 'resources'))])
     for place in places:
         newNanme = os.path.abspath(os.path.join(place, fileName))
         if os.path.exists(newNanme):

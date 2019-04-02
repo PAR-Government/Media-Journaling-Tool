@@ -1402,7 +1402,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha_op, update_message))
         except:
             tkMessageBox.showwarning('JT Update Status', 'Unable to verify latest version of JT due to connection '
-                                                         'error to GitHub. See logs for details')
+                                                         'error to git repository. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 

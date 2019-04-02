@@ -37,7 +37,8 @@ def installPlugin(zippedFile):
 
     loaded = config.global_config.get('plugins', PluginManager({}))
     pluginFolders = [os.path.join('.', "plugins"), os.getenv('MASKGEN_PLUGINS', 'plugins')]
-    pluginFolders.extend([os.path.join(x, 'plugins') for x in sys.path if 'maskgen' in x])
+    pluginFolders.extend([os.path.join(x, 'plugins') for x in sys.path if 'maskgen' in x or not x.endswith('egg') and \
+                          os.path.exists(os.path.join(x, 'plugins'))])
     for folder in pluginFolders:
         if os.path.exists(folder):
             for name in  extract_archive(zippedFile, folder):
