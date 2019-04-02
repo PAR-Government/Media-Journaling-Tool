@@ -45,6 +45,23 @@ For developers, documentation [here](doc/NewFileType.md) describes steps to add 
 
 # INSTALLATION
 
+Install scripts are available to aid in the installation.  For Docker, 
+
+```
+cd scripts
+docker build . -f scripts/Dockerfile
+```
+
+For Mac, the brew installation is incomplete.  Use the following script:
+
+```
+scripts\install_mac.sh
+```
+
+For Windows, build an installer executable here: [here](scripts/readme_windows_installer.txt).  Windows uses conda for python.
+
+## CUSTOM INSTALL
+
 This section discusses installing dependent packages by hand.  When possible, use one of the existing installers for Windows, Mac and Ubuntu.
 
 The tool uses Python 2.7.  An upgrade to Python 3 is not planned at this time.   Please use the latest version of python 2.7.  Python versions prior to 2.7.12 do not work with this software.  The software relies on setuptools.  You can install setup tools as follows:

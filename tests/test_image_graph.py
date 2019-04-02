@@ -19,6 +19,12 @@ class TestImageGraph(TestSupport):
        self.assertEqual(3,len(graph.get_nodes()))
        self.assertEqual(2,len(graph.get_edges()))
 
+   def test_archivegraph(self):
+       initial = image_graph.createGraph(self.locateFile('images/sample.json'), 'image')
+       initial.create_archive('.')
+       self.assertTrue(os.path.exists('sample.tgz'))
+       os.remove('sample.tgz')
+
    def test_build_graph(self):
         edgePaths = ['videomasks', 'videosegment']
         value = {'videomasks': [
