@@ -76,7 +76,7 @@ class CopyCompressionAndExifGroupOperation(BaseOperation):
             newPairs = None
         else:
             for pair in self.pairs:
-                self.scModel.selectImage(pair[0])
+                self.scModel.selectNode(pair[0])
                 im, filename = self.scModel.getImageAndName(pair[0])
                 donor_im, donor_filename = self.scModel.getImageAndName(pair[1])
                 orientation = exif.getOrientationFromExif(donor_filename)

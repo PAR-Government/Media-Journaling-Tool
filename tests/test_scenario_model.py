@@ -113,7 +113,7 @@ class TestScenarioModel(TestSupport):
 
 
    def test_audiozip_zip_link_tool(self):
-      from maskgen.scenario_model import AudioZipAudioLinkTool
+      from maskgen.scenario_model import ZipAudioLinkTool
       from maskgen.software_loader import Operation
       from maskgen.image_wrap import ImageWrapper
       from maskgen.support import getValue
@@ -134,7 +134,7 @@ class TestScenarioModel(TestSupport):
          def get_node(self, name):
            return { 'a': { }, 'b': {}}[name]
 
-      tool = AudioZipAudioLinkTool()
+      tool = ZipAudioLinkTool()
       scModel = Mock()
       scModel.gopLoader = Mock()
       scModel.G.dir = '.'
@@ -258,7 +258,7 @@ class TestScenarioModel(TestSupport):
        z = ZipAddTool()
        meta = z.getAdditionalMetaData(self.locateFile('zips/test.wav.zip'))
        self.assertEqual(35.665851,meta['total duration'])
-       self.assertEqual('17.832925', meta['zip content meta'][-1]['duration'])
+       self.assertEqual('17.832925', meta['zip content meta']['output-audio-3.wav']['duration'])
        self.assertEquals('786432',meta['media'][0]['duration_ts'])
 
 if __name__ == '__main__':

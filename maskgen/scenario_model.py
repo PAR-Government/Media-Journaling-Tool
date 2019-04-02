@@ -70,7 +70,8 @@ def createProject(path,
                   suffixes=[],
                   tool=None,
                   username=None,
-                  organization=None,preferences={}):
+                  organization=None,
+                  preferences={}):
     """
         This utility function creates a ProjectModel given a directory.
         If the directory contains a JSON file, then that file is used as the project file.
@@ -88,7 +89,7 @@ def createProject(path,
     :return:  a tuple=> a project if found or created, returns True if created. Returns None if a project cannot be found or created.
      @type path: str
      @type notify: (str, str) -> None
-     @rtype (ImageProjectModel, bool)
+     @rtype: (ImageProjectModel, bool)
     """
     if path is None:
         path = '.'
@@ -2379,7 +2380,7 @@ class ImageProjectModel:
                 return self.getModificationForEdge(pred, node)
         return None
 
-    def getDescription(self):
+    def getCurrentEdgeModification(self):
         if self.start is None or self.end is None:
             return None
         return self.getModificationForEdge(self.start, self.end)
@@ -2532,7 +2533,7 @@ class ImageProjectModel:
             return self.getImageAndName(self.start)
         return None, None
 
-    def selectImage(self, name):
+    def selectNode(self, name):
         if self.G.has_node(name):
             self.start = name
             self.end = None
@@ -3011,7 +3012,7 @@ class ImageProjectModel:
             for donor in donors:
                 _end = self.end
                 _start = self.start
-                self.selectImage(kwargs[donor])
+                self.selectNode(kwargs[donor])
                 mod = Modification('Donor', '',category='Donor',automated='yes',arguments=donorargs)
                 self.connect(_end,mod=mod)
                 pairs.append((kwargs[donor], _end))
@@ -3125,6 +3126,12 @@ class ImageProjectModel:
                 self.G.get_edges()]
 
     def openImage(self, nfile):
+        """
+
+        :param nfile:
+        :return:
+        @rtype: (str, ImageWrapper)
+        """
         im = None
         if nfile is not None and nfile != '':
             im = self.G.openImage(nfile)
@@ -3217,6 +3224,11 @@ class ImageProjectModel:
         return []
 
     def setSemanticGroups(self, start, end, grps):
+        """
+        @type start: str
+        @type end: str
+        @type grps: list(str)
+        """
         edge = self.getGraph().get_edge(start, end)
         if edge is not None:
             self.getGraph().update_edge(start, end, semanticGroups=grps)

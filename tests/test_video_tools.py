@@ -1719,7 +1719,7 @@ class TestVideoTools(TestSupport):
                                                                 self.locateFile('tests/videos/sample1_slow_swap.mov'),
                                                                 media_types=['video', 'audio'])
         self.assertTrue(meta_diff['stereo']['bit_rate'] == ('change', '126228', '128273'))
-        self.assertTrue(meta_diff['video']['bit_rate'] == ('change', '2298880', '1364992'))
+        self.assertEquals(meta_diff['video']['bit_rate'] ,('change', '2245468', '1333223'))
 
         meta_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
                                                                 self.locateFile('tests/videos/sample1_slow_swap.mov'),

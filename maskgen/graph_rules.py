@@ -969,14 +969,15 @@ def _checkDurationErrorType(op, graph, frm, to, error_type,media_type='video'):
     if durationChangeTuple is not None and durationChangeTuple[0] == 'change':
         return (error_type, "Length of {} has changed".format(media_type))
     duration = getValue(edge, 'metadatadiff.{}.duration'.format(media_type))
-    if  duration is not None:
-        return  (error_type,"Length of {} has changed".format(media_type))
+    if duration is not None:
+        return (error_type,"Length of {} has changed".format(media_type))
 
 def checkDuration(op, graph, frm, to):
     return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
-    return _checkDurationErrorType(op, graph, frm, to, Severity.ERROR, media_type='audio')
+    #Checks if the video stream changed.
+    return _checkDurationErrorType(op, graph, frm, to, Severity.ERROR)
 
 def checkAudioAdd(op, graph, frm, to):
     edge = graph.get_edge(frm, to)

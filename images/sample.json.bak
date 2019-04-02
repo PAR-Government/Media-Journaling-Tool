@@ -11,7 +11,7 @@
     "validatedby": "", 
     "exporttime": "2018-04-05 16:29:17", 
     "jt_upgrades": [
-      "0.5.0918.b370476d40"
+      "0.6.0227.b469c4a202"
     ], 
     "creator_tool": "jtui", 
     "autopastecloneinputmask": "no", 
@@ -23,8 +23,12 @@
       "3650d8abfd72eaa9c029747e6a7cdec7.jpg"
     ], 
     "manipulationcategory": "4-Unit", 
+    "graphFilePaths": {
+      "projectfile": ""
+    }, 
     "edgeFilePaths": {
       "maskname": "", 
+      "substitute subsitute": "", 
       "videomasks.videosegment": "", 
       "arguments.XMP File Name": "", 
       "arguments.convolutionkernel": "", 
@@ -32,6 +36,7 @@
       "arguments.pastemask": "", 
       "arguments.qtfile": "", 
       "inputmaskname": "inputmaskownership", 
+      "substitute videomasks.videosegment": "", 
       "arguments.PNG File Name": ""
     }, 
     "skipped_edges": [], 
@@ -67,7 +72,9 @@
     ], 
     "organization": "wonderland", 
     "validation": "no", 
-    "creator": "ericrobertson"
+    "creator": "ericrobertson", 
+    "createtime": "2016-06-29 15:11:14", 
+    "technicalsummary": "Sample Project"
   }, 
   "nodes": [
     {
@@ -227,7 +234,7 @@
           "RGB with Alpha"
         ]
       }, 
-      "softwareVersion": "2.4.13", 
+      "softwareVersion": "2.4", 
       "op": "PasteSplice"
     }, 
     {
@@ -314,7 +321,9 @@
       "arguments": {
         "function": "maskgen.algorithms.seam_carving.seamCompare", 
         "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
+        "inputmasktype": "color", 
         "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
+        "apply mask": "no", 
         "mask interpolated": "yes", 
         "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
         "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
@@ -381,7 +390,7 @@
           "2.2"
         ]
       }, 
-      "softwareVersion": "CC2015.5.12", 
+      "softwareVersion": "CC 2015", 
       "transform matrix": null, 
       "op": "TransformSeamCarving"
     }, 
@@ -394,7 +403,8 @@
       "ssim": 0.9999999855200266, 
       "source": 4, 
       "arguments": {
-        "Image Rotated": "no"
+        "Image Rotated": "no", 
+        "Lens Distortion Applied": "no"
       }, 
       "username": "dupre", 
       "description": "", 
@@ -591,7 +601,7 @@
           "2016:10:05 08:05:55-04:00"
         ]
       }, 
-      "softwareVersion": "CC16.16", 
+      "softwareVersion": "CC 2015", 
       "op": "TransformCrop"
     }, 
     {
@@ -802,7 +812,7 @@
           "2016:10:05 12:02:48"
         ]
       }, 
-      "softwareVersion": "CC16.16", 
+      "softwareVersion": "CC 2015", 
       "op": "TransformRotate", 
       "transform matrix": {
         "c": 3, 
