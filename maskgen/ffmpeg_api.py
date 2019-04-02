@@ -341,14 +341,6 @@ def test_meta(self):
     self.assertEqual('yuv420p', meta[0]['pix_fmt'])
     self.assertEqual('audio', meta[1]['codec_type'])
 
-def test_meta(self):
-    meta, frames = get_meta_from_video(self.locateFile('tests/videos/sample1.mov'), with_frames=True)
-    self.assertEqual(803, len(frames[0]))
-    self.assertEqual(2557, len(frames[1]))
-    meta, frames = get_meta_from_video(self.locateFile('tests/videos/sample1.mov'), show_streams=True)
-    self.assertEqual('yuv420p', meta[0]['pix_fmt'])
-    self.assertEqual('audio', meta[1]['codec_type'])
-
 def is_vfr(meta, frames=[]):
     """
 
