@@ -161,7 +161,7 @@ class MetaDataExtractor:
                                               )
             et = getValue(edge, 'arguments.End Time',None)
             et = getMilliSecondsAndFrameCount(et) if et not in [None,'0'] else None
-            result = self.getMetaDataLocator(source).getMaskSetForEntireVideo(
+            result = self.getMetaDataLocator(source).getMaskSetForEntireVideoForTuples(
                                               start_time_tuple=st if startTime is None else startTime,
                                               end_time_tuple=et if endTime is None else endTime,
                                               media_types=media_types,
