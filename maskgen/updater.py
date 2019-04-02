@@ -113,13 +113,14 @@ class UpdaterGitAPI:
 class OperationsUpdaterGitAPI(UpdaterGitAPI):
 
     def __init__(self, branch='master'):
-        UpdaterGitAPI.__init__(self, branch=branch,version_file='resources/operations.json')
+        import urllib
+        UpdaterGitAPI.__init__(self, branch=branch,version_file=urllib.quote_plus('resources/operations.json'))
 
     def _get_version_file(self):
-        resp = requests.get(self.file, timeout=2)
-        if resp.status_code == requests.codes.ok:
+        resp = UpdaterGitAPI._get_version_file(self)
+        if resp is not None:
             import json
-            return json.loads(resp.content.strip())['version']
+            return json.loads(resp)['version']
 
     def _hasNotPassed(self, merge_sha):
         from maskgen.software_loader import getMetDataLoader
@@ -127,3 +128,8 @@ class OperationsUpdaterGitAPI(UpdaterGitAPI):
             return True
         currentversion = getMetDataLoader().operation_version
         return merge_sha != currentversion
+
+
+
+a  = OperationsUpdaterGitAPI()
+a._get_version_file()
