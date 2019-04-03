@@ -1937,7 +1937,7 @@ def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analy
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
                        compareChange,
                        arguments=args,
-                       compare_function=tool_set.morphologyCompare,
+                       compare_function=tool_set.mediatedCompare,
                        convert_function=tool_set.convert16bitcolor)
 
 def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}):
@@ -2169,7 +2169,7 @@ def formMaskDiff(fileOne,
         result = __runDiff(fileOne, fileTwo, name_prefix,time_manager,
                            detectChange,
                            arguments=arguments,
-                           compare_function=tool_set.morphologyCompare,
+                           compare_function=tool_set.mediatedCompare,
                            convert_function=tool_set.convert16bitcolor)
     if analysis is not None:
         analysis['startframe'] = time_manager.getStartFrame()
@@ -2810,7 +2810,7 @@ def __runImageDiff(vidFile, img_wrapper, name_prefix, time_manager, arguments={}
     return [], analysis, exif.comparexif_dict(exif,img_wrapper.get_exif())
 
 def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
-              compare_function=tool_set.morphologyCompare,
+              compare_function=tool_set.mediatedCompare,
               convert_function=tool_set.convert16bitcolor,
               arguments={}):
     """
