@@ -1926,7 +1926,7 @@ def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, an
                          )
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect,
                      arguments=arguments,
-                     compare_function=tool_set.morphologyCompare,
+                     compare_function=tool_set.mediatedCompare,
                      convert_function=tool_set.convert16bitcolor)
 
 

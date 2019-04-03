@@ -906,10 +906,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
             row += 1
-            for argname, argvalue in self.description.arguments.iteritems():
-                Label(master, text='      ' + argname + ': ' + str(argvalue), justify=LEFT).grid(row=row, column=0,
-                                                                                                 columnspan=4, sticky=W)
-                row += 1
+            PropertyListFrame(master,self.description).grid(row=row, column=0,columnspan=4, sticky=W+E)
+            row += 1
         if self.description.inputMaskName is not None:
             self.inputmaskframe = ButtonFrame(master, self.description.inputMaskName, self.dir, \
                                               label='Mask (' + self.description.inputMaskName + '):', isMask=True,
@@ -2311,6 +2309,27 @@ class PropertyFrame(VerticalScrolledFrame):
            elif error is not None:
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
+
+
+
+class PropertyListFrame(VerticalScrolledFrame):
+
+   def __init__(self, parent, description,
+                **kwargs):
+     self.parent = parent
+     VerticalScrolledFrame.__init__(self, parent, **kwargs)
+     self.description =description
+     self.body()
+
+   def body(self):
+       master = self.interior
+       row = 0
+       for argname, argvalue in self.description.arguments.iteritems():
+           Label(master, text='      ' + argname + ': ' + str(argvalue), justify=LEFT).grid(row=row, sticky=W)
+           row+=1
+
+   def apply(self):
+        pass
 
 
 
