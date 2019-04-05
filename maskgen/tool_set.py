@@ -129,7 +129,8 @@ def fetchbyS3URL(url):
 
 def get_icon(name):
     places = []  # ['./icons']
-    places.extend([os.path.join(x, 'icons/' + name) for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x, 'icons/' + name) for x in sys.path if ('maskgen' in x or not x.endswith('egg')) and \
+                   os.path.exists(os.path.join(x, 'icons'))])
     for place in places:
         if os.path.exists(place):
             return place

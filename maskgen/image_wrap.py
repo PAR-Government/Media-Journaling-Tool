@@ -630,11 +630,11 @@ class ImageWrapper:
         except:
             logging.getLogger('maskgen').debug('Image convert does not support convert type')
         if self.mode == 'BGR' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_BGR2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_BGR2RGB), mode='RGB')
         if self.mode == 'YUV' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YUV2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_YUV2RGB), mode='RGB')
         if self.mode == 'YCrCb' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
         if self.mode == 'YCbCr' and convert_type_str == 'RGB':
             return ImageWrapper(cv2.cvtColor(img_array[:,:,[0,2,1]].astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
