@@ -29,13 +29,8 @@ def tiff_save_as(source_img, source, target, donor_file, rotate):
         # if donor_file is a tiff, donor_img.info will have tiff information
         if rotate:
             source_img,analysis = check_rotate(source_img, donor_file)
-        #try:
-        #    tables_zigzag = parse_tables(donor_file)
-        #    tables_sorted = sort_tables(tables_zigzag)
-        #    source_img.save(target, qtables=tables_sorted[0:2], quality=0)
-        #except:
-        source_img.save(target,format='TIFF',compress=donor_img.info['compression'] if 'compression' in donor_img.info else 0)
-        #im.save(target, format='TIFF')
+        compression = donor_img.info['compression'] if donor_img.info is not None and 'compression' in donor_img.info else 0
+        source_img.save(target,format='TIFF',compress=compression)
         maskgen.exif.runexif(['-overwrite_original', '-P', '-q', '-m', '-XMPToolkit=', target])
         maskgen.exif.runexif(['-overwrite_original','-q', '-all=', target])
         maskgen.exif.runexif(['-P', '-q', '-m', '-TagsFromFile', donor_file, '-all:all', '-unsafe', target])

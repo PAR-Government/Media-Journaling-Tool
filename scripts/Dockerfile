@@ -103,8 +103,8 @@ RUN make
 RUN make install
 WORKDIR ..
 
-RUN  wget http://ffmpeg.org/releases/ffmpeg-3.4.2.tar.bz2  && tar xjvf ffmpeg-3.4.2.tar.bz2 
-WORKDIR ffmpeg-3.4.2
+RUN wget https://ffmpeg.org/releases/ffmpeg-3.4.6.tar.bz2 && tar xjvf ffmpeg-3.4.6.tar.bz2
+WORKDIR ffmpeg-3.4.6
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 RUN CFLAGS=-fPIC ./configure \
   --prefix=/usr/local \
@@ -129,13 +129,12 @@ RUN make
 RUN make install && make clean && hash -r
 WORKDIR ..
 
-#RUN rm lib/python2.7/lib-dynload/cv2.so
-RUN  wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/3.4.1/opencv-3.4.1.zip && unzip opencv-3.4.1.zip
-RUN  wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.1.zip && unzip opencv_contrib.zip
-WORKDIR opencv-3.4.1
+RUN  wget https://github.com/opencv/opencv/archive/3.4.5.zip && unzip 3.4.5.zip
+RUN  wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.5.zip && unzip opencv_contrib.zip
+WORKDIR opencv-3.4.5
 CMD  mkdir release
 WORKDIR release
-RUN  cmake -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=/usr/bin/g++ CMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_FFMPEG=ON -DWITH_TBB=ON -DBUILD_PYTHON_SUPPORT=ON -DWITH_V4L=ON -DINSTALL_C_EXAMPLES=ON -DINSTALL_PYTHON_EXAMPLES=ON -DBUILD_EXAMPLES=ON -DWITH_QT=ON -DWITH_OPENGL=ON -DBUILD_FAT_JAVA_LIB=ON -DINSTALL_TO_MANGLED_PATHS=ON -DINSTALL_CREATE_DISTRIB=ON -DINSTALL_TESTS=ON -DENABLE_FAST_MATH=ON -DWITH_IMAGEIO=ON -DBUILD_SHARED_LIBS=OFF -DPYTHON_NUMPY_INCLUDE_DIR=/usr/local/lib/python2.7/dist-packages/numpy/core/include  -DWITH_GSTREAMER=OFF -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.1/modules -DOpenCV_SHARED=ON -DBUILD_WITH_DYNAMIC_IPP=OFF -DWITH_IPP=OFF .. && make all -j2 
+RUN  cmake -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=/usr/bin/g++ CMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_FFMPEG=ON -DWITH_TBB=ON -DBUILD_PYTHON_SUPPORT=ON -DWITH_V4L=ON -DINSTALL_C_EXAMPLES=ON -DINSTALL_PYTHON_EXAMPLES=ON -DBUILD_EXAMPLES=ON -DWITH_QT=ON -DWITH_OPENGL=ON -DBUILD_FAT_JAVA_LIB=ON -DINSTALL_TO_MANGLED_PATHS=ON -DINSTALL_CREATE_DISTRIB=ON -DINSTALL_TESTS=ON -DENABLE_FAST_MATH=ON -DWITH_IMAGEIO=ON -DWITH_ITT=OFF -DPYTHON_NUMPY_INCLUDE_DIR=/usr/local/lib/python2.7/dist-packages/numpy/core/include  -DWITH_GSTREAMER=OFF -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.5/modules -DOpenCV_SHARED=ON -DBUILD_WITH_DYNAMIC_IPP=OFF -DWITH_IPP=OFF .. && make all -j2 
 RUN make install 
 RUN /bin/bash -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf'
 RUN ldconfig
@@ -156,17 +155,18 @@ RUN pip install awscli==1.15.16
 RUN pip install httplib2
 RUN pip install numba
 
-RUN git clone https://github.com/rwgdrummer/maskgen.git
-WORKDIR maskgen/setuptools-version
+RUN mkdir -p /opt/jt
+COPY . /opt/jt
+WORKDIR /opt/jt/setuptools-version
 RUN python setup.py sdist
 RUN pip install -e .
 RUN pip install --upgrade awscli
-WORKDIR ..
+WORKDIR /opt/jt
 RUN python setup.py sdist
 RUN pip install -e .
-WORKDIR ../../wrapper_plugins/jpeg2000_wrapper
+WORKDIR /opt/jt/wrapper_plugins/jpeg2000_wrapper
 RUN python setup.py sdist
 RUN pip install -e .
-WORKDIR ../../..
+WORKDIR /opt/jt
 
 CMD ["bash"]

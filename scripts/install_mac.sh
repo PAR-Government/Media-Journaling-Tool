@@ -113,7 +113,6 @@ pip install scikit-image
 pip install awscli --force-reinstall --upgrade
 pip install shapely
 
-#git clone https://github.com/rwgdrummer/maskgen.git
 pip install setuptools
 cd setuptools-version
 python setup.py sdist
