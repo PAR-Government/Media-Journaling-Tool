@@ -1686,6 +1686,28 @@ def ca_fill(buildState):
             buildState.donorMask.mask[buildState.edgeMask == 0] = 0
         return buildState.donorMask
 
+
+
+def content_aware_move(buildState):
+    """
+       :param buildState:
+       :return: updated composite mask
+       @type buildState: BuildState
+       @rtype: CompositeImage
+       """
+    inputmask = openImageFile(os.path.join(buildState.directory, buildState.edge['inputmaskname']))
+    inputmaskarray = inputmask.to_mask().to_array()
+    if buildState.isComposite:
+        buildState.compositeMask.mask[buildState.edgeMask == 0] = 0
+        return buildState.compositeMask
+    else:
+        args = buildState.arguments()
+        inputmaskarray - (255-buildState.edgeMask)
+        moved = buildState.donorMask.mask & buildState.edgeMask
+        buildState.donorMask.mask[buildState.edgeMask == 0] = 0
+        buildState.donorMask.mask[buildState.donorMask.mask & buildState.edgeMask]
+        return buildState.donorMask
+
 def paste_sampled(buildState):
     """
     :param buildState:

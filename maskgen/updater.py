@@ -129,7 +129,3 @@ class OperationsUpdaterGitAPI(UpdaterGitAPI):
         currentversion = getMetDataLoader().operation_version
         return merge_sha != currentversion
 
-
-
-a  = OperationsUpdaterGitAPI()
-a._get_version_file()

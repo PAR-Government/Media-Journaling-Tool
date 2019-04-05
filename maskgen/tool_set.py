@@ -129,7 +129,8 @@ def fetchbyS3URL(url):
 
 def get_icon(name):
     places = []  # ['./icons']
-    places.extend([os.path.join(x, 'icons/' + name) for x in sys.path if 'maskgen' in x])
+    places.extend([os.path.join(x, 'icons/' + name) for x in sys.path if ('maskgen' in x or not x.endswith('egg')) and \
+                   os.path.exists(os.path.join(x, 'icons'))])
     for place in places:
         if os.path.exists(place):
             return place
@@ -1568,11 +1569,65 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
     maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
-    (kp1, d1) = cv2api.cv2api_delegate.computeSIFT(img1)
-    (kp2, d2) = cv2api.cv2api_delegate.computeSIFT(img2)
+    def reapply(pt,bound):
+        return pt[0] + bound[1],pt[1] + bound[0]
+
+    def getRange(size, segment_size=2048):
+        ranges = [(x * segment_size, min((x + 1) * segment_size, size)) for x in range(size / segment_size + 1)]
+        if ranges[-1][1] - ranges[-1][0]  < segment_size/2 and len(ranges) > 1:
+            ranges = ranges[:-2] + [(ranges[-2][0],ranges[-1][1])]
+        return ranges
+
+    def updateKP(kp,pos):
+        kp.pt = (kp.pt[0]+pos[0], kp.pt[1]+pos[1])
+        return kp
+
+    def filterKP(pt, xstart, ystart, buffer=16):
+        return \
+            ((xstart > 0 and pt[0] >= buffer*2) or \
+            (xstart == 0)) and \
+            ((ystart > 0 and pt[1] >= buffer*2) or \
+            (ystart == 0))
+
+    def computeSIFTOverRanges(img1,buffer=16, segment_size=2048):
+        total_kp = []
+        total_d = None
+        for xrange in getRange(img1.shape[0]):
+            for yrange in getRange(img1.shape[1]):
+                (kp, ds) = cv2api.cv2api_delegate.computeSIFT(
+                    img1[max(0,xrange[0]-buffer):min(xrange[1]+buffer,img1.shape[0]),
+                         max(0,yrange[0]-buffer):min(yrange[1]+buffer,img1.shape[1])])
+                kept = [kpi for kpi in range(len(kp)) if filterKP(kp[kpi].pt,xrange[0],yrange[0],buffer=buffer)]
+                total_kp.extend([updateKP(kp[kpi],(xrange[0],yrange[0])) for kpi in kept])
+                if ds is not None:
+                    ds = ds[kept,:]
+                    if total_d is None:
+                        total_d = ds
+                    else:
+                        total_d = np.concatenate((total_d,ds))
+        return total_kp,total_d
+
+    #if getValue(arguments,'bound'):
+    ##    b1 = boundingRegion(mask1)
+    #   b2 = boundingRegion(mask2)
+    #    b1 = ((max(0,b1[0][0]-getValue(arguments,'bound')),max(0,b1[0][1]-getValue(arguments,'bound'))),
+    #          (b1[1][0]+getValue(arguments,'bound'),b1[1][1]+getValue(arguments,'bound')))
+    #    b2 = ((max(0,b2[0][0]-getValue(arguments,'bound')),max(0,b2[0][1]-getValue(arguments,'bound'))),
+    #          (b2[1][0]+getValue(arguments,'bound'),b2[1][1]+getValue(arguments,'bound')))#
+
+    #    img1 = img1[b1[0][1]:b1[1][1] + 1, b1[0][0]:b1[1][0] + 1,:]
+    #    img2 = img2[b2[0][1]:b2[1][1] + 1, b2[0][0]:b2[1][0] + 1,:]
+    #else:
+    #    b1 = ((0,0),(0,0))
+    #    b2 = ((0, 0), (0, 0))
+
+
+    (kp2, d2) = computeSIFTOverRanges(img2)
 
     if kp2 is None or len(kp2) == 0:
         return None
+
+    (kp1, d1) = computeSIFTOverRanges(img1)
 
     if kp1 is None or len(kp1) == 0:
         return None
@@ -1591,6 +1646,8 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     good = good[0:min(maxmatches, len(good))]
 
     if len(good) >= threshold:
+        #src_pts = np.float32([reapply(kp1[m.queryIdx].pt,b1[0]) for m in good]).reshape(-1, 1, 2)
+        #dst_pts = np.float32([reapply(kp2[m.trainIdx].pt,b2[0]) for m in good]).reshape(-1, 1, 2)
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
         return (src_pts, dst_pts) if src_pts is not None else None
@@ -1663,7 +1720,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     elif homography in ['All'] and 'homography max matches' in arguments:
         # need as many as possible
         arguments.pop('homography max matches')
-    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments=arguments)
+    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=np.asarray(mask2), arguments=arguments)
     if src_dts_pts is not None:
         new_src_pts = src_dts_pts[0]
         new_dst_pts = src_dts_pts[1]
