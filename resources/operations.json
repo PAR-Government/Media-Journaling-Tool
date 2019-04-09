@@ -3145,14 +3145,13 @@
       ]
     },
     {
-           "category": "Paste",
+      "category": "Paste",
       "name": "ContentAwareMove",
       "mandatoryparameters": {
-        
-          ],
-          "description": "Purpose: Move pixels and heal area where they came from and edges of new location."
-    
-        
+		"inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the areas affected."
+		  }
       },
       "rules": [
         "checkLengthSame",
@@ -3165,54 +3164,15 @@
         "checkUncompressed",
         "checkEmpty"
       ],
-           "inputmaskname": {
-          "type": "file:image",
-          "description": "An image file containing a mask describing the areas affected."
-      },
-        
+          
+         
       "optionalparameters": {
-     
-        },
-        
-        "minimum threshold": {
-          "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
-          "source": "video",
-          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
-        },
-        "gain": {
-          "trigger mask": true,
-          "type":"int[-20:20]",
-          "defaultvalue":0,
-          "source": "video",
-          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
-        },
-        "kernel": {
-          "trigger mask": true,
-          "type":"list",
-          "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
-          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
-        },
-        "aggregate": {
-          "trigger mask": true,
-          "type": "list",
-          "defaultvalue": "luminance",
-          "source": "video",
-          "values": [
-            "max",
-            "sum",
-            "luminance"
-          ],
-          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
-        }
+  
       },
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
-      "description": "Synthesize nearby content for seamless blending with the surrounding content.",
+      "description": "Purpose: Move pixels and heal area where they came from and edges of new location.",
       "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
@@ -3232,6 +3192,7 @@
         "Verify that content aware fill was used and not paste sampled or content aware scale."
       ]
     },
+	
     {
       "category": "Paste",
       "name": "GANFill",
