@@ -123,7 +123,7 @@ class QaNotifier:
             qadata = qa_logic.ValidationData(scmodel)
             # select edge in Model
             scmodel.select(args[0])
-            modified_edge = scmodel.getDescription()
+            modified_edge = scmodel.getCurrentEdgeModification()
             edback, backs = self._backtrack(modified_edge)
             critlinks = qadata.keys()
             critdict = self._dictionaryify(qadata.keys())

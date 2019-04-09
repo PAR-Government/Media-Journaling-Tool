@@ -9,9 +9,9 @@
       "donors.*": ""
     }, 
     "validatedby": "", 
-    "exporttime": "2018-04-05 16:29:17", 
+    "exporttime": "2019-04-02 16:59:04", 
     "jt_upgrades": [
-      "0.5.0918.b370476d40"
+      "0.6.0227.b469c4a202"
     ], 
     "creator_tool": "jtui", 
     "autopastecloneinputmask": "no", 
@@ -23,8 +23,17 @@
       "3650d8abfd72eaa9c029747e6a7cdec7.jpg"
     ], 
     "manipulationcategory": "4-Unit", 
+    "graphFilePaths": {
+      "projectfile": ""
+    }, 
+    "semanticgroups": [], 
+    "skipped_edges": [], 
+    "username": "dupre", 
+    "igversion": "0.5.0421.65e9a43cd3", 
+    "validationdate": "", 
     "edgeFilePaths": {
       "maskname": "", 
+      "substitute subsitute": "", 
       "videomasks.videosegment": "", 
       "arguments.XMP File Name": "", 
       "arguments.convolutionkernel": "", 
@@ -32,13 +41,9 @@
       "arguments.pastemask": "", 
       "arguments.qtfile": "", 
       "inputmaskname": "inputmaskownership", 
+      "substitute videomasks.videosegment": "", 
       "arguments.PNG File Name": ""
     }, 
-    "skipped_edges": [], 
-    "username": "dupre", 
-    "igversion": "0.5.0421.65e9a43cd3", 
-    "validationdate": "", 
-    "semanticgroups": [], 
     "qadata": {}, 
     "groups": {}, 
     "updatetime": "2018-05-11 14:34:37", 
@@ -67,17 +72,21 @@
     ], 
     "organization": "wonderland", 
     "validation": "no", 
-    "creator": "ericrobertson"
+    "creator": "ericrobertson", 
+    "createtime": "2016-06-29 15:11:14", 
+    "technicalsummary": "Sample Project"
   }, 
   "nodes": [
     {
-      "xpos": 242, 
-      "nodetype": "interim", 
-      "file": "orig_input.png", 
-      "ypos": 146, 
-      "seriesname": "orig_input", 
+      "xpos": 325, 
+      "nodetype": "base", 
+      "ctime": "2016-07-28 13:06:28", 
+      "proxyfile": "sample_proxy.png", 
+      "ypos": 14, 
+      "seriesname": "sample", 
       "ownership": "no", 
-      "id": "orig_input"
+      "file": "sample.jpg", 
+      "id": "sample"
     }, 
     {
       "username": "dupre", 
@@ -113,15 +122,13 @@
       "ctime": "2016-06-29 15:11:34"
     }, 
     {
-      "xpos": 325, 
-      "nodetype": "base", 
-      "ctime": "2016-07-28 13:06:28", 
-      "proxyfile": "sample_proxy.png", 
-      "ypos": 14, 
-      "seriesname": "sample", 
+      "xpos": 242, 
+      "nodetype": "interim", 
+      "file": "orig_input.png", 
+      "ypos": 146, 
+      "seriesname": "orig_input", 
       "ownership": "no", 
-      "file": "sample.jpg", 
-      "id": "sample"
+      "id": "orig_input"
     }, 
     {
       "xpos": 538, 
@@ -175,226 +182,16 @@
   ], 
   "links": [
     {
-      "global": "no", 
-      "recordMaskInComposite": "yes", 
-      "inputmaskownership": "no", 
-      "linkcolor": "28 199 113", 
-      "errors": [], 
-      "empty mask": "no", 
-      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
-      "selectmaskownership": "no", 
-      "local psnr": 3.1876244887399414, 
-      "source": 0, 
-      "location": "(0,0)", 
-      "arguments": {
-        "donor resized": "yes", 
-        "donor cropped": "no", 
-        "donor rotated": "no", 
-        "purpose": "add", 
-        "donor flipped": "no", 
-        "subject": "man-made object"
-      }, 
-      "username": "duck", 
-      "description": "", 
-      "change size category": "large", 
-      "change size ratio": 0.03736888111888112, 
-      "editable": "yes", 
-      "softwareName": "OpenCV", 
-      "target": 3, 
-      "maskname": "orig_input_input_mod_1_mask.png", 
-      "psnr": 17.462520610238176, 
-      "shape change": "(0, 0)", 
-      "semanticGroups": [], 
-      "exifdiff": {
-        "File Size": [
-          "change", 
-          "342 kB", 
-          "376 kB"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:28:48", 
-          "2016:06:07 18:29:06"
-        ], 
-        "File Name": [
-          "change", 
-          "orig_input.png", 
-          "input_mod_1.png"
-        ], 
-        "Color Type": [
-          "change", 
-          "RGB", 
-          "RGB with Alpha"
-        ]
-      }, 
-      "softwareVersion": "2.4.13", 
-      "op": "PasteSplice"
-    }, 
-    {
-      "global": "no", 
-      "recordMaskInComposite": "yes", 
-      "linkcolor": "113 28 199", 
-      "errors": [], 
-      "empty mask": "no", 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.6220126321186452, 
-      "softwareVersion": "12.1", 
-      "source": 2, 
-      "location": "(0,0)", 
-      "arguments": {}, 
-      "username": "dupre", 
-      "description": "", 
-      "change size category": "large", 
-      "change size ratio": 0.8456920469992365, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "selectmaskname": null, 
-      "automated": "no", 
-      "target": 6, 
-      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
-      "psnr": 9.785041050027957, 
-      "shape change": "(0, 0)", 
-      "semanticGroups": [], 
-      "exifdiff": {
-        "Background Color": [
-          "delete", 
-          "255 255 255"
-        ], 
-        "File Inode Change Date/Time": [
-          "change", 
-          "2018:02:05 11:38:48-05:00", 
-          "2016:08:01 12:03:43-04:00"
-        ], 
-        "Modify Date": [
-          "delete", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_2.png", 
-          "input_mod_2_3.png"
-        ], 
-        "File Size": [
-          "change", 
-          "364 kB", 
-          "250 kB"
-        ], 
-        "Pixels Per Unit X": [
-          "delete", 
-          "2835"
-        ], 
-        "Pixels Per Unit Y": [
-          "delete", 
-          "2835"
-        ], 
-        "File Access Date/Time": [
-          "change", 
-          "2018:05:11 10:34:13-04:00", 
-          "2018:05:11 10:33:17-04:00"
-        ], 
-        "Pixel Units": [
-          "delete", 
-          "meters"
-        ]
-      }, 
-      "local psnr": 9.057907711787468, 
-      "op": "ColorBalance"
-    }, 
-    {
-      "global": "no", 
-      "recordMaskInComposite": "no", 
-      "inputmaskownership": "no", 
-      "linkcolor": "227 56 142", 
-      "errors": [], 
-      "empty mask": "no", 
-      "opsys": "Windows 7 6.1.7601", 
-      "ssim": 0.8824301202318747, 
-      "source": 3, 
-      "location": "(0,0)", 
-      "arguments": {
-        "function": "maskgen.algorithms.seam_carving.seamCompare", 
-        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
-        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
-        "mask interpolated": "yes", 
-        "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
-        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
-      }, 
-      "username": "dupre", 
-      "description": "", 
-      "change size category": "large", 
-      "change size ratio": 0.04481132075471698, 
-      "editable": "yes", 
-      "softwareName": "Adobe Photoshop", 
-      "automated": "no", 
-      "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
-      "target": 2, 
-      "maskname": "input_mod_1_input_mod_2_mask.png", 
-      "psnr": 19.43806324641574, 
-      "shape change": "(0, -19)", 
-      "exifdiff": {
-        "Image Size": [
-          "change", 
-          "424x572", 
-          "405x572"
-        ], 
-        "Modify Date": [
-          "change", 
-          "2016:06:07 18:29:06", 
-          "2016:06:10 04:58:51"
-        ], 
-        "File Inode Change Date/Time": [
-          "change", 
-          "2016:08:01 12:03:43-04:00", 
-          "2018:02:05 11:38:48-05:00"
-        ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
-        ], 
-        "Image Width": [
-          "change", 
-          "424", 
-          "405"
-        ], 
-        "File Name": [
-          "change", 
-          "input_mod_1.png", 
-          "input_mod_2.png"
-        ], 
-        "Megapixels": [
-          "change", 
-          "0.243", 
-          "0.232"
-        ], 
-        "File Size": [
-          "change", 
-          "376 kB", 
-          "364 kB"
-        ], 
-        "File Access Date/Time": [
-          "change", 
-          "2018:03:15 14:23:32-04:00", 
-          "2018:03:15 14:17:44-04:00"
-        ], 
-        "Gamma": [
-          "delete", 
-          "2.2"
-        ]
-      }, 
-      "softwareVersion": "CC2015.5.12", 
-      "transform matrix": null, 
-      "op": "TransformSeamCarving"
-    }, 
-    {
       "recordMaskInComposite": "no", 
       "linkcolor": "85 85 85", 
       "errors": [], 
       "empty mask": "no", 
       "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
       "ssim": 0.9999999855200266, 
-      "source": 4, 
+      "source": 0, 
       "arguments": {
-        "Image Rotated": "no"
+        "Image Rotated": "no", 
+        "Lens Distortion Applied": "no"
       }, 
       "username": "dupre", 
       "description": "", 
@@ -405,7 +202,7 @@
       "shape change": "(0, 0)", 
       "maskname": "sample_orig_input_mask.png", 
       "psnr": 101.8345154087617, 
-      "target": 0, 
+      "target": 4, 
       "semanticGroups": [], 
       "exifdiff": {
         "Compression": [
@@ -513,13 +310,226 @@
       "tool": "jtui", 
       "editable": "no", 
       "softwareName": "", 
-      "ctime": "2018-05-11 10:33:19", 
-      "source": 4, 
+      "source": 0, 
       "softwareVersion": "", 
       "recordMaskInComposite": "no", 
       "automated": "yes", 
+      "op": "Donor", 
       "target": 1, 
-      "op": "Donor"
+      "ctime": "2018-05-11 10:33:19"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "yes", 
+      "linkcolor": "113 28 199", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.6220126321186452, 
+      "local psnr": 9.057907711787468, 
+      "source": 2, 
+      "location": "(0,0)", 
+      "arguments": {}, 
+      "username": "dupre", 
+      "description": "", 
+      "maskname": "input_mod_2_input_mod_2_3_mask.png", 
+      "change size ratio": 0.8456920469992365, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "selectmaskname": null, 
+      "automated": "no", 
+      "target": 6, 
+      "change size category": "large", 
+      "psnr": 9.785041050027957, 
+      "shape change": "(0, 0)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "Background Color": [
+          "delete", 
+          "255 255 255"
+        ], 
+        "File Inode Change Date/Time": [
+          "change", 
+          "2018:02:05 11:38:48-05:00", 
+          "2016:08:01 12:03:43-04:00"
+        ], 
+        "Modify Date": [
+          "delete", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_2.png", 
+          "input_mod_2_3.png"
+        ], 
+        "File Size": [
+          "change", 
+          "364 kB", 
+          "250 kB"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2018:05:11 10:34:13-04:00", 
+          "2018:05:11 10:33:17-04:00"
+        ], 
+        "Pixels Per Unit Y": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixels Per Unit X": [
+          "delete", 
+          "2835"
+        ], 
+        "Pixel Units": [
+          "delete", 
+          "meters"
+        ]
+      }, 
+      "softwareVersion": "12.1", 
+      "op": "ColorBalance"
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "no", 
+      "inputmaskownership": "no", 
+      "linkcolor": "227 56 142", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Windows 7 6.1.7601", 
+      "ssim": 0.8824301202318747, 
+      "source": 3, 
+      "arguments": {
+        "function": "maskgen.algorithms.seam_carving.seamCompare", 
+        "neighbor mask": "c909e6ba3bbf68bf9141f5e4f01df8c7_itmd1g_152113837226__final_mask.png", 
+        "inputmasktype": "color", 
+        "column adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjc.png", 
+        "apply mask": "no", 
+        "mask interpolated": "yes", 
+        "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+        "row adjuster": "f17e1c68aaf3e60b8f7f4b85ace19430_itmd1g_152113837226__adjr.png"
+      }, 
+      "location": "(0,0)", 
+      "username": "dupre", 
+      "description": "", 
+      "maskname": "input_mod_1_input_mod_2_mask.png", 
+      "change size ratio": 0.04481132075471698, 
+      "editable": "yes", 
+      "softwareName": "Adobe Photoshop", 
+      "automated": "no", 
+      "inputmaskname": "input_mod_1_input_mod_2_mask.png", 
+      "target": 2, 
+      "change size category": "large", 
+      "psnr": 19.43806324641574, 
+      "shape change": "(0, -19)", 
+      "exifdiff": {
+        "Image Size": [
+          "change", 
+          "424x572", 
+          "405x572"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:29:06", 
+          "2016:06:10 04:58:51"
+        ], 
+        "File Inode Change Date/Time": [
+          "change", 
+          "2016:08:01 12:03:43-04:00", 
+          "2018:02:05 11:38:48-05:00"
+        ], 
+        "Background Color": [
+          "add", 
+          "255 255 255"
+        ], 
+        "Image Width": [
+          "change", 
+          "424", 
+          "405"
+        ], 
+        "File Name": [
+          "change", 
+          "input_mod_1.png", 
+          "input_mod_2.png"
+        ], 
+        "Megapixels": [
+          "change", 
+          "0.243", 
+          "0.232"
+        ], 
+        "File Size": [
+          "change", 
+          "376 kB", 
+          "364 kB"
+        ], 
+        "File Access Date/Time": [
+          "change", 
+          "2018:03:15 14:23:32-04:00", 
+          "2018:03:15 14:17:44-04:00"
+        ], 
+        "Gamma": [
+          "delete", 
+          "2.2"
+        ]
+      }, 
+      "softwareVersion": "CC 2015", 
+      "op": "TransformSeamCarving", 
+      "transform matrix": null
+    }, 
+    {
+      "global": "no", 
+      "recordMaskInComposite": "yes", 
+      "inputmaskownership": "no", 
+      "linkcolor": "28 199 113", 
+      "errors": [], 
+      "empty mask": "no", 
+      "opsys": "Darwin 15.5.0 Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64", 
+      "selectmaskownership": "no", 
+      "local psnr": 3.1876244887399414, 
+      "source": 4, 
+      "arguments": {
+        "donor resized": "yes", 
+        "donor cropped": "no", 
+        "donor rotated": "no", 
+        "purpose": "add", 
+        "donor flipped": "no", 
+        "subject": "man-made object"
+      }, 
+      "location": "(0,0)", 
+      "username": "duck", 
+      "description": "", 
+      "maskname": "orig_input_input_mod_1_mask.png", 
+      "change size ratio": 0.03736888111888112, 
+      "editable": "yes", 
+      "softwareName": "OpenCV", 
+      "target": 3, 
+      "change size category": "large", 
+      "psnr": 17.462520610238176, 
+      "shape change": "(0, 0)", 
+      "semanticGroups": [], 
+      "exifdiff": {
+        "File Size": [
+          "change", 
+          "342 kB", 
+          "376 kB"
+        ], 
+        "Modify Date": [
+          "change", 
+          "2016:06:07 18:28:48", 
+          "2016:06:07 18:29:06"
+        ], 
+        "File Name": [
+          "change", 
+          "orig_input.png", 
+          "input_mod_1.png"
+        ], 
+        "Color Type": [
+          "change", 
+          "RGB", 
+          "RGB with Alpha"
+        ]
+      }, 
+      "softwareVersion": "2.4", 
+      "op": "PasteSplice"
     }, 
     {
       "global": "yes", 
@@ -533,7 +543,7 @@
       "location": "(24, 38)", 
       "username": "dupre", 
       "description": "", 
-      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
+      "change size category": "small", 
       "change size ratio": 0.0, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -541,7 +551,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 8, 
-      "change size category": "small", 
+      "maskname": "hat_splice_rot_1_hat_splice_crop_mask.png", 
       "psnr": 0.0, 
       "shape change": "(-46, -52)", 
       "exifdiff": {
@@ -591,7 +601,7 @@
           "2016:10:05 08:05:55-04:00"
         ]
       }, 
-      "softwareVersion": "CC16.16", 
+      "softwareVersion": "CC 2015", 
       "op": "TransformCrop"
     }, 
     {
@@ -611,8 +621,8 @@
       "description": "CompressAs:Save as a JPEG using original tables and EXIF", 
       "tool": "jtui", 
       "editable": "no", 
-      "softwareName": "maskgen", 
       "plugin_name": "CompressAs", 
+      "softwareName": "maskgen", 
       "automated": "yes", 
       "ctime": "2018-05-11 10:33:19", 
       "maskname": "c2842e811024a7d162dc75665adc0d3e_itmd23itmd247_48__mask.png", 
@@ -634,9 +644,9 @@
           "png", 
           "jpg"
         ], 
-        "Color Space": [
+        "Encoding Process": [
           "add", 
-          "Uncalibrated"
+          "Baseline DCT, Huffman coding"
         ], 
         "Bits Per Sample": [
           "add", 
@@ -681,9 +691,9 @@
           "2016:08:01 12:03:43-04:00", 
           "2018:05:11 10:33:18-04:00"
         ], 
-        "Software": [
+        "Exif Byte Order": [
           "add", 
-          "Google"
+          "Little-endian (Intel, II)"
         ], 
         "MIME Type": [
           "change", 
@@ -719,9 +729,9 @@
           "delete", 
           "8"
         ], 
-        "Exif Byte Order": [
+        "Software": [
           "add", 
-          "Little-endian (Intel, II)"
+          "Google"
         ], 
         "X Resolution": [
           "add", 
@@ -736,9 +746,9 @@
           "input_mod_2_3.png", 
           "input_mod_2_47.jpg"
         ], 
-        "Encoding Process": [
+        "Color Space": [
           "add", 
-          "Baseline DCT, Huffman coding"
+          "Uncalibrated"
         ], 
         "Y Resolution": [
           "add", 
@@ -764,7 +774,7 @@
       }, 
       "username": "dupre", 
       "description": "", 
-      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
+      "change size category": "large", 
       "change size ratio": 0.4385283950617284, 
       "editable": "yes", 
       "softwareName": "Adobe Photoshop", 
@@ -772,7 +782,7 @@
       "automated": "no", 
       "inputmaskname": null, 
       "target": 5, 
-      "change size category": "large", 
+      "maskname": "hat_splice_hat_splice_rot_1_mask.png", 
       "psnr": 8.309706653719859, 
       "shape change": "(0, 0)", 
       "exifdiff": {
@@ -802,8 +812,7 @@
           "2016:10:05 12:02:48"
         ]
       }, 
-      "softwareVersion": "CC16.16", 
-      "op": "TransformRotate", 
+      "softwareVersion": "CC 2015", 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -822,7 +831,8 @@
           9.891532278139353e-06, 
           1.0
         ]
-      }
+      }, 
+      "op": "TransformRotate"
     }, 
     {
       "username": "dupre", 
@@ -840,6 +850,8 @@
       "softwareName": "", 
       "automated": "no", 
       "inputmaskname": null, 
+      "op": "Donor", 
+      "target": 3, 
       "transform matrix": {
         "c": 3, 
         "r": 3, 
@@ -858,9 +870,7 @@
           -0.0007625612394162303, 
           1.0
         ]
-      }, 
-      "target": 3, 
-      "op": "Donor"
+      }
     }, 
     {
       "username": "dupre", 
@@ -883,9 +893,10 @@
           "jpg", 
           "png"
         ], 
-        "Background Color": [
-          "add", 
-          "255 255 255"
+        "MIME Type": [
+          "change", 
+          "image/jpeg", 
+          "image/png"
         ], 
         "Bits Per Sample": [
           "delete", 
@@ -916,10 +927,9 @@
           "add", 
           "meters"
         ], 
-        "MIME Type": [
-          "change", 
-          "image/jpeg", 
-          "image/png"
+        "Background Color": [
+          "add", 
+          "255 255 255"
         ], 
         "Color Components": [
           "delete", 

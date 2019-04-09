@@ -13,6 +13,7 @@ from maskgen.image_wrap import deleteImage
 import json
 import shutil
 import tarfile
+import numpy as np
 from time import gmtime, strftime, strptime
 import logging
 from maskgen import __version__
@@ -772,7 +773,8 @@ class ImageGraph:
         return self.G.has_node(name)
 
     def getDataItem(self, item, default_value=None):
-        return self.G.graph[item] if item in self.G.graph else default_value
+        return self.G.graph[item] if item in self.G.graph else \
+            (self.G.graph[item.lower()] if item in self.G.graph else default_value)
 
     def setDataItem(self, item, value, excludeUpdate=False):
         value = self._updatGraphPathValue(item, value)
@@ -801,6 +803,9 @@ class ImageGraph:
 
     def getVersion(self):
         return igversion
+
+    def isFrozen(self):
+        return getValue(self.G.graph,'frozen',False)
 
     def getCreatorTool(self):
         return findCreatorTool(self.G.graph['creator_tool'] if 'creator_tool' in self.G.graph else None)
@@ -873,6 +878,10 @@ class ImageGraph:
         if len(l) > 0:
             return l[0]
 
+    def json_default(self, o):
+        if isinstance(o, np.int64): return int(o)
+        raise TypeError
+
     def saveas(self, pathname):
         currentdir = self.dir
         fname = os.path.split(pathname)[1]
@@ -886,7 +895,7 @@ class ImageGraph:
         filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
         self._copy_contents(currentdir)
         with open(filename, 'w') as f:
-            jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+            jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8', default=self.json_default)
         self.filesToRemove.clear()
 
     def save(self):
@@ -897,7 +906,7 @@ class ImageGraph:
         usedfiles =set([self.G.node[node_id]['file'] for node_id in self.G.nodes()])
         with self.lock:
             with open(filename, 'w') as f:
-                jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8')
+                jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8', default=self.json_default)
             for f in self.filesToRemove:
                 if os.path.exists(f) and os.path.basename(f) not in usedfiles:
                     os.remove(f)
@@ -1082,38 +1091,51 @@ class ImageGraph:
             logging.getLogger('maskgen').error("Unable to create image graph: " + str(e))
 
     def _create_archive(self, location, include=[], redacted=[], notifier=None):
-        self.save()
+        import copy
         total = float(len(self.G.nodes()) + len(self.G.edges()) + len(include)) + 1
         fname = os.path.join(location, self.G.name + '.tgz')
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
-        archive.add(os.path.join(self.dir, self.G.name + ".json"),
-                    arcname=os.path.join(self.G.name, self.G.name + ".json"))
-        errors = list()
-        names_added = list()
-        count = 0
-        self._archive_graph(archive, names_added=names_added)
-        for nname in self.G.nodes():
-            self._archive_node(nname, archive, names_added=names_added)
-            count += 1
+        if len(redacted) > 0:
+            old_ep = self.G.graph['edgeFilePaths']
+            new_ep = copy.copy(old_ep)
+            for path in redacted:
+                if path in new_ep:
+                    new_ep.pop(path)
+            self.G.graph['edgeFilePaths'] = new_ep
+        self.save()
+        try:
+            archive.add(os.path.join(self.dir, self.G.name + ".json"),
+                        arcname=os.path.join(self.G.name, self.G.name + ".json"))
+            errors = list()
+            names_added = list()
+            count = 0
+            self._archive_graph(archive, names_added=names_added)
+            for nname in self.G.nodes():
+                self._archive_node(nname, archive, names_added=names_added)
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', nname, 100.0 * count/total))
+            for edgename in self.G.edges():
+                edge = self.G[edgename[0]][edgename[1]]
+                errors.extend(
+                    self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', str(edgename), 100.0 * count / total))
+            for item in include:
+                archive.add(os.path.join(self.dir, item),
+                            arcname=item)
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', item, 100.0 * count / total))
+            self._output_summary(archive)
+            archive.close()
             if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', nname, 100.0 * count/total))
-        for edgename in self.G.edges():
-            edge = self.G[edgename[0]][edgename[1]]
-            errors.extend(
-                self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
-            count += 1
-            if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', str(edgename), 100.0 * count / total))
-        for item in include:
-            archive.add(os.path.join(self.dir, item),
-                        arcname=item)
-            count += 1
-            if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', item, 100.0 * count / total))
-        self._output_summary(archive)
-        archive.close()
-        if notifier is not None:
-            notifier(ModuleStatus('Export', 'Archive', 'summary', 100.0))
+                notifier(ModuleStatus('Export', 'Archive', 'summary', 100.0))
+        finally:
+            if len(redacted) > 0:
+                self.G.graph['edgeFilePaths'] = old_ep
+                self.save()
         return fname, errors, names_added
 
     def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list(), redacted=list()):

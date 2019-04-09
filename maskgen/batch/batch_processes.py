@@ -15,14 +15,15 @@ tools = {'extend': 'batch_process', 'create': 'batch_project', 'export': 'bulk_e
 
 
 def main():
-    if sys.argv[1] not in ['extend', 'create', 'export', 'convert']:
-        print('Invalid Tool.  Pick one of :' + ', '.join(tools))
+    if len(sys.argv) == 1 or sys.argv[1] not in ['extend', 'create', 'export', 'convert', 'merge']:
+        print('Invalid Tool.  Pick one of: ' + ', '.join(tools))
     else:
         module_name = tools[sys.argv[1]]
         module = importlib.import_module('maskgen.batch.' + module_name )
         print('Executing ' + module.__name__ + ' with ' + ', '.join(sys.argv[2:]))
         func = getattr(module, 'main')
         func(sys.argv[2:])
+
 
 if __name__ == '__main__':
     main()

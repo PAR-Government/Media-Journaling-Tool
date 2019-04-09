@@ -15,7 +15,7 @@ import  tkFileDialog, tkSimpleDialog
 from PIL import ImageTk
 from maskgen.ui.autocomplete_it import AutocompleteEntryInText
 from maskgen.tool_set import imageResize, imageResizeRelative, fixTransparency, openImage, openFile, validateTimeString, \
-    validateCoordinates, getMaskFileTypes, getImageFileTypes, coordsFromString, IntObject, get_icon,convertToVideo
+    validateCoordinates, getMaskFileTypes, getImageFileTypes, videofiletypes, coordsFromString, IntObject, get_icon,convertToVideo
 from maskgen.scenario_model import Modification,ImageProjectModel
 from maskgen.services.probes import CompositeExtender
 from maskgen.video_tools import get_start_frame_from_segment, get_start_time_from_segment, get_file_from_segment,\
@@ -907,10 +907,8 @@ class DescriptionViewDialog(tkSimpleDialog.Dialog):
         if len(self.description.arguments) > 0:
             Label(master, text='Parameters:', anchor=W, justify=LEFT).grid(row=row, column=0, columnspan=4, sticky=W)
             row += 1
-            for argname, argvalue in self.description.arguments.iteritems():
-                Label(master, text='      ' + argname + ': ' + str(argvalue), justify=LEFT).grid(row=row, column=0,
-                                                                                                 columnspan=4, sticky=W)
-                row += 1
+            PropertyListFrame(master,self.description).grid(row=row, column=0,columnspan=4, sticky=W+E)
+            row += 1
         if self.description.inputMaskName is not None:
             self.inputmaskframe = ButtonFrame(master, self.description.inputMaskName, self.dir, \
                                               label='Mask (' + self.description.inputMaskName + '):', isMask=True,
@@ -1212,7 +1210,9 @@ class FilterCaptureDialog(tkSimpleDialog.Dialog):
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'],
                                       type=resolve_argument_type(argumentTuple[1]['type'],self.sourcefiletype),
-                                      values=operation.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
+                                      values=operation.getParameterValuesForType(argumentTuple[0], self.sourcefiletype,
+                                                                                 argumentTuple[1]['values'] if 'values'
+                                                                                 in argumentTuple[1] else []),
                                       value=self.argvalues[argumentTuple[0]] if argumentTuple[
                                                                                     0] in self.argvalues else None) \
                       for argumentTuple in argumentTuples if 'visible' not in argumentTuple[1] or
@@ -1635,7 +1635,7 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.parent = parent
         self.scModel = scModel
         name = scModel.start + ' to ' + scModel.end
-        self.modification = scModel.getDescription()
+        self.modification = scModel.getCurrentEdgeModification()
         self.selectMasks = self.scModel.getSelectMasks()
         tkSimpleDialog.Dialog.__init__(self, parent, name)
 
@@ -1725,10 +1725,40 @@ class CompositeCaptureDialog(tkSimpleDialog.Dialog):
         self.cancelled = False
         self.modification.setRecordMaskInComposite(self.includeInMaskVar.get())
 
+class SubstituteMaskCaptureDialog(tkSimpleDialog.Dialog):
+    cancelled = True
+
+    def __init__(self, parent, scModel ):
+        """
+        :param parent:
+        :param scModel:
+        @type scModel : ImageProjectModel
+        """
+        self.parent = parent
+        self.scModel = scModel
+        name = scModel.start + ' to ' + scModel.end
+        self.use_as_substitute = StringVar()
+        self.use_as_substitute.set('yes' if self.scModel.hasSubstituteMasks() else 'no')
+        tkSimpleDialog.Dialog.__init__(self, parent, name)
+
+    def body(self, master):
+        row=0
+        self.ChkButton = Checkbutton(master, text="Use inputmask as substitute", variable=self.use_as_substitute, \
+                                                onvalue="yes", offvalue="no")
+        self.ChkButton.grid(row=row, column=0, columnspan=2, sticky=W)
+        return self.ChkButton
+
+    def cancel(self):
+        tkSimpleDialog.Dialog.cancel(self)
+
+    def apply(self):
+        self.cancelled = False
+
+
 
 class FileCaptureDialog(tkSimpleDialog.Dialog):
 
-    def __init__(self, parent, name, dir, current_file=None ):
+    def __init__(self, parent, name, dir, current_file=None):
         """
         :param parent:
         :param scModel:
@@ -2401,6 +2431,12 @@ class PropertyFrame(VerticalScrolledFrame):
                self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ', takefocus=False,
                                                 command=partialf)
                self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
+           elif prop.type == 'file:video':
+               partialf = partial(promptForFileAndFillButtonText, self, self.dir, prop.name, row, videofiletypes)
+               self.buttons[prop.name] = widget = Button(master, text=v if v is not None else '              ',
+                                                         takefocus=False,
+                                                         command=partialf)
+               self.buttons[prop.name].grid(row=row, column=1, columnspan=8, sticky=E + W)
            elif prop.type.startswith('file:'):
                typematch = '*.' + prop.type[prop.type.find(':')+1:]
                typename =  prop.type[prop.type.find(':') + 1:].upper()
@@ -2489,6 +2525,27 @@ class PropertyFrame(VerticalScrolledFrame):
            elif error is not None:
                tkMessageBox.showwarning('Error', prop.name, error)
            i += 1
+
+
+
+class PropertyListFrame(VerticalScrolledFrame):
+
+   def __init__(self, parent, description,
+                **kwargs):
+     self.parent = parent
+     VerticalScrolledFrame.__init__(self, parent, **kwargs)
+     self.description =description
+     self.body()
+
+   def body(self):
+       master = self.interior
+       row = 0
+       for argname, argvalue in self.description.arguments.iteritems():
+           Label(master, text='      ' + argname + ': ' + str(argvalue), justify=LEFT).grid(row=row, sticky=W)
+           row+=1
+
+   def apply(self):
+        pass
 
 
 

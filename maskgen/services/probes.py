@@ -262,16 +262,33 @@ class ProbeSetBuilder(ProbeProcessor):
             compositeBuilder.finalize(probes)
         return probes
 
-def fetch_qaData_designation(scmodel, probe):
+
+def default_designation(scModel, probe, allow_video_spatial=False):
+    ftype = scModel.getNodeFileType(probe.targetBaseNodeId)
+    len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
+    len_spatial_masks = len([x for x in probe.targetVideoSegments if
+                             x.filename is not None] if probe.targetVideoSegments is not None else [])
+    has_video_masks = len_all_masks > 0
+    spatial_temporal = has_video_masks and len_spatial_masks > 0
+    if ftype == 'image':
+        if probe.targetMaskImage != None:
+            return 'spatial'
+    elif has_video_masks:
+        return 'spatial-temporal' if spatial_temporal and allow_video_spatial else 'temporal'
+    return 'detect'
+
+def fetch_qaData_designation(scModel, probe):
     from maskgen.notifiers import QaNotifier
     from maskgen.qa_logic import ValidationData
-    qa_notify = scmodel.notify.get_notifier_by_type(QaNotifier)
+    qa_notify = scModel.notify.get_notifier_by_type(QaNotifier)
     if qa_notify is not None:
-        qadata = qa_notify.qadata if qa_notify.qadata != None else ValidationData(scmodel)
+        qadata = qa_notify.qadata if qa_notify.qadata != None else ValidationData(scModel)
         link = qadata.make_link_from_probe(probe)
         if link is not None:
-            return qadata.get_qalink_designation(link)
-
+            des = qadata.get_qalink_designation(link)
+            if des not in [None,'']:
+                return des
+    return default_designation(scModel, probe)
 
 class DetermineTaskDesignation(ProbeProcessor):
     """
@@ -290,31 +307,12 @@ class DetermineTaskDesignation(ProbeProcessor):
         :return:
         @type probes : list(Probe)
         """
-
         for probe in probes:
-
             if self.inputFunction is not None:
-                designation = self.inputFunction(self.scModel, probe)
-                if designation not in [None, '']:
-                    probe.taskDesignation = designation
-                    continue
-
-            ftype = self.scModel.getNodeFileType(probe.targetBaseNodeId)
-            len_all_masks = len(probe.targetVideoSegments if probe.targetVideoSegments is not None else [])
-            len_spatial_masks = len([x for x in probe.targetVideoSegments if
-                                     x.filename is not None] if probe.targetVideoSegments is not None else [])
-            has_video_masks = len_all_masks > 0
-            spatial_temporal = has_video_masks and len_spatial_masks > 0
-            if ftype == 'image':
-                if probe.targetMaskImage != None:
-                    probe.taskDesignation = 'spatial'
-                    continue
-            elif has_video_masks:
-                probe.taskDesignation = 'spatial-temporal' if spatial_temporal else 'temporal'
-                continue
-            probe.taskDesignation = 'detect'
+                probe.taskDesignation = self.inputFunction(self.scModel, probe)
+            else:
+                probe.taskDesignation = default_designation(self.scModel, probe, True)
         return probes
-
 
 class DropVideoFileForNonSpatialDesignation(ProbeProcessor):
     """
@@ -338,7 +336,7 @@ class DropVideoFileForNonSpatialDesignation(ProbeProcessor):
 
 class ExtendProbesForDetectEdges(ProbeProcessor):
     """
-        Probes have been set to not use spatial shoudl drop their file.
+        Given a selection criteria, add additional edges that are detect only probes.
     """
 
     def __init__(self, scModel,selectionCriteria):
@@ -442,7 +440,7 @@ class CompositeExtender:
         if self.prior_probes is None:
             self.prior_probes = self.constructPathProbes(start=self.scModel.start, constructDonors=False)
 
-        if self.scModel.getDescription() is None or not self.prior_probes:
+        if self.scModel.getCurrentEdgeModification() is None or not self.prior_probes:
             probes = self.prior_probes
         else:
             probes = self.extendCompositeByOne(self.prior_probes,
@@ -470,8 +468,14 @@ def cleanup_temporary_files(probes = [], scModel = None):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         input_mask = getValue(edge, 'inputmaskname', '')
+        video_input_mask = getValue(edge, 'arguments.videomaskname', '')
+        subs = getValue(edge, 'substitute videomasks', [])
+        for sub in subs:
+            hdf5 = get_file_from_segment(sub)
+            used_hdf5.append(hdf5)
         mask = getValue(edge, 'maskname', '')
         used_masks.append(input_mask)
+        used_masks.append(video_input_mask)
         used_masks.append(mask)
         videomasks = getValue(edge, 'videomasks', [])
         for mask in videomasks:

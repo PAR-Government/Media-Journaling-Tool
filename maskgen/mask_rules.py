@@ -238,6 +238,12 @@ class CompositeImage:
             return np.sum(self.mask) == 0
         return self.videomasks is None or len(self.videomasks) == 0
 
+    def createEmptyMask(self,media_type='video'):
+        if self.mask is not None:
+            return np.zeros(self.mask.shape,dtype=self.mask.dtype)
+        else:
+            return None if self.videomasks is None else [v for v in self.videomasks if video_tools.get_type_of_segment(v) != media_type]
+
     def isImage(self):
         return self.media_type == 'image'
 
@@ -384,21 +390,37 @@ class BuildState:
         """
         return exif.rotateAmount(getOrientationForEdge(self.edge))
 
+    def substitute(self,composite_image):
+        """
+
+        :param composite_image:
+        :return:
+        @param composite_image: CompositeImage
+        """
+        self.compositeMask = composite_image if self.isComposite else None
+        self.donorMask = composite_image if not self.isComposite else None
+
+    def emptyMask(self,media_type='video'):
+        if self.isComposite:
+            return self.compositeMask.create(self.compositeMask.createEmptyMask(media_type=media_type))
+        else:
+            return self.donorMask.create(self.donorMask.createEmptyMask(media_type=media_type))
+
     def warpMask(self, media_type=None):
         if self.isComposite:
             return self.compositeMask.create(self.meta_extractor.warpMask(self.compositeMask.videomasks,
                                                                source= self.source,
                                                                target= self.target,
-                                                               expectedType=self.compositeMask.media_type))
+                                                               expectedType=media_type if media_type is not None else self.compositeMask.media_type))
         elif self.donorMask is not None:
             return CompositeImage(self.donorMask.source,
                                   self.donorMask.target,
                                   self.donorMask.media_type if media_type is None else media_type,
                                   self.meta_extractor.warpMask(self.donorMask.videomasks,
-                                                               self.source,
                                                                self.target,
+                                                               self.source,
                                                                inverse=True,
-                                                               expectedType=self.donorMask.media_type),
+                                                               expectedType=media_type if media_type is not None else self.donorMask.media_type),
                                   issubstitute=self.donorMask.issubstitute)
 
     def frame_rate_check(self):
@@ -413,8 +435,8 @@ class BuildState:
         elif self.donorMask is not None:
             self.donorMask = self.donorMask.create(
                                             self.meta_extractor.warpMask(self.donorMask.videomasks,
-                                                                         self.source,
                                                                          self.target,
+                                                                         self.source,
                                                                          inverse=True,
                                                                          expectedType=self.donorMask.media_type))
 
@@ -518,7 +540,7 @@ def _prepare_video_masks(meta_extractor,
         if not returnEmpty:
             return None
         if fillWithUserBoundaries:
-            video_masks = video_tools.getMaskSetForEntireVideo(meta_extractor.getMetaDataLocator(source),
+            video_masks = meta_extractor.getMetaDataLocator(source).getMaskSetForEntireVideo(
                                                  start_time = getValue(edge,'arguments.Start Time',
                                                                        defaultValue='00:00:00.000'),
                                                  end_time = getValue(edge,'arguments.End Time'),
@@ -788,7 +810,6 @@ def video_resize_transform(buildState):
         return shapeChange != (0, 0)
     return video_resize_helper(buildState, vrt_criteria)
 
-
 def median_stacking(buildState):
     if buildState.isComposite:
         return CompositeImage(buildState.source,
@@ -1053,7 +1074,7 @@ def copy_add_audio(buildState):
     start_time_value = tool_set.getMilliSecondsAndFrameCount(start_time)
     copy_start_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge, 'arguments.Copy Start Time'))
     copy_end_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge,'arguments.Copy End Time'))
-    end_time = (start_time_value[0] + (copy_end_time[0] - copy_start_time[0]) ,0)
+    end_time = (start_time_value[0] + (copy_end_time[0] - copy_start_time[0]), 0) if copy_end_time is not None else None
     return add_audio(buildState, start_time=start_time, end_time=end_time)
 
 def add_audio(buildState, start_time = None, end_time=None):
@@ -1063,10 +1084,12 @@ def add_audio(buildState, start_time = None, end_time=None):
     @type buildState: BuildState
     @rtype: CompositeImage
     """
+    buildState.substitute(buildState.warpMask('video'))
     if buildState.isComposite:
         # if there is a match the source and target, then this is 'seeded' composite mask
         # have to wonder if this is necessary, but I suppose it gives the transform
         # an opportunity to make adjustments for composite.
+
         if buildState.compositeMask.source != buildState.source and \
                         buildState.compositeMask.target != buildState.target:
             args = buildState.arguments()
@@ -1089,7 +1112,22 @@ def add_audio(buildState, start_time = None, end_time=None):
         return buildState.compositeMask
     # in donor case, the donor was already trimmed
     else:
-        return buildState.donorMask
+        args = buildState.arguments()
+        if 'add type' in args and args['add type'] == 'insert':
+            return buildState.donorMask.create(
+                video_tools.dropFramesWithoutMask(buildState.getMasksFromEdge(
+                    ['audio'],
+                    startTime=start_time,
+                    endTime=end_time),
+                    buildState.donorMask.videomasks,
+                    expectedType='audio'))
+        return buildState.donorMask.create(
+            video_tools.removeIntersectionOfMaskSets(buildState.donorMask.videomasks,
+                                     buildState.getMasksFromEdge(
+                                          ['audio'],
+                                          startTime=start_time,
+                                          endTime=end_time
+                                      )))
 
 
 def delete_audio(buildState):
@@ -1110,10 +1148,10 @@ def delete_audio(buildState):
         return buildState.compositeMask
     # in donor case, need to add the deleted frames back
     else:
-        return video_tools.insertFrames(buildState.getMasksFromEdge(
+        return buildState.donorMask.create(video_tools.insertFrames(buildState.getMasksFromEdge(
             ['audio']),
-            buildState.compositeMask,
-            expectedType='audio')
+            buildState.donorMask.videomasks,
+            expectedType='audio'))
 
 
 def copy_paste_frames(buildState):
@@ -1762,8 +1800,7 @@ def image_to_video(buildState):
     """
     if buildState.isComposite:
         return _prepare_video_masks(buildState.meta_extractor,
-                                    video_tools.getMaskSetForEntireVideo(
-                                        buildState.meta_extractor.getMetaDataLocator(buildState.target)),
+                                    buildState.meta_extractor.getMetaDataLocator(buildState.target)).getMaskSetForEntireVideo(
                                     'video',
                                     buildState.source,
                                     buildState.target,
@@ -1902,7 +1939,7 @@ def image_selection(buildState):
         return video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
                                                                  defaultValue='00:00:00.000'))
     else:
-        masks = video_tools.getMaskSetForEntireVideo(buildState.meta_extractor.getMetaDataLocator(buildState.source),
+        masks = buildState.meta_extractor.getMetaDataLocator(buildState.source).getMaskSetForEntireVideo(
                                              start_time=getValue(buildState.edge, 'arguments.Frame Time',
                                                                  defaultValue='00:00:00.000'),
                                              end_time=getValue(buildState.edge, 'arguments.Frame Time',
@@ -1918,6 +1955,16 @@ def image_selection(buildState):
                                     returnEmpty=False,
                                     fillWithUserBoundaries=True)
 
+def warp_output(buildState):
+    """
+    Assumes frame rate has not changed.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return buildState.warpMask()
+
 def echo(buildState):
     """
     Assumes frame rate has not changed.
@@ -1931,6 +1978,7 @@ def echo(buildState):
     else:
         return buildState.donorMask
 
+
 def sample_rate_change(buildState):
     """
         :param buildState:
@@ -1940,6 +1988,19 @@ def sample_rate_change(buildState):
         """
     return buildState.warpMask(media_type='audio')
 
+def audio_selection(buildState):
+    """
+    TODO
+    For use of zip to audio.
+    Use Audio Positions to build donor.
+    Use Audio Positions to substract out masks.
+    :param buildState:
+    :return: updated composite mask
+    @type buildState: BuildState
+    @rtype: CompositeImage
+    """
+    return buildState.emptyMask(media_type='audio')
+
 def output_video_change(buildState):
     """
     :param buildState:
@@ -1947,12 +2008,10 @@ def output_video_change(buildState):
     @type buildState: BuildState
     @rtype: CompositeImage
     """
-
     composite_image = buildState.warpMask()
     shapeChange = buildState.shapeChange()
     if shapeChange != (0, 0):
-        buildState.compositeMask = composite_image if buildState.isComposite else None
-        buildState.donorMask = composite_image if not buildState.isComposite else None
+        buildState.substitute(composite_image)
         composite_image= video_resize_helper(buildState, lambda x : True)
     return composite_image
 
@@ -2103,7 +2162,7 @@ def isEdgeLocalized(edge_id, edge, operation):
     :return:
     @type Operation
     """
-    return edge['recordMaskInComposite'] == 'yes' or \
+    return (edge['recordMaskInComposite'] == 'yes' or \
            (edge['op'] not in ['TransformSeamCarving',
                               'TransformCrop',
                               'SelectCropFrames',
@@ -2112,8 +2171,8 @@ def isEdgeLocalized(edge_id, edge, operation):
                               'TransformReverse',
                               'DeleteAudioSample'] and \
            ('empty mask' not in edge or edge['empty mask'] == 'no') and \
-            getValue(edge, 'global',defaultValue='no') != 'yes' and \
-            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration'])
+            getValue(edge, 'global',defaultValue='no') != 'yes')) and \
+            operation.category not in ['Output','AntiForensic','PostProcessing','Laundering','TimeAlteration']
 
 def isEdgeLocalizedWithPostProcessingAndLaundering(edge_id, edge, operation):
     """
@@ -2993,7 +3052,7 @@ class CompositeDelegate:
                     startMask = None
                 elif tool_set.fileType(fullpath) in ['video','audio'] and 'videomasks' in edge:
                     startMask = _prepare_video_masks(self.meta_extractor,
-                                                     video_tools.getMaskSetForEntireVideo(video_tools.FileMetaDataLocator(fullpath)),
+                                                     video_tools.FileMetaDataLocator(fullpath).getMaskSetForEntireVideo(),
                                                      # TODO: need to reconsider this and base the type on the videomask type
                                                      tool_set.fileType(fullpath),
                                                      edge_id[0],
@@ -3166,6 +3225,8 @@ class GraphCompositeVideoIdAssigner:
         A reset also increments the file id.
         Reset points are algorithmically determined by frame rate, duration and # of frames.
     """
+    def __init__(self, per_file_key=False):
+        self.key_function = self._get_file_key if per_file_key else self._get_complex_key
 
     def updateProbes(self,probes, builder, directory = '.'):
         """
@@ -3175,6 +3236,20 @@ class GraphCompositeVideoIdAssigner:
         """
         self.__buildGroups(probes, builder,directory)
         return probes
+
+    def _get_file_key(self, segment,filename):
+        return os.path.basename(filename)
+
+    def _get_complex_key(self, segment,video_file):
+        if segment is None:
+            return os.path.basename(video_file)
+        else:
+            shape = video_tools.get_shape_of_video(video_file)
+            return (video_tools.get_rate_from_segment(segment, 30),
+                                video_tools.get_frames_from_segment(segment),
+                                video_tools.get_end_time_from_segment(segment),
+                                shape[0],
+                                shape[1])
 
     def __buildGroups(self, probes, builder, directory):
         """
@@ -3192,29 +3267,37 @@ class GraphCompositeVideoIdAssigner:
         for probe in probes:
             if not probe.has_masks_in_target():
                 continue
-            segment = video_tools.get_frame_count(os.path.join(directory, probe.finalImageFileName))
-            if segment is not None:
-                key = (video_tools.get_rate_from_segment(segment, 30),
-                       video_tools.get_frames_from_segment(segment),
-                       video_tools.get_end_time_from_segment(segment))
-                if key not in self.group_probes:
-                    self.writers[key] = tool_set.GrayBlockWriter(os.path.join(directory,'vmasks_{}'.format(fileid.increment())), key[0])
+            video_file = os.path.join(directory, probe.finalImageFileName)
+            segment = video_tools.FileMetaDataLocator(video_file).get_frame_count()
+            key = self.key_function(segment, video_file)
+            rate = video_tools.get_rate_from_segment(segment, 30) if segment is not None else 30
+            if key not in self.group_probes:
+                    self.writers[key] = tool_set.GrayBlockWriter(os.path.join(directory,'vmasks_{}'.format(fileid.increment())),
+                                                                 rate)
                     self.group_probes[key] = []
                     self.group_bits[key] = IntObject()
-                self.group_probes[key].append(probe)
-                probe.composites[builder] = {
+            self.group_probes[key].append(probe)
+            probe.composites[builder] = {
                     'groupid': key,
                     'bit number': self.group_bits[key].increment()
-                }
+            }
 
 class HDF5CompositeBuilder(CompositeBuilder):
+
     def __init__(self):
         self.composites = dict()
         self.group_bit_check = dict()
         CompositeBuilder.__init__(self, 1, 'hdf5')
 
+
+    def _update_frame(self, frame, thisbit):
+        return frame | thisbit
+
+    def _build_id_assigner(self):
+        return GraphCompositeVideoIdAssigner(False)
+
     def initialize(self, graph, probes):
-        self.compositeIdAssigner = GraphCompositeVideoIdAssigner()
+        self.compositeIdAssigner = self._build_id_assigner()
         return self.compositeIdAssigner.updateProbes(probes,'hdf5',directory=graph.dir)
 
     def build(self, passcount, probe, edge):
@@ -3265,7 +3348,7 @@ class HDF5CompositeBuilder(CompositeBuilder):
                         bitvalue = 1 << (bit % 8)
                         #MASK is BLACK, then SET BIT because black is CHANGED
                         thisbit[mask == 0] = bitvalue
-                        frame[:,:,comopsite_byte_id] = frame[:,:,comopsite_byte_id] | thisbit
+                        frame[:, :, comopsite_byte_id] = self._update_frame(frame[:,:,comopsite_byte_id], thisbit)
                 if frame is not None:
                     writer.write(frame, frame_time,frame_no)
                     for segment_with_probe in segments_with_probe:
@@ -3275,6 +3358,29 @@ class HDF5CompositeBuilder(CompositeBuilder):
                 frame_time += 1000.0/segment_with_probe[0].rate
             writer.close()
         return results
+
+
+class HDF5CompositeBuilderPerMedia(HDF5CompositeBuilder):
+    """
+    """
+
+    def __init__(self):
+        HDF5CompositeBuilder.__init__(self)
+
+    def _build_id_assigner(self):
+        return GraphCompositeVideoIdAssigner(True)
+
+class HDF5CompositeBuilderUseLast(HDF5CompositeBuilderPerMedia):
+    """
+    Only used the last manipulation for any bit plane
+    """
+
+    def __init__(self):
+        HDF5CompositeBuilderPerMedia.__init__(self)
+
+    def _update_frame(self, frame, thisbit):
+        return thisbit
+
 
 
 class Jpeg2000CompositeBuilder(CompositeBuilder):

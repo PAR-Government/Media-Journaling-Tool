@@ -630,11 +630,11 @@ class ImageWrapper:
         except:
             logging.getLogger('maskgen').debug('Image convert does not support convert type')
         if self.mode == 'BGR' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_BGR2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_BGR2RGB), mode='RGB')
         if self.mode == 'YUV' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YUV2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_YUV2RGB), mode='RGB')
         if self.mode == 'YCrCb' and convert_type_str == 'RGB':
-            return ImageWrapper(cv2.cvtColor(img_array.astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
+            return ImageWrapper(cv2.cvtColor(img_array.astype('uint8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
         if self.mode == 'YCbCr' and convert_type_str == 'RGB':
             return ImageWrapper(cv2.cvtColor(img_array[:,:,[0,2,1]].astype('unit8'), cv2.COLOR_YCrCb2RGB), mode='RGB')
         if self.mode == 'RGB' and convert_type_str == 'RGBA':
@@ -764,9 +764,10 @@ class ImageWrapper:
         return ImageWrapper(gray.astype('float32'))
 
     def resize(self, size, flag):
-        if str(self.image_array.dtype) == 'uint8':
-            return ImageWrapper(np.asarray(Image.fromarray(self.image_array).resize(size, flag)))
-        return ImageWrapper(cv2.resize(self.image_array, size, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC))
+        ima = self.image_array
+        if str(self.image_array.dtype) == 'uint8' and (len(ima.shape) < 3 or ima.shape[2] < 5):
+            return ImageWrapper(np.asarray(Image.fromarray(ima).resize(size, flag)))
+        return ImageWrapper(cv2.resize(ima, (size[1],size[0]), fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC))
 
     def invert(self):
         if str(self.image_array.dtype).startswith('f'):

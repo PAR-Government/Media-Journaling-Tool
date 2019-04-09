@@ -1,0 +1,52 @@
+{
+  "directed": true,
+  "graph": {
+    "username": "ericrobertson",
+    "name": "sample",
+    "organization": "PAR",
+    "projectdescription" : "test",
+    "technicalsummary" : "Automated",
+    "semanticrestaging" : "no",
+    "semanticrepurposing" : "no",
+    "semanticrefabrication" : "no",
+    "recompress": false
+  },
+  "nodes": [
+    {
+      "op_type": "BaseSelection",
+      "image_directory": "{image_dir}",
+      "picklist": "imageset",
+      "id": "base"
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "OutputPNG",
+      "id": "png",
+      "arguments": {
+        "Image Rotated" : {
+          "type" : "value",
+          "value" :"yes"
+        },
+        "foo" : {
+          "type" : "int[10:100]"
+        }
+      }
+    },
+    {
+      "op_type": "PluginOperation",
+      "plugin": "GaussianLocalBlur",
+      "id": "blur"
+    }
+  ],
+  "links": [
+    {
+      "source": "base",
+      "target": "png"
+    },
+    {
+      "source": "png",
+      "target": "blur"
+    }
+  ],
+  "multigraph": false
+}

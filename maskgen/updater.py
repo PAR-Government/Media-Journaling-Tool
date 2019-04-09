@@ -10,46 +10,88 @@ import requests
 import json
 import logging
 import maskgen
+from maskgen import maskGenPreferences
 
 """
 Git API used to compare version of the tool with lastest on GitHub master
 """
 
-class UpdaterGitAPI:
+class GitLabAPI:
 
-    repos = 'rwgdrummer/maskgen'
-    url = 'https://api.github.com/repos'
-
-    def __init__(self, branch='master',version_file='VERSION'):
+    def __init__(self,branch='master',version_file='VERSION',repo='',
+                 url='https://gitlab.mediforprogram.com'):
+        self.file = '{url}/api/v4/projects/{repo}/repository/files/{version_file}/raw'.format(
+            url=url, repo=repo, version_file=version_file
+        )
+        self.commits = '{url}/api/v4/projects/{repo}/repository/commits'.format(
+            url=url, repo=repo, version_file=version_file
+        )
+        self.token = maskGenPreferences.get_key('git.token')
         self.branch = branch
-        self.file = 'https://raw.githubusercontent.com/rwgdrummer/maskgen/{}/{}'.format(branch, version_file)
 
-    def _get_version_file(self):
-        resp = requests.get(self.file, timeout=2)
+
+    def get_version_file(self):
+        header = {'PRIVATE-TOKEN':self.token}
+        resp = requests.get(self.file, params={"ref":self.branch}, timeout=2, headers=header)
         if resp.status_code == requests.codes.ok:
-            return  resp.content.strip()
+            return resp.content.strip()
         return "NA"
 
-    def _get_tag(self):
-        url =  self.url + '/' + self.repos + '/tags'
-        resp = requests.get(url,timeout=2)
+    def getCommitMessage(self):
+        import json
+        header = {'PRIVATE-TOKEN': self.token}
+        resp = requests.get(self.commits, params={"ref": self.branch}, timeout=2, headers=header)
         if resp.status_code == requests.codes.ok:
-            content = json.loads(resp.content)
-            content[0]['name']
+            data = json.loads(resp.content)
+            return data[0]['message']
+        return "NA"
 
-    def _getCommitMessage(self, sha):
-        url = self.url + '/' + self.repos + '/commits/' + sha
+class GitHub:
+
+    #TODO!
+    def __init__(self,branch='master',version_file='VERSION',repo='',
+                 url='https://api.github.com/'):
+        self.file = '{url}/repos/{repo}/repository/files/{version_file}/raw'.format(
+            url=url, repo=repo, version_file=version_file
+        )
+        self.commits = '{url}/repos/{repo}/repository/files/{version_file}/raw'.format(
+            url=url, repo=repo, version_file=version_file
+        )
+        self.token = maskGenPreferences.get_key('git.token')
+        self.branch = branch
+
+    def get_version_file(self):
+        header = {'PRIVATE-TOKEN':self.token}
+        resp = requests.get(self.file, params={"ref":self.branch}, timeout=2, headers=header)
+        if resp.status_code == requests.codes.ok:
+            return resp.content.strip()
+        return "NA"
+
+    def getCommitMessage(self):
+        url = self.url + '/' + self.repos + '/commits/'
         resp = requests.get(url, timeout=2)
         if resp.status_code == requests.codes.ok:
             content = json.loads(resp.content)
             return content['commit']['message']
         return None
 
-    def _parseCommits(self, content):
-        for item in  content:
-            if 'merged_at' in item and 'merge_commit_sha' in item:
-                return  item['merge_commit_sha']
-        return None
+
+class UpdaterGitAPI:
+
+    def __init__(self, branch='master',version_file='VERSION'):
+        url = maskGenPreferences.get_key('git.api.url',
+                                              'https://gitlab.mediforprogram.com/')
+        repo = maskGenPreferences.get_key('repo','503')
+        if 'gitlab' in url:
+            self.api = GitLabAPI(branch=branch,version_file=version_file,url=url,repo=repo)
+        else:
+            self.api = GitHub(branch=branch, version_file=version_file, url=url, repo=repo)
+
+    def _get_version_file(self):
+        return self.api.get_version_file()
+
+    def _getCommitMessage(self):
+        return self.api.getCommitMessage()
 
     def _hasNotPassed(self,  merge_sha):
         if merge_sha is None:
@@ -57,26 +99,12 @@ class UpdaterGitAPI:
         currentversion = maskgen.__version__
         sha = currentversion[currentversion.rfind('.')+1:]
         return not merge_sha.startswith(sha)
-        #if lasttime is not None and merge_time is not None:
-           # lasttimeval = datetime.strptime(lasttime, '%Y-%m-%dT%H:%M:%SZ')
-           # mergetimeval = datetime.strptime(merge_time, '%Y-%m-%dT%H:%M:%SZ')
-           # d  =  mergetimeval - lasttimeval
-           # if d.total_seconds() > 0:
-           #     return True
-        #return False
-
-    def _get_lastcommit(self):
-        url = self.url + '/' + self.repos + '/pulls?state=closed'
-        resp = requests.get(url,timeout=2)
-        if resp.status_code == requests.codes.ok:
-            content = json.loads(resp.content)
-            return self._parseCommits(content)
 
     def isOutdated(self):
         try:
             merge_sha = self._get_version_file()
             if self._hasNotPassed(merge_sha):
-                return merge_sha, self._getCommitMessage(merge_sha)
+                return merge_sha, self._getCommitMessage()
             return None, None
         except Exception as ex:
             logging.getLogger('maskgen').error('Error validating JT version: {}'.format(ex.message))
@@ -85,13 +113,14 @@ class UpdaterGitAPI:
 class OperationsUpdaterGitAPI(UpdaterGitAPI):
 
     def __init__(self, branch='master'):
-        UpdaterGitAPI.__init__(self, branch=branch,version_file='resources/operations.json')
+        import urllib
+        UpdaterGitAPI.__init__(self, branch=branch,version_file=urllib.quote_plus('resources/operations.json'))
 
     def _get_version_file(self):
-        resp = requests.get(self.file, timeout=2)
-        if resp.status_code == requests.codes.ok:
+        resp = UpdaterGitAPI._get_version_file(self)
+        if resp is not None:
             import json
-            return json.loads(resp.content.strip())['version']
+            return json.loads(resp)['version']
 
     def _hasNotPassed(self, merge_sha):
         from maskgen.software_loader import getMetDataLoader

@@ -308,6 +308,19 @@ class MakeGenUI(Frame):
         video_tools.fixVideoMasks(self.scModel.getGraph(),self.scModel.start,
                                   self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end))
 
+    def add_substitute_mask(self):
+        edge = self.scModel.getGraph().get_edge(self.scModel.start,self.scModel.end)
+        dialog = SubstituteMaskCaptureDialog(self, self.scModel)
+        result = dialog.use_as_substitute.get()
+        vidInputMask = getValue(edge, 'arguments.videoinputmaskname', '')
+        vidInputMask = os.path.join(self.scModel.get_dir(), vidInputMask)
+        if result == 'yes' and os.path.exists(vidInputMask) and not dialog.cancelled:
+            self.scModel.removeSubstituteMasks()
+            self.scModel.addSubstituteMasks(filename=vidInputMask)
+        elif result == 'no' and self.scModel.hasSubstituteMasks():
+            self.scModel.removeSubstituteMasks()
+            self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
+
     def recomputeedgemask(self):
         analysis_params = {}
         errors = self.scModel.reproduceMask(analysis_params=analysis_params)
@@ -659,7 +672,7 @@ class MakeGenUI(Frame):
                 ok = True
                 end = self.scModel.nextId()
                 # reset back to the start image
-                self.scModel.selectImage(start)
+                self.scModel.selectNode(start)
             # select the last one completed
             self.scModel.select((start, end))
             self.drawState()
@@ -941,7 +954,7 @@ class MakeGenUI(Frame):
     def removegroup(self):
         if tkMessageBox.askyesno(title='Remove Group', message='Are you sure you want to remove this group of nodes?'):
             for name in self.groupselection:
-                self.scModel.selectImage(name)
+                self.scModel.selectNode(name)
                 self.remove()
 
     def select(self):
@@ -998,7 +1011,7 @@ class MakeGenUI(Frame):
             return
         d = DescriptionCaptureDialog(self, self.uiProfile, self.scModel, self.scModel.getEndType(),
                                      im, os.path.split(filename)[1],
-                                     description=self.scModel.getDescription())
+                                     description=self.scModel.getCurrentEdgeModification())
         if (
                     d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
             self.scModel.update_edge(d.description)
@@ -1009,7 +1022,7 @@ class MakeGenUI(Frame):
         if (im is None):
             return
         d = DescriptionViewDialog(self, self.scModel, os.path.split(filename)[1],
-                                  description=self.scModel.getDescription(), metadiff=self.scModel.getMetaDiff())
+                                  description=self.scModel.getCurrentEdgeModification(), metadiff=self.scModel.getMetaDiff())
 
     def viewselectmask(self):
         d = CompositeCaptureDialog(self,self.scModel)
@@ -1226,7 +1239,7 @@ class MakeGenUI(Frame):
 
         self.nodemenu.add_command(label="Proxy", command=self.nodeproxy)
 
-        self.edgemenu = Menu(self.master, tearoff=0)
+        self.edgemenu = Menu(self.master, tearoff=0, postcommand=self.updateEdgeMenu)
         self.edgemenu.add_command(label="Select", command=self.select)
         self.edgemenu.add_command(label="Edit", command=self.edit)
         self.edgemenu.add_command(label="Inspect", command=self.view)
@@ -1236,7 +1249,7 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
         self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
-        self.edgemenu.add_command(label="Fix It", command=self.fixit)
+        self.edgemenu.add_command(label="Substitute Mask", command=self.add_substitute_mask)
 
         self.filteredgemenu = Menu(self.master, tearoff=0)
         self.filteredgemenu.add_command(label="Select", command=self.select)
@@ -1299,6 +1312,9 @@ class MakeGenUI(Frame):
             self.groupmenu.post(event.x_root, event.y_root)
         elif eventName == 'n':
             self.drawState()
+
+    def updateEdgeMenu(self):
+        self.edgemenu.entryconfig(index=9, state=self.scModel.substitutesAllowed())
 
     def getMergedSuffixes(self):
         filetypes = self.prefLoader.get_key('filetypes')
@@ -1386,7 +1402,7 @@ class MakeGenUI(Frame):
                 tkMessageBox.showinfo('Update to JT Available', 'New Version: {0} {1}'.format(sha_op, update_message))
         except:
             tkMessageBox.showwarning('JT Update Status', 'Unable to verify latest version of JT due to connection '
-                                                         'error to GitHub. See logs for details')
+                                                         'error to git repository. See logs for details')
         if self.startedWithNewProject:
             self.getproperties()
 

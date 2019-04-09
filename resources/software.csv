@@ -38,6 +38,7 @@ image,gan,DrexelCameraModel,0.1,041218,
 image,gan,DrexelGAN,052118
 both,other,EDIUS Pro,8,
 both,other,Final Cut Pro,10.2,10.1,7.0,6.0,5.1
+both,other,FINDCamera++,0.3,1.1
 both,other,Flame,
 both,other,Flowblade,
 both,other,ForScene,
@@ -133,7 +134,7 @@ both,other,Instagram,2017,
 video,other,HandBrake,1,
 video,gan,Marshal,2.4,
 image,other,GV,3.0,
-image,other,JPEG_DCT_Modify,0.1,
+image,other,JPEG_DCT_Modify,0.1,0.2,
 image,other,Lytro Desktop,5.0,
 image,gan,GAN_face_splice,0.1,
 image,other,DLIB,19.9,
@@ -142,5 +143,8 @@ video,gan,UoMInPainting,2.8,
 video,gan,deepfakes/faceswap,2.1,
 both,other,sips,10.4,
 image,gan,STGAN,20181220,
-image,gan,Generative_Inpainting,20190107,
-image,gan,Edge_Connect,20190108,
+collection,other,unzip,18
+image,gan,Generative_Inpainting,20190107
+image,gan,Edge_Connect,20190108
+video,other,DeepFaceLab,20190301,
+both,other,FINDCamera++,1.1,
