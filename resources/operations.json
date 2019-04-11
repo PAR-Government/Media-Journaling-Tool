@@ -3167,10 +3167,33 @@
           
          
       "optionalparameters": {
+        "homography": {
+          "type": "list",
+          "source": "image",
+          "values": [
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
+        },
+        "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "source": "video",
+          "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
+        }
   
       },
       "analysisOperations": [
-        "maskgen.tool_set.localTransformAnalysis"
+        "maskgen.tool_set.forcedSiftAnalysis"
       ],
       "description": "Purpose: Move pixels and heal area where they came from and edges of new location.",
       "compareparameters": {
@@ -3178,7 +3201,7 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.ca_fill"
+        "image": "maskgen.mask_rules.move_transform"
       },
       "includeInMask": {
         "default": true
@@ -6450,7 +6473,7 @@
         "video.video"
       ]
     },
-    {
+       {
       "category": "Transform",
       "name": "TransformMove",
       "mandatoryparameters": {
@@ -6525,7 +6548,7 @@
         "image.image",
         "video.video"
       ]
-    },
+    },   
     {
       "category": "Transform",
       "name": "TransformResize",
