@@ -2197,6 +2197,44 @@ class IntSliderWidget(Frame):
     def hide(self):
         self.grid_forget()
 
+class IntEntry(Frame):
+
+    def __init__(self, master, label='', initial_value=0, range=(0,0)):
+        Frame.__init__(self, master=master)
+        self.range = range
+        self.entryValue = StringVar()
+        self.entryValue.set(str(initial_value))
+        validate = self.register(self.validateEntry)
+        self.label = Label(master=self, text=label)
+        self.entry = Entry(master=self,
+                           textvariable=self.entryValue,
+                           width=6,
+                           validatecommand= (validate, '%P'),
+                           validate='key')
+
+    def grid(self, **options):
+        row = getValue(options, 'row', 0)
+        column = getValue(options, 'column', 0)
+        self.label.grid(row=row, sticky=W)
+        self.entry.grid(row=row, column=column + 1, sticky=E)
+        Frame.grid(self, **options)
+
+    def validateEntry(self, val, event=None):
+        valid = False
+        if val == '':
+            valid = True
+
+        if val.isdigit():
+            if self.range[0] - self.range[1] != 0:
+                valid = self.range[0] <= int(val) <= self.range[1]
+            else:
+                valid = True
+        return valid
+
+    def get(self):
+        return int(self.entryValue.get()) if self.entryValue.get().isdigit() else 0
+
+
 class MaskDebuggerUI(Toplevel):
 
     def build_arginfo(self):
@@ -2217,8 +2255,21 @@ class MaskDebuggerUI(Toplevel):
                 arginfo.append((k, v))
         return arginfo
 
+    def layout_image_frames(self):
+        from PIL import Image
+        """raw = imageResizeRelative(self.debugger.im_two, (350,350), otherImDim=(350,350)) if \
+            self.debugger.im_two is not None else Image.new("RGB", (350, 350), "black")
+        mask = imageResizeRelative(ImageWrapper(self.debugger.analysis_components.mask, to_mask=True), (350,350), otherImDim=(350,350)) if \
+            self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
+        overlay = raw.overlay(mask) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")"""
+        raw = Image.new("RGB", (350, 350), "black")
+        mask = Image.new("RGB", (350, 350), "black")
+        overlay = Image.new("RGB", (350, 350), "black")
+        return [ImageTk.PhotoImage(raw), ImageTk.PhotoImage(mask), ImageTk.PhotoImage(overlay)]
+
     def __init__(self, master, scModel, debugger=None, description=None):
         self.scModel = scModel
+        self.debugger = debugger
         self.sourcefiletype = self.scModel.getStartType()
         self.targetfiletype = self.scModel.getEndType()
         self.edge = scModel.G.get_edge(scModel.start, scModel.end)
@@ -2227,7 +2278,10 @@ class MaskDebuggerUI(Toplevel):
         self.argvalues = description.arguments if description is not None else {}
         self.description = description if description is not None else Modification('', '')
         self.master = master
-        self.result = None
+        self.result = None, 0
+        self.destination_frame = StringVar()
+        self.destination_frame.set('0')
+        self.invalidMask = False
         Toplevel.__init__(self, master=master)
         self.transient(master=master)
         self.initial_focus = self.body(master=self)
@@ -2239,15 +2293,11 @@ class MaskDebuggerUI(Toplevel):
         self.body(master=master)
         self.wait_window(self)
 
-
     def body(self, master):
-        from PIL import Image
-        hist = plt.hist(x=[1, 2, 3, 4, 5], bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)[0]
+        hist = plt.hist(x=self.debugger.mask_analysis['hist'], bins=256, color='#0504aa', alpha=0.7, rwidth=0.85)[0]
         self.histogram = HistogramViewer(master=self, histogram=hist)
         self.mask_preview = ttk.Notebook(master=self)
-        self.images = [ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black")),
-                       ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black")),
-                       ImageTk.PhotoImage(Image.new("RGB", (250, 250), "black"))]
+        self.images = self.layout_image_frames()
         self.preview_frames = [Frame(master=self.mask_preview),
                                Frame(master=self.mask_preview),
                                Frame(master=self.mask_preview)]
@@ -2257,23 +2307,23 @@ class MaskDebuggerUI(Toplevel):
         self.mask_preview.add(child=self.preview_frames[0], text='raw')
         self.mask_preview.add(child=self.preview_frames[1], text='mask')
         self.mask_preview.add(child=self.preview_frames[2], text='overlay')
-        self.frame_select = IntSliderWidget(master=self, command=self.select_frame)
+        self.frame_select = IntEntry(master=self, label='Generate To: ', range=(0, 30))
+        self.frame_limit = Label(master=self.frame_select, text='/30')
         properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
-                                      information=argumentTuple[1]['description'] if 'description' in argumentTuple[
-                                          1] else '',
+                                      information=argumentTuple[1]['description'] if
+                                      'description' in argumentTuple[1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
-                                      value=self.argvalues[argumentTuple[0]] if argumentTuple[
-                                                                                    0] in self.argvalues else None) for
-                      argumentTuple in self.arginfo]
+                                      value=self.argvalues[argumentTuple[0]] if
+                                      argumentTuple[0] in self.argvalues else None) for argumentTuple in self.arginfo]
         self.property_frame = PropertyFrame(parent=self, properties=properties,
                                             propertyFunction=EdgePropertyFunction(properties, self.scModel),
                                             changeParameterCB=self.changeParameter,
-                                            dir=self.scModel.G.get_dir())
+                                            dir=self.scModel.get_dir())
         self.buttons_frame = Frame(master=self)
-        self.generate = Button(master=self.buttons_frame, text='Generate Frame', command=lambda: self.apply('continue'))
-        self.finish = Button(master=self.buttons_frame, text='Finish Generation', command=lambda: self.apply('finish'))
+        self.generate = Button(master=self.buttons_frame, text='Continue',
+                               command=lambda: self.apply('continue'))
         self.cancel = Button(master=self.buttons_frame, text='Cancel', command=lambda: self.apply('stop'))
         self.grid()
 
@@ -2287,29 +2337,22 @@ class MaskDebuggerUI(Toplevel):
         self.overlay_image.grid()
         self.mask_preview.grid(row=row, column=column + 1, sticky=E)
         self.property_frame.grid(row=row + 2, column=column, columnspan=2, sticky=W+E)
-        self.frame_select.grid(row=row + 1, column=column, columnspan=2, sticky=W+E)
+        self.frame_select.grid(row=row + 1, column=column, sticky=W)
+        self.frame_limit.grid(row=row+1, column=2, sticky=W)
         self.generate.grid(row=0, column=0, padx=5)
-        self.finish.grid(row=0, column=1)
+        #self.finish.grid(row=0, column=1)
         self.cancel.grid(row=0, column=2, padx=5)
         self.buttons_frame.grid(row=row + 3, column= column, columnspan=3, sticky=S)
-
-    def select_frame(self):
-        from PIL import Image
-        frame_num = self.frame_select.get()
-        self.images[0] = ImageTk.PhotoImage(Image.new("RGB", (250, 250), "green"))
-        self.raw_image.config(image=self.images[0])
-        self.mask_image.config(image=self.images[1])
-        self.overlay_image.config(image=self.images[2])
-        self.histogram.hist_data = [5,4,3,2,1]
-        self.histogram.plot_histogram()
 
     def changeParameter(self, name, value):
         self.argvalues[name] = value
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
+        self.apply('regen')
+        #If we change mask parameter, self.apply('regen') to refresh the mask.
 
     def apply(self, result):
-        self.result = result
+        self.result = (result, int(self.frame_select.get()))
         self.withdraw()
         self.update_idletasks()
         self.master.focus_set()
@@ -2318,10 +2361,14 @@ class MaskDebuggerUI(Toplevel):
 
 class HistogramViewer(Frame):
 
-    def __init__(self, master, histogram, span=(0,1)):
+    threshold_color = 'red'
+    minima_color = 'gold'
+    other = 'magenta'
+
+    def __init__(self, master, histogram, spans=[(0,1)]):
         Frame.__init__(self, master=master)
         self.hist_data = histogram
-        self.highlight = span
+        self.highlights = spans
         self.figure = Figure(figsize=(6, 4), dpi=100)
         self.fcanvas = FigureCanvasTkAgg(self.figure, master=self)
         self.subplot = self.figure.add_subplot(111)
@@ -2336,8 +2383,9 @@ class HistogramViewer(Frame):
     def plot_histogram(self):
         self.subplot.clear()
         self.subplot.plot(self.hist_data, color='blue')
-        if self.highlight[1] - self.highlight[0] != 0:
-            self.subplot.axvspan(xmin=self.highlight[0], xmax=self.highlight[1], color='red', alpha=0.5)
+        for highlight in self.highlights:
+            if highlight[1] - highlight[0] != 0:
+                self.subplot.axvspan(xmin=highlight[0], xmax=highlight[1], color=self.threshold_color, alpha=0.5)
         self.fcanvas.draw()
 
     def set_span(self, span=(0,0)):

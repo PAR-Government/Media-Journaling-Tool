@@ -38,17 +38,28 @@ class MaskDebugger:
     def __init__(self, master_ui, scModel):
         self.master_ui = master_ui
         self.scModel = scModel
+        self.analysis_components = None
+        self.compare_args = None
+        self.im_one = None
+        self.im_two = None
+        self.mask_analysis = {}
 
-    def __call__(self, analysis_components, im_one, im_two, compare_args):
+
+    def __call__(self, analysis_components, im_one, im_two, compare_args, mask_analysis):
         """
 
         :param analysis_components:
         :param im_one:
         :param im_two:
         :param compare_args:
-        :return: Calls up the MaskDebugger Dialog, will return 'continue', 'stop', 'finish'
+        :return: Calls up the MaskDebugger Dialog, will return 'continue', 'regen', 'stop'.
         """
         from maskgen.ui.description_dialog import MaskDebuggerUI
+        self.analysis_components = analysis_components
+        self.compare_args = compare_args
+        self.im_one = im_one
+        self.im_two = im_two
+        self.mask_analysis = mask_analysis
         return MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
 
 
@@ -2888,7 +2899,9 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components.time_manager = time_manager
     ranges = list()
     compare_args = copy.copy(arguments) if arguments is not None else {}
-    dump_dir =  getValue(arguments,'dump directory',False)
+    dump_dir = getValue(arguments,'dump directory',False)
+    frames_to_generate = getValue(arguments, 'generate_frames', 'all')
+    frames_generated = 0
     try:
         done = False
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
@@ -2907,6 +2920,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 break
             ret_one, frame_one =analysis_components.retrieveOne()
             ret_two, frame_two = analysis_components.retrieveTwo()
+
             if dump_dir:
                 from cv2 import imwrite
                 imwrite(os.path.join(dump_dir,'one_{}.png'.format(time_manager.frameSinceBeginning)), frame_one)
@@ -2915,23 +2929,33 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 return FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(), []
 
             while True:
-                analysis_components.mask = tool_set.createMask(ImageWrapper(frame_one),
+
+                mask, analysis, error = tool_set.createMask(ImageWrapper(frame_one),
                                                                ImageWrapper(frame_two),
                                                                False,
                                                                convertFunction=convert_function,
                                                                alternativeFunction=compare_function,
-                                                               arguments=compare_args)[0].to_array()
-                if debugger is None:
-                    break
-                result = debugger(analysis_components, im_one, im_two, compare_args)
-                if result == 'continue': #generate the next frame
-                    break
-                elif result  == 'stop': #toss all
-                    return ranges,[]
-                elif result == 'finish': #Done Debugging, Generate all.
-                    debugger = None
+                                                               arguments=compare_args)
+                analysis_components.mask = mask.to_array()
+
+                if debugger is None or frames_to_generate == 'all' or frames_generated < frames_to_generate:
                     break
 
+                result = debugger(analysis_components, im_one=ImageWrapper(frame_one),
+                                  im_two=ImageWrapper(frame_two), compare_args= compare_args,
+                                  mask_analysis= analysis)
+
+                if 'continue' in result:
+                    if int(result[1]) > 0:
+                        frames_to_generate = result[1]
+                        frames_generated = 0
+                    break #move on to the next
+                elif 'regen' in result:
+                    continue #Do this frame again
+                elif 'stop' in result: #toss all
+                    return ranges,[]
+
+            frames_generated += 1
             if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
                 done = True
                 break

@@ -18,7 +18,6 @@ from subprocess import Popen, PIPE
 
 from scipy import ndimage
 from skimage.measure import compare_ssim
-
 import cv2api
 import loghandling
 import maskgen.exif
@@ -2229,7 +2228,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
-    return mask, {'minima': threshold}
+    return mask, {'minima': threshold, 'hist': hist}
 
 
 def getExifDimensionsFromData(exif_meta, crop=False):
