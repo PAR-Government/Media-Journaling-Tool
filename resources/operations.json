@@ -1845,6 +1845,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -1856,12 +1863,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -1933,6 +1939,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -1944,12 +1957,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2033,6 +2045,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -2044,12 +2063,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2202,6 +2220,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -2213,12 +2238,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2669,6 +2693,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -2680,12 +2711,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3100,6 +3130,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -3111,12 +3148,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3273,6 +3309,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -3284,12 +3327,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3358,12 +3400,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3496,6 +3537,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -3507,12 +3555,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4029,6 +4076,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
           "type":"list",
@@ -4040,12 +4094,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4122,15 +4175,21 @@
           "defaultvalue":0,
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4210,15 +4269,21 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "aggregate": {
           "type": "list",
             "trigger mask": true,
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4297,15 +4362,21 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "aggregate": {
          "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -5172,12 +5243,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -5305,6 +5375,13 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": ["open:close", "close:open"],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
          "trigger mask": true,
           "type":"list",
@@ -5316,11 +5393,10 @@
         "aggregate": {
          "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
