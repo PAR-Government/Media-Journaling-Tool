@@ -1569,35 +1569,55 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
     maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
-    def reapply(pt,bound):
-        return pt[0] + bound[1],pt[1] + bound[0]
-
     def getRange(size, segment_size=2048):
-        ranges = [(x * segment_size, min((x + 1) * segment_size, size)) for x in range(size / segment_size + 1)]
-        if ranges[-1][1] - ranges[-1][0]  < segment_size/2 and len(ranges) > 1:
-            ranges = ranges[:-2] + [(ranges[-2][0],ranges[-1][1])]
+        """
+        Divided up the size into segment_size ranges
+        :param size:
+        :param segment_size:
+        :return: list of ranges as representd by tuples(start,end, last range indicator)
+        """
+        ranges = [(x * segment_size, min((x + 1) * segment_size, size), False) for x in range(size / segment_size + 1)]
+        if ranges[-1][1] - ranges[-1][0]  < segment_size and len(ranges) > 1:
+            ranges = ranges[:-2] + [(ranges[-2][0],ranges[-1][1], True)]
+        else:
+            ranges[-1] =  (ranges[-1][0], ranges[-1][1], True)
         return ranges
 
     def updateKP(kp,pos):
         kp.pt = (kp.pt[0]+pos[0], kp.pt[1]+pos[1])
         return kp
 
-    def filterKP(pt, xstart, ystart, buffer=16):
+    def filterKP(pt, xstart, xend, ystart, yend):
+        """
+        Filter out points outside the 'window' surrounded by the buffer
+        :param pt:
+        :param xstart:
+        :param xend:
+        :param ystart:
+        :param yend:
+        :return:
+        """
         return \
-            ((xstart > 0 and pt[0] >= buffer*2) or \
-            (xstart == 0)) and \
-            ((ystart > 0 and pt[1] >= buffer*2) or \
-            (ystart == 0))
+            (pt[0] >= xstart and pt[0] <= xend) and \
+            (pt[1] >= ystart and pt[1] <= yend)
 
-    def computeSIFTOverRanges(img1,buffer=16, segment_size=2048):
+    def computeSIFTOverRanges(img1,buffer_size=16, segment_size=2048):
         total_kp = []
         total_d = None
         for xrange in getRange(img1.shape[0]):
             for yrange in getRange(img1.shape[1]):
                 (kp, ds) = cv2api.cv2api_delegate.computeSIFT(
-                    img1[max(0,xrange[0]-buffer):min(xrange[1]+buffer,img1.shape[0]),
-                         max(0,yrange[0]-buffer):min(yrange[1]+buffer,img1.shape[1])])
-                kept = [kpi for kpi in range(len(kp)) if filterKP(kp[kpi].pt,xrange[0],yrange[0],buffer=buffer)]
+                    img1[max(0,xrange[0]-buffer_size):min(xrange[1]+buffer_size,img1.shape[0]),
+                         max(0,yrange[0]-buffer_size):min(yrange[1]+buffer_size,img1.shape[1])])
+                xstart = buffer_size - 1 if xrange[0] > 0 else 0
+                xend = segment_size*2 if xrange[2] else (segment_size + \
+                         (0 if xrange[0] == 0 else buffer_size))
+                ystart = buffer_size - 1 if yrange[0] > 0 else 0
+                yend = segment_size*2 if yrange[2] else (segment_size + \
+                    (0 if yrange[0] == 0 else buffer_size))
+                kept = [kpi for kpi in range(len(kp)) if filterKP(kp[kpi].pt,
+                                                                  xstart,xend,
+                                                                  ystart,yend)]
                 total_kp.extend([updateKP(kp[kpi],(xrange[0],yrange[0])) for kpi in kept])
                 if ds is not None:
                     ds = ds[kept,:]
@@ -1606,21 +1626,6 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
                     else:
                         total_d = np.concatenate((total_d,ds))
         return total_kp,total_d
-
-    #if getValue(arguments,'bound'):
-    ##    b1 = boundingRegion(mask1)
-    #   b2 = boundingRegion(mask2)
-    #    b1 = ((max(0,b1[0][0]-getValue(arguments,'bound')),max(0,b1[0][1]-getValue(arguments,'bound'))),
-    #          (b1[1][0]+getValue(arguments,'bound'),b1[1][1]+getValue(arguments,'bound')))
-    #    b2 = ((max(0,b2[0][0]-getValue(arguments,'bound')),max(0,b2[0][1]-getValue(arguments,'bound'))),
-    #          (b2[1][0]+getValue(arguments,'bound'),b2[1][1]+getValue(arguments,'bound')))#
-
-    #    img1 = img1[b1[0][1]:b1[1][1] + 1, b1[0][0]:b1[1][0] + 1,:]
-    #    img2 = img2[b2[0][1]:b2[1][1] + 1, b2[0][0]:b2[1][0] + 1,:]
-    #else:
-    #    b1 = ((0,0),(0,0))
-    #    b2 = ((0, 0), (0, 0))
-
 
     (kp2, d2) = computeSIFTOverRanges(img2)
 
@@ -1646,8 +1651,6 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     good = good[0:min(maxmatches, len(good))]
 
     if len(good) >= threshold:
-        #src_pts = np.float32([reapply(kp1[m.queryIdx].pt,b1[0]) for m in good]).reshape(-1, 1, 2)
-        #dst_pts = np.float32([reapply(kp2[m.trainIdx].pt,b2[0]) for m in good]).reshape(-1, 1, 2)
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
         return (src_pts, dst_pts) if src_pts is not None else None

@@ -217,18 +217,15 @@ class TestToolSet(TestSupport):
         os.remove(fn)
 
     def test_SIFT(self):
-        img1 = tool_set.openImageFile('/Users/ericrobertson/Downloads/23/r1c1-sel.png')
-        img2 = tool_set.openImageFile('/Users/ericrobertson/Downloads/23/VolcanFuego1_embedded_R1C1-p1.png')
-        mask1 = tool_set.openImageFile(
-            '/Users/ericrobertson/Downloads/23/c48e3d690994fdb81727b9502917bc13_r203rl_12__mask.png')
-        mask2 = tool_set.openImageFile('/Users/ericrobertson/Downloads/23/84f6bb2d20ce74f4c821a9952a48e80e_V1edReV1edR1_15__mask.png').invert()
+        from maskgen.image_wrap import ImageWrapper
+        img1 = ImageWrapper(np.random.randint(0,255,(4000,5000,3),dtype='uint8'))
+        img2 = ImageWrapper(np.random.randint(0,255,(8000,8000,3),dtype='uint8'))
+        img2.image_array[1000:2000,1000:2000,:] = img1.image_array[2000:3000,2000:3000,:]
+        mask1 = ImageWrapper(np.zeros((4000,5000),dtype='uint8'))
+        mask1.image_array[2000:3000,2000:3000] = 255
+        mask2 = ImageWrapper(np.zeros((8000, 8000), dtype='uint8'))
+        mask2.image_array[1000:2000,1000:2000] = 255
 
-        img_array = np.asarray(img1)
-        mask1 = np.copy(img_array[:, :, 3])
-        # accept the alpha channel as what is kept
-        mask1[mask1 > 0] = 255
-        # invert since 0 in the donor mask indicates the donor pixels
-        #mask1 = 255 - mask1
         features = tool_set.getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments={'homography max matches': '2000', 'homography': 'RANSAC-4'})
 
     def testSIFCheck(self):
