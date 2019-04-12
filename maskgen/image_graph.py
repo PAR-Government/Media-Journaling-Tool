@@ -1091,38 +1091,51 @@ class ImageGraph:
             logging.getLogger('maskgen').error("Unable to create image graph: " + str(e))
 
     def _create_archive(self, location, include=[], redacted=[], notifier=None):
-        self.save()
+        import copy
         total = float(len(self.G.nodes()) + len(self.G.edges()) + len(include)) + 1
         fname = os.path.join(location, self.G.name + '.tgz')
         archive = tarfile.open(fname, "w:gz", errorlevel=2)
-        archive.add(os.path.join(self.dir, self.G.name + ".json"),
-                    arcname=os.path.join(self.G.name, self.G.name + ".json"))
-        errors = list()
-        names_added = list()
-        count = 0
-        self._archive_graph(archive, names_added=names_added)
-        for nname in self.G.nodes():
-            self._archive_node(nname, archive, names_added=names_added)
-            count += 1
+        if len(redacted) > 0:
+            old_ep = self.G.graph['edgeFilePaths']
+            new_ep = copy.copy(old_ep)
+            for path in redacted:
+                if path in new_ep:
+                    new_ep.pop(path)
+            self.G.graph['edgeFilePaths'] = new_ep
+        self.save()
+        try:
+            archive.add(os.path.join(self.dir, self.G.name + ".json"),
+                        arcname=os.path.join(self.G.name, self.G.name + ".json"))
+            errors = list()
+            names_added = list()
+            count = 0
+            self._archive_graph(archive, names_added=names_added)
+            for nname in self.G.nodes():
+                self._archive_node(nname, archive, names_added=names_added)
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', nname, 100.0 * count/total))
+            for edgename in self.G.edges():
+                edge = self.G[edgename[0]][edgename[1]]
+                errors.extend(
+                    self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', str(edgename), 100.0 * count / total))
+            for item in include:
+                archive.add(os.path.join(self.dir, item),
+                            arcname=item)
+                count += 1
+                if notifier is not None:
+                    notifier(ModuleStatus('Export', 'Archive', item, 100.0 * count / total))
+            self._output_summary(archive)
+            archive.close()
             if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', nname, 100.0 * count/total))
-        for edgename in self.G.edges():
-            edge = self.G[edgename[0]][edgename[1]]
-            errors.extend(
-                self._archive_edge(edgename[0], edgename[1], edge, self.G.name, archive, names_added=names_added, redacted=redacted))
-            count += 1
-            if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', str(edgename), 100.0 * count / total))
-        for item in include:
-            archive.add(os.path.join(self.dir, item),
-                        arcname=item)
-            count += 1
-            if notifier is not None:
-                notifier(ModuleStatus('Export', 'Archive', item, 100.0 * count / total))
-        self._output_summary(archive)
-        archive.close()
-        if notifier is not None:
-            notifier(ModuleStatus('Export', 'Archive', 'summary', 100.0))
+                notifier(ModuleStatus('Export', 'Archive', 'summary', 100.0))
+        finally:
+            if len(redacted) > 0:
+                self.G.graph['edgeFilePaths'] = old_ep
+                self.save()
         return fname, errors, names_added
 
     def _archive_edge(self, start, end, edge, archive_name, archive, names_added=list(), redacted=list()):

@@ -20,9 +20,7 @@ def centeredCrop(im_source, im_donor_trace):
 
     left = int(np.ceil((width - new_width)/2.))
     top = int(np.ceil((height - new_height)/2.))
-    right = int(np.floor((width + new_width)/2.))
-    bottom = int(np.floor((height + new_height)/2.))
-    cImg = im_source[top:bottom, left:right, :]
+    cImg = im_source[top:top+new_height, left:left+new_width, :]
     return (top,left),cImg
 
 def sign(num):
