@@ -479,6 +479,11 @@
 				"operationSlides/content_aware_fill2.png"
 			]
 		},
+        "ContentAwareMove": {
+            "images": [
+                "operationSlides/ContentAwareMove.png"
+            ]
+        },
 		"GANFill": {
 			"images": [
 				"operationSlides/GAN_fill.png"
