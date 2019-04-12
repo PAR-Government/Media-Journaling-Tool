@@ -3318,6 +3318,7 @@ class HDF5CompositeBuilder(CompositeBuilder):
             return {}
         for group in self.compositeIdAssigner.group_probes:
             writer = self.compositeIdAssigner.writers[group]
+            channels = ((self.compositeIdAssigner.group_bits[group].value - 1) / 8) + 1
             grouped_probes = self.compositeIdAssigner.group_probes[group]
             segments_with_probe = [[(segment_with_probe, grouped_probes[i]) for segment_with_probe in
                                     grouped_probes[i].targetVideoSegments] for i in range(len(grouped_probes))]
@@ -3332,7 +3333,6 @@ class HDF5CompositeBuilder(CompositeBuilder):
                 segments_with_probe = [segment_with_probe for segment_with_probe in segments_with_probe if
                                             segment_with_probe[0].endframe >= frame_no]
                 frame = None
-                comopsite_byte_id= 0
                 for segment_with_probe in segments_with_probe:
                     if frame_no >= segment_with_probe[0].startframe:
                         reader = reader_managers[str(segment_with_probe[1].edgeId)].create_reader(
@@ -3342,15 +3342,16 @@ class HDF5CompositeBuilder(CompositeBuilder):
                             end_frame=segment_with_probe[0].endframe)
                         mask = reader.read()
                         if frame is None:
-                            frame = np.zeros(mask.shape + (1,), dtype='uint8')
+                            frame = np.zeros(mask.shape + (channels,), dtype='uint8')
                         thisbit = np.zeros(mask.shape).astype('uint8')
                         bit = segment_with_probe[1].composites[self.composite_type]['bit number'] - 1
+                        comopsite_byte_id = (bit / 8)
                         bitvalue = 1 << (bit % 8)
                         #MASK is BLACK, then SET BIT because black is CHANGED
                         thisbit[mask == 0] = bitvalue
                         frame[:, :, comopsite_byte_id] = self._update_frame(frame[:,:,comopsite_byte_id], thisbit)
                 if frame is not None:
-                    writer.write(frame, frame_time,frame_no)
+                    writer.write(frame, frame_time, frame_no)
                     for segment_with_probe in segments_with_probe:
                         segment_with_probe[1].composites[self.composite_type]['file name'] = writer.filename
                         results[segment_with_probe[1].composites[self.composite_type]['groupid']] = writer.filename

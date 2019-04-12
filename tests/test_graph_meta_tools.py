@@ -56,7 +56,7 @@ class TestGraphMetaTools(TestSupport):
         newMasks = extractor.create_video_for_audio(source, masks=masks)
         self.assertTrue(len(newMasks) > len(masks))
         self.assertTrue(video_tools.get_start_frame_from_segment(newMasks[1]) == 1)
-        self.assertTrue(video_tools.get_end_frame_from_segment(newMasks[1]) == 803)
+        self.assertEquals(803,video_tools.get_end_frame_from_segment(newMasks[1]))
         self.assertTrue(1352,int(video_tools.get_rate_from_segment(newMasks[1]) *100))
         self.assertTrue(5934833 ,int(video_tools.get_end_time_from_segment(newMasks[1])*100))
         source = self.locateFile('tests/videos/Sample1_slow.mov')

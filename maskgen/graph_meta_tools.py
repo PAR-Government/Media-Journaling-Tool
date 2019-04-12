@@ -287,6 +287,8 @@ class MetaDataExtractor:
         if sourceFrames == targetFrames and int(sourceTime*100) == int(targetTime*100):
             return video_masks
 
+        dropRate = int(round(sourceFrames / float(sourceFrames - targetFrames))) if sourceFrames > targetFrames else targetFrames
+
         def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True,
                          min_value=0,upper_bound=False):
             # if round_value, return a tuple of value plus rounding error
@@ -387,8 +389,8 @@ class MetaDataExtractor:
             try:
                 if endframe == int(getValue(meta_o[index_o], 'nb_frames', 0)) and \
                                 float(getValue(meta_o[index_o], 'duration', 0)) > 0:
-                    endtime = float(getValue(meta_o[index_o], 'duration', 0)) * 1000.0
-                elif endtime > targetTime:
+                    endtime = float(getValue(meta_o[index_o], 'duration', 0)) * 1000.0 - (1000.0/targetRate)
+                elif endtime > targetTime and endframe > targetFrames:
                     message = '{} exceeded target time of {} for {}'.format(sourceTime, target, targetTime)
                     if (endtime - targetTime) > 300:
                         logging.getLogger('maskgen').error(message
@@ -397,7 +399,7 @@ class MetaDataExtractor:
                         logging.getLogger('maskgen').warn(message
                         )
                     endtime=targetTime - (1000.0/targetRate)
-                    endframe=targetFrames-1
+                    endframe=targetFrames
             except:
                 pass
             change = create_segment(rate=sourceRate if inverse else targetRate,
@@ -428,7 +430,9 @@ class MetaDataExtractor:
             else:
                 adjustPositions(self.getNodeFile(source) if inverse else self.getNodeFile(target), hits)
 
-        transfer_masks(video_masks,new_mask_set,
+        transfer_masks(video_masks,
+                       new_mask_set,
+                       dropRate,
                        frame_time_function= lambda  x,y: y+(1000.0/targetRate),
                        frame_count_function = lambda  x,y: y+1)
         return new_mask_set
