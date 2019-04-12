@@ -153,6 +153,12 @@ class CV2ApiV2(CV2Api):
         contours, hierarchy = cv2.findContours(image, mode, method)
         return contours, hierarchy
 
+    def computeSURF(self, img):
+        detector = cv2.FeatureDetector_create("SURF")
+        extractor = cv2.DescriptorExtractor_create("SURF")
+        kp = detector.detect(img)
+        return extractor.compute(img, kp)
+
     def computeSIFT(self, img):
         detector = cv2.FeatureDetector_create("SIFT")
         extractor = cv2.DescriptorExtractor_create("SIFT")
@@ -196,6 +202,10 @@ class CV2ApiV3(CV2Api):
 
     def computeSIFT(self, img):
         detector = cv2.xfeatures2d.SIFT_create()
+        return detector.detectAndCompute(img, None)
+
+    def computeSURF(self, img):
+        detector = cv2.xfeatures2d.SURF_create(upright=True,extended=True)
         return detector.detectAndCompute(img, None)
 
     def get_fourcc(self, codec):
