@@ -246,16 +246,19 @@ def get_rate_from_segment(segment, default_value=None):
         segment['rate'] = (segment['endtime'] - segment['starttime'])/float(segment['frames'])
     return segment['rate']
 
-def transfer_masks(video_masks, new_mask_set,
+def transfer_masks(video_masks,
+                   new_mask_set,
+                   dropRate,
                    frame_time_function=lambda x,y: x,
                    frame_count_function=lambda x,y: x):
-    pos = 0
     reader_manager = tool_set.GrayBlockReaderManager()
     writer_manager = tool_set.GrayBlockWriterManager()
     try:
-        for mask_set in video_masks:
+        for pos in range(len(video_masks)):
+            mask_set = video_masks[pos]
             change = new_mask_set[pos]
-            pos += 1
+            if get_end_frame_from_segment(change) == get_end_frame_from_segment(mask_set):
+                continue
             if get_file_from_segment(mask_set):
                 reader = reader_manager.create_reader(get_file_from_segment(mask_set),
                                                  start_frame=get_start_frame_from_segment(mask_set),
@@ -263,17 +266,23 @@ def transfer_masks(video_masks, new_mask_set,
                                                  end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 try:
+                    end_frame = get_end_frame_from_segment(change)
                     frame_time = get_start_time_from_segment(change)
                     frame_count = get_start_frame_from_segment(change)
-                    while True:
+                    orig_frame_count = frame_count
+                    while True and frame_count <= end_frame:
                         mask = reader.read()
                         if mask is not None:
+                            if orig_frame_count % dropRate == 0:
+                                continue
                             writer.write(mask, frame_time, frame_count)
                         else:
                             break
+                        orig_frame_count+=1
                         frame_count = frame_count_function(reader.current_frame(), frame_count)
                         frame_time = frame_time_function(reader.current_frame_time(), frame_time)
-                    update_segment(change, videosegment=writer.filename)
+                    update_segment(change,
+                                   videosegment=writer.filename)
                 except Exception as e:
                     logging.getLogger('maskgen').error(
                         'Failed to transform time for {}'.format(get_file_from_segment(mask_set)))

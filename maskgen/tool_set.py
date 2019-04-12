@@ -2243,6 +2243,8 @@ def morphologyCompare(img_one, img_two, arguments= {}):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, arguments={}):
+    morphologyOps = {'open':cv2.MORPH_OPEN, 'close':cv2.MORPH_CLOSE}
+    morphology_order = getValue(arguments, 'morphology order', 'open:close').split(':')
     gain = int(getValue(arguments, 'gain', 0))
     kernel_size=int(getValue(arguments, 'kernel',3))
     weight = int(getValue(arguments, 'weight', 1.0))
@@ -2284,8 +2286,8 @@ def mediatedCompare(img_one, img_two, arguments={}):
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
     if algorithm == 'morphology':
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[0]], kernel)
+        mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[1]], kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold}
