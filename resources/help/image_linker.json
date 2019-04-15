@@ -386,6 +386,7 @@
         },
         "DeepFakeFaceSwap": {
             "images": [
+                "operationSlides/cgi3.png",
                 "operationSlides/DeepFakeFaceSwap.png"
             ]
         
@@ -480,7 +481,7 @@
 		},
 		"ContentAwareFill": {
 			"images": [
-				"operationSlides/content_aware_fill.png",
+				"operationSlides/content_aware_fill.png"
 			]
 		},
         "ContentAwareMove": {
@@ -894,11 +895,6 @@
 		"TransformReverse": {
 			"images": [
 				"operationSlides/transform.png"
-			]
-		},
-		"DeepFakeFaceSwap": {
-			"images": [
-				"operationSlides/cgi3.png"
 			]
 		},
 		"MediaStacking": {
