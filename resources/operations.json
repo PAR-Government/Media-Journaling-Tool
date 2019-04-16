@@ -3132,6 +3132,14 @@
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
+        },
+        "Fill Method": {
+          "type": "list",
+          "values": [
+            "Intraframe",
+            "Interframe"
+          ],
+          "description": "Does the effect work on a specific frame (intra), or across multiple frames? (inter)"
         }
       },
       "rules": [
