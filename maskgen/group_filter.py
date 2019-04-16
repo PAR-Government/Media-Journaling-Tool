@@ -346,7 +346,7 @@ class GroupFilterLoader:
         return [op]
 
 
-    def getOperationsByCategoryWithGroups(self, sourcetype, targettype):
+    def getOperationsByCategoryWithGroups(self, sourcetype, targettype, excludeDeprecated=True):
         """
         :param name:
         :param fake:
@@ -354,7 +354,7 @@ class GroupFilterLoader:
         :return:
         @rtype: Operation
         """
-        res = dict(getOperationsByCategory(sourcetype, targettype))
+        res = dict(getOperationsByCategory(sourcetype, targettype,excludeDeprecated=excludeDeprecated))
         items = self.getOperations(sourcetype, targettype)
         if items is not None:
             for k, v in items.iteritems():

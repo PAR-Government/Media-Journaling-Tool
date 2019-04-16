@@ -249,7 +249,6 @@
 		},
 		"Mosaic": {
 			"images": [
-				"operationSlides/mosaic2.png",
 				"operationSlides/mosaic.png"
 			]
 		},
@@ -384,6 +383,13 @@
 				"operationSlides/cgi.png",
 				"operationSlides/cgi2.png"
 			]
+        },
+        "DeepFakeFaceSwap": {
+            "images": [
+                "operationSlides/cgi3.png",
+                "operationSlides/DeepFakeFaceSwap.png"
+            ]
+        
 		},
 		"LayerOpacity": {
 			"images": [
@@ -475,10 +481,14 @@
 		},
 		"ContentAwareFill": {
 			"images": [
-				"operationSlides/content_aware_fill.png",
-				"operationSlides/content_aware_fill2.png"
+				"operationSlides/content_aware_fill.png"
 			]
 		},
+        "ContentAwareMove": {
+            "images": [
+                "operationSlides/ContentAwareMove.png"
+            ]
+        },
 		"GANFill": {
 			"images": [
 				"operationSlides/GAN_fill.png"
@@ -527,7 +537,7 @@
 		"Curves": {
 			"images": [
 				"operationSlides/curves.png",
-				"operationSlides/levels_curves.png",
+                "operationSlides/curves_2.png",
 				"operationSlides/levels_curves_color.png"
 			]
 		},
@@ -540,7 +550,6 @@
 		"Levels": {
 			"images": [
 				"operationSlides/levels.png",
-				"operationSlides/levels_curves.png",
 				"operationSlides/levels_curves_color.png"
 			]
 		},
@@ -886,11 +895,6 @@
 		"TransformReverse": {
 			"images": [
 				"operationSlides/transform.png"
-			]
-		},
-		"DeepFakeFaceSwap": {
-			"images": [
-				"operationSlides/cgi3.png"
 			]
 		},
 		"MediaStacking": {

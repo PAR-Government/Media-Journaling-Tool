@@ -167,7 +167,8 @@ class Operation:
     def __init__(self, name='', category='', includeInMask={"default": False}, rules=list(), optionalparameters=dict(),
                  mandatoryparameters=dict(), description=None, analysisOperations=list(), transitions=list(),
                  compareparameters=dict(),generateMask = "all",groupedOperations=None, groupedCategories = None,
-                 maskTransformFunction=None,parameter_dependencies = None, qaList=None,donor_processor=None):
+                 maskTransformFunction=None,parameter_dependencies = None, qaList=None,donor_processor=None,
+                 deprecated=False):
         self.name = name
         self.category = category
         self.includeInMask = includeInMask
@@ -185,6 +186,7 @@ class Operation:
         self.parameter_dependencies = parameter_dependencies
         self.qaList = qaList
         self.donor_processor = donor_processor
+        self.deprecated = deprecated
         self.trigger_arguments = self._getTriggerUpdateArguments()
 
     def _getTriggerUpdateArguments(self):
@@ -268,10 +270,12 @@ def getOperations():
     return getMetDataLoader().operations
 
 
-def getOperationsByCategory(sourcetype, targettype):
+def getOperationsByCategory(sourcetype, targettype,excludeDeprecated=True):
     result = {}
     transition = sourcetype + '.' + targettype
     for name, op in getMetDataLoader().operations.iteritems():
+        if op.deprecated and excludeDeprecated:
+            continue
         if transition in op.transitions:
             if op.category not in result:
                 result[op.category] = []
@@ -349,7 +353,8 @@ def loadOperationJSON(fileName):
                                         maskTransformFunction=op['maskTransformFunction'] if 'maskTransformFunction' in op else None,
                                         parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None,
                                         qaList=op['qaList'] if 'qaList' in op else None,
-                                        donor_processor=op['donor_processor'] if 'donor_processor' in op else None)
+                                        donor_processor=op['donor_processor'] if 'donor_processor' in op else None,
+                                        deprecated=op['deprecated'] if 'donor_processor' in op else False)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 
