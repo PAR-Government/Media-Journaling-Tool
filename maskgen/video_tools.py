@@ -1375,37 +1375,49 @@ def remove_video_leave_audio(filename, outputname=None):
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
 
-def x265(filename ,outputname=None, crf=0, remove_video=False):
+def x265(filename ,outputname=None, crf=0, remove_video=False,force=True):
     return __vid_compress(filename,
                           ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
                          'hvec',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def lossy(filename, outputname=None, crf=0,remove_video=False):
+def lossy(filename, outputname=None, crf=0,remove_video=False, force=True):
     return __vid_compress(filename,
                           ['-loglevel', 'error', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', str(crf)],
                          'h264',
                           outputname=outputname,
                           suffix = 'mov',
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def x264fast(filename, outputname=None, crf=0,remove_video=False):
+def x264fast(filename, outputname=None, crf=0,remove_video=False,force=True):
     return __vid_compress(filename,
                           ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
                          'h264',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[]):
+def x264rgb(filename, outputname=None, crf=0,remove_video=False,force=True):
+    return __vid_compress(filename,
+                          ['-loglevel','error','-c:v', 'libx264rgb', '-pix_fmt', 'rgb24', '-preset', 'medium',  '-crf', str(crf)],
+                         'h264',
+                          outputname=outputname,
+                          remove_video=remove_video,
+                          force=force)
+
+def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[],force=True):
     args = ['-loglevel','error', '-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)]
     if additional_args  is not None:
         args.extend (additional_args)
     return __vid_compress(filename,
-                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
+                          args,
                          'h264',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
 def vid_md5(filename):
     ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()
@@ -1459,7 +1471,12 @@ def is_raw_or_lossy_compressed(media_file):
                                profile == 'high 4:4:4 predictive' and \
                                not is_vfr(one_meta[index]))
 
-def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=None, remove_video=False):
+def __vid_compress(filename, expressions,
+                   dest_codec,
+                   suffix='avi',
+                   outputname=None,
+                   remove_video=False,
+                   force=False):
     """
 
     :param filename:
@@ -1482,7 +1499,7 @@ def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=N
     index = indices[0]
     codec = getValue(one_meta[index],'codec_long_name',getValue(one_meta[index],'codec_name', 'raw'))
     # is compressed?
-    execute_compress = 'raw' in codec and '_compressed' not in input_filename
+    execute_compress = ('raw' in codec and '_compressed' not in input_filename) or force
 
     outFileName = os.path.splitext(input_filename)[0] + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()

@@ -1630,7 +1630,7 @@ class ImageProjectModel:
         if (len(self.G.successors(start)) == 0 or len(self.G.predecessors(start)) == 0) and not force:
             return
 
-        props = {'remove_video': False}
+        props = {'remove_video': False,'force': False}
         #for pred in self.G.predecessors(start):
         #    edge = self.G.get_edge(pred, start)
         #    op = getOperationWithGroups(edge['op'], fake=True)
