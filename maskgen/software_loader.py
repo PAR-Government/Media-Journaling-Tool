@@ -354,7 +354,7 @@ def loadOperationJSON(fileName):
                                         parameter_dependencies=op['parameter_dependencies'] if 'parameter_dependencies' in op else None,
                                         qaList=op['qaList'] if 'qaList' in op else None,
                                         donor_processor=op['donor_processor'] if 'donor_processor' in op else None,
-                                        deprecated=op['deprecated'] if 'donor_processor' in op else False)
+                                        deprecated=op['deprecated'] if 'deprecated' in op else False)
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 
