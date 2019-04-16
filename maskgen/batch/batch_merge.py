@@ -47,24 +47,24 @@ class MD5Merge:
 
 
 class PairingMerge:
-    def __init__(self, pairings, project_directories, output=None):
+    def __init__(self, pairings, projects, output=None):
         """
         :param pairings: Path to CSV File containing pairings (from,to)
         """
         from csv import reader
         self.output = output
-        self.projects = {}
+        self.pairings = {}
         self.logger = logging.getLogger('maskgen')
-        self.project_directories = project_directories
+        self.projects = projects
 
         with open(pairings, "rb") as f:
             _all_pairs = list(reader(f))
             # dict generator would replace repeat journal targets with last value
             for frm, to in _all_pairs:
-                if to in self.projects:
-                    self.projects[to].append(frm)
+                if to in self.pairings:
+                    self.pairings[to].append(frm)
                 else:
-                    self.projects[to] = [frm]
+                    self.pairings[to] = [frm]
 
     def merge(self, project):
         base_path = self._find_project(project)
@@ -74,7 +74,7 @@ class PairingMerge:
         base = ImageProjectModel(base_path)
         base_md5 = os.path.basename(os.path.splitext(project)[0])
         self.logger.debug("Opening {0} as base for project merging.".format(base_md5))
-        for p in self.projects[project]:
+        for p in self.pairings[project]:
             p_md5 = os.path.basename(os.path.splitext(p)[0])
             self.logger.debug("Merging {0} into {1}.".format(p_md5, base_md5))
             proj = ImageProjectModel(self._find_project(p))
@@ -89,12 +89,12 @@ class PairingMerge:
         ImageGraphPainter(base.getGraph()).output(os.path.join(base.get_dir(), '_overview_.png'))
 
     def get_journals(self):
-        return self.projects.keys()
+        return self.pairings.keys()
 
     def _find_project(self, project_name):
         if os.path.isfile(project_name):
             return project_name
-        for p in self.project_directories:
+        for p in self.projects:
             if os.path.split(p)[1] == project_name + ".json":
                 return p
 
@@ -107,7 +107,6 @@ def main(argv=sys.argv[1:]):
     parser.add_argument('--pairs', default=None, help='CSV file of journal MD5s to merge (from,to)')
     parser.add_argument('--completeFile', default=None, help='File listing completed projects.')
     parser.add_argument('--loglevel', type=int, help='Log level')
-    parser.add_argument('--workdir', help='Work')
     parser.add_argument('--threads', '-t', default='1', help='Number of threads.')
     args = parser.parse_args(argv)
 
