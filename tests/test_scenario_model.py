@@ -113,7 +113,7 @@ class TestScenarioModel(TestSupport):
 
 
    def test_audiozip_zip_link_tool(self):
-      from maskgen.scenario_model import ZipAudioLinkTool
+      from maskgen.scenario_model import ZipAudioLinkTool,AudioZipLinkTool
       from maskgen.software_loader import Operation
       from maskgen.image_wrap import ImageWrapper
       from maskgen.support import getValue
@@ -153,6 +153,27 @@ class TestScenarioModel(TestSupport):
       x[2] = int(x[2])
       self.assertEqual(['change',35665,59348],x)
       self.assertEqual(2617263, get_end_frame_from_segment(analysis['videomasks'][-1]))
+
+      tool = AudioZipLinkTool()
+      scModel = Mock()
+      scModel.gopLoader = Mock()
+      scModel.G.dir = '.'
+      scModel.gopLoader.getOperationWithGroups = Mock(return_value=Operation(name='test', category='test'))
+      scModel.getImageAndName = get_image
+      scModel.getGraph = Mock(return_value=SillyGraph())
+      mask, analysis, errors = tool.compareImages('b', 'a',
+                                                  scModel,
+                                                  'Normalization',
+                                                  arguments={},
+                                                  analysis_params={})
+
+      self.assertEqual(3, len(analysis['videomasks']))
+      x = getValue(analysis, 'metadatadiff.audio.duration')
+      x[1] = int(x[1])
+      x[2] = int(x[2])
+      self.assertEqual(['change', 59348, 35665], x)
+      self.assertEqual(2617263, get_end_frame_from_segment(analysis['videomasks'][-1]))
+
 
 
    def test_zip_zip_link_tool(self):

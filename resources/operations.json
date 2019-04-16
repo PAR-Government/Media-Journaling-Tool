@@ -4873,6 +4873,24 @@
     },
     {
       "category": "Output",
+      "name": "OutputIntoZip",
+      "descriptions": "Place file in donor zip file",
+      "mandatoryparameters": {
+      },
+      "optionalparameters": {
+      },
+      "rules": [
+        "donor:checkForDonor"
+      ],
+      "includeInMask": {
+        "default": false
+      },
+      "transitions": [
+        "image.zip"
+      ]
+    },
+    {
+      "category": "Output",
       "name": "OutputZIP",
       "descriptions": "Export a subsection (pixel-wise and time-wise) of a video",
       "mandatoryparameters": {
@@ -4896,7 +4914,8 @@
       },
       "transitions": [
         "zip.zip",
-        "video.zip"
+        "video.zip",
+        "audio.zip"
       ]
     },
     {

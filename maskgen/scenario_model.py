@@ -1107,6 +1107,8 @@ class ZipAudioLinkTool(VideoAudioLinkTool):
         analysis = dict()
 
         maskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo(
+            start_time=getValue(arguments, 'Start Time', 0),
+            end_time=getValue(arguments, 'End Time'),
                                                        media_types=['audio'])
         if not len(maskSet):
             raise ValueError("Cannot find audio data target file {}".format(destFileName))
@@ -1182,7 +1184,7 @@ class AudioZipLinkTool(VideoAudioLinkTool):
         mask = ImageWrapper(np.zeros((startIm.image_array.shape[0], startIm.image_array.shape[1])).astype('uint8'))
         analysis = dict()
 
-        maskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo(
+        maskSet = video_tools.FileMetaDataLocator(startFileName).getMaskSetForEntireVideo(
                                                        media_types=['audio'])
         if not len(maskSet):
             raise ValueError("Cannot find audio data target file {}".format(destFileName))
@@ -1190,13 +1192,13 @@ class AudioZipLinkTool(VideoAudioLinkTool):
         node = scModel.getGraph().get_node(start)
         meta_data = getValue(node,'zip content meta')
         if meta_data is None:
-            meta_data = getValue(ZipAddTool().getAdditionalMetaData(startFileName),'zip content meta')
+            meta_data = getValue(ZipAddTool().getAdditionalMetaData(destFileName),'zip content meta')
 
         def audio_metadata_extractor(filename):
             return meta_data[os.path.basename(filename)]
 
         fps = float(getValue(arguments,'sample rate',maskSet[-1]['rate']))
-        positions = AudioPositions(startFileName,
+        positions = AudioPositions(destFileName,
                                    position_file_name=getValue(arguments,'Audio Sequence File'),
                                    fps=int(fps),
                                    audio_metadata_extractor=audio_metadata_extractor if meta_data is not None else None)
@@ -1216,7 +1218,7 @@ class AudioZipLinkTool(VideoAudioLinkTool):
         if abs(get_end_time_from_segment(segments[-1]) - cap_end_time) > 0.001:
             setPathValue(analysis['metadatadiff'],
                          'audio.duration',
-                         ('change',get_end_time_from_segment(segments[-1]),cap_end_time))
+                         ('change',cap_end_time, get_end_time_from_segment(segments[-1])))
             analysis['videomasks'] = [seg for seg in analysis['videomasks'] if get_start_time_from_segment(seg) < cap_end_time]
             lastseg = analysis['videomasks'][-1]
             update_segment(lastseg,
