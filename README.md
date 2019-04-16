@@ -29,19 +29,21 @@ Navigate [here](doc/FAQ.md) .
 
 For the most up-to-date detailed documentation, see doc/MediForJournalingTool-public.pdf. This README is a summary.
 
-See see documentation [here](doc/API.md) for details on the python API.
+See documentation [here](doc/API.md) for details on the python API.
 
-See see documentation [here](doc/NewOperation.md) for details on the operations, written in terms of creating new operations.
+See documentation [here](doc/NewOperation.md) for details on the operations, written in terms of creating new operations.
 
-See see documentation [here](doc/ProjectProperties.md) describes journal project properties.
+See documentation [here](doc/ProjectProperties.md) describes journal project properties.
 
-See see documentation [here](doc/MediForJournalingTool-Batch-public.pdf) describes batch journal creatiton and extension.
+See documentation [here](doc/BatchSystem.md) describes batch journal creatiton and extension.
 
-See see documentation [here](doc/Seam.pptx) describes the components of JT's seam carving plugin.
+See documentation [here](doc/Seam.pptx) describes the components of JT's seam carving plugin.
 
-See see documentation [here](doc/BatchWithMSCOCO.pptx) describes the use of MSCOCO with batch journal creation.
+See documentation [here](doc/BatchWithMSCOCO.pptx) describes the use of MSCOCO with batch journal creation.
 
 For developers, documentation [here](doc/NewFileType.md) describes steps to add category of media type in addition the current set of video, audio, image and zip (of images).
+
+When all else fails, here is a [FAQ](doc/FAQ.md) 
 
 # INSTALLATION
 
