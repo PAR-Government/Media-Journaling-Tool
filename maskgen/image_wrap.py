@@ -139,11 +139,8 @@ def openRaw(filename, isMask=False, args=None):
 
 def _openImageio(filename, isMask=False, args=None):
     from imageio import imread
-    im = imread(filename)
-    result = Image.fromarray(im, 'RGB')
-    return ImageWrapper(np.asarray(result),
-                        mode=result.mode,
-                        info=result.info,
+    return ImageWrapper(imread(filename),
+                        info=None,
                         to_mask=isMask,
                         filename=filename)
 
