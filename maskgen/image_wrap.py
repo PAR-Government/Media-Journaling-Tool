@@ -137,6 +137,15 @@ def openRaw(filename, isMask=False, args=None):
         logger.error('Raw Open: ' + str(e))
         return None
 
+def _openImageio(filename, isMask=False, args=None):
+    from imageio import imread
+    im = imread(filename)
+    result = Image.fromarray(im, 'RGB')
+    return ImageWrapper(np.asarray(result),
+                        mode=result.mode,
+                        info=result.info,
+                        to_mask=isMask,
+                        filename=filename)
 
 def _openCV2(filename):
     img = cv2.imread(filename, flags=cv2.IMREAD_UNCHANGED)
@@ -296,6 +305,7 @@ file_registry = [('png', [readPNG]),
                  ('dng', [openRaw]),
                  ('arw', [openRaw]),
                  ('raf', [openRaw]),
+                 ('lfr', [_openImageio]),
                  ('',    [defaultOpen, openTiff, proxyOpen])]
 file_write_registry = {}
 
