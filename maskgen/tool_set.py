@@ -1568,11 +1568,70 @@ def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), m
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
     maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
-    (kp1, d1) = cv2api.cv2api_delegate.computeSIFT(img1)
-    (kp2, d2) = cv2api.cv2api_delegate.computeSIFT(img2)
+    def getRange(size, segment_size=2048):
+        """
+        Divided up the size into segment_size ranges
+        :param size:
+        :param segment_size:
+        :return: list of ranges as representd by tuples(start,end, last range indicator)
+        """
+        ranges = [(x * segment_size, min((x + 1) * segment_size, size), False) for x in range(size / segment_size + 1)]
+        if ranges[-1][1] - ranges[-1][0]  < segment_size and len(ranges) > 1:
+            ranges = ranges[:-2] + [(ranges[-2][0],ranges[-1][1], True)]
+        else:
+            ranges[-1] =  (ranges[-1][0], ranges[-1][1], True)
+        return ranges
+
+    def updateKP(kp,pos):
+        kp.pt = (kp.pt[0]+pos[0], kp.pt[1]+pos[1])
+        return kp
+
+    def filterKP(pt, xstart, xend, ystart, yend):
+        """
+        Filter out points outside the 'window' surrounded by the buffer
+        :param pt:
+        :param xstart:
+        :param xend:
+        :param ystart:
+        :param yend:
+        :return:
+        """
+        return \
+            (pt[0] >= xstart and pt[0] <= xend) and \
+            (pt[1] >= ystart and pt[1] <= yend)
+
+    def computeSIFTOverRanges(img1,buffer_size=16, segment_size=2048):
+        total_kp = []
+        total_d = None
+        for xrange in getRange(img1.shape[0]):
+            for yrange in getRange(img1.shape[1]):
+                (kp, ds) = cv2api.cv2api_delegate.computeSIFT(
+                    img1[max(0,xrange[0]-buffer_size):min(xrange[1]+buffer_size,img1.shape[0]),
+                         max(0,yrange[0]-buffer_size):min(yrange[1]+buffer_size,img1.shape[1])])
+                xstart = buffer_size - 1 if xrange[0] > 0 else 0
+                xend = segment_size*2 if xrange[2] else (segment_size + \
+                         (0 if xrange[0] == 0 else buffer_size))
+                ystart = buffer_size - 1 if yrange[0] > 0 else 0
+                yend = segment_size*2 if yrange[2] else (segment_size + \
+                    (0 if yrange[0] == 0 else buffer_size))
+                kept = [kpi for kpi in range(len(kp)) if filterKP(kp[kpi].pt,
+                                                                  xstart,xend,
+                                                                  ystart,yend)]
+                total_kp.extend([updateKP(kp[kpi],(xrange[0],yrange[0])) for kpi in kept])
+                if ds is not None:
+                    ds = ds[kept,:]
+                    if total_d is None:
+                        total_d = ds
+                    else:
+                        total_d = np.concatenate((total_d,ds))
+        return total_kp,total_d
+
+    (kp2, d2) = computeSIFTOverRanges(img2)
 
     if kp2 is None or len(kp2) == 0:
         return None
+
+    (kp1, d1) = computeSIFTOverRanges(img1)
 
     if kp1 is None or len(kp1) == 0:
         return None
@@ -1663,7 +1722,7 @@ def __sift(img1, img2, mask1=None, mask2=None, arguments=None):
     elif homography in ['All'] and 'homography max matches' in arguments:
         # need as many as possible
         arguments.pop('homography max matches')
-    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments=arguments)
+    src_dts_pts = getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=np.asarray(mask2), arguments=arguments)
     if src_dts_pts is not None:
         new_src_pts = src_dts_pts[0]
         new_dst_pts = src_dts_pts[1]
@@ -2183,6 +2242,8 @@ def morphologyCompare(img_one, img_two, arguments= {}):
     return mask, {}
 
 def mediatedCompare(img_one, img_two, arguments={}):
+    morphologyOps = {'open':cv2.MORPH_OPEN, 'close':cv2.MORPH_CLOSE}
+    morphology_order = getValue(arguments, 'morphology order', 'open:close').split(':')
     gain = int(getValue(arguments, 'gain', 0))
     kernel_size=int(getValue(arguments, 'kernel',3))
     weight = int(getValue(arguments, 'weight', 1.0))
@@ -2224,8 +2285,8 @@ def mediatedCompare(img_one, img_two, arguments={}):
     mask[np.where(mask > 0)] = 255
     mask = mask.astype('uint8')
     if algorithm == 'morphology':
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[0]], kernel)
+        mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[1]], kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
     return mask, {'minima': threshold, 'hist': hist}

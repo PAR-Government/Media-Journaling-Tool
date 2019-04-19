@@ -280,16 +280,19 @@ def get_rate_from_segment(segment, default_value=None):
         segment['rate'] = (segment['endtime'] - segment['starttime'])/float(segment['frames'])
     return segment['rate']
 
-def transfer_masks(video_masks, new_mask_set,
+def transfer_masks(video_masks,
+                   new_mask_set,
+                   dropRate,
                    frame_time_function=lambda x,y: x,
                    frame_count_function=lambda x,y: x):
-    pos = 0
     reader_manager = tool_set.GrayBlockReaderManager()
     writer_manager = tool_set.GrayBlockWriterManager()
     try:
-        for mask_set in video_masks:
+        for pos in range(len(video_masks)):
+            mask_set = video_masks[pos]
             change = new_mask_set[pos]
-            pos += 1
+            if get_end_frame_from_segment(change) == get_end_frame_from_segment(mask_set):
+                continue
             if get_file_from_segment(mask_set):
                 reader = reader_manager.create_reader(get_file_from_segment(mask_set),
                                                  start_frame=get_start_frame_from_segment(mask_set),
@@ -297,17 +300,23 @@ def transfer_masks(video_masks, new_mask_set,
                                                  end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 try:
+                    end_frame = get_end_frame_from_segment(change)
                     frame_time = get_start_time_from_segment(change)
                     frame_count = get_start_frame_from_segment(change)
-                    while True:
+                    orig_frame_count = frame_count
+                    while True and frame_count <= end_frame:
                         mask = reader.read()
                         if mask is not None:
+                            if orig_frame_count % dropRate == 0:
+                                continue
                             writer.write(mask, frame_time, frame_count)
                         else:
                             break
+                        orig_frame_count+=1
                         frame_count = frame_count_function(reader.current_frame(), frame_count)
                         frame_time = frame_time_function(reader.current_frame_time(), frame_time)
-                    update_segment(change, videosegment=writer.filename)
+                    update_segment(change,
+                                   videosegment=writer.filename)
                 except Exception as e:
                     logging.getLogger('maskgen').error(
                         'Failed to transform time for {}'.format(get_file_from_segment(mask_set)))
@@ -1400,37 +1409,49 @@ def remove_video_leave_audio(filename, outputname=None):
         logging.getLogger('maskgen').error("FFMPEG invocation error for {} is {}".format(filename, str(e)))
 
 
-def x265(filename ,outputname=None, crf=0, remove_video=False):
+def x265(filename ,outputname=None, crf=0, remove_video=False,force=True):
     return __vid_compress(filename,
                           ['-loglevel','error','-c:v','libx265','-preset','medium','-x265-params', '--lossless', '-crf',str(crf),'-c:a','aac','-b:a','128k'],
                          'hvec',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def lossy(filename, outputname=None, crf=0,remove_video=False):
+def lossy(filename, outputname=None, crf=0,remove_video=False, force=True):
     return __vid_compress(filename,
                           ['-loglevel', 'error', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', str(crf)],
                          'h264',
                           outputname=outputname,
                           suffix = 'mov',
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def x264fast(filename, outputname=None, crf=0,remove_video=False):
+def x264fast(filename, outputname=None, crf=0,remove_video=False,force=True):
     return __vid_compress(filename,
                           ['-loglevel','error','-c:v', 'libx264', '-preset', 'ultrafast',  '-crf', str(crf)],
                          'h264',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
-def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[]):
+def x264rgb(filename, outputname=None, crf=0,remove_video=False,force=True):
+    return __vid_compress(filename,
+                          ['-loglevel','error','-c:v', 'libx264rgb', '-pix_fmt', 'rgb24', '-preset', 'medium',  '-crf', str(crf)],
+                         'h264',
+                          outputname=outputname,
+                          remove_video=remove_video,
+                          force=force)
+
+def x264(filename, outputname=None, crf=0,remove_video=False, additional_args=[],force=True):
     args = ['-loglevel','error', '-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)]
     if additional_args  is not None:
         args.extend (additional_args)
     return __vid_compress(filename,
-                          ['-loglevel','error','-c:v', 'libx264', '-preset', 'medium',  '-crf', str(crf)],
+                          args,
                          'h264',
                           outputname=outputname,
-                          remove_video=remove_video)
+                          remove_video=remove_video,
+                          force=force)
 
 def vid_md5(filename):
     ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()
@@ -1484,7 +1505,12 @@ def is_raw_or_lossy_compressed(media_file):
                                profile == 'high 4:4:4 predictive' and \
                                not is_vfr(one_meta[index]))
 
-def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=None, remove_video=False):
+def __vid_compress(filename, expressions,
+                   dest_codec,
+                   suffix='avi',
+                   outputname=None,
+                   remove_video=False,
+                   force=False):
     """
 
     :param filename:
@@ -1507,7 +1533,7 @@ def __vid_compress(filename, expressions, dest_codec, suffix='avi', outputname=N
     index = indices[0]
     codec = getValue(one_meta[index],'codec_long_name',getValue(one_meta[index],'codec_name', 'raw'))
     # is compressed?
-    execute_compress = 'raw' in codec and '_compressed' not in input_filename
+    execute_compress = ('raw' in codec and '_compressed' not in input_filename) or force
 
     outFileName = os.path.splitext(input_filename)[0] + '_compressed.' + suffix if outputname is None else outputname
     ffmpegcommand = ffmpeg_api.get_ffmpeg_tool()

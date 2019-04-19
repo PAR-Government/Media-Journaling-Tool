@@ -128,3 +128,4 @@ class OperationsUpdaterGitAPI(UpdaterGitAPI):
             return True
         currentversion = getMetDataLoader().operation_version
         return merge_sha != currentversion
+

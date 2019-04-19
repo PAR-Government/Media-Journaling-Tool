@@ -194,7 +194,7 @@
       "includeInMask": {
         "default": false
       },
-       "compareparameters": {
+      "compareparameters": {
         "video_function": "maskgen.video_tools.audioDeleteCompare"
       },
       "generateMask": "audio",
@@ -1845,23 +1845,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -1869,7 +1883,7 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
-       "compareparameters": {
+      "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
@@ -1933,28 +1947,42 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
       },
-       "compareparameters": {
+      "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
@@ -2033,23 +2061,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Algorithm to suppress difference mask noise"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2057,7 +2099,7 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
-       "compareparameters": {
+      "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
@@ -2202,23 +2244,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2226,11 +2282,11 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
-       "compareparameters": {
+      "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
-       "maskTransformFunction": {
+      "maskTransformFunction": {
         "image": "maskgen.mask_rules.resize_transform",
         "video": "maskgen.mask_rules.output_video_change"
       },
@@ -2669,23 +2725,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -2693,7 +2763,7 @@
       "analysisOperations": [
         "maskgen.tool_set.localTransformAnalysis"
       ],
-       "compareparameters": {
+      "compareparameters": {
         "tolerance": 0.0001,
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
@@ -3062,6 +3132,14 @@
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)",
           "defaultvalue": 1
+        },
+        "Fill Method": {
+          "type": "list",
+          "values": [
+            "Intraframe",
+            "Interframe"
+          ],
+          "description": "Does the effect work on a specific frame (intra), or across multiple frames? (inter)"
         }
       },
       "rules": [
@@ -3100,23 +3178,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3142,6 +3234,64 @@
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate.",
         "Verify that content aware fill was used and not paste sampled or content aware scale."
+      ]
+    },
+    {
+      "category": "Paste",
+      "name": "ContentAwareMove",
+      "mandatoryparameters": {
+        "inputmaskname": {
+          "type": "file:image",
+          "description": "An image file containing a mask describing the area moved."
+        }
+      },
+      "rules": [
+        "checkLengthSame",
+        "checkSize",
+        "checkFileTypeChange",
+        "check_local",
+        "checkUncompressed",
+        "checkEmpty"
+      ],
+      "optionalparameters": {
+        "homography": {
+          "type": "list",
+          "source": "image",
+          "values": [
+            "None",
+            "All",
+            "LMEDS",
+            "RANSAC-3",
+            "RANSAC-4",
+            "RANSAC-5"
+          ],
+          "description": "Tune transform creation for composite mask generation"
+        },
+        "homography max matches": {
+          "type": "int[20:10000]",
+          "description": "Maximum number of matched feature points used to compute the homography."
+        }
+      },
+      "analysisOperations": [
+        "maskgen.tool_set.forcedSiftAnalysis"
+      ],
+      "description": "Purpose: Move pixels and heal area where they came from and edges of new location.  The input mask describes the initial location.",
+      "compareparameters": {
+        "tolerance": 0.0001
+      },
+      "maskTransformFunction": {
+        "image": "maskgen.mask_rules.move_transform"
+      },
+      "includeInMask": {
+        "default": true
+      },
+      "transitions": [
+        "image.image"
+      ],
+      "qaList": [
+        "Confirm highlighted area represents the region that was affected by the operation",
+        "Are all relevant semantic groups assigned? More than one may be appropriate.",
+        "Verify that content aware move was used and not paste sampled or content aware scale."
       ]
     },
     {
@@ -3201,23 +3351,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3276,22 +3440,26 @@
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
         "kernel": {
-          "type":"list",
+          "type": "list",
           "trigger mask": true,
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3424,23 +3592,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -3957,23 +4139,37 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4037,9 +4233,14 @@
         },
         "kernel": {
           "trigger mask": true,
-          "type":"list",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -4047,18 +4248,27 @@
           "trigger mask": true,
           "type":"int[-20:20]:slider",
           "source": "video",
-          "defaultvalue":0,
+          "defaultvalue": 0,
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
         },
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4123,11 +4333,16 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
-         "kernel": {
+        "kernel": {
           "trigger mask": true,
-          "type":"list",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -4138,15 +4353,24 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "aggregate": {
           "type": "list",
-            "trigger mask": true,
-          "defaultvalue": "luminance",
+          "trigger mask": true,
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4203,11 +4427,16 @@
           "source": "video",
           "description": "End time of the image clip (HH:MI:SS.micro or frame number)"
         },
-         "kernel": {
+        "kernel": {
           "trigger mask": true,
-          "type":"list",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -4225,15 +4454,24 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
-        "aggregate": {
-         "trigger mask": true,
+        "morphology order": {
           "type": "list",
-          "defaultvalue": "luminance",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
+        "aggregate": {
+          "trigger mask": true,
+          "type": "list",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -4299,7 +4537,7 @@
         "The file was compressed in a lossless fashion"
       ]
     },
-     {
+    {
       "category": "Output",
       "name": "OutputFromZip",
       "mandatoryparameters": {
@@ -4455,12 +4693,12 @@
       "mandatoryparameters": {
       },
       "optionalparameters": {
-         "sample rate": {
+        "sample rate": {
           "type": "int[1:1000000]",
           "source": "zip",
           "description": "Sample rate of file contents"
         },
-         "Audio Sequence File": {
+        "Audio Sequence File": {
           "type": "file:csv",
           "source": "zip",
           "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
@@ -4477,7 +4715,7 @@
       "maskTransformFunction": {
         "video": "maskgen.mask_rules.sample_rate_change",
         "audio": "maskgen.mask_rules.sample_rate_change",
-        "zip":   "maskgen.mask_rules.audio_selection"
+        "zip": "maskgen.mask_rules.audio_selection"
       },
       "description": "Export the stream in the PCM format (wave, aif, etc.).",
       "includeInMask": {
@@ -4812,7 +5050,7 @@
         }
       },
       "optionalparameters": {
-         "End Time": {
+        "End Time": {
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
@@ -5082,11 +5320,16 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
-       "kernel": {
+        "kernel": {
           "trigger mask": true,
-          "type":"list",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "source": "video",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
@@ -5100,12 +5343,11 @@
         "aggregate": {
           "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "source": "video",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -5233,22 +5475,36 @@
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
+        },
         "kernel": {
-         "trigger mask": true,
-          "type":"list",
+          "trigger mask": true,
+          "type": "list",
           "source": "video",
-          "values": ["3","5","7","9"],
-          "defaultvalue":"3",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "aggregate": {
-         "trigger mask": true,
+          "trigger mask": true,
           "type": "list",
-          "defaultvalue": "luminance",
+          "defaultvalue": "max",
           "values": [
             "max",
-            "sum",
-            "luminance"
+            "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
         }
@@ -5310,7 +5566,7 @@
           "description": "A video file with a transparency highlighting the sampled areas of the video"
         }
       },
-       "compareparameters": {
+      "compareparameters": {
         "video_function": "maskgen.video_tools.pasteCompare"
       },
       "description": "Copy & Paste a series of frames within the same video",
@@ -6404,6 +6660,7 @@
     {
       "category": "Transform",
       "name": "TransformMove",
+      "deprecated": true,
       "mandatoryparameters": {
         "inputmaskname": {
           "type": "file:image",
