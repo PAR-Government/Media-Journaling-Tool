@@ -6,8 +6,7 @@
 # All rights reserved.
 #==============================================================================
 
-import matplotlib
-matplotlib.use("TkAgg")
+
 import ttk
 import tkMessageBox
 from maskgen.group_filter import GroupFilterLoader
@@ -19,10 +18,12 @@ from maskgen.tool_set import imageResize, imageResizeRelative, fixTransparency, 
 from maskgen.scenario_model import Modification,ImageProjectModel
 from maskgen.services.probes import CompositeExtender
 from maskgen.video_tools import get_start_frame_from_segment, get_start_time_from_segment, get_file_from_segment,\
-    get_end_frame_from_segment
+    get_end_frame_from_segment, FileMetaDataLocator
 from maskgen.support import getValue
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.patches as mpatches
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from tkintertable import TableCanvas, TableModel
@@ -2135,14 +2136,16 @@ class VerticalScrolledFrame(Frame):
 
 class IntSliderWidget(Frame):
 
-    def __init__(self, master, label='', min=0, max=30, inital_value=0, command=None, **options):
+    def __init__(self, master, textvariable=None, label='', min=0, max=30, inital_value=0, command=None, **options):
         Frame.__init__(self, master=master)
         self.range = (min, max)
         self.length = options['length'] if 'length' in options else None
-        self.Value = IntVar()
-        self.EntryValue = StringVar()
-        self.Value.set(inital_value)
-        self.EntryValue.set(str(self.Value.get()))
+        if textvariable is not None:
+            self.Value = textvariable
+        else:
+            self.Value = IntVar()
+            self.Value.set(inital_value)
+        self.entry = IntEntry(self, textvariable=textvariable, initial_value=inital_value, range=(min, max), callback=self.entryCB)
         self.updateCommand = command
         options['from_'] = min
         options['to'] = max
@@ -2155,43 +2158,36 @@ class IntSliderWidget(Frame):
             options['tickinterval'] = max
         self.scale = Scale(master=self, **options)
         self.label = Label(master=self, text=label)
-        self.entry = Entry(master=self, textvariable=self.EntryValue, width=6)
-        self.entry.bind('<Return>', self.validateEntry)
-        if self.updateCommand is not None:
-            self.scale.bind('<ButtonRelease-1>', self.ButtonUp)
 
     def grid(self, **options):
         row = getValue(options, 'row', 0)
         column = getValue(options, 'column', 0)
         self.label.grid(row=row, sticky=W)
         self.scale.grid(row=row, column=column + 1, sticky=W + E)
-        self.entry.grid(row=row, column=column + 2, sticky=E)
+
         if self.length is None:
             self.master.update_idletasks()
             master_width = self.master.winfo_width()
             self.scale.config(length=master_width - 60)
+
+        self.entry.grid(row=row, column=column + 2, sticky=E)
         Frame.grid(self, **options)
 
-    def validateEntry(self, event=None):
-        valid = False
-        val = self.EntryValue.get()
-        if val.isdigit():
-            valid = self.range[0] <= int(val) <= self.range[1] and val != str(self.get())
-        if valid:
-            self.set(int(self.entry.get()))
-            if self.updateCommand is not None:
-                self.updateCommand()
+    def entryCB(self, val):
+        if val.isdigit() and self.range[0] <= int(val) <= self.range[1]:
+            self.set(val)
+        else:
+            self.updateEntry()
 
     def updateEntry(self, event=None):
-        self.EntryValue.set(str(self.get()))
-
-    def ButtonUp(self, event=None):
-        self.updateCommand()
+        self.entry.set(str(self.get()))
 
     def get(self):
-        return int(self.Value.get())
+        return int(self.Value.get()) if self.Value.get() != '' else 0
 
     def set(self, value):
+        if value is str:
+            value = int(value) if value is not '' and value.isdigit() else 0
         self.Value.set(value)
 
     def hide(self):
@@ -2199,18 +2195,22 @@ class IntSliderWidget(Frame):
 
 class IntEntry(Frame):
 
-    def __init__(self, master, label='', initial_value=0, range=(0,0)):
+    def __init__(self, master, textvariable=None, initial_value=0, label='', range=(0,0), callback=None):
         Frame.__init__(self, master=master)
         self.range = range
-        self.entryValue = StringVar()
-        self.entryValue.set(str(initial_value))
-        validate = self.register(self.validateEntry)
+        if textvariable is not None:
+            self.entryValue = textvariable
+        else:
+            self.entryValue = StringVar()
+            self.entryValue.set(str(initial_value))
+        self.callback = callback
         self.label = Label(master=self, text=label)
         self.entry = Entry(master=self,
                            textvariable=self.entryValue,
                            width=6,
-                           validatecommand= (validate, '%P'),
-                           validate='key')
+                           validatecommand= (self.register(self.validateEntry), '%P', '%V'),
+                           validate='all')
+
 
     def grid(self, **options):
         row = getValue(options, 'row', 0)
@@ -2225,14 +2225,30 @@ class IntEntry(Frame):
             valid = True
 
         if val.isdigit():
-            if self.range[0] - self.range[1] != 0:
+            if event == 'focusout' and self.range[0] - self.range[1] != 0:
                 valid = self.range[0] <= int(val) <= self.range[1]
+                if not valid:
+                    new_val = str(self.range[0]) if self.range[0] <= int(val) else self.range[1]
+                    self.entryValue.set(new_val)
+                    return False
             else:
                 valid = True
+
+        if valid is False:
+            self.bell()
+        self.after_idle(lambda: self.entry.config(validate='all'))
+
+        if valid and self.callback is not None:
+            self.callback(val)
         return valid
 
     def get(self):
         return int(self.entryValue.get()) if self.entryValue.get().isdigit() else 0
+
+    def set(self, d):
+        d = str(d)
+        if d.isdigit():
+            self.entryValue.set(d)
 
 
 class MaskDebuggerUI(Toplevel):
@@ -2257,17 +2273,16 @@ class MaskDebuggerUI(Toplevel):
 
     def layout_image_frames(self):
         from PIL import Image
-        """raw = imageResizeRelative(self.debugger.im_two, (350,350), otherImDim=(350,350)) if \
-            self.debugger.im_two is not None else Image.new("RGB", (350, 350), "black")
-        mask = imageResizeRelative(ImageWrapper(self.debugger.analysis_components.mask, to_mask=True), (350,350), otherImDim=(350,350)) if \
+        raw = self.debugger.im_two if self.debugger.im_two is not None else Image.new("RGB", (350, 350), "black")
+        raw = imageResizeRelative(raw, (350,350), raw.size)
+        mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
             self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
-        overlay = raw.overlay(mask) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")"""
-        raw = Image.new("RGB", (350, 350), "black")
-        mask = Image.new("RGB", (350, 350), "black")
-        overlay = Image.new("RGB", (350, 350), "black")
-        return [ImageTk.PhotoImage(raw), ImageTk.PhotoImage(mask), ImageTk.PhotoImage(overlay)]
+        mask = imageResizeRelative(mask, (350,350), otherImDim=raw.size)
+        overlay = mask.overlay(raw) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
+        return [ImageTk.PhotoImage(raw.toPIL()), ImageTk.PhotoImage(mask.toPIL()), ImageTk.PhotoImage(overlay.toPIL())]
 
-    def __init__(self, master, scModel, debugger=None, description=None):
+    def __init__(self, master, scModel, debugger=None):
+
         self.scModel = scModel
         self.debugger = debugger
         self.sourcefiletype = self.scModel.getStartType()
@@ -2275,13 +2290,11 @@ class MaskDebuggerUI(Toplevel):
         self.edge = scModel.G.get_edge(scModel.start, scModel.end)
         self.op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
         self.arginfo = self.build_arginfo()
-        self.argvalues = description.arguments if description is not None else {}
-        self.description = description if description is not None else Modification('', '')
+        self.mod = self.scModel.getCurrentEdgeModification()
         self.master = master
         self.result = None, 0
-        self.destination_frame = StringVar()
-        self.destination_frame.set('0')
-        self.invalidMask = False
+        self.total_frames = FileMetaDataLocator(self.debugger.analysis_components.file_one).get_frame_count()['frames']
+        self.hist = None
         Toplevel.__init__(self, master=master)
         self.transient(master=master)
         self.initial_focus = self.body(master=self)
@@ -2294,8 +2307,8 @@ class MaskDebuggerUI(Toplevel):
         self.wait_window(self)
 
     def body(self, master):
-        hist = plt.hist(x=self.debugger.mask_analysis['hist'], bins=256, color='#0504aa', alpha=0.7, rwidth=0.85)[0]
-        self.histogram = HistogramViewer(master=self, histogram=hist)
+        thresh = getValue(self.debugger.mask_analysis, 'minima', 1)
+        self.histogram = HistogramViewer(master=self, histogram=self.debugger.mask_analysis['hist'], highlights={'minima':thresh})
         self.mask_preview = ttk.Notebook(master=self)
         self.images = self.layout_image_frames()
         self.preview_frames = [Frame(master=self.mask_preview),
@@ -2307,18 +2320,29 @@ class MaskDebuggerUI(Toplevel):
         self.mask_preview.add(child=self.preview_frames[0], text='raw')
         self.mask_preview.add(child=self.preview_frames[1], text='mask')
         self.mask_preview.add(child=self.preview_frames[2], text='overlay')
-        self.frame_select = IntEntry(master=self, label='Generate To: ', range=(0, 30))
-        self.frame_limit = Label(master=self.frame_select, text='/30')
-        properties = [ProjectProperty(name=argumentTuple[0],
+        self.frame_select = IntEntry(master=self, label='Generate To: ',
+                                     initial_value=self.debugger.analysis_components.one_count,
+                                     range=(self.debugger.analysis_components.one_count, self.total_frames))
+        self.frame_select.entry.config(state=DISABLED if self.debugger.invalidMask else NORMAL)
+        if self.debugger.invalidMask:
+            self.invalid_label = Label(master=self.frame_select, text='Mask is now invalid due to changing parameters '
+                                                                      'after generation had begun.\n exit and generate '
+                                                                      'mask from the beginning. The new parameters have '
+                                                                      'been saved, and \'continue\' will regenerate the '
+                                                                      'current frame.')
+        else:
+            self.invalid_label = None
+        self.frame_limit = Label(master=self.frame_select, text='/{}'.format(self.total_frames))
+        self.properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if
                                       'description' in argumentTuple[1] else '',
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
-                                      value=self.argvalues[argumentTuple[0]] if
-                                      argumentTuple[0] in self.argvalues else None) for argumentTuple in self.arginfo]
-        self.property_frame = PropertyFrame(parent=self, properties=properties,
-                                            propertyFunction=EdgePropertyFunction(properties, self.scModel),
+                                      value=self.debugger.argvalues[argumentTuple[0]] if
+                                      argumentTuple[0] in self.debugger.argvalues else None) for argumentTuple in self.arginfo]
+        self.property_frame = PropertyFrame(parent=self, properties=self.properties,
+                                            propertyFunction=EdgePropertyFunction(self.properties, self.scModel),
                                             changeParameterCB=self.changeParameter,
                                             dir=self.scModel.get_dir())
         self.buttons_frame = Frame(master=self)
@@ -2339,20 +2363,50 @@ class MaskDebuggerUI(Toplevel):
         self.property_frame.grid(row=row + 2, column=column, columnspan=2, sticky=W+E)
         self.frame_select.grid(row=row + 1, column=column, sticky=W)
         self.frame_limit.grid(row=row+1, column=2, sticky=W)
+        if self.invalid_label is not None:
+            self.invalid_label.grid(row= row+1, column=3, sticky=W)
         self.generate.grid(row=0, column=0, padx=5)
-        #self.finish.grid(row=0, column=1)
         self.cancel.grid(row=0, column=2, padx=5)
         self.buttons_frame.grid(row=row + 3, column= column, columnspan=3, sticky=S)
 
-    def changeParameter(self, name, value):
-        self.argvalues[name] = value
+    def changeParameter(self, name, type, value):
+        self.debugger.argvalues[name] = value
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
-        self.apply('regen')
-        #If we change mask parameter, self.apply('regen') to refresh the mask.
+
+        if self.parametersChanged():
+            self.frame_select.set(self.debugger.analysis_components.one_count)
+            self.frame_select.entry.config(state='readonly')
+            if self.debugger.analysis_components.one_count > 1:
+                self.debugger.invalidMask = True
+        elif not self.debugger.invalidMask:
+            self.frame_select.entry.config(state=NORMAL)
+
+    def parametersChanged(self):
+        if len(self.debugger.argvalues) != len(self.debugger.compare_args):
+            return True
+        else:
+            for k, v in self.debugger.argvalues.items():
+                if k not in self.debugger.compare_args or v != self.debugger.compare_args[k]:
+                    return True
+        return False
 
     def apply(self, result):
-        self.result = (result, int(self.frame_select.get()))
+        if self.parametersChanged():
+            self.debugger.compare_args.update(self.debugger.argvalues)
+            valid_args = self.op.mandatoryparameters.keys()
+            valid_args.extend(self.op.optionalparameters.keys())
+            self.scModel.G.update_edge(self.scModel.start, self.scModel.end,
+                               op=self.mod.operationName,
+                               description=self.mod.additionalInfo,
+                               arguments={k: v for k, v in self.debugger.compare_args.iteritems() if k != 'inputmaskname' and k in valid_args},
+                               recordMaskInComposite=self.mod.recordMaskInComposite,
+                               semanticGroups=self.mod.semanticGroups,
+                               editable='no' if (self.mod.software is not None and self.mod.software.internal) or self.mod.operationName == 'Donor' else 'yes',
+                               softwareName=('' if self.mod.software is None else self.mod.software.name),
+                               softwareVersion=('' if self.mod.software is None else self.mod.software.version),
+                               inputmaskname=self.mod.inputMaskName)
+        self.result = (result, int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all')
         self.withdraw()
         self.update_idletasks()
         self.master.focus_set()
@@ -2360,15 +2414,13 @@ class MaskDebuggerUI(Toplevel):
         return self.result
 
 class HistogramViewer(Frame):
+    patches = []
 
-    threshold_color = 'red'
-    minima_color = 'gold'
-    other = 'magenta'
-
-    def __init__(self, master, histogram, spans=[(0,1)]):
+    def __init__(self, master, histogram, highlights= {}, highlight_width=1):
         Frame.__init__(self, master=master)
         self.hist_data = histogram
-        self.highlights = spans
+        self.highlights = highlights
+        self.highlight_width = highlight_width
         self.figure = Figure(figsize=(6, 4), dpi=100)
         self.fcanvas = FigureCanvasTkAgg(self.figure, master=self)
         self.subplot = self.figure.add_subplot(111)
@@ -2382,10 +2434,15 @@ class HistogramViewer(Frame):
 
     def plot_histogram(self):
         self.subplot.clear()
+        self.patches = []
+        self.subplot.set_yscale('log')
         self.subplot.plot(self.hist_data, color='blue')
-        for highlight in self.highlights:
-            if highlight[1] - highlight[0] != 0:
-                self.subplot.axvspan(xmin=highlight[0], xmax=highlight[1], color=self.threshold_color, alpha=0.5)
+        for label, highlight in self.highlights.items():
+            color = 'red'
+            span = (highlight-self.highlight_width, highlight+self.highlight_width)
+            self.subplot.axvspan(xmin=span[0], xmax=span[1], color=color, alpha=0.5)
+            self.patches.append(mpatches.Patch(color=color, label = label + ': ' + str(highlight)))
+        self.subplot.legend(handles=self.patches)
         self.fcanvas.draw()
 
     def set_span(self, span=(0,0)):
@@ -2422,14 +2479,14 @@ class PropertyFrame(VerticalScrolledFrame):
      self.propertyFunction = propertyFunction
      self.extra_args = extra_args
      VerticalScrolledFrame.__init__(self, parent, **kwargs)
-     self.body()
+     self.body(self.interior)
 
-   def body(self):
-       master = self.interior
+   def body(self, master):
+       #master = self.interior
        row = 0
        for prop in self.properties:
            self.values[row] = StringVar()
-           partialCB = partial(notifyCB,self, prop.name, prop.type, row,self.changeParameterCB)
+           partialCB = partial(notifyCB,self, prop.name, prop.type, row, self.changeParameterCB)
            self.values[row].trace("w", partialCB)
            p = partial(viewInfo, (prop.description, prop.information))
            Button(master, text=prop.description, takefocus=False, command=p).grid(row=row, sticky=E)
@@ -2443,7 +2500,8 @@ class PropertyFrame(VerticalScrolledFrame):
                   widget = Message(master, text=', '.join(v if v is not None else ''))#,width=80)
                   widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
                else:
-                  widget =  ttk.Combobox(master, values=prop.values, takefocus=(row == 0),textvariable=self.values[row], state='readonly')
+                  widget = ttk.Combobox(master, values=prop.values, takefocus=(row == 0),
+                                        textvariable=self.values[row], state='readonly')
                   widget.grid(row=row, column=1, columnspan=2, sticky=E + W)
            elif prop.type == 'text':
                widget = Text(master, takefocus=(row == 0), width=60, height=3, relief=RAISED,
@@ -2520,7 +2578,7 @@ class PropertyFrame(VerticalScrolledFrame):
                if prop.type.endswith('slider'):
                    _match = re.search(r"\[(.*?)\]", prop.type).group(1)
                    range = _match.split(':')
-                   widget = IntSliderWidget(master, min=int(range[0]), max=int(range[1]), length=200)
+                   widget = IntSliderWidget(master, textvariable=self.values[row], min=int(range[0]), max=int(range[1]), length=200)
                else:
                    widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
@@ -2733,7 +2791,7 @@ class EdgePropertyFunction(PropertyFunction):
         """
         :param properties:
         :param scModel:
-        @type properties: dict
+        @type properties: list
         @type scModel: ImageProjectModel
         """
         self.scModel = scModel

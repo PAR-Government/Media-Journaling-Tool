@@ -758,6 +758,7 @@ class VideoVideoLinkTool(LinkTool):
                                           consolidate(arguments, analysis_params), invert=invert)
         else:
             arguments['generate_frames'] = 0
+            debugger = analysis_params.pop('debugger') if 'debugger' in analysis_params else None
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -769,7 +770,7 @@ class VideoVideoLinkTool(LinkTool):
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        #alternateFrameFunction=operation.getCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params),
-                                                       debugger=getValue(analysis_params, 'debugger', None))
+                                                       debugger=debugger)
         mask = None
         for item in maskSet:
             if video_tools.get_mask_from_segment(item) is not None:

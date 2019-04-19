@@ -43,6 +43,7 @@ class MaskDebugger:
         self.im_one = None
         self.im_two = None
         self.mask_analysis = {}
+        self.invalidMask = False
 
 
     def __call__(self, analysis_components, im_one, im_two, compare_args, mask_analysis):
@@ -55,12 +56,15 @@ class MaskDebugger:
         :return: Calls up the MaskDebugger Dialog, will return 'continue', 'regen', 'stop'.
         """
         from maskgen.ui.description_dialog import MaskDebuggerUI
+        from copy import deepcopy
         self.analysis_components = analysis_components
         self.compare_args = compare_args
+        self.argvalues = deepcopy(compare_args) if compare_args is not None else {}
         self.im_one = im_one
         self.im_two = im_two
         self.mask_analysis = mask_analysis
-        return MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
+        debuggerUI = MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
+        return debuggerUI
 
 
 def create_segment(starttime=None,
@@ -2899,7 +2903,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components.time_manager = time_manager
     ranges = list()
     compare_args = copy.copy(arguments) if arguments is not None else {}
-    dump_dir = getValue(arguments,'dump directory',False)
+    #dump_dir = getValue(arguments,'dump directory', 'C:\\Users\\MacriL\\Desktop\\DebugFrames')
+    dump_dir = getValue(arguments, 'dump directory', None)
     frames_to_generate = getValue(arguments, 'generate_frames', 'all')
     frames_generated = 0
     try:
@@ -2938,20 +2943,19 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                                                                arguments=compare_args)
                 analysis_components.mask = mask.to_array()
 
-                if debugger is None or frames_to_generate == 'all' or frames_generated < frames_to_generate:
+                if debugger is None or frames_to_generate == 'all' or frames_generated + 1 < frames_to_generate:
                     break
 
-                result = debugger(analysis_components, im_one=ImageWrapper(frame_one),
-                                  im_two=ImageWrapper(frame_two), compare_args= compare_args,
-                                  mask_analysis= analysis)
+                result = debugger(analysis_components, im_one=ImageWrapper(cv2.cvtColor(frame_one, cv2.COLOR_BGR2RGB)),
+                                  im_two=ImageWrapper(cv2.cvtColor(frame_two, cv2.COLOR_BGR2RGB)),
+                                  compare_args= compare_args,
+                                  mask_analysis= analysis).result
 
                 if 'continue' in result:
-                    if int(result[1]) > 0:
-                        frames_to_generate = result[1]
-                        frames_generated = 0
+                    frames_to_generate = result[1]
+                    if frames_generated != 'all' and frames_to_generate == frames_generated + 1:
+                        continue #regenerate this frame
                     break #move on to the next
-                elif 'regen' in result:
-                    continue #Do this frame again
                 elif 'stop' in result: #toss all
                     return ranges,[]
 

@@ -1833,8 +1833,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
@@ -1921,8 +1921,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -2021,8 +2021,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -2190,8 +2190,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -2657,8 +2657,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -3088,8 +3088,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -3189,8 +3189,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -3263,8 +3263,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]:slider",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -3413,7 +3413,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -3946,7 +3946,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -4031,7 +4031,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -4119,7 +4119,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -4214,7 +4214,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -5078,7 +5078,7 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -5222,7 +5222,7 @@
         "minimum threshold": {
          "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "9",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },

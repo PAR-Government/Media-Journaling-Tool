@@ -2200,7 +2200,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
         bins = 256 + 512/weight
     else:
-        min_threshold = int(getValue(arguments, 'minimum threshold', 9))
+        min_threshold = int(getValue(arguments, 'minimum threshold', 0))
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
@@ -2211,7 +2211,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         else:
             mask = np.mean(diff, 2)
             bins = 256
-    hist, bin_edges = np.histogram(mask, bins=bins, density=False)
+    hist, bin_edges = np.histogram(mask, bins=bins)
     hist = moving_average(hist,n=smoothing)  # smooth out the histogram
     minima = signal.argrelmin(hist, order=2)  # find local minima
     if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode

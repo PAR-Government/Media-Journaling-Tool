@@ -313,8 +313,8 @@ class MaskGraphCanvas(tk.Canvas):
                 elif len(preds) == 0 or (len(preds) == 1 and self.scModel.isDonorEdge(preds[0], nodeId)):
                     d = DescriptionCaptureDialog(self.master, self.uiProfile,self.scModel,
                                                  self.scModel.getNodeFileType(nodeId), destIm, file_without_path)
-                    if (
-                                d.description is not None and d.description.operationName != '' and d.description.operationName is not None):
+                    if (d.description is not None and d.description.operationName != '' and
+                            d.description.operationName is not None):
                         msgs, ok = self.scModel.connect(nodeId, mod=d.description)
                         if msgs is not None and not ok:
                             ValidationListDialog(self, msgs, 'Connect Errors')
