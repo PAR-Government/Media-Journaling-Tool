@@ -757,17 +757,20 @@ class VideoVideoLinkTool(LinkTool):
             maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
                                           consolidate(arguments, analysis_params), invert=invert)
         else:
+            arguments['generate_frames'] = 0
+            debugger = analysis_params.pop('debugger') if 'debugger' in analysis_params else None
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
-                                                       startSegment=getMilliSecondsAndFrameCount(arguments[
-                                                                                                     'Start Time']) if 'Start Time' in arguments else None,
-                                                       endSegment=getMilliSecondsAndFrameCount(arguments[
-                                                                                                   'End Time']) if 'End Time' in arguments else None,
+                                                       startSegment=getMilliSecondsAndFrameCount(
+                                                           arguments['Start Time']) if 'Start Time' in arguments else None,
+                                                       endSegment=getMilliSecondsAndFrameCount(
+                                                           arguments['End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        #alternateFrameFunction=operation.getCompareFunction(),
-                                                       arguments=consolidate(arguments, analysis_params))
+                                                       arguments=consolidate(arguments, analysis_params),
+                                                       debugger=debugger)
         mask = None
         for item in maskSet:
             if video_tools.get_mask_from_segment(item) is not None:
@@ -2855,6 +2858,10 @@ class ImageProjectModel:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
+
+    def canDebugMask(self):
+        allowed = self.getStartType() == 'video' or self.getEndType() == 'video'
+        return 'disabled' if not allowed else 'normal'
 
     def substitutesAllowed(self):
         allowed = False

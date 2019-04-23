@@ -1833,15 +1833,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -1935,15 +1935,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -2049,15 +2049,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -2232,15 +2232,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -2713,15 +2713,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -3166,15 +3166,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -3339,15 +3339,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -3427,15 +3427,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[9:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
-          "type": "int[-20:20]",
-          "trigger mask": true,
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+            "trigger mask": true,
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -3580,15 +3580,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -4127,15 +4127,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -4226,8 +4226,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -4246,7 +4246,7 @@
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
+          "type":"int[-20:20]:slider",
           "source": "video",
           "defaultvalue": 0,
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
@@ -4328,8 +4328,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -4347,9 +4347,9 @@
           "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
         },
         "gain": {
-          "type": "int[-20:20]",
-          "trigger mask": true,
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+            "trigger mask": true,
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -4442,15 +4442,15 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
-          "type": "int[-20:20]",
-          "trigger mask": true,
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+           "trigger mask": true,
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -5315,8 +5315,8 @@
         },
         "minimum threshold": {
           "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
@@ -5335,8 +5335,8 @@
         },
         "gain": {
           "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
@@ -5462,16 +5462,16 @@
           "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "minimum threshold": {
-          "trigger mask": true,
-          "type": "int[0:255]",
-          "defaultvalue": "9",
+         "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
         "gain": {
-          "trigger mask": true,
-          "type": "int[-20:20]",
-          "defaultvalue": 0,
+         "trigger mask": true,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
           "source": "video",
           "description": "Fixed variation of pixel difference used as a tolerance to create masks"
         },
