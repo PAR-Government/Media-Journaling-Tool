@@ -9,11 +9,43 @@
 import time
 import ttk
 from Tkinter import *
-import  tkSimpleDialog
+import tkSimpleDialog
 import tkMessageBox
 import logging
 from maskgen.support import ModuleStatus
+from maskgen.ui.description_dialog import MaskDebuggerUI
+from copy import deepcopy
 
+class MaskDebugger:
+
+    def __init__(self, master_ui, scModel):
+        self.master_ui = master_ui
+        self.scModel = scModel
+        self.analysis_components = None
+        self.compare_args = None
+        self.im_one = None
+        self.im_two = None
+        self.mask_analysis = {}
+        self.invalidMask = False
+
+
+    def __call__(self, analysis_components, im_one, im_two, compare_args, mask_analysis):
+        """
+
+        :param analysis_components:
+        :param im_one:
+        :param im_two:
+        :param compare_args:
+        :return: Calls up the MaskDebugger Dialog, will return 'continue' or 'stop'.
+        """
+        self.analysis_components = analysis_components
+        self.compare_args = compare_args
+        self.argvalues = deepcopy(compare_args) if compare_args is not None else {}
+        self.im_one = im_one
+        self.im_two = im_two
+        self.mask_analysis = mask_analysis
+        debuggerUI = MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
+        return debuggerUI
 
 class ProgressBar(Frame):
     def __init__(self, master, **kwargs):

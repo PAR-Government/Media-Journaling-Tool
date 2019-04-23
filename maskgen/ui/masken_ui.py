@@ -48,7 +48,7 @@ import wrapt
 from maskgen.ui.QAExtreme import QAProjectDialog
 from maskgen.qa_logic import ValidationData
 from maskgen.notifiers import getNotifier
-from maskgen.video_tools import MaskDebugger
+from maskgen.ui.ui_tools import MaskDebugger
 
 
 """
