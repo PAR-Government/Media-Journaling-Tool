@@ -2293,7 +2293,9 @@ class MaskDebuggerUI(Toplevel):
         self.mod = self.scModel.getCurrentEdgeModification()
         self.master = master
         self.result = None, 0
-        self.total_frames = FileMetaDataLocator(self.debugger.analysis_components.file_one).get_frame_count()['frames']
+        video_total_frames = FileMetaDataLocator(self.debugger.analysis_components.file_one).get_frame_count()['frames']
+        self.total_frames = int(self.debugger.analysis_components.time_manager.getExpectedEndFrameGiveRate(rate=self.debugger.analysis_components.fps,
+                                                                                                       defaultValue=video_total_frames))
         self.hist = None
         Toplevel.__init__(self, master=master)
         self.transient(master=master)
@@ -2396,17 +2398,23 @@ class MaskDebuggerUI(Toplevel):
             self.debugger.compare_args.update(self.debugger.argvalues)
             valid_args = self.op.mandatoryparameters.keys()
             valid_args.extend(self.op.optionalparameters.keys())
+            self.debugger.compare_args = {k: v for k, v in self.debugger.compare_args.iteritems() if k != 'inputmaskname' and k in valid_args}
             self.scModel.G.update_edge(self.scModel.start, self.scModel.end,
                                op=self.mod.operationName,
                                description=self.mod.additionalInfo,
-                               arguments={k: v for k, v in self.debugger.compare_args.iteritems() if k != 'inputmaskname' and k in valid_args},
+                               arguments=self.debugger.compare_args,
                                recordMaskInComposite=self.mod.recordMaskInComposite,
                                semanticGroups=self.mod.semanticGroups,
                                editable='no' if (self.mod.software is not None and self.mod.software.internal) or self.mod.operationName == 'Donor' else 'yes',
                                softwareName=('' if self.mod.software is None else self.mod.software.name),
                                softwareVersion=('' if self.mod.software is None else self.mod.software.version),
                                inputmaskname=self.mod.inputMaskName)
-        self.result = (result, int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all')
+            self.scModel._save_group(self.mod.operationName)
+            self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
+            self.scModel.save()
+        self.result = {'message': result,
+                       'generate to': int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all',
+                       'arguments': self.debugger.compare_args}
         self.withdraw()
         self.update_idletasks()
         self.master.focus_set()

@@ -13,7 +13,6 @@ import tkSimpleDialog
 import tkMessageBox
 import logging
 from maskgen.support import ModuleStatus
-from maskgen.ui.description_dialog import MaskDebuggerUI
 from copy import deepcopy
 
 class MaskDebugger:
@@ -22,7 +21,7 @@ class MaskDebugger:
         self.master_ui = master_ui
         self.scModel = scModel
         self.analysis_components = None
-        self.compare_args = None
+        #self.compare_args = None
         self.im_one = None
         self.im_two = None
         self.mask_analysis = {}
@@ -38,14 +37,16 @@ class MaskDebugger:
         :param compare_args:
         :return: Calls up the MaskDebugger Dialog, will return 'continue' or 'stop'.
         """
+        from maskgen.ui.description_dialog import MaskDebuggerUI
         self.analysis_components = analysis_components
+
         self.compare_args = compare_args
         self.argvalues = deepcopy(compare_args) if compare_args is not None else {}
         self.im_one = im_one
         self.im_two = im_two
         self.mask_analysis = mask_analysis
         debuggerUI = MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self)
-        return debuggerUI
+        return debuggerUI.result
 
 class ProgressBar(Frame):
     def __init__(self, master, **kwargs):

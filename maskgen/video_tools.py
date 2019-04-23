@@ -2896,7 +2896,6 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components.time_manager = time_manager
     ranges = list()
     compare_args = copy.copy(arguments) if arguments is not None else {}
-    #dump_dir = getValue(arguments,'dump directory', 'C:\\Users\\MacriL\\Desktop\\DebugFrames')
     dump_dir = getValue(arguments, 'dump directory', None)
     frames_to_generate = getValue(arguments, 'generate_frames', 'all')
     frames_generated = 0
@@ -2942,14 +2941,16 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 result = debugger(analysis_components, im_one=ImageWrapper(cv2.cvtColor(frame_one, cv2.COLOR_BGR2RGB)),
                                   im_two=ImageWrapper(cv2.cvtColor(frame_two, cv2.COLOR_BGR2RGB)),
                                   compare_args= compare_args,
-                                  mask_analysis= analysis).result
+                                  mask_analysis= analysis)
 
-                if 'continue' in result:
-                    frames_to_generate = result[1]
+                compare_args.update(result['arguments'])
+
+                if 'continue' == result['message']:
+                    frames_to_generate = result['generate to']
                     if frames_generated != 'all' and frames_to_generate == frames_generated + 1:
                         continue #regenerate this frame
                     break #move on to the next
-                elif 'stop' in result: #toss all
+                elif 'stop' == result['stop']: #toss all
                     return ranges,[]
 
             frames_generated += 1
@@ -2963,11 +2964,12 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
         if analysis_components.grabbed_two and analysis_components.frame_two is None:
             analysis_components.retrieveTwo()
         if not done:
-            opFunc(analysis_components,ranges,arguments)
+            opFunc(analysis_components,ranges,compare_args)
     finally:
         analysis_components.vid_one.release()
         analysis_components.vid_two.release()
         analysis_components.writer.close()
+        arguments.update(compare_args)
     if analysis_components.one_count == 0:
         if os.path.exists(fileOne):
             raise ValueError(
