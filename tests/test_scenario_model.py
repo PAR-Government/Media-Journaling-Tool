@@ -117,7 +117,7 @@ class TestScenarioModel(TestSupport):
       from maskgen.software_loader import Operation
       from maskgen.image_wrap import ImageWrapper
       from maskgen.support import getValue
-      from maskgen.video_tools import get_end_frame_from_segment
+      from maskgen.video_tools import get_end_frame_from_segment,get_frames_from_segment
       import os
       import numpy as np
       def create_zero(h, w):
@@ -167,12 +167,27 @@ class TestScenarioModel(TestSupport):
                                                   arguments={},
                                                   analysis_params={})
 
-      self.assertEqual(3, len(analysis['videomasks']))
+      self.assertEqual(1, len(analysis['videomasks']))
       x = getValue(analysis, 'metadatadiff.audio.duration')
       x[1] = int(x[1])
       x[2] = int(x[2])
       self.assertEqual(['change', 59348, 35665], x)
-      self.assertEqual(2617263, get_end_frame_from_segment(analysis['videomasks'][-1]))
+      self.assertEqual(1572865, get_end_frame_from_segment(analysis['videomasks'][-1]))
+      self.assertEqual(1572865, get_frames_from_segment(analysis['videomasks'][-1]))
+
+      mask, analysis, errors = tool.compareImages('b', 'a',
+                                                  scModel,
+                                                  'Normalization',
+                                                  arguments={'Start Time':'00:00:01.000000'},
+                                                  analysis_params={})
+
+      self.assertEqual(1, len(analysis['videomasks']))
+      x = getValue(analysis, 'metadatadiff.audio.duration')
+      x[1] = int(x[1])
+      x[2] = int(x[2])
+      self.assertEqual(['change', 59348, 35665], x)
+      self.assertEqual(1572865, get_end_frame_from_segment(analysis['videomasks'][-1]))
+      self.assertEqual(1528766, get_frames_from_segment(analysis['videomasks'][-1]))
 
 
 
