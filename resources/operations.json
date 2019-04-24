@@ -7088,6 +7088,7 @@
     {
       "category": "Transform",
       "name": "TransformShear",
+      "deprecated": true,
       "mandatoryparameters": {
         "Start Time": {
           "type": "frame_or_time",
