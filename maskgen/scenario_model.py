@@ -1215,7 +1215,8 @@ class AudioZipLinkTool(VideoAudioLinkTool):
         analysis['metadatadiff'] = {}
         analysis['videomasks'] = segments
         cap_end_time  = get_end_time_from_segment(maskSet[0])
-        if abs(get_end_time_from_segment(segments[-1]) - cap_end_time) > 0.001:
+        diff = cap_end_time - get_end_time_from_segment(segments[-1])
+        if diff > 0.001:
             setPathValue(analysis['metadatadiff'],
                          'audio.duration',
                          ('change',cap_end_time, get_end_time_from_segment(segments[-1])))
@@ -1224,6 +1225,11 @@ class AudioZipLinkTool(VideoAudioLinkTool):
             update_segment(lastseg,
                            endtime = cap_end_time,
                            endframe = int(cap_end_time*get_rate_from_segment(lastseg)/1000)+ 1)
+        elif diff < 0:
+            setPathValue(analysis['metadatadiff'],
+                         'audio.duration',
+                         ('change', cap_end_time, get_end_time_from_segment(segments[-1])))
+
         self._addAnalysis(startIm, destIm, op, analysis, None, linktype='video.audio',
                           arguments=consolidate(arguments, analysis_params),
                           start=start, end=destination, scModel=scModel)
@@ -1632,7 +1638,7 @@ class ImageProjectModel:
         if (len(self.G.successors(start)) == 0 or len(self.G.predecessors(start)) == 0) and not force:
             return
 
-        props = {'remove_video': False}
+        props = {'remove_video': False,'force': False}
         #for pred in self.G.predecessors(start):
         #    edge = self.G.get_edge(pred, start)
         #    op = getOperationWithGroups(edge['op'], fake=True)

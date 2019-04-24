@@ -1708,6 +1708,31 @@ class TestVideoTools(TestSupport):
         self.files_to_remove.append('sample1_ffr_3.mp4')
         self.assertTrue(video_tools.is_raw_or_lossy_compressed('sample1_ffr_3.mp3'))
 
+    def test_rgb_compress(self):
+        self.assertFalse(video_tools.is_raw_or_lossy_compressed(self.locateFile('tests/videos/sample1.mov')))
+        video_tools.x264rgb(self.locateFile('tests/videos/sample1.mov'), 'sample1_ffr_rgb.mp4')
+        self.files_to_remove.append('sample1_ffr_rgb.mp4')
+        self.assertTrue(video_tools.is_raw_or_lossy_compressed('sample1_ffr_rgb.mp3'))
+        r,e = video_tools.detectCompare(self.locateFile('tests/videos/sample1.mov'),
+                                  'sample1_ffr_rgb.mp4',
+                                  'sample1_ffr_rgb',
+                                  tool_set.VidTimeManager())
+        self.assertEquals(1,len(r))
+        self.assertEquals(803,video_tools.get_frames_from_segment(r[0]))
+
+    def test_lag(self):
+        o = video_tools.x264rgb(self.locateFile('tests/videos/LagarithExample.avi'),
+                            'sample1_ffr_rgb.mp4',
+                            force=False)
+        self.assertEquals(os.path.basename(o),'LagarithExample.avi')
+
+        r, e = video_tools.detectCompare(self.locateFile('tests/videos/LagarithExample.avi'),
+                                         self.locateFile('tests/videos/original.mp4'),
+                                         'lag_compare',
+                                         tool_set.VidTimeManager())
+        self.assertEquals(1, len(r))
+        self.assertEquals(59, video_tools.get_frames_from_segment(r[0]))
+
     def testMetaDiff(self):
         from maskgen.support import getValue
         meta_diff = video_tools.form_meta_data_diff(self.locateFile('tests/videos/sample1.mov'),
