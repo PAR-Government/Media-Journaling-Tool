@@ -2600,8 +2600,6 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type.startswith('int'):
                if prop.type.endswith('slider'):
                    _match = re.search(r"\[(.*?)\]", prop.type).group(1)
-                   range = _match.split(':')
-                   widget = IntSliderWidget(master, textvariable=self.values[row], min=int(range[0]), max=int(range[1]), length=200)
                    range = [int(x) for x in _match.split(':')]
                    widget = IntSliderWidget(master, textvariable=self.values[row], range=range, length=200)
                else:
