@@ -5063,7 +5063,8 @@
       },
       "transitions": [
         "zip.zip",
-        "video.zip"
+        "video.zip",
+        "audio.zip"
       ]
     },
     {
