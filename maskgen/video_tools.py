@@ -1650,7 +1650,7 @@ class VidAnalysisComponents:
     @type elapsed_time_two: int
     """
 
-    def __init__(self):
+    def __init__(self, file_one, file_two, name_prefix, time_manager, arguments={}):
         self.one_count = 0
         self.two_count = 0
         self.elapsed_time_one = 0
@@ -1659,8 +1659,19 @@ class VidAnalysisComponents:
         self.grabbed_two = False
         self.frame_one = None
         self.frame_two = None
-        self.file_one = None
-        self.file_two = None
+        self.file_one = file_one
+        self.file_two = file_two
+        self.vid_one = buildCaptureTool(file_one, fps = getValue(arguments,'Frame Rate',30))
+        self.vid_two = buildCaptureTool(file_two, fps = getValue(arguments,'Frame Rate',30))
+        self.fps = self.vid_one.get(cv2api_delegate.prop_fps)
+        self.frame_one_mask = np.zeros((int(self.vid_one.get(cv2api_delegate.prop_frame_height)),
+                                        int(self.vid_one.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
+        self.frame_two_mask = np.zeros((int(self.vid_two.get(cv2api_delegate.prop_frame_height)),
+                                        int(self.vid_two.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
+        self.fps_one = self.vid_one.get(cv2api_delegate.prop_fps)
+        self.fps_two = self.vid_two.get(cv2api_delegate.prop_fps)
+        self.writer = tool_set.GrayBlockWriter(name_prefix, self.vid_one.get(cv2api_delegate.prop_fps))
+        self.time_manager = time_manager
 
     def write(self, mask, frame_time, frame):
         m = 255-mask
@@ -1694,6 +1705,29 @@ class VidAnalysisComponents:
     def retrieveTwo(self):
         res, self.frame_two = self.vid_two.retrieve()
         return res,self.frame_two
+
+    def grab(self):
+        ret_one = self.grabOne()
+        if not ret_one:
+            self.vid_one.release()
+        ret_two = self.grabTwo()
+        if not ret_two:
+            self.vid_two.release()
+        self.time_manager.updateToNow(self.elapsed_time_one)
+        return ret_one and ret_two
+
+    def retrieve(self):
+        ret_one = ret_two = False
+        frame_one = frame_two = None
+        if self.grabbed_one:
+            ret_one, frame_one = self.retrieveOne()
+        if self.grabbed_two:
+            ret_two, frame_two = self.retrieveTwo()
+        return ret_one, frame_one, ret_two, frame_two
+
+
+
+
 
 def default_compare(x,y,args):
     return np.abs(x - y)
@@ -1857,37 +1891,19 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
     :return:
     """
     entireVideoMaskSet = FileMetaDataLocator(fileOne).getMaskSetForEntireVideo()
-    analysis_components = VidAnalysisComponents()
-    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'Frame Rate',30))
-    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'Frame Rate',30))
-    analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
-    analysis_components.frame_one_mask = \
-        np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
-                  int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
-    analysis_components.frame_two_mask = \
-        np.zeros((int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_height)),
-                  int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
-    analysis_components.fps_one = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
-    analysis_components.fps_two = analysis_components.vid_two.get(cv2api_delegate.prop_fps)
-    analysis_components.time_manager = time_manager
+    analysis_components = VidAnalysisComponents(fileOne, fileTwo, name_prefix, time_manager, arguments)
     try:
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
-            ret_one = analysis_components.grabOne()
-            if not ret_one:
-                analysis_components.vid_one.release()
-                break
-            ret_two = analysis_components.grabTwo()
-            if not ret_two:
-                analysis_components.vid_two.release()
+            ret = analysis_components.grab()
+            if not ret:
                 break
             time_manager.updateToNow(analysis_components.elapsed_time_one)
             if time_manager.isBeforeTime():
                 continue
-            ret_one, frame_one = analysis_components.retrieveOne()
-            ret_two, frame_two = analysis_components.retrieveTwo()
+            ret_one, frame_one, ret_two, frame_two = analysis_components.retrieve()
             if time_manager.isPastTime():
                 break
-            compare_result, analysis_result  = tool_set.cropCompare(frame_one, frame_two, arguments=analysis)
+            compare_result, analysis_result = tool_set.cropCompare(frame_one, frame_two, arguments=analysis)
             analysis.update(analysis_result)
             break
             # go a few more rounds?
@@ -2196,6 +2212,7 @@ def formMaskDiff(fileOne,
                  alternateFunction=None,
                  arguments= {},
                  debugger=None):
+
     preferences = MaskGenLoader()
     diffPref = preferences['video compare']
     diffPref = arguments['video compare'] if 'video compare' in arguments else diffPref
@@ -2877,51 +2894,33 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                                    alternativeFunction=compare_function,
                                    arguments=arguments)[0].to_array()
 
-    analysis_components = VidAnalysisComponents()
-    analysis_components.file_one = fileOne
-    analysis_components.file_two = fileTwo
-    analysis_components.vid_one = buildCaptureTool(fileOne, fps = getValue(arguments,'Frame Rate',30))
-    analysis_components.vid_two = buildCaptureTool(fileTwo, fps = getValue(arguments,'Frame Rate',30))
-    analysis_components.fps = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
-    analysis_components.frame_one_mask = \
-        np.zeros((int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_height)),
-                  int(analysis_components.vid_one.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
-    analysis_components.frame_two_mask = \
-        np.zeros((int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_height)),
-                  int(analysis_components.vid_two.get(cv2api_delegate.prop_frame_width)))).astype('uint8')
-    analysis_components.fps_one = analysis_components.vid_one.get(cv2api_delegate.prop_fps)
-    analysis_components.fps_two = analysis_components.vid_two.get(cv2api_delegate.prop_fps)
-    analysis_components.writer = tool_set.GrayBlockWriter(name_prefix,
-                                                  analysis_components.vid_one.get(cv2api_delegate.prop_fps))
-    analysis_components.time_manager = time_manager
+    analysis_components = VidAnalysisComponents(fileOne, fileTwo, name_prefix, time_manager, arguments)
     ranges = list()
     compare_args = copy.copy(arguments) if arguments is not None else {}
     dump_dir = getValue(arguments, 'dump directory', None)
-    frames_to_generate = getValue(arguments, 'generate_frames', 'all')
-    frames_generated = 0
+    if debugger != None:
+        debugger.compare_args = compare_args
+        debugger.frames_to_generate = getValue(arguments, 'generate_frames', 'all')
     try:
         done = False
         while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
-            ret_one = analysis_components.grabOne()
-            if not ret_one:
-                analysis_components.vid_one.release()
+            ret = analysis_components.grab()
+            if not ret:
                 break
-            ret_two = analysis_components.grabTwo()
-            if not ret_two:
-                analysis_components.vid_two.release()
-                break
-            time_manager.updateToNow(analysis_components.elapsed_time_one)
-            if time_manager.isBeforeTime():
+            if time_manager.isBeforeTime() or (debugger is not None and
+                                               debugger.invalidMask and not
+                                               debugger.has_reached_debug_frame()):
+                debugger.generated_frames += 1
                 continue
             if time_manager.isPastTime():
                 break
-            ret_one, frame_one =analysis_components.retrieveOne()
-            ret_two, frame_two = analysis_components.retrieveTwo()
+            ret_one, frame_one, ret_two, frame_two = analysis_components.retrieve()
 
             if dump_dir:
                 from cv2 import imwrite
                 imwrite(os.path.join(dump_dir,'one_{}.png'.format(time_manager.frameSinceBeginning)), frame_one)
                 imwrite(os.path.join(dump_dir,'two_{}.png'.format(time_manager.frameSinceBeginning)), frame_two)
+
             if frame_one.shape != frame_two.shape:
                 return FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(), []
 
@@ -2935,7 +2934,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                                                                arguments=compare_args)
                 analysis_components.mask = mask.to_array()
 
-                if debugger is None or frames_to_generate == 'all' or frames_generated + 1 < frames_to_generate:
+                if debugger is None or not debugger.has_reached_debug_frame():
                     break
 
                 result = debugger(analysis_components, im_one=ImageWrapper(cv2.cvtColor(frame_one, cv2.COLOR_BGR2RGB)),
@@ -2946,38 +2945,47 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                 compare_args.update(result['arguments'])
 
                 if 'continue' == result['message']:
-                    frames_to_generate = result['generate to']
-                    if frames_generated != 'all' and frames_to_generate == frames_generated + 1:
+                    if debugger.has_reached_debug_frame():
                         continue #regenerate this frame
                     break #move on to the next
                 elif 'stop' == result['message']: #toss all
-                    raise ValueError('mask generation stopped.')
+                    raise ValueError('mask generation aborted.')
 
-            frames_generated += 1
-            if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
-                done = True
-                break
+            if debugger is not None:
+                debugger.generated_frames += 1
+
+            if debugger is None or (debugger is not None and not debugger.invalidMask):
+                if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
+                    done = True
+                    break
 
         analysis_components.mask = 0
         if analysis_components.grabbed_one and analysis_components.frame_one is None:
             analysis_components.retrieveOne()
         if analysis_components.grabbed_two and analysis_components.frame_two is None:
             analysis_components.retrieveTwo()
+
         if not done:
-            opFunc(analysis_components,ranges,compare_args)
+            if debugger is None or not debugger.invalidMask:
+                opFunc(analysis_components,ranges,compare_args)
     finally:
+        file_to_remove = analysis_components.writer.filename if analysis_components.writer.h_file is not None else None
         analysis_components.vid_one.release()
         analysis_components.vid_two.release()
         analysis_components.writer.close()
         arguments.update(compare_args)
+        if debugger is not None and debugger.invalidMask:
+            if file_to_remove is not None:
+                os.remove(file_to_remove)
+            raise ValueError('mask generation completed in invalid state, hdf5 fragment deleted.')
+
     if analysis_components.one_count == 0:
         if os.path.exists(fileOne):
-            raise ValueError(
-                'Mask Computation Failed to a read video {}.  FFMPEG and OPENCV may not be installed correctly or the videos maybe empty.'.format(fileOne))
+            raise ValueError('Mask Computation Failed to a read video {}.  '
+                             'FFMPEG and OPENCV may not be installed correctly '
+                             'or the videos maybe empty.'.format(fileOne))
         else:
-            raise ValueError(
-                'Mask Computation Failed to a read video {}.  File Missing'.format(
-                    fileOne))
+            raise ValueError('Mask Computation Failed to a read video {}.  File Missing'.format(fileOne))
     return ranges,[]
 
 def __get_video_frame(video, frame_time):

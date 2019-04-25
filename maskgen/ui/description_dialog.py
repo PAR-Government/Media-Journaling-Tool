@@ -2312,6 +2312,8 @@ class MaskDebuggerUI(Toplevel):
         self.total_frames = int(self.debugger.analysis_components.time_manager.getExpectedEndFrameGiveRate(rate=self.debugger.analysis_components.fps,
                                                                                                        defaultValue=video_total_frames))
         self.hist = None
+        self.writing = BooleanVar()
+        self.writing.set(FALSE if self.debugger.invalidMask else TRUE)
         Toplevel.__init__(self, master=master)
         self.transient(master=master)
         self.initial_focus = self.body(master=self)
@@ -2340,13 +2342,11 @@ class MaskDebuggerUI(Toplevel):
         self.frame_select = IntEntry(master=self, label='Generate To: ',
                                      initial_value=self.debugger.analysis_components.one_count,
                                      range=(self.debugger.analysis_components.one_count, self.total_frames))
-        self.frame_select.entry.config(state=DISABLED if self.debugger.invalidMask else NORMAL)
+        self.preview_mode = Checkbutton(master=self.frame_select, text='Write Mask File', variable=self.writing,
+                                        state=DISABLED if self.debugger.invalidMask else NORMAL,
+                                        command= self.toggle_mask_writing)
         if self.debugger.invalidMask:
-            self.invalid_label = Label(master=self.frame_select, text='Mask is now invalid due to changing parameters '
-                                                                      'after generation had begun.\n exit and generate '
-                                                                      'mask from the beginning. The new parameters have '
-                                                                      'been saved, and \'continue\' will regenerate the '
-                                                                      'current frame.')
+            self.invalid_label = Label(master=self.frame_select, text='Mask is now invalid and will not be set.')
         else:
             self.invalid_label = None
         self.frame_limit = Label(master=self.frame_select, text='/{}'.format(self.total_frames))
@@ -2382,6 +2382,7 @@ class MaskDebuggerUI(Toplevel):
         self.frame_limit.grid(row=row+1, column=2, sticky=W)
         if self.invalid_label is not None:
             self.invalid_label.grid(row= row+1, column=3, sticky=W)
+        self.preview_mode.grid(row=row+1, column=4, sticky=E)
         self.generate.grid(row=0, column=0, padx=5)
         self.cancel.grid(row=0, column=2, padx=5)
         self.buttons_frame.grid(row=row + 3, column= column, columnspan=3, sticky=S)
@@ -2393,11 +2394,12 @@ class MaskDebuggerUI(Toplevel):
 
         if self.parametersChanged():
             self.frame_select.set(self.debugger.analysis_components.one_count)
-            self.frame_select.entry.config(state='readonly')
-            if self.debugger.analysis_components.one_count > 1:
-                self.debugger.invalidMask = True
+            self.frame_select.entry.config(state='readonly')#lock into regenerating the frame.
+            self.writing.set(FALSE)
+            self.preview_mode.config(state=DISABLED)
         elif not self.debugger.invalidMask:
-            self.frame_select.entry.config(state=NORMAL)
+            self.frame_select.entry.config(state=NORMAL) #unlock
+            self.preview_mode.config(state=NORMAL)
 
     def parametersChanged(self):
         if len(self.debugger.argvalues) != len(self.debugger.compare_args):
@@ -2408,8 +2410,13 @@ class MaskDebuggerUI(Toplevel):
                     return True
         return False
 
+    def toggle_mask_writing(self):
+        self.debugger.invalidMask = not self.writing.get()
+
     def apply(self, result):
         if self.parametersChanged():
+            if self.debugger.analysis_components.one_count > 1:
+                self.debugger.invalidMask = True #invalidate the mask
             self.debugger.compare_args.update(self.debugger.argvalues)
             valid_args = self.op.mandatoryparameters.keys()
             valid_args.extend(self.op.optionalparameters.keys())
@@ -2427,8 +2434,9 @@ class MaskDebuggerUI(Toplevel):
             self.scModel._save_group(self.mod.operationName)
             self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
             self.scModel.save()
+
+        self.debugger.frames_to_generate = int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all'
         self.result = {'message': result,
-                       'generate to': int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all',
                        'arguments': self.debugger.compare_args}
         self.withdraw()
         self.update_idletasks()

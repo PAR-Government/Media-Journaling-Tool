@@ -21,12 +21,19 @@ class MaskDebugger:
         self.master_ui = master_ui
         self.scModel = scModel
         self.analysis_components = None
-        #self.compare_args = None
+        self.compare_args = None
         self.im_one = None
         self.im_two = None
         self.mask_analysis = {}
         self.invalidMask = False
+        self.generated_frames = 0
+        self.frames_to_generate = 'all'
 
+    def has_reached_debug_frame(self):
+        if self.frames_to_generate == 'all':
+            return False
+        else:
+            return self.generated_frames + 1 >= self.frames_to_generate
 
     def __call__(self, analysis_components, im_one, im_two, compare_args, mask_analysis):
         """
@@ -39,7 +46,6 @@ class MaskDebugger:
         """
         from maskgen.ui.description_dialog import MaskDebuggerUI
         self.analysis_components = analysis_components
-
         self.compare_args = compare_args
         self.argvalues = deepcopy(compare_args) if compare_args is not None else {}
         self.im_one = im_one
