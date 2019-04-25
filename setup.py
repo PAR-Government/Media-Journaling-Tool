@@ -22,7 +22,7 @@ setup(name='maskgen',
                         'bitstring', 'awscli>=1.10.66', 'boto3>=1.3.1', 'numpy>=1.13.1,<1.16.0', 'h5py>=2.6.0',
                         'pydot>=1.2.3,<1.4.0', 'graphviz>=0.8', 'pygraphviz>=1.3.1', 'rawpy>=0.10.1', 'cachetools',
                         'requests', 'matplotlib>=2.0.0,<=2.3', 'pandas>=0.19.2,<0.21.0', 'wave', 'pypng', 'numpngw', 
-                        'shapely', 'wrapt', 'PyPDF2>=1.26.0', 'httplib2>=0.11.3', 'psutil','pydub'],
+                        'shapely', 'wrapt', 'PyPDF2>=1.26.0', 'httplib2>=0.11.3', 'psutil','pydub', 'numba'],
       # temp removed pyssl require
       test_requires=['python-pptx'],
       entry_points=

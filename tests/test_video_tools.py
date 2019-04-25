@@ -1670,8 +1670,9 @@ class TestVideoTools(TestSupport):
                                                          startSegment=None,
                                                          endSegment=None,
                                                          analysis=analysis,
-                                                         alternateFunction=None,
-                                                         arguments={})
+                                                         arguments={'aggregate':'sum',
+                                                                   'minimum threshold':1,
+                                                                    'smoothing': 0})
         self.assertTrue(len(result_noise1) >= 1)
         self.assertEqual(
             video_tools.get_end_frame_from_segment(result_noise1[0]) - video_tools.get_start_frame_from_segment(
@@ -1686,7 +1687,9 @@ class TestVideoTools(TestSupport):
                                                          endSegment=None,
                                                          analysis=analysis,
                                                          alternateFunction=video_tools.detectCompare,
-                                                         arguments={})
+                                                         arguments={'aggregate': 'sum',
+                                                                    'minimum threshold': 1,
+                                                                    'smoothing': 0})
         self.assertTrue(len(result_noise2) >= 1)
         self.assertEqual(
             video_tools.get_end_frame_from_segment(result_noise2[0]) - video_tools.get_start_frame_from_segment(
