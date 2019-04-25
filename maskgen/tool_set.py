@@ -2274,12 +2274,18 @@ def mediatedCompare(img_one, img_two, arguments={}):
             mask = np.mean(diff, 2)
             bins = 256
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
-    hist = moving_average(hist,n=smoothing)  # smooth out the histogram
-    minima = signal.argrelmin(hist, order=2)  # find local minima
-    if minima[0].size == 0 or minima[0][0] > bins/2:  # if there was no minima, hardcode
+    if smoothing > 0:
+        hist = moving_average(hist,n=smoothing)  # smooth out the histogram
+        minima = signal.argrelmin(hist, order=2)  # find local minima
+        size = minima[0].size
+        minima =  minima[0][0] if size > 0 else 0
+    else:
+        size = 0
+        minima = min_threshold
+    if size == 0 or minima > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima[0][0])  # Use first minima
+        threshold = max(min_threshold,minima)  # Use first minima
 
     threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold

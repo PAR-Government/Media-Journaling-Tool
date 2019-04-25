@@ -103,7 +103,8 @@ class TestScenarioModel(TestSupport):
       scModel.gopLoader.getOperationWithGroups = Mock(return_value = Operation(name='test', category='test'))
       scModel.getImageAndName = get_image
       mask, analysis, errors = tool.compareImages('a', 'b', scModel, 'Normalization',
-                                                arguments={},
+                                                arguments={'aggregate':'sum',
+                                                           'minimum threshold':1},
                                                 analysis_params={})
       self.assertEqual(0,len(errors))
       self.assertEqual((640,480),mask.size)
