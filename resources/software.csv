@@ -148,4 +148,5 @@ image,gan,Generative_Inpainting,20190107
 image,gan,Edge_Connect,20190108
 video,other,DeepFaceLab,20190301,
 both,other,FINDCamera++,1.1,
+both,other,Esri Arc Earth,1.0
 
