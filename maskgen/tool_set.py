@@ -612,7 +612,8 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
             return float(argValue)
         elif argDef['type'].startswith('int'):
             typeDef = argDef['type']
-            vals = [int(x) for x in typeDef[typeDef.rfind('[') + 1:-1].split(':')]
+            _match = re.search(r"\[(.*?)\]", typeDef).group(1)
+            vals = [int(x) for x in _match.split(':')]
             if int(argValue) < vals[0] or int(argValue) > vals[1]:
                 raise ValueError(argName + ' is not within the defined range')
             return int(argValue)
