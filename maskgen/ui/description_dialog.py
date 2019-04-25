@@ -115,7 +115,8 @@ def checkValue(name, value_type, value):
                     vals[1])
         elif value_type.startswith('int'):
             try:
-                vals = [int(x) for x in value_type[value_type.rfind('[') + 1:-1].split(':')]
+                _match = re.search(r"\[(.*?)\]", value_type).group(1)
+                vals = [int(x) for x in _match.split(':')]
             except ValueError:
                 vals = [-sys.maxint, sys.maxint]
             try:
@@ -304,7 +305,8 @@ def promptForParameter(parent, dir, argumentTuple, filetypes, initialvalue):
                                       parent=parent, initialvalue=initialvalue)
     elif argumentTuple[1]['type'].startswith('int'):
         v = argumentTuple[1]['type']
-        vals = [int(x) for x in v[v.rfind('[') + 1:-1].split(':')]
+        _match = re.search(r"\[(.*?)\]", v).group(1)
+        vals = [int(x) for x in _match.split(':')]
         res = tkSimpleDialog.askinteger("Set Parameter " + argumentTuple[0], argumentTuple[1]['description'],
                                         minvalue=vals[0], maxvalue=vals[1],
                                         parent=parent, initialvalue=initialvalue)
@@ -2136,26 +2138,27 @@ class VerticalScrolledFrame(Frame):
 
 class IntSliderWidget(Frame):
 
-    def __init__(self, master, textvariable=None, label='', min=0, max=30, inital_value=0, command=None, **options):
+    def __init__(self, master, textvariable=None, label='', range=(0,30), inital_value=0, command=None, **options):
         Frame.__init__(self, master=master)
-        self.range = (min, max)
+        self.range = range
         self.length = options['length'] if 'length' in options else None
         if textvariable is not None:
             self.Value = textvariable
         else:
-            self.Value = IntVar()
+            self.Value = StringVar()
             self.Value.set(inital_value)
-        self.entry = IntEntry(self, textvariable=textvariable, initial_value=inital_value, range=(min, max), callback=self.entryCB)
+        self.entry = IntEntry(self, textvariable=textvariable, initial_value=inital_value, range=self.range, callback=self.entryCB)
         self.updateCommand = command
-        options['from_'] = min
-        options['to'] = max
+        options['from_'] = range[0]
+        options['to'] = range[1]
         options['variable'] = self.Value
         options['command'] = self.updateEntry
+        options['showvalue'] = 0
         options['takefocus'] = 1
         if 'orient' not in options:
             options['orient'] = HORIZONTAL
         if 'tickinterval' not in options:
-            options['tickinterval'] = max
+            options['tickinterval'] = range[1]
         self.scale = Scale(master=self, **options)
         self.label = Label(master=self, text=label)
 
@@ -2174,10 +2177,10 @@ class IntSliderWidget(Frame):
         Frame.grid(self, **options)
 
     def entryCB(self, val):
-        if val.isdigit() and self.range[0] <= int(val) <= self.range[1]:
-            self.set(val)
-        else:
-            self.updateEntry()
+        try:
+            self.set(int(val) if val != '' else 0)
+        except ValueError:
+            pass
 
     def updateEntry(self, event=None):
         self.entry.set(str(self.get()))
@@ -2186,9 +2189,7 @@ class IntSliderWidget(Frame):
         return int(self.Value.get()) if self.Value.get() != '' else 0
 
     def set(self, value):
-        if value is str:
-            value = int(value) if value is not '' and value.isdigit() else 0
-        self.Value.set(value)
+        self.Value.set(value if value != '' else '0')
 
     def hide(self):
         self.grid_forget()
@@ -2211,7 +2212,6 @@ class IntEntry(Frame):
                            validatecommand= (self.register(self.validateEntry), '%P', '%V'),
                            validate='all')
 
-
     def grid(self, **options):
         row = getValue(options, 'row', 0)
         column = getValue(options, 'column', 0)
@@ -2220,19 +2220,15 @@ class IntEntry(Frame):
         Frame.grid(self, **options)
 
     def validateEntry(self, val, event=None):
-        valid = False
-        if val == '':
-            valid = True
+        is_digit = self.is_digit(val)
+        in_range = self.in_range(val)
+        whitelist = ['', '-']
+        valid = True
 
-        if val.isdigit():
-            if event == 'focusout' and self.range[0] - self.range[1] != 0:
-                valid = self.range[0] <= int(val) <= self.range[1]
-                if not valid:
-                    new_val = str(self.range[0]) if self.range[0] <= int(val) else self.range[1]
-                    self.entryValue.set(new_val)
-                    return False
-            else:
-                valid = True
+        if not is_digit and val not in whitelist:
+            valid = False
+        if not in_range and event == 'focusout':
+            self.correct_value()
 
         if valid is False:
             self.bell()
@@ -2242,12 +2238,31 @@ class IntEntry(Frame):
             self.callback(val)
         return valid
 
+    def in_range(self, val):
+        if not self.is_digit(val):
+            return False
+        return self.range[0] > val < self.range[1]
+
+    def is_digit(self, val):
+        try:
+            int(val)
+            return True
+        except ValueError:
+            return False
+
+    def correct_value(self):
+        if self.range[0] - self.range[1] != 0:
+            new_val = str(self.range[0]) if self.range[0] >= self.get() else self.range[1]
+            self.entryValue.set(new_val)
+
     def get(self):
         return int(self.entryValue.get()) if self.entryValue.get().isdigit() else 0
 
     def set(self, d):
         d = str(d)
-        if d.isdigit():
+        if d.isdigit() or d == '':
+            if d != '0':
+                d = d.lstrip('0')
             self.entryValue.set(d)
 
 
@@ -2585,8 +2600,8 @@ class PropertyFrame(VerticalScrolledFrame):
            elif prop.type.startswith('int'):
                if prop.type.endswith('slider'):
                    _match = re.search(r"\[(.*?)\]", prop.type).group(1)
-                   range = _match.split(':')
-                   widget = IntSliderWidget(master, textvariable=self.values[row], min=int(range[0]), max=int(range[1]), length=200)
+                   range = [int(x) for x in _match.split(':')]
+                   widget = IntSliderWidget(master, textvariable=self.values[row], range=range, length=200)
                else:
                    widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)

@@ -2950,8 +2950,8 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                     if frames_generated != 'all' and frames_to_generate == frames_generated + 1:
                         continue #regenerate this frame
                     break #move on to the next
-                elif 'stop' == result['stop']: #toss all
-                    return ranges,[]
+                elif 'stop' == result['message']: #toss all
+                    raise ValueError('mask generation stopped.')
 
             frames_generated += 1
             if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):

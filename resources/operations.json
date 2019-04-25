@@ -5063,7 +5063,8 @@
       },
       "transitions": [
         "zip.zip",
-        "video.zip"
+        "video.zip",
+        "audio.zip"
       ]
     },
     {
@@ -7088,6 +7089,7 @@
     {
       "category": "Transform",
       "name": "TransformShear",
+      "deprecated": true,
       "mandatoryparameters": {
         "Start Time": {
           "type": "frame_or_time",

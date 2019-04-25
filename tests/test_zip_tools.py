@@ -89,8 +89,8 @@ class TestZipTool(TestSupport):
         audio = zip_tools.AudioPositions(self.locateFile('zips/test.wav.zip'),fps=44100)
         self.assertEqual([0,893968,1783292],[int(p[0]*100) for p in audio.positions])
         self.assertEqual(['output-audio-1.wav','output-audio-2.wav','output-audio-3.wav'],[p[2] for p in audio.positions])
-        self.assertFalse(audio.validate_duration(self.locateFile('zips/output-audio-3.wav')))
-        self.assertTrue(audio.validate_duration(self.locateFile('zips/output-audio-3.wav'), 17832.92))
+        self.assertFalse(audio.validate_duration('output-audio-3.wav'))
+        self.assertEquals(int(audio.get_total_duration()), 35665)
 
     def test_audio_with_positions(self):
         with open('positions.csv', 'w') as fp:
