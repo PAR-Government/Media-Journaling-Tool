@@ -1673,6 +1673,7 @@ class VidAnalysisComponents:
         self.writer = tool_set.GrayBlockWriter(name_prefix, self.vid_one.get(cv2api_delegate.prop_fps))
         self.time_manager = time_manager
 
+
     def write(self, mask, frame_time, frame):
         m = 255-mask
         self.writer.write(m, frame_time, frame)
@@ -1725,9 +1726,120 @@ class VidAnalysisComponents:
             ret_two, frame_two = self.retrieveTwo()
         return ret_one, frame_one, ret_two, frame_two
 
+    def isOpened(self):
+        return self.vid_one.isOpened() and self.vid_two.isOpened()
 
 
+class Diff_Controller:
+    analysis_components = None
 
+    def __call__(self, invert=False, arguments={}, alternativeFunction=None, convertFunction=None):
+        dump_dir = getValue(arguments, 'dump directory', None)
+        while self.analysis_components.isOpened():
+            ret = self.analysis_components.grab()
+            if not ret or self.analysis_components.time_manager.isPastTime():
+                break
+            if self.analysis_components.time_manager.isBeforeTime():
+                continue
+            ret_one, frame_one, ret_two, frame_two = self.analysis_components.retrieve()
+
+            if dump_dir:
+                from cv2 import imwrite
+                imwrite(os.path.join(dump_dir, 'one_{}.png'.format(self.analysis_components.time_manager.frameSinceBeginning)), frame_one)
+                imwrite(os.path.join(dump_dir, 'two_{}.png'.format(self.analysis_components.time_manager.frameSinceBeginning)), frame_two)
+
+            mask, analysis, error = tool_set.createMask(ImageWrapper(frame_one),
+                                                        ImageWrapper(frame_two),
+                                                        invert=invert,
+                                                        arguments=arguments,
+                                                        alternativeFunction=alternativeFunction,
+                                                        convertFunction=convertFunction)
+            self.analysis_components.mask = mask.to_array()
+            yield mask
+
+    def cleanup(self):
+        self.analysis_components.vid_one.release()
+        self.analysis_components.vid_two.release()
+        self.analysis_components.writer.close()
+
+class MaskDebugger(Diff_Controller):
+    analysis_components = None
+    mask_analysis = None
+    compare_args = None
+    argvalues = None
+    invalidMask = False
+    generated_frames = 0
+    frames_to_generate = 1
+    frame_to = None
+
+    def __init__(self, master_ui, scModel):
+        self.master_ui = master_ui
+        self.scModel = scModel
+
+    def has_reached_debug_frame(self):
+        return False if self.frames_to_generate == 'all' else self.generated_frames + 1 >= self.frames_to_generate
+
+    def openPreviewUI(self):
+        from maskgen.ui.description_dialog import MaskDebuggerUI
+        return MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self).result
+
+    def update_args(self):
+        for k, v in self.compare_args.items():
+            if k not in self.argvalues:
+                self.compare_args.pop(k)
+        self.compare_args.update(self.argvalues)
+
+    def __call__(self, invert=False, arguments={}, alternativeFunction=None, convertFunction=None):
+        from copy import deepcopy
+        self.compare_args = arguments #edge
+        self.argvalues = deepcopy(arguments) if arguments is not None else {} #working copy
+        while self.analysis_components.isOpened():
+            ret = self.analysis_components.grab()
+
+            if not ret or self.analysis_components.time_manager.isPastTime():
+                break
+            if self.analysis_components.time_manager.isBeforeTime() or (not self.has_reached_debug_frame() and
+                                                                        self.invalidMask):
+                self.generated_frames += 1
+                continue
+            ret_one, frame_one, ret_two, frame_two = self.analysis_components.retrieve()
+
+            while True:
+
+                mask, self.mask_analysis, error = tool_set.createMask(ImageWrapper(frame_one),
+                                                            ImageWrapper(frame_two),
+                                                            invert=invert,
+                                                            arguments=self.compare_args,
+                                                            alternativeFunction=alternativeFunction,
+                                                            convertFunction=convertFunction)
+                self.analysis_components.mask = mask.to_array()
+                self.frame_to = ImageWrapper(cv2.cvtColor(frame_two, cv2.COLOR_BGR2RGB))
+
+                if self.has_reached_debug_frame():
+                    result = self.openPreviewUI()
+                    self.compare_args = result['arguments']
+                    message = result['message']
+                    if message == 'continue':
+                        if self.has_reached_debug_frame():
+                            continue
+                        break
+                    elif message == 'stop':
+                        raise ValueError('Mask Generation Aborted.')
+                else:
+                    break
+            self.generated_frames += 1
+            if not self.invalidMask:
+                yield mask
+        if self.invalidMask:
+            self.cleanup()
+
+    def cleanup(self):
+        file_to_remove = self.analysis_components.writer.filename if self.analysis_components.writer.h_file is not None else None
+        Diff_Controller.cleanup(self)
+        if self.invalidMask:
+            if file_to_remove is not None:
+                os.remove(file_to_remove)
+            raise ValueError('mask generation completed in invalid state, hdf5 fragment deleted.')
 
 def default_compare(x,y,args):
     return np.abs(x - y)
@@ -2894,70 +3006,23 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
                                    alternativeFunction=compare_function,
                                    arguments=arguments)[0].to_array()
 
-    analysis_components = VidAnalysisComponents(fileOne, fileTwo, name_prefix, time_manager, arguments)
+    analysis_components = VidAnalysisComponents(fileOne, fileTwo, name_prefix, time_manager, arguments) #Open vids
     ranges = list()
-    compare_args = copy.copy(arguments) if arguments is not None else {}
-    dump_dir = getValue(arguments, 'dump directory', None)
-    if debugger != None:
-        debugger.compare_args = compare_args
-        debugger.frames_to_generate = getValue(arguments, 'generate_frames', 'all')
+    #compare_args = copy.copy(arguments) if arguments is not None else {}
+    compare_args = arguments
+    controller = Diff_Controller() if debugger is None else debugger
+    controller.analysis_components = analysis_components
     try:
         done = False
-        while (analysis_components.vid_one.isOpened() and analysis_components.vid_two.isOpened()):
-            ret = analysis_components.grab()
-            if not ret:
-                break
-            if time_manager.isBeforeTime() or (debugger is not None and
-                                               debugger.invalidMask and not
-                                               debugger.has_reached_debug_frame()):
-                debugger.generated_frames += 1
-                continue
-            if time_manager.isPastTime():
-                break
-            ret_one, frame_one, ret_two, frame_two = analysis_components.retrieve()
+        for mask in controller(invert= False,
+                               arguments=compare_args,
+                               alternativeFunction=compare_function,
+                               convertFunction=convert_function):
 
-            if dump_dir:
-                from cv2 import imwrite
-                imwrite(os.path.join(dump_dir,'one_{}.png'.format(time_manager.frameSinceBeginning)), frame_one)
-                imwrite(os.path.join(dump_dir,'two_{}.png'.format(time_manager.frameSinceBeginning)), frame_two)
-
-            if frame_one.shape != frame_two.shape:
+            if analysis_components.frame_one.shape != analysis_components.frame_two.shape:
                 return FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(), []
-
-            while True:
-
-                mask, analysis, error = tool_set.createMask(ImageWrapper(frame_one),
-                                                               ImageWrapper(frame_two),
-                                                               False,
-                                                               convertFunction=convert_function,
-                                                               alternativeFunction=compare_function,
-                                                               arguments=compare_args)
-                analysis_components.mask = mask.to_array()
-
-                if debugger is None or not debugger.has_reached_debug_frame():
-                    break
-
-                result = debugger(analysis_components, im_one=ImageWrapper(cv2.cvtColor(frame_one, cv2.COLOR_BGR2RGB)),
-                                  im_two=ImageWrapper(cv2.cvtColor(frame_two, cv2.COLOR_BGR2RGB)),
-                                  compare_args= compare_args,
-                                  mask_analysis= analysis)
-
-                compare_args.update(result['arguments'])
-
-                if 'continue' == result['message']:
-                    if debugger.has_reached_debug_frame():
-                        continue #regenerate this frame
-                    break #move on to the next
-                elif 'stop' == result['message']: #toss all
-                    raise ValueError('mask generation aborted.')
-
-            if debugger is not None:
-                debugger.generated_frames += 1
-
-            if debugger is None or (debugger is not None and not debugger.invalidMask):
-                if not opFunc(analysis_components,ranges,compare_args,compare_function=compare_func):
-                    done = True
-                    break
+            if not opFunc(analysis_components, ranges, compare_args, compare_function=compare_func):
+                done = True
 
         analysis_components.mask = 0
         if analysis_components.grabbed_one and analysis_components.frame_one is None:
@@ -2966,18 +3031,10 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
             analysis_components.retrieveTwo()
 
         if not done:
-            if debugger is None or not debugger.invalidMask:
-                opFunc(analysis_components,ranges,compare_args)
+            opFunc(analysis_components,ranges,compare_args)
+
     finally:
-        file_to_remove = analysis_components.writer.filename if analysis_components.writer.h_file is not None else None
-        analysis_components.vid_one.release()
-        analysis_components.vid_two.release()
-        analysis_components.writer.close()
-        arguments.update(compare_args)
-        if debugger is not None and debugger.invalidMask:
-            if file_to_remove is not None:
-                os.remove(file_to_remove)
-            raise ValueError('mask generation completed in invalid state, hdf5 fragment deleted.')
+        controller.cleanup()
 
     if analysis_components.one_count == 0:
         if os.path.exists(fileOne):

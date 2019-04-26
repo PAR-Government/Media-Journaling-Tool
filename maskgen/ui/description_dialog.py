@@ -2288,7 +2288,7 @@ class MaskDebuggerUI(Toplevel):
 
     def layout_image_frames(self):
         from PIL import Image
-        raw = self.debugger.im_two if self.debugger.im_two is not None else Image.new("RGB", (350, 350), "black")
+        raw = self.debugger.frame_to if self.debugger.frame_to is not None else Image.new("RGB", (350, 350), "black")
         raw = imageResizeRelative(raw, (350,350), raw.size)
         mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
             self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
@@ -2296,7 +2296,7 @@ class MaskDebuggerUI(Toplevel):
         overlay = mask.overlay(raw) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
         return [ImageTk.PhotoImage(raw.toPIL()), ImageTk.PhotoImage(mask.toPIL()), ImageTk.PhotoImage(overlay.toPIL())]
 
-    def __init__(self, master, scModel, debugger=None):
+    def __init__(self, master, scModel, debugger):
 
         self.scModel = scModel
         self.debugger = debugger
@@ -2417,14 +2417,14 @@ class MaskDebuggerUI(Toplevel):
         if self.parametersChanged():
             if self.debugger.analysis_components.one_count > 1:
                 self.debugger.invalidMask = True #invalidate the mask
-            self.debugger.compare_args.update(self.debugger.argvalues)
             valid_args = self.op.mandatoryparameters.keys()
             valid_args.extend(self.op.optionalparameters.keys())
-            self.debugger.compare_args = {k: v for k, v in self.debugger.compare_args.iteritems() if k != 'inputmaskname' and k in valid_args}
+            self.debugger.argvalues = {k: v for k, v in self.debugger.argvalues.iteritems() if k != 'inputmaskname' and k in valid_args}
+            self.debugger.update_args()
             self.scModel.G.update_edge(self.scModel.start, self.scModel.end,
                                op=self.mod.operationName,
                                description=self.mod.additionalInfo,
-                               arguments=self.debugger.compare_args,
+                               arguments= self.debugger.argvalues,
                                recordMaskInComposite=self.mod.recordMaskInComposite,
                                semanticGroups=self.mod.semanticGroups,
                                editable='no' if (self.mod.software is not None and self.mod.software.internal) or self.mod.operationName == 'Donor' else 'yes',

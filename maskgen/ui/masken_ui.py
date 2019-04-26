@@ -48,7 +48,6 @@ import wrapt
 from maskgen.ui.QAExtreme import QAProjectDialog
 from maskgen.qa_logic import ValidationData
 from maskgen.notifiers import getNotifier
-from maskgen.ui.ui_tools import MaskDebugger
 
 
 """
@@ -1094,6 +1093,7 @@ class MakeGenUI(Frame):
 
     def createWidgets(self):
         from functools import partial
+        from maskgen.video_tools import MaskDebugger
         self._setTitle()
 
         menubar = Menu(self)
