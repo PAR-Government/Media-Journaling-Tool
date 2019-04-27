@@ -1991,7 +1991,7 @@ def compareChange(vidAnalysisComponents, ranges=list(), arguments={},compare_fun
         update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
 
 
-def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis=dict()):
+def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={},analysis=dict(), debugger=None):
     """
     Determine Crop region for analysis
     :param fileOne:
@@ -2036,7 +2036,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,anal
                             frames=get_frames_from_segment(entireVideoMaskSet[0]))
     return [change],[]
 
-def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={},debugger=None):
+def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={},debugger=None):
     """
 
     :param fileOne:
@@ -3015,7 +3015,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     try:
         done = False
         for mask in controller(invert= False,
-                               arguments=compare_args,
+                               arguments=compare_args if compare_args is not None else {},
                                alternativeFunction=compare_function,
                                convertFunction=convert_function):
 
