@@ -2269,6 +2269,7 @@ class IntEntry(Frame):
 class MaskDebuggerUI(Toplevel):
 
     def build_arginfo(self):
+        args = ['gain', 'kernel', 'aggregate', 'minimum threshold', 'morphology order']
         arginfo = []
         op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
         if op is not None:
@@ -2284,7 +2285,7 @@ class MaskDebuggerUI(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 arginfo.append((k, v))
-        return arginfo
+        return [(k,v) for k,v in arginfo if k in args]
 
     def layout_image_frames(self):
         from PIL import Image
@@ -2293,8 +2294,10 @@ class MaskDebuggerUI(Toplevel):
         mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
             self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
         mask = imageResizeRelative(mask, (350,350), otherImDim=raw.size)
-        overlay = mask.overlay(raw) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
-        return [ImageTk.PhotoImage(raw.toPIL()), ImageTk.PhotoImage(mask.toPIL()), ImageTk.PhotoImage(overlay.toPIL())]
+        mask_alpha = mask.toPIL()
+        overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
+        overlay.paste(mask_alpha, mask=mask_alpha.convert('L'))
+        return [ImageTk.PhotoImage(raw.toPIL()), ImageTk.PhotoImage(mask.toPIL()), ImageTk.PhotoImage(overlay)]
 
     def __init__(self, master, scModel, debugger):
 

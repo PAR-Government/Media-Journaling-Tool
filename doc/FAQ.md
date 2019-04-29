@@ -6,7 +6,36 @@ TBD
 
 ### Video Mask Tuning
 
-TBD
+####Can I rewind the Mask Debugger to a previous frame?
+Not currently. You must exit the Debugger and open it again to look at the mask for a particular frame.
+
+####I canceled out of the Mask Debugger and now the edge is missing a mask file on validation.
+If you begin writing to the mask file with the debugger and then cancel or close it, The mask file will be incomplete, 
+and so be deleted automatically and noted in the log.
+
+#### How should I read the histogram in the Mask Debugger?
+
+The histogram represents the values in the difference mask from 0 (no difference) to 255 (complete difference.)
+The minima in red is the value where everything below it becomes 0 and everything above it becomes 255.
+Increasing the gain will move the threshold further to the right, decreasing will pull it to the left.
+
+#### What does Minimum Threshold do?
+
+The threshold is the difference value above which a pixel is determined to be changed, and below which is determined not.
+Setting a minimum to this value will prevent the threshold from being automatically placed on the histogram
+ any further to the left than the minimum.
+
+#### My Mask has a large amount of noise
+
+Try increasing the kernel, and/or using the open:close morphology order.
+You may also want to adjust the gain according to where the threshold was placed in the histogram. 
+
+For manipulations where automatic generation is especially noisy, features significant flashing, or is inaccurate,
+consider supplying a user-generated substitute mask via the videoinputmask argument in the edge edit dialog.
+
+#### My Mask has "islands" that missed detection inside a larger area that was detected.
+
+Try the close:open morphology order, a smaller kernel, and/or increase the gain.
 
 # BATCH
 
