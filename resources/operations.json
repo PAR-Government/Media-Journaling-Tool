@@ -3462,6 +3462,16 @@
             "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
         }
       },
       "rules": [
@@ -5351,6 +5361,16 @@
             "sum"
           ],
           "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
         }
       },
       "rules": [
