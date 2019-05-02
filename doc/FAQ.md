@@ -16,7 +16,7 @@ and so be deleted automatically and noted in the log.
 #### How should I read the histogram in the Mask Debugger?
 
 The histogram represents the values in the difference mask from 0 (no difference) to 255 (complete difference.)
-The minima in red is the value where everything below it becomes 0 and everything above it becomes 255.
+The threshold in red is the value where everything below it becomes 0 and everything above it becomes 255.
 Increasing the gain will move the threshold further to the right, decreasing will pull it to the left.
 
 #### What does Minimum Threshold do?

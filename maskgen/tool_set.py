@@ -2296,7 +2296,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[1]], kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
-    return mask, {'minima': threshold, 'hist': hist}
+    return mask, {'minima': threshold, 'hist': hist, 'diff':diff}
 
 
 def getExifDimensionsFromData(exif_meta, crop=False):
