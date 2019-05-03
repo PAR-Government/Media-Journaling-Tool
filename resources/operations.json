@@ -4503,10 +4503,6 @@
         "Image Rotated": {
           "type": "yesno",
           "description": "Did the software rotate the image when removing the EXIF Orientation?"
-        },
-        "Lens Distortion Applied": {
-          "type": "yesno",
-          "description": "Len Distortion Algorithms Applied?"
         }
       },
       "rules": [
@@ -5063,8 +5059,8 @@
       },
       "transitions": [
         "zip.zip",
-        "video.zip",
-        "audio.zip"
+        "audio.zip",
+        "video.zip"
       ]
     },
     {
