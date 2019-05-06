@@ -115,11 +115,14 @@ class YuvHistogramAnalytic:
     def export(self, figure, exportfilename):
         figure.savefig(exportfilename)
 
+    def _produce_hist(self,filename):
+        channels = openImageFile(filename).convert('YCbCr').to_array()
+        return np.histogram(channels[:, :, 0], bins=range(256))
+
     def _get_figure(self, filename):
         from matplotlib.figure import Figure
         import pandas as pd
-        channels = openImageFile(filename).convert('YCbCr').to_array()
-        hist = np.histogram(channels[:, :, 0], bins=range(256))
+        hist = self._produce_hist(filename)
         f = Figure(figsize=(5, 5), dpi=100)
         ax = f.add_subplot(111)
         df = pd.DataFrame(hist[0])
@@ -139,12 +142,22 @@ class YuvHistogramAnalytic:
         canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         return f
 
+class AllHistView(YuvHistogramAnalytic):
+
+    def screenName(self):
+        return "Histogram"
+
+    def _produce_hist(self,filename):
+        channels = openImageFile(filename).to_array()
+        return np.histogram(channels, bins=range(np.max(channels) + 2), )
+
 # Order YuvHistogramAnalytic first, as it is relatively lightweight
 customAnalytics = [('allyuvhist', YuvHistogramAnalytic()),
                    ('ela',ElaAnalytic()),
                    ('pca', PCAAnalytic()),
                    ('dcthist', DCTView()),
-                   ('fftdcthist', FFT_DCTView())]
+                   ('fftdcthist', FFT_DCTView()),
+                    ('allhist', AllHistView())]
 customAnalytics = collections.OrderedDict(customAnalytics)
 
 def loadAnalytics():
