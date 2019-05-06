@@ -252,11 +252,14 @@ def _fixNoSoftware(scModel, gopLoader):
 def _fix_Inpainting_SoftwareName(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
+        sn = getValue(edge, 'softwareName', '')
         if edge['op'] == 'PasteSampled' \
                 and getValue(edge, 'tool', '') == 'PostInpaint.py' \
-                and getValue(edge, 'softwareName', '') == '':
+                and sn == '':
             edge['softwareName'] = 'UoMInPainting'
             edge['softwareVersion'] = '2.8'
+        elif sn == 'SyntheticVidSpec':
+            edge['softwareName'] = 'Esri Arc Earth'
 
 def _fixSoftwareVersion(scModel, gopLoader):
 
