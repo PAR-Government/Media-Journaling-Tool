@@ -3069,7 +3069,15 @@
       "category": "Filter",
       "name": "CreativeFilter",
       "mandatoryparameters": {
-      },
+        "Filter Type": {
+          "type": "list",
+          "values": [
+            "Oil Paint",
+            "Ripple"
+          ],
+            "description": "Please include details in the general description."
+       }
+    },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -7219,7 +7227,18 @@
           "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }
+        },
+        "Warp Type": {
+          "type": "list",
+          "values": [
+            "Liquify",
+            "FaceLiquify",
+            "Warp",
+            "PuppetWarp",
+            "Smudge"
+          ],
+            "description": "Please include details in the general description."
+       }
       },
       "rules": [
         "checkSize",
