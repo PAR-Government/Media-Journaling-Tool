@@ -884,7 +884,8 @@
 		},
 		"TransformWarp": {
 			"images": [
-				"operationSlides/transform.png"
+				"operationSlides/transform.png",
+                "operationSlides/transform_2.png"
 			]
 		},
 		"TransformDownSample": {
