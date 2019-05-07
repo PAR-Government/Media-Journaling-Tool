@@ -5,31 +5,9 @@
 # Copyright (c) 2016 PAR Government
 # All rights reserved.
 #==============================================================================
-import numpy as np
 from math import log
 import numpy as np
-import scipy.ndimage.filters as fi
 
-
-def packImgBits2(img, max_bits=5):
-    """
-    :param img:
-    :param bits:
-    :return:
-    @type img: numpy.ndarray
-    @type bits: int
-    """
-    hist, bin_edges = np.histogram(img, bins=range(np.max(img) + 2), )
-
-    # shift the image histogram to th left to remove unused bins
-    # find the second histogram bin that has more than 10 values
-    # and subtract it from every pixel value
-    adjustment_amount = np.argwhere(hist > 10)[1][0]
-    bits = int(max(0,min(log(adjustment_amount)/log(2) + 1,max_bits)))
-    img = img - adjustment_amount
-    # drop the <bits> number of LSBs
-    img = np.right_shift(img, bits)
-    return img
 
 def packImgBits(img, max_bits=5):
     """
@@ -40,16 +18,14 @@ def packImgBits(img, max_bits=5):
     @type bits: int
     """
     hist, bin_edges = np.histogram(img, bins=range(np.max(img) + 2), )
-
     # shift the image histogram to th left to remove unused bins
     # find the second histogram bin that has more than 10 values
     # and subtract it from every pixel value
     adjustment_amount = np.argwhere(hist > 10)[1][0]
     bits = int(max(0,min(log(adjustment_amount)/log(2) + 1,max_bits)))
-    #img = img - adjustment_amount
+    img = img - adjustment_amount
     # drop the <bits> number of LSBs
     img = np.right_shift(img, bits)
-    img = np.left_shift(img, bits)
     return img
 
 def get_gauss_kernel(size=3,sigma=1):

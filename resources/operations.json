@@ -4496,7 +4496,7 @@
       "mandatoryparameters": {
          "Depth": {
            "type":"list",
-           "values": [8,12,16,24,32],
+           "values": ["8","12","16","24","32"],
            "description": "Bit Depth Used"
          }
        }
