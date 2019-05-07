@@ -151,6 +151,21 @@ class AllHistView(YuvHistogramAnalytic):
         channels = openImageFile(filename).to_array()
         return np.histogram(channels, bins=range(np.max(channels) + 2), )
 
+    def _get_figure(self, filename):
+        from matplotlib.figure import Figure
+        import pandas as pd
+        hist = self._produce_hist(filename)
+        f = Figure(figsize=(5, 5), dpi=100)
+        ax = f.add_subplot(111)
+        df = pd.DataFrame(hist[0])
+        df.plot(kind='bar', legend=False, ax=ax, color=['b'] * 256)
+        new_ticks = np.linspace(1, len(hist[0]), num=32).astype(np.int)
+        ax.set_xticks(np.interp(new_ticks, df.index, np.arange(df.size)))
+        ax.set_xticklabels(new_ticks)
+        ax.set_xlabel('Intensity')
+        ax.set_ylabel('Frequency')
+        return f
+
 # Order YuvHistogramAnalytic first, as it is relatively lightweight
 customAnalytics = [('allyuvhist', YuvHistogramAnalytic()),
                    ('ela',ElaAnalytic()),
