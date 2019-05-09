@@ -2301,8 +2301,7 @@ class MaskDebuggerUI(Toplevel):
         mask_alpha = mask.toPIL()
         overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
         overlay.paste(mask_alpha, mask=mask_alpha.convert('L'))
-        return {'mask':ImageTk.PhotoImage(mask.toPIL()), 'source':ImageTk.PhotoImage(raw.toPIL()),
-                'overlay':ImageTk.PhotoImage(overlay), 'diff':ImageTk.PhotoImage(diff_img.toPIL())}
+        return {'overlay':ImageTk.PhotoImage(overlay), 'mask':ImageTk.PhotoImage(mask.toPIL()), 'source':ImageTk.PhotoImage(raw.toPIL())}
 
     def __init__(self, master, scModel, debugger):
 
@@ -2334,7 +2333,7 @@ class MaskDebuggerUI(Toplevel):
         self.wait_window(self)
 
     def body(self, master):
-        thresh = getValue(self.debugger.mask_analysis, 'minima', 1)
+        thresh = getValue(self.debugger.mask_analysis, 'threshold', 1)
         self.histogram = HistogramViewer(master=self,
                                          histogram=self.debugger.mask_analysis['hist'],
                                          highlights={'threshold':thresh})
@@ -2344,6 +2343,7 @@ class MaskDebuggerUI(Toplevel):
         images = zip(self.preview_frames, self.pil_images.items())
         self.image_widgets = [Label(master=image[0], image=image[1][1]) for image in images]
         [self.mask_preview.add(child=image[0], text=image[1][0]) for image in images]
+        self.mask_preview.select(self.mask_preview.tabs()[1])
         self.frame_select = IntEntry(master=self, label='Generate To: ',
                                      initial_value=self.debugger.analysis_components.one_count,
                                      range=(self.debugger.analysis_components.one_count, self.total_frames))

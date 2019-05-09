@@ -2276,7 +2276,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
     if smoothing > 0:
         hist = moving_average(hist,n=smoothing)  # smooth out the histogram
-        minima = signal.argrelmin(hist, order=2)  # find local minima
+        minima = signal.argrelmin(hist, order=1)  # find local minima
         size = minima[0].size
         minima =  minima[0][0] if size > 0 else 0
     else:
@@ -2296,7 +2296,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[1]], kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
-    return mask, {'minima': threshold, 'hist': hist, 'diff':diff}
+    return mask, {'threshold': threshold, 'hist': hist, 'diff':diff}
 
 
 def getExifDimensionsFromData(exif_meta, crop=False):
