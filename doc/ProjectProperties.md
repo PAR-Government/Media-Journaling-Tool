@@ -146,7 +146,7 @@ There are steps to finalizing a project:
 
 #### Project Properties
 
-Adds properties, not based on rules.  Instead, they set project level properties based on operation and parameter names.  These are *yesno* properties looking for the presence of edges withan operation.
+Adds properties, not based on rules.  Instead, they set project level properties based on operation and parameter names.  These are *yesno* properties looking for the presence of edges with an operation.
 
 #### Final Node Properties
 

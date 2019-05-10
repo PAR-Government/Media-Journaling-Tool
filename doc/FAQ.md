@@ -10,7 +10,7 @@ TBD
 
 # Empty and Global Masks
 
-Global mask is mask the affects a diffuse large part of an image.   Many operations are assumed global based on their 'generateMask' value.  Empty masks occur if the operation does not affect the image content  (meta-data only), the relevant remaining content is unchanged (e.g. Crop) or the operation was not recorded correctly.
+Global mask is a mask the affects a diffuse large part of an image.   Many operations are assumed global based on their 'generateMask' value.  Empty masks occur if the operation does not affect the image content  (meta-data only), the relevant remaining content is unchanged (e.g. Crop) or the operation was not recorded correctly.
 
 Some links include a 'global' value of 'yes' or 'no'.  These links are associated with operations that may be local or global (e.g Blur).
 

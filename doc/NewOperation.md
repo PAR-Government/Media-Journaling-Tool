@@ -8,8 +8,8 @@ Deciding to add a new operation is based on:
 
 1. Arguments required for capture.
 2. Validation rules.
-3.  Mask generation rules.
-4.  Probe/Composite Generation rules.
+3. Mask generation rules.
+4. Probe/Composite Generation rules.
 
 # STEPS
 
@@ -23,7 +23,7 @@ Comparison functions live in tool_set or video_tools.
 
 #### Image and Frame Comparison Signature
 
-For imaeges, masks use 0 to represent change.  Frames are inverted in comparison and then flipped prior to write to HDF5.  
+For images, masks use 0 to represent change.  Frames are inverted in comparison and then flipped prior to writing them to HDF5.  
 
 ```
 def xCompare(img_original, img_manipulated,  arguments=dict()):
@@ -52,7 +52,7 @@ def x_analysis(analysis, img_original, img_manipulated, mask=None, linktype=None
     """
 ```
 
-Each analysis operation is function, defined by the
+Each analysis operation is a function, defined by the
 *package.module.function name*. The function is defined with the
 following parameters:
 
