@@ -2585,7 +2585,7 @@
         }
       },
       "analysisOperations": [
-        "maskgen.tool_set.localTransformAnalysis"
+        "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Alter the Color Temperature of an image on a Yellow Blue Scale.",
       "includeInMask": {
@@ -6560,7 +6560,7 @@
         "tolerance": 0.0001
       },
       "analysisOperations": [
-        "maskgen.tool_set.localTransformAnalysis"
+        "maskgen.tool_set.globalTransformAnalysis"
       ],
       "description": "Embed text into an Image",
       "includeInMask": {

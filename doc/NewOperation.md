@@ -17,7 +17,7 @@ Deciding to add a new operation is based on:
 
 Comparison and Mask Generation collectively determine how two media items--before and after manipulation--are different, generating masks and change meta-data.
 
-For example, Crop Resize is specialty operation found in some tools.  The sofware crops and image and restores the crop to the original size of the image using some interpolation.  It is one operation with 'special sauce'.   It cannot be grouped with the individual Crop and Resize operations since the intermediate crop image is missing and the actual location of the crop is not immmediatly known.  In this case, the comparison function resizes the original image back to the crop size, as gathered from the manipulation sofware tool and recorded by the user.  The next step is to find the location of the crop in the original image.  Finally a mask of the crop region only is created, showing the amount of change that occurred during interpolation.   
+For example, Crop Resize is a specialty operation found in some tools.  The sofware crops and image and restores the crop to the original size of the image using some interpolation.  It is one operation with 'special sauce'.   It cannot be grouped with the individual Crop and Resize operations since the intermediate crop image is missing and the actual location of the crop is not immmediatly known.  In this case, the comparison function resizes the original image back to the crop size, as gathered from the manipulation sofware tool and recorded by the user.  The next step is to find the location of the crop in the original image.  Finally a mask of the crop region is created, showing the amount of change that occurred during interpolation.   
 
 Comparison functions live in tool_set or video_tools.
 
@@ -102,13 +102,21 @@ Substitute masks replace edge masks.  CAUTION: These masks do not reflect actual
 
 Edge masks included in a probe are selected as part of the probe generation API.  By default, all edge masks that are labeled as to included to in a 'composite' (blue color links in the JT UI) are included in a generated probe set.  
 
+The default includsion setting for a link is deteremined by the *includeInMask* attribute of associated operation. 
+
+The functions for probe inclusion include:
+
+* mask_rules.isEdgeLocalized -> Blue linked or  links with non global masks in the following categories 'Output', 'AntiForensic', 'PostProcessing', 'Laundering', and 'TimeAlteration'  .
+* mask_rules.isEdgeComposite -> Blue link only
+* mask_rules.isEdgeNotDonorAndNotEmpty -> non donor links with non-empty masks
+
 ## Composites
 
-The term *Composite* is derived from the notion that a final media is the composite of a series of manipulation.  A *Composite* mask attempts to represent all the changes in one mask media file.    However, each composite mask, depending its make-up, may leave some manipulations not-represented due obfuscation (e.g. Color Masks).
+The term *Composite* is derived from the notion that a final media is the composite of a series of manipulation.  A *Composite* mask attempts to represent all the changes in one mask media file.    However, each composite mask, depending its make-up, may leave some manipulations not represented due obfuscation (e.g. Color Masks).
 
 Composites are described in the API documentation.
 
-For the remainder of this document the term 'Composite Image' is misused, as it is only a single representation of one edge/manipulation.
+*For the remainder of this document the term 'Composite Image' is a single representation of one edge/manipulation.*
 
 ## Probe Generation
 
@@ -116,7 +124,7 @@ Probe generation involves overlaying each generated edge mask over the final med
 
 > If a manipulation does not effect a mask, the mask is forwarded to the next manipulation's transformation function.  
 
-Transforms are strictly spatial for images when dealing with masks, include resizing, cropping, warping, etc.  For video and audio, transforms are mostly temporal accept for crop and size (wxh) manipulations.   At this time, the level of effort to handle complex spatial adjustments in video such as warping and spatial object rotation is outside the scope of complexity for the tool.
+Transforms are strictly spatial for images when dealing with masks, include resizing, cropping, warping, etc.  For video and audio, transforms are typically temporal accept for crop and size (wxh) manipulations.   *At this time, the level of effort to handle complex spatial adjustments in video such as warping and spatial object rotation is outside the scope of complexity for the tool.*
 
 Probe generation also supports donor media overlay, applying prior transforms in the reverse direction, essentially backing out the manipulations prior to the mask.
 
@@ -279,9 +287,9 @@ Videomasks is a list of segments.
 
 ## Probe Pre-process
 
-The change mask generated during the comparison is often used as the starting state of probe mask, prior to applying transforms.  In somecase, the mask or segments need to be adjusted as the initial state. For example, in select cut frames, the mask reflects the removed frames.  However, these frames do not exist in the final video, thus the video segments record the set neigboring frames of the cut in the final video.
+The change mask generated during the comparison is often used as the starting state of probe mask, prior to applying transforms.  In some cases, the mask or segments need to be adjusted as the initial state. For example, in select cut frames, the mask reflects the removed frames.  However, these frames do not exist in the final video, thus the video segments record the set neigboring frames of the cut in the final video.
 
-In general, masks and segments are always in the dimensions, spatial and temporal, of the source, identifying on the source what was changed, removed, etc.  In operations that generate masks that cut, resize or otherwise change these dimensions must be cast into the target media space.
+In general, masks and segments are always in the dimensions, spatial and temporal, of the source, identifying what changed to the source to build the target.  Masks and meta-data associated with operations that cut, resize or otherwise change these dimensions must transformed into the target media space.
 
 The signature for a preprocess function is as follows:
 
@@ -307,13 +315,11 @@ Select Cut Frames recorded video segment does contain a HDF5 spatial mask.  The 
 
 Seam Carving spatial masks represent seams removed from the basis image.  Since these pixels cannot be represented in the next manipulation, the neighbor pixels are represented in the mask.  This appears like two pixel wide lightning stricks across the image, vertically or horizontally.
 
-
-
-
-
 ## Operation
 
 This section describes the operation definition as it exists in the JSON file.
+
+* *deprecated*: Is the operation discontinued for future use.
 
 * *category*: Like operations grouped together
 
@@ -387,6 +393,7 @@ Parameters are defined optional and mandatory sections of the operation.  Each p
 - *description* - description of the parameter
 - *defaultvalue* - default value (optional)
 - *source*- Parameter is conditioned to be collected for a specific type of media such image, zip, video or audio (optional).
+- *trigger mask*-If true, mask generation is triggered if the parameter value is changed for graph link.
 
 The source type specific values is inforced in the UI.  It is not enforced in batch projects.  The batch specification to not indicate random selection of values from the parameter if there is a type restriction..
 ## Comparison and Mask Generation
@@ -444,6 +451,37 @@ def checkCropSize(op, graph, frm, to):
             return (Severity.ERROR,'Crop cannot increase a dimension size of the image')
 ```
 
+### Deprecation
+
+A deprecated operation is still defined in the JSON file.  It is not to be used during journal construction.  Deprecation is indicated by the *deprecated* attribute with the value *true*.
+
+```
+"deprecated": true
+```
+
+### Subclass
+
+A subclass of an operation is an operation with the subclass name separated from the parent by '::'.  For example the subclass BitDepth of OutputPng is OutputPng::BitDepth.  Subclasses occur in two ways.  First, a plugin may define a subclass operation through the operation name within the operation description for the plugin.  In this case, the subclass need to be defined in the JSON file.  Second, the operation may be defined in the JSON file.  In this case, it is only necessary to supply attriutes of the operation that diff from the parent class.   All changes are additive or replacement.  A parent attribute can not be removed (e.g. an argument).  An argument can be moved from optional into mandatory with a different definition.   
+
+When defining attributes associated maps (e.g. mandatory and optional parameters, *includeInMask*, *compareParameters*), the only the keyed values are replaced or added; the entire map is not replaced.
+
+In the example below, mandatory parameters of OutputPng are extended with additional 'Depth' parameter.
+
+```
+{
+      "name": "OutputPng::BitDepth",
+      "mandatoryparameters": {
+         "Depth": {
+           "type":"list",
+           "values": ["8","12","16","24","32"],
+           "description": "Bit Depth Used"
+         }
+       }
+    },
+```
+
+
+
 ### Fix Functions
 
 A fix function promises to fix the issue raised during validation with minimal or no additional input from the user.  A fix function signature is as follows.
@@ -456,7 +494,7 @@ def fixX(graph, start, end):
 @param end: end node id (str) for errorneous edge
 ~~~
 
-## HELP
+## Help Menus
 
 Help resources are maintained under *resources/help*.  Each operation has several PNG files that describe the operation.
 

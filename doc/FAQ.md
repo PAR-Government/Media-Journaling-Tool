@@ -8,6 +8,23 @@ TBD
 
 TBD
 
+# Empty and Global Masks
+
+Global mask is mask the affects a diffuse large part of an image.   Many operations are assumed global based on their 'generateMask' value.  Empty masks occur if the operation does not affect the image content  (meta-data only), the relevant remaining content is unchanged (e.g. Crop) or the operation was not recorded correctly.
+
+Some links include a 'global' value of 'yes' or 'no'.  These links are associated with operations that may be local or global (e.g Blur).
+
+During probe construction, masks are aligned to final images.  During this process, some masks are emptied.  A mask is empty in probe if (1) The link mask if the operation is local and empty or (2) a prior operation occluded the mask.  We made a program decision that occlusion can only occur if the area of an image aligned to mask is subsequently manipulated to remove the content (remove the prior manipulation) or paste over the content (Paste Sampled and Paste Splice).  Otherwise, the JT probe construction delivers a mask despite potential occlusion.  Thus, it is import for test production to factor in the order and depth of manipulations that affect the same local area of an image as indicated by their masks.
+
+Is an empty mask an error?  From the perspective of probe generation: no; an empty mask is an undetectable probe.  From a journal perspective, an empty mask may indicate an operation not recorded properly.  This could mean the operation never occurred or did occur but not recorded.  In the later case, the subsequent operation's mask and resulting image will include both operations in one result.   Thus, empty mask conditions should be inspected to consider their impact.
+
+An probe can be produced by the JT with an empty mask id
+
+* If the a link with an operation 'removes' the contents of a mask  (e.g. occlusion) from prior link, then that link can contain an attribute *allowed_entities* mapped to a list containing source node identifier of the 'prior' link.
+* The operation is crop, recapture, paste splice, paste sampled or remove.
+
+
+
 # BATCH
 
 ### EXTENSIONS
@@ -66,3 +83,8 @@ Finally, a state file is presevered with all the chosen arguments in the project
 
 It is recommended to remove the old project directory and remove the names used media resources manually out of the associated picklist files in the '--workdir' directory.  Alternatively, every failure ends with a state file, named 'failures-<datetime>.txt', recording the state of the arguments for the batch operations at the time of the failure.   The project may be rerun using the exact state using the '--from_state' command line argument followed by the name of the failure file.
 
+
+
+# FUTURE WISHES
+
+1. Empty mask through operation occlusion is culled from probes (see mask_rules.checkEmptyMask's force option which is equivalent to 'empty masks are ok').

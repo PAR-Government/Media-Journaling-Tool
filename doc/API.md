@@ -1016,9 +1016,9 @@ TBD
 
  A path name is a set of key names separated by '.'. A path name used to set and fetch data associated with a dictionary.
 
-~~~
 For the following dictionary, path argumens.subject accesses value 'person':
 
+~~~
 {
  "arguments": {
      "subject":"person"
@@ -1026,9 +1026,68 @@ For the following dictionary, path argumens.subject accesses value 'person':
 }
 ~~~
 
+The following functions are available in maskgen.support:
+
+* getValue (dictionary, path, defaultValue=None)
+* setPathValue(dictionary, path, value)
+* removeValue(dictionary,path)
 
 
 
+## Meta Data 
+
+### video_tools.MetaDataLocator
+
+The locator extracts meta data for media. 
+
+The locator is extended by 
+
+```
+        self.tools = {'zip': ZipMetaLocatorTool(self),
+                      'image': ImageMetaLocatorTool(self),
+                      'audio':AudioMetaLocatorTool(self),
+                      'video':VideoMetaLocatorTool(self)}
+```
+
+* getMaskSetForEntireVideo (self, start_time='00:00:00.000', end_time=None, media_types=['video'], channel=0) -> produce a single  (segment) for the video or audio given the time constraints.
+
+* get_frame_count -> return frame count for media
+
+* get_duration -> return duration in millisecond
+
+* get_meta -> returns tuple with meta data requested as determined by the parameters.
+
+  * a list of meta-data dictionary per stream 
+  * a corresponding list of frames per stream.  Each set frames is list of dictionaries, thus frames is a list of list of dictionaries.
+
+* ```
+  get_meta(self,
+               with_frames=False,
+               show_streams=False,
+               count_frames=False,
+               media_types=['video'],
+               frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+               frame_limit=None,
+               frame_start=None
+               ):
+  ```
+
+Locator's are subclassed to extract meta-data for a specific file.
+
+* video_tools.FileMetaDataLocator(media_file_name) -> 
+* graph_meta_tools.ExtractorMetaDataLocator -> extract given a node id, using cached information in the graph if available.
+
+##graph_meta_tools.MetaDataExtractor
+
+The extractor answers meta-data.
+
+* getMasksFromEdge (source, target, media_types, channel=0, startTime=None, endTime=None) produces the videomasks from the edge.  If none are found, a segment representing the entire video (or audio) given the edge's temporal constraints is produced from the edge's source media.
+
+* create_video_for_audio (source, masks) consumes audio, creating 'video_associate' masks by find the frames aligned to the audio mask's start and times.   Frame start and end times in the video_associate will not match the audio times, using the the times of the frames that 'cover' the audio time.
+
+* warpMask( video_masks, source, target, expectedType='video', inverse=False, useFFMPEG=False) compares the frame rate and duraton of the target video.  If the rate or duration do not match, a new set of video masks is created projecting the source masks into the target temporal space.
+
+  **NOTE:** Spatial masks cannot be reinterpolated efficiently. Thus,  spatial masks are dropped or added (duplicates) during re-alignment.  This directly impacts the quality of masks when the rate and duration between source and target are signficantly different.
 
 # Project JSON
 
