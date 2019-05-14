@@ -22,7 +22,7 @@ import maskgen
 
 def transform(im, source, target, **kwargs):
     target_wrapper = ImageWrapper(packImgBits(np.asarray(im),
-                                              int(getValue(kwargs,'max bits to shift',8))))
+                                              int(getValue(kwargs,'bits to use',11))))
     target_wrapper.save(target)
     return None, None
 
@@ -30,13 +30,14 @@ def operation():
     return {
         'name': 'BitRescale',
         'category': 'AntiForensic',
-        'description': 'By shifting bits of every pixel to the left, limit the range of values over the histogram of all intensity values',
+        'description': 'Limit the number of bits per pixel',
         'software': 'PAR',
         'version':  maskgen.__version__,
         'arguments': {
-            "max bits to shift": {
-                "type":"int[3:8]",
-                "description": "Number of bits shift left, compressing the value range"
+            "bits to use": {
+                "type":"int[1:16]",
+                "description": "Number of bits to use.",
+                "defaultvalue":11
             }
         },
         'transitions': [

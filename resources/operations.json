@@ -1567,7 +1567,7 @@
       ],
       "optionalparameters": {
       },
-      "description": "Rescale intensity to remove gaps in the histogram",
+      "description": "Rescale pixel intensity to remove gaps in the histogram",
       "includeInMask": {
         "default": false
       },
