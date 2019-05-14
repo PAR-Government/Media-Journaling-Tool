@@ -17,15 +17,16 @@ def packImgBits(img, bits_to_use=16):
     @type img: numpy.ndarray
     @type bits: int
     """
-    hist, bin_edges = np.histogram(img, bins=range(np.max(img) + 2), )
-    # shift the image histogram to th left to remove unused bins
+    shift_bits = img.dtype.itemsize * 8 - bits_to_use
+    max_image = np.max(img)
+    hist, bin_edges = np.histogram(img, bins=range(max_image + 2), )
+    # shift the image histogram to the left to remove unused bins
     # find the second histogram bin that has more than 10 values
     # and subtract it from every pixel value
     adjustment_amount = np.argwhere(hist > 10)[1][0]
-    bits = int(max(0,min(log(adjustment_amount)/log(2) + 1,max_bits)))
-    img = img - adjustment_amount
+    img = np.clip(img.astype('int64') - adjustment_amount, 0, max_image).astype(img.dtype)
     # drop the <bits> number of LSBs
-    img = np.right_shift(img, bits)
+    img = np.right_shift(img, shift_bits)
     return img
 
 def get_gauss_kernel(size=3,sigma=1):
