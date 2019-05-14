@@ -9,7 +9,7 @@ from math import log
 import numpy as np
 
 
-def packImgBits(img, max_bits=5):
+def packImgBits(img, bits_to_use=16):
     """
     :param img:
     :param bits:
