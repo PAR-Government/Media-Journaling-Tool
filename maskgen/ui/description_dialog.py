@@ -2269,6 +2269,7 @@ class IntEntry(Frame):
 class MaskDebuggerUI(Toplevel):
 
     def build_arginfo(self):
+        args = ['gain', 'kernel', 'aggregate', 'minimum threshold', 'morphology order']
         arginfo = []
         op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
         if op is not None:
@@ -2284,17 +2285,23 @@ class MaskDebuggerUI(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 arginfo.append((k, v))
-        return arginfo
+        return [(k,v) for k,v in arginfo if k in args]
 
     def layout_image_frames(self):
         from PIL import Image
         raw = self.debugger.frame_to if self.debugger.frame_to is not None else Image.new("RGB", (350, 350), "black")
         raw = imageResizeRelative(raw, (350,350), raw.size)
+        diff = getValue(self.debugger.mask_analysis, 'diff', None)
+        diff = np.swapaxes(diff, 0,1)
+        diff_img = ImageWrapper(diff) if diff is not None else Image.new("RGB", (350, 350), "black")
+        diff_img = imageResizeRelative(diff_img, (350, 350), raw.size)
         mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
             self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
         mask = imageResizeRelative(mask, (350,350), otherImDim=raw.size)
-        overlay = mask.overlay(raw) if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
-        return [ImageTk.PhotoImage(raw.toPIL()), ImageTk.PhotoImage(mask.toPIL()), ImageTk.PhotoImage(overlay.toPIL())]
+        mask_alpha = mask.toPIL()
+        overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
+        overlay.paste(mask_alpha, mask=mask_alpha.convert('L'))
+        return {'overlay':ImageTk.PhotoImage(overlay), 'mask':ImageTk.PhotoImage(mask.toPIL()), 'source':ImageTk.PhotoImage(raw.toPIL())}
 
     def __init__(self, master, scModel, debugger):
 
@@ -2326,19 +2333,17 @@ class MaskDebuggerUI(Toplevel):
         self.wait_window(self)
 
     def body(self, master):
-        thresh = getValue(self.debugger.mask_analysis, 'minima', 1)
-        self.histogram = HistogramViewer(master=self, histogram=self.debugger.mask_analysis['hist'], highlights={'minima':thresh})
+        thresh = getValue(self.debugger.mask_analysis, 'threshold', 1)
+        self.histogram = HistogramViewer(master=self,
+                                         histogram=self.debugger.mask_analysis['hist'],
+                                         highlights={'threshold':thresh})
         self.mask_preview = ttk.Notebook(master=self)
-        self.images = self.layout_image_frames()
-        self.preview_frames = [Frame(master=self.mask_preview),
-                               Frame(master=self.mask_preview),
-                               Frame(master=self.mask_preview)]
-        self.raw_image = Label(master=self.preview_frames[0], image=self.images[0])
-        self.mask_image = Label(master=self.preview_frames[1], image=self.images[1])
-        self.overlay_image = Label(master=self.preview_frames[2], image=self.images[2])
-        self.mask_preview.add(child=self.preview_frames[0], text='raw')
-        self.mask_preview.add(child=self.preview_frames[1], text='mask')
-        self.mask_preview.add(child=self.preview_frames[2], text='overlay')
+        self.pil_images = self.layout_image_frames() # dictionary of labels and images
+        self.preview_frames = [Frame(master=self.mask_preview) for _frames in self.pil_images] #list of frame widgets
+        images = zip(self.preview_frames, self.pil_images.items())
+        self.image_widgets = [Label(master=image[0], image=image[1][1]) for image in images]
+        [self.mask_preview.add(child=image[0], text=image[1][0]) for image in images]
+        self.mask_preview.select(self.mask_preview.tabs()[1])
         self.frame_select = IntEntry(master=self, label='Generate To: ',
                                      initial_value=self.debugger.analysis_components.one_count,
                                      range=(self.debugger.analysis_components.one_count, self.total_frames))
@@ -2373,9 +2378,7 @@ class MaskDebuggerUI(Toplevel):
         row = getValue(options, 'row', 0)
         column = getValue(options, 'column', 0)
         self.histogram.grid(row=row, column=column, sticky=W)
-        self.raw_image.grid()
-        self.mask_image.grid()
-        self.overlay_image.grid()
+        [widget.grid() for widget in self.image_widgets]
         self.mask_preview.grid(row=row, column=column + 1, sticky=E)
         self.property_frame.grid(row=row + 2, column=column, columnspan=2, sticky=W+E)
         self.frame_select.grid(row=row + 1, column=column, sticky=W)
