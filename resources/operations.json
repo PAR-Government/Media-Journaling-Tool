@@ -3064,7 +3064,15 @@
       "category": "Filter",
       "name": "CreativeFilter",
       "mandatoryparameters": {
-      },
+        "Filter Type": {
+          "type": "list",
+          "values": [
+            "Oil Paint",
+            "Ripple"
+          ],
+            "description": "Please include details in the general description."
+       }
+    },
       "rules": [
         "checkLengthSame",
         "checkSize",
@@ -4508,10 +4516,6 @@
         "Image Rotated": {
           "type": "yesno",
           "description": "Did the software rotate the image when removing the EXIF Orientation?"
-        },
-        "Lens Distortion Applied": {
-          "type": "yesno",
-          "description": "Len Distortion Algorithms Applied?"
         }
       },
       "rules": [
@@ -5068,8 +5072,8 @@
       },
       "transitions": [
         "zip.zip",
-        "video.zip",
-        "audio.zip"
+        "audio.zip",
+        "video.zip"
       ]
     },
     {
@@ -7228,7 +7232,18 @@
           "trigger mask": true,
           "source": "video",
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
-        }
+        },
+        "Warp Type": {
+          "type": "list",
+          "values": [
+            "Liquify",
+            "FaceLiquify",
+            "Warp",
+            "PuppetWarp",
+            "Smudge"
+          ],
+            "description": "Please include details in the general description."
+       }
       },
       "rules": [
         "checkSize",
