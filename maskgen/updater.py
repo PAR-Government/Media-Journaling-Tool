@@ -16,9 +16,10 @@ from maskgen import maskGenPreferences
 Git API used to compare version of the tool with lastest on GitHub master
 """
 
+
 class GitLabAPI:
 
-    def __init__(self,branch='master',version_file='VERSION',repo='',
+    def __init__(self, branch='master', version_file='VERSION', repo='',
                  url='https://gitlab.mediforprogram.com'):
         self.file = '{url}/api/v4/projects/{repo}/repository/files/{version_file}/raw'.format(
             url=url, repo=repo, version_file=version_file
@@ -29,10 +30,9 @@ class GitLabAPI:
         self.token = maskGenPreferences.get_key('git.token')
         self.branch = branch
 
-
     def get_version_file(self):
-        header = {'PRIVATE-TOKEN':self.token}
-        resp = requests.get(self.file, params={"ref":self.branch}, timeout=2, headers=header)
+        header = {'PRIVATE-TOKEN': self.token}
+        resp = requests.get(self.file, params={"ref": self.branch}, timeout=2, headers=header)
         if resp.status_code == requests.codes.ok:
             return resp.content.strip()
         return "NA"
@@ -46,11 +46,12 @@ class GitLabAPI:
             return data[0]['message']
         return "NA"
 
+
 class GitHub:
 
-    #TODO!
-    def __init__(self,branch='master',version_file='VERSION',repo='',
-                 url='https://api.github.com/'):
+    # TODO!
+    def __init__(self, branch='master', version_file='VERSION', repo='rwgdrummer/maskgen',
+                 url='https://api.github.com'):
         self.file = '{url}/repos/{repo}/repository/files/{version_file}/raw'.format(
             url=url, repo=repo, version_file=version_file
         )
@@ -61,8 +62,8 @@ class GitHub:
         self.branch = branch
 
     def get_version_file(self):
-        header = {'PRIVATE-TOKEN':self.token}
-        resp = requests.get(self.file, params={"ref":self.branch}, timeout=2, headers=header)
+        header = {'PRIVATE-TOKEN': self.token}
+        resp = requests.get(self.file, params={"ref": self.branch}, timeout=2, headers=header)
         if resp.status_code == requests.codes.ok:
             return resp.content.strip()
         return "NA"
@@ -78,12 +79,12 @@ class GitHub:
 
 class UpdaterGitAPI:
 
-    def __init__(self, branch='master',version_file='VERSION'):
+    def __init__(self, branch='master', version_file='VERSION'):
         url = maskGenPreferences.get_key('git.api.url',
-                                              'https://gitlab.mediforprogram.com/')
-        repo = maskGenPreferences.get_key('repo','503')
+                                         'https://gitlab.mediforprogram.com')
+        repo = maskGenPreferences.get_key('repo', '503')
         if 'gitlab' in url:
-            self.api = GitLabAPI(branch=branch,version_file=version_file,url=url,repo=repo)
+            self.api = GitLabAPI(branch=branch, version_file=version_file, url=url, repo=repo)
         else:
             self.api = GitHub(branch=branch, version_file=version_file, url=url, repo=repo)
 
@@ -93,11 +94,11 @@ class UpdaterGitAPI:
     def _getCommitMessage(self):
         return self.api.getCommitMessage()
 
-    def _hasNotPassed(self,  merge_sha):
+    def _hasNotPassed(self, merge_sha):
         if merge_sha is None:
             return True
         currentversion = maskgen.__version__
-        sha = currentversion[currentversion.rfind('.')+1:]
+        sha = currentversion[currentversion.rfind('.') + 1:]
         return not merge_sha.startswith(sha)
 
     def isOutdated(self):
@@ -110,11 +111,12 @@ class UpdaterGitAPI:
             logging.getLogger('maskgen').error('Error validating JT version: {}'.format(ex.message))
             raise EnvironmentError(ex.message)
 
+
 class OperationsUpdaterGitAPI(UpdaterGitAPI):
 
     def __init__(self, branch='master'):
         import urllib
-        UpdaterGitAPI.__init__(self, branch=branch,version_file=urllib.quote_plus('resources/operations.json'))
+        UpdaterGitAPI.__init__(self, branch=branch, version_file=urllib.quote_plus('resources/operations.json'))
 
     def _get_version_file(self):
         resp = UpdaterGitAPI._get_version_file(self)
