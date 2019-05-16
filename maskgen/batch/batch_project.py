@@ -31,6 +31,7 @@ from maskgen.batch.permutations import *
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.image_graph import ImageGraph
 from maskgen.loghandling import set_logging,set_logging_level
+from maskgen.maskgen_loader import MaskGenLoader
 from maskgen.preferences_initializer import initial_user
 from maskgen.software_loader import getRule
 from maskgen.support import getValue
