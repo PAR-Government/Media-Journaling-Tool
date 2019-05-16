@@ -75,7 +75,7 @@ class TestExporter(TestSupport):
         self.check_status('DONE')
         history = self.exportManager.get_all()
         self.assertTrue(history[self.what][1] == 'DONE')
-        with open (os.path.join(self.altenate_directory,'camera_sizes.txt')) as log:
+        with open (os.path.join(self.altenate_directory,'classifications.txt')) as log:
             lines = log.readlines()
             print lines[-2:]
         self.assertTrue('DONE' in lines[-1])
