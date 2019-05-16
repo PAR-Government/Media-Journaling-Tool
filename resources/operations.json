@@ -1557,7 +1557,7 @@
     },
     {
       "category": "AntiForensic",
-      "name": "CFACorrection",
+      "name": "BitRescale",
       "mandatoryparameters": {
       },
       "rules": [
@@ -1566,12 +1566,8 @@
         "checkEmpty"
       ],
       "optionalparameters": {
-        "Capture Camera ID": {
-          "type": "text",
-          "description": "ID of camera used to capture image if not screen shot"
-        }
       },
-      "description": "CFA Correction",
+      "description": "Rescale pixel intensity to remove gaps in the histogram",
       "includeInMask": {
         "default": false
       },
@@ -1579,7 +1575,6 @@
         "image.image"
       ],
       "qaList": [
-        "CFA Applied?"
       ]
     },
     {
@@ -4503,6 +4498,16 @@
         "Confirm highlighted area represents the region that was affected by the operation",
         "Are all relevant semantic groups assigned? More than one may be appropriate. This operation is often associated with Date Burn-in"
       ]
+    },
+    {
+      "name": "OutputPng::BitDepth",
+      "mandatoryparameters": {
+         "Depth": {
+           "type":"list",
+           "values": ["8","12","16","24","32"],
+           "description": "Bit Depth Used"
+         }
+       }
     },
     {
       "category": "Output",
