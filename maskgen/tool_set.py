@@ -3154,6 +3154,9 @@ class GrayBlockReader:
     def current_frame(self):
         return self.start_frame + self.pos
 
+    def length(self):
+        return self.mask_format.count(self)
+
     def read(self):
         if self.dset is None:
             return None
