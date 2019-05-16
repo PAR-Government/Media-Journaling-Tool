@@ -337,12 +337,12 @@ class NonOwnedProcessInfo(ProcessInfo):
         return self.process_pid
 
     def terminate(self):
-        pid = self.getpid()
-        if pid is not None:
-            try:
-                os.kill(int(pid), 9)
-            except:
-                pass
+        try:
+            pid = int(self.getpid())
+            if pid > 1:
+                os.kill(pid, 9)
+        except:
+            pass
 
     def is_owned(self):
         return False
@@ -452,15 +452,18 @@ class ExportManager:
                     except:
                         os.remove(logfilename)
                         continue
+
                     status = _get_status_from_last_message(logfilename)
                     if name not in self.processes:
-                        self.processes[name] = NonOwnedProcessInfo(pid=pid,
+                        new_process = NonOwnedProcessInfo(pid=pid,
                                                                    status=status,
                                                                    location=location,
                                                                    log_file_name=os.path.join(self.directory,
                                                                                               name + '.txt'),
                                                                    pathname=pathname,
                                                                    name=name)
+                        if os.path.exists(pathname):
+                            self.processes[name] = new_process
 
     def get_all(self):
         with self.lock:
@@ -552,8 +555,11 @@ class ExportManager:
         """
         self.stop(name)
         logfilename = os.path.join(self.directory, name + '.txt')
+        status, pathname, location, pid = _get_path_from_first_message(logfilename)
         if os.path.exists(logfilename):
             os.remove(logfilename)
+        if os.path.exists(pathname):
+            os.remove(pathname)
         with self.lock:
             if name in self.processes:
                 self.processes.pop(name)
