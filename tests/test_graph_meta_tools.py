@@ -144,5 +144,73 @@ class TestGraphMetaTools(TestSupport):
         self.assertTrue(video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(target_set[0]))
         self.assertTrue(video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(target_set[0]))
 
+    def create_masks(self,mask_set):
+        from maskgen import tool_set
+        import numpy as np
+
+        for segment in mask_set:
+            writer = tool_set.GrayBlockWriter('test_warp',video_tools.get_rate_from_segment(segment))
+            for i in range(video_tools.get_frames_from_segment(segment)):
+                f = i + video_tools.get_start_frame_from_segment(segment)
+                writer.write(np.random.randint(0,1,(1000,1000),'uint8')*255,
+                             (f-1)*video_tools.get_rate_from_segment(segment),
+                             frame_number=f)
+            writer.close()
+            video_tools.update_segment(segment, videosegment=writer.filename)
+            self.addFileToRemove(writer.filename)
+
+    def read_masks(self, mask_set):
+        from maskgen import tool_set
+        r = []
+        for segment in mask_set:
+            reader = tool_set.GrayBlockReader(video_tools.get_file_from_segment(segment))
+            r.append({'start_time':reader.current_frame_time(),
+                      'start_frame':reader.current_frame(),
+                      'frames': reader.length()})
+        return r
+
+
+    def test_warp(self):
+
+        def run_warp(source, target,start_time, end_time):
+            source_set = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(
+                start_time=start_time, end_time=end_time)
+            self.create_masks(source_set)
+            extractor = MetaDataExtractor(GraphProxy(source, target))
+            target_set = video_tools.FileMetaDataLocator(target).getMaskSetForEntireVideoForTuples(
+                start_time_tuple=(video_tools.get_start_time_from_segment(source_set[0]), 0),
+                end_time_tuple=(video_tools.get_end_time_from_segment(source_set[0]), 0))
+            new_mask_set = extractor.warpMask(source_set, source, target)
+            self.assertTrue(
+                video_tools.get_frames_from_segment(new_mask_set[0]) == video_tools.get_frames_from_segment(
+                    target_set[0]))
+            self.assertTrue(
+                video_tools.get_end_time_from_segment(new_mask_set[0]) == video_tools.get_end_time_from_segment(
+                    target_set[0]))
+            self.assertTrue(
+                video_tools.get_rate_from_segment(new_mask_set[0]) == video_tools.get_rate_from_segment(target_set[0]))
+            self.assertTrue(
+                video_tools.get_start_frame_from_segment(new_mask_set[0]) == video_tools.get_start_frame_from_segment(
+                    target_set[0]))
+            self.assertTrue(
+                video_tools.get_start_time_from_segment(new_mask_set[0]) == video_tools.get_start_time_from_segment(
+                    target_set[0]))
+            file_data = self.read_masks(new_mask_set)
+            self.assertEqual(video_tools.get_frames_from_segment(new_mask_set[0]), file_data[0]['frames'])
+
+        run_warp('sample1_ffr_2_ex.mov', 'sample1_ffr_ex.mov', '10', '24')
+
+        run_warp('sample1_ffr_ex.mov', 'sample1_ffr_2_ex.mov', '10', '24')
+
+        run_warp( self.locateFile('tests/videos/sample1.mov'), 'sample1_ffr_2_ex.mov','29','55')
+
+
+
+        run_warp('sample1_ffr_2_ex.mov',  self.locateFile('tests/videos/sample1.mov'), '29', '55')
+
+
+
+
+
 if __name__ == '__main__':
     unittest.main()
