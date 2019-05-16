@@ -639,6 +639,12 @@
 				"operationSlides/output_image.png"
 			]
 		},
+        "OutputPng::BitDepth": {
+            "images" [
+                "operationSlides/output.png",
+				"operationSlides/output_image.png"
+            ]
+        },
 		"OutputPDF": {
 			"images": [
 				"operationSlides/output.png",
