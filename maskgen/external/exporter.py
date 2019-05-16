@@ -31,11 +31,23 @@ class DoNothingExportTool:
     def export(self, path, bucket, dir, log):
         pass
 
-def _log_and_update_parent(log, pipe_to_parent, message):
-    log(message)
-    s = message.find('(')
-    e = message.find('%')
-    pipe_to_parent.send(message[s+1:e])
+class _log_and_update_parent:
+
+    def __init__(self, log, pipe_to_parent):
+        self.log = log
+        self.pipe_to_parent = pipe_to_parent
+
+    def __call__(self, message):
+        self.log(message)
+        s = message.find('(')
+        e = message.find('%')
+        if self.pipe_to_parent is not None:
+            try:
+                self.pipe_to_parent.send(message[s+1:e])
+            except:
+                logging.getLogger('jt_export').error("Child process {} already disconnected with parent".format(os.getpid()))
+                self.pipe_to_parent = None
+
 
 
 #-------------------------------------------------------------------------------------------------------------
@@ -109,7 +121,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
     dir = location[location.find('/') + 1:].strip()
     dir = dir if dir.endswith('/') else dir + '/'
     logging.getLogger('jt_export').info('START {} to {} on {}'.format(path, location, os.getpid()))
-    log = partial(_log_and_update_parent, logging.getLogger('jt_export').info, pipe_to_parent)
+    log = _log_and_update_parent(logging.getLogger('jt_export').info, pipe_to_parent)
     try:
         export_tool.export(path, bucket, dir, log)
         logging.getLogger('jt_export').info('DONE {} to {}'.format(path, location))
@@ -126,7 +138,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
             pipe_to_parent.send('FAIL')
             pipe_to_parent.close()
         except:
-            logging.getLogger('jt_export').error("Child process already disconnected")
+            logging.getLogger('jt_export').error("Child process {} already disconnected with parent".format(os.getpid()))
 
 #-------------------------------------------------------------------------------------------------------------
 # External Notifiers -
@@ -215,6 +227,7 @@ class ProcessInfo:
         return os.getpid()
 
     def _update_dead_process_info_status(self):
+        logging.getLogger('maskgen').info('Suspected completed or dead export process for {}'.format(self.pathname))
         if self.status not in ['DONE', 'FAIL']:
             last_recorded_status = _get_status_from_last_message(
                 self.get_log_name())
@@ -258,27 +271,33 @@ class OwnedProcessInfo(ProcessInfo):
         return True
 
     def getpid(self):
-        return self.process.pid()
+        return self.process.pid
 
     def terminate(self):
         self.process.terminate()
 
     def update_status(self):
         status_change = False
-        try:
-            if self.pipe.poll(0.5):
-                self.status = self.pipe.recv()
-                status_change = True
-        except Exception as e:
-                logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
-        # if we own it, wait for it
-        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
-            status_change = True
+        def join_and_leave():
             try:
                 self.process.join()
             except:
                 pass
             self._update_dead_process_info_status()
+        try:
+            if self.pipe is not None and self.pipe.poll(0.5):
+                self.status = self.pipe.recv()
+                status_change = True
+        except Exception as e:
+            logging.getLogger('maskgen').error("Export Manager upload status check failure {} for {}:{}".format(
+                    e.message, self.getpid(), self.pathname))
+            status_change = True
+            self.pipe = None
+            join_and_leave()
+        # if we own it, wait for it
+        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
+            status_change = True
+            join_and_leave()
         return status_change
 
 
@@ -318,12 +337,12 @@ class NonOwnedProcessInfo(ProcessInfo):
         return self.process_pid
 
     def terminate(self):
-        pid = self.getpid()
-        if pid is not None:
-            try:
-                os.kill(int(pid), 9)
-            except:
-                pass
+        try:
+            pid = int(self.getpid())
+            if pid > 1:
+                os.kill(pid, 9)
+        except:
+            pass
 
     def is_owned(self):
         return False
@@ -433,15 +452,18 @@ class ExportManager:
                     except:
                         os.remove(logfilename)
                         continue
+
                     status = _get_status_from_last_message(logfilename)
                     if name not in self.processes:
-                        self.processes[name] = NonOwnedProcessInfo(pid=pid,
+                        new_process = NonOwnedProcessInfo(pid=pid,
                                                                    status=status,
                                                                    location=location,
                                                                    log_file_name=os.path.join(self.directory,
                                                                                               name + '.txt'),
                                                                    pathname=pathname,
                                                                    name=name)
+                        if os.path.exists(pathname):
+                            self.processes[name] = new_process
 
     def get_all(self):
         with self.lock:
@@ -533,8 +555,11 @@ class ExportManager:
         """
         self.stop(name)
         logfilename = os.path.join(self.directory, name + '.txt')
+        status, pathname, location, pid = _get_path_from_first_message(logfilename)
         if os.path.exists(logfilename):
             os.remove(logfilename)
+        if os.path.exists(pathname):
+            os.remove(pathname)
         with self.lock:
             if name in self.processes:
                 self.processes.pop(name)
