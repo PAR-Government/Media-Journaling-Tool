@@ -2269,7 +2269,6 @@ class IntEntry(Frame):
 class MaskDebuggerUI(Toplevel):
 
     def build_arginfo(self):
-        args = ['gain', 'kernel', 'aggregate', 'minimum threshold', 'morphology order']
         arginfo = []
         op = self.scModel.getGroupOperationLoader().getOperationWithGroups(getValue(self.edge, 'op', None))
         if op is not None:
@@ -2285,7 +2284,7 @@ class MaskDebuggerUI(Toplevel):
                 if 'target' in v and v['target'] != self.targetfiletype:
                     continue
                 arginfo.append((k, v))
-        return [(k,v) for k,v in arginfo if k in args]
+        return [(k,v) for k,v in arginfo if k in op.trigger_arguments]
 
     def layout_image_frames(self):
         from PIL import Image

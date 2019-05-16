@@ -1780,8 +1780,7 @@ class MaskDebugger(Diff_Controller):
         return False if self.frames_to_generate == 'all' else self.generated_frames + 1 >= self.frames_to_generate
 
     def openPreviewUI(self):
-        from maskgen.ui.description_dialog import MaskDebuggerUI
-        return MaskDebuggerUI(master=self.master_ui, scModel=self.scModel, debugger=self).result
+        return self.master_ui.startMaskTuner(mask_debugger=self).result
 
     def update_args(self):
         for k, v in self.compare_args.items():
