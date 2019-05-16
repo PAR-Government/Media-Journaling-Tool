@@ -31,11 +31,23 @@ class DoNothingExportTool:
     def export(self, path, bucket, dir, log):
         pass
 
-def _log_and_update_parent(log, pipe_to_parent, message):
-    log(message)
-    s = message.find('(')
-    e = message.find('%')
-    pipe_to_parent.send(message[s+1:e])
+class _log_and_update_parent:
+
+    def __init__(self, log, pipe_to_parent):
+        self.log = log
+        self.pipe_to_parent = pipe_to_parent
+
+    def __call__(self, message):
+        self.log(message)
+        s = message.find('(')
+        e = message.find('%')
+        if self.pipe_to_parent is not None:
+            try:
+                self.pipe_to_parent.send(message[s+1:e])
+            except:
+                logging.getLogger('jt_export').error("Child process {} already disconnected with parent".format(os.getpid()))
+                self.pipe_to_parent = None
+
 
 
 #-------------------------------------------------------------------------------------------------------------
@@ -109,7 +121,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
     dir = location[location.find('/') + 1:].strip()
     dir = dir if dir.endswith('/') else dir + '/'
     logging.getLogger('jt_export').info('START {} to {} on {}'.format(path, location, os.getpid()))
-    log = partial(_log_and_update_parent, logging.getLogger('jt_export').info, pipe_to_parent)
+    log = _log_and_update_parent(logging.getLogger('jt_export').info, pipe_to_parent)
     try:
         export_tool.export(path, bucket, dir, log)
         logging.getLogger('jt_export').info('DONE {} to {}'.format(path, location))
@@ -126,7 +138,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
             pipe_to_parent.send('FAIL')
             pipe_to_parent.close()
         except:
-            logging.getLogger('jt_export').error("Child process already disconnected")
+            logging.getLogger('jt_export').error("Child process {} already disconnected with parent".format(os.getpid()))
 
 #-------------------------------------------------------------------------------------------------------------
 # External Notifiers -
@@ -215,75 +227,14 @@ class ProcessInfo:
         return os.getpid()
 
     def _update_dead_process_info_status(self):
-        if self.status not in ['DONE', 'FAIL']:
-            last_recorded_status = _get_status_from_last_message(
-                self.get_log_name())
-            if last_recorded_status not in ['DONE', 'FAIL']:
-                self.status = 'FAIL'
-                self._update_process_log()
-            else:
-                self.status=last_recorded_status
-
-class OwnedProcessInfo(ProcessInfo):
-
-    def __init__(self, process, pipe, status='START', location=None, pathname=None, name=None,
-                 log_file_name=None,remove_when_done=True):
-        """
-
-        :param process:
-        :param pipe:
-        :param status:
-        :param location:
-        :param pathname:
-        :param name:
-        :param remove_when_done:
-         @type process: Process
-        """
-        self.process = process
-        self.pipe = pipe
-        ProcessInfo.__init__(self,
-                             status=status,
-                             location=location,
-                             pathname=pathname,
-                             name=name,
-                             log_file_name=log_file_name,
-                             remove_when_done=remove_when_done
-                             )
-
-
-    def is_alive(self):
-        return self.process.is_alive()
-
-    def is_owned(self):
-        return True
-
-    def getpid(self):
-        return self.process.pid()
-
-    def terminate(self):
-        self.process.terminate()
-
-    def update_status(self):
-        status_change = False
-        try:
-            if self.pipe.poll(0.5):
-                self.status = self.pipe.recv()
-                status_change = True
-        except Exception as e:
-                logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
-        # if we own it, wait for it
-        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
-            status_change = True
-            try:
-                self.process.join()
-            except:
-                pass
-            self._update_dead_process_info_status()
-        return status_change
-
+        if self.status == 'DONE':
+            logging.getLogger('maskgen').info('Export complete for {}'.format(self.pathname))
+            return
+        logging.getLogger('maskgen').info('Suspected completed or dead export process for {}'.format(self.pathname))
+        if self.status != 'FAIL':
+            self.status = _get_status_from_last_message(self.get_log_name())
 
 class NonOwnedProcessInfo(ProcessInfo):
-
 
     def __init__(self,
                  pid=None,
@@ -318,12 +269,12 @@ class NonOwnedProcessInfo(ProcessInfo):
         return self.process_pid
 
     def terminate(self):
-        pid = self.getpid()
-        if pid is not None:
-            try:
-                os.kill(int(pid), 9)
-            except:
-                pass
+        try:
+            pid = int(self.getpid())
+            if pid > 1:
+                os.kill(pid, 9)
+        except:
+            pass
 
     def is_owned(self):
         return False
@@ -339,6 +290,80 @@ class NonOwnedProcessInfo(ProcessInfo):
             self._update_process_log()
         return old_status != self.status
 
+class OwnedProcessInfo(NonOwnedProcessInfo):
+
+        def __init__(self, process, pipe, status='START', location=None, pathname=None, name=None,
+                     log_file_name=None, remove_when_done=True):
+            """
+
+            :param process:
+            :param pipe:
+            :param status:
+            :param location:
+            :param pathname:
+            :param name:
+            :param remove_when_done:
+             @type process: Process
+            """
+            self.process = process
+            self.pipe = pipe
+            NonOwnedProcessInfo.__init__(self,
+                                 pid=self.process.pid,
+                                 status=status,
+                                 location=location,
+                                 pathname=pathname,
+                                 name=name,
+                                 log_file_name=log_file_name,
+                                 remove_when_done=remove_when_done
+                                 )
+
+        def is_alive(self):
+            return self.process.is_alive() if self.process is not None else NonOwnedProcessInfo.is_alive(self)
+
+        def is_owned(self):
+            return self.process is not None
+
+        def terminate(self):
+            if self.process is not None:
+                self.process.terminate()
+            else:
+                NonOwnedProcessInfo.terminate(self)
+
+        def update_status(self):
+            status_change = False
+            if self.pipe is None and self.process is None:
+                return NonOwnedProcessInfo.update_status(self)
+
+            def join_and_leave():
+                try:
+                    if self.pipe is not None:
+                        self.pipe.close()
+                except:
+                    self.pipe = None
+                try:
+                    if self.process is not None:
+                        self.process.join()
+                        self.process = None
+                except:
+                    self.process = None
+                    pass
+                status = self.status
+                self._update_dead_process_info_status()
+                return status != self.status
+            
+            try:
+                if self.pipe.poll(0.5):
+                    status = self.pipe.recv()
+                    status_change = status != self.status
+                    self.status = status
+            except Exception as e:
+                logging.getLogger('maskgen').error("Export Manager upload status check failure {} for {}:{}".format(
+                    e.message, self.getpid(), self.pathname))
+                status_change = join_and_leave()
+            # if we own it, wait for it
+            if self.status in ['DONE', 'FAIL'] or not self.is_alive():
+                status_change |= join_and_leave()
+            return status_change
 
 #-------------------------------------------------------------------------------------------------------------
 # Synchronous, in process, uploading
@@ -433,15 +458,18 @@ class ExportManager:
                     except:
                         os.remove(logfilename)
                         continue
+
                     status = _get_status_from_last_message(logfilename)
                     if name not in self.processes:
-                        self.processes[name] = NonOwnedProcessInfo(pid=pid,
+                        new_process = NonOwnedProcessInfo(pid=pid,
                                                                    status=status,
                                                                    location=location,
                                                                    log_file_name=os.path.join(self.directory,
                                                                                               name + '.txt'),
                                                                    pathname=pathname,
                                                                    name=name)
+                        if os.path.exists(pathname):
+                            self.processes[name] = new_process
 
     def get_all(self):
         with self.lock:
@@ -533,8 +561,11 @@ class ExportManager:
         """
         self.stop(name)
         logfilename = os.path.join(self.directory, name + '.txt')
+        status, pathname, location, pid = _get_path_from_first_message(logfilename)
         if os.path.exists(logfilename):
             os.remove(logfilename)
+        if os.path.exists(pathname):
+            os.remove(pathname)
         with self.lock:
             if name in self.processes:
                 self.processes.pop(name)
@@ -577,6 +608,7 @@ class ExportManager:
 
         self.semaphore.acquire()
         try:
+            p.start()
             name = os.path.splitext(os.path.basename(pathname))[0]
             self.processes[name] = OwnedProcessInfo(p,
                                                     parent_conn,
@@ -586,13 +618,13 @@ class ExportManager:
                                                     name = name,
                                                     log_file_name=os.path.join(self.directory, name + '.txt'),
                                                     remove_when_done=remove_when_done)
-            p.start()
+
             self.semaphore.notifyAll()
         finally:
             self.semaphore.release()
-        logging.getLogger('maskgen').info('START upload {}'.format(name))
-        # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
-        self._call_notifier(name, time(), 'START')
+            logging.getLogger('maskgen').info('START upload {}'.format(name))
+            # CALLED OUTSIDE OF LOCK.  LISTENERS MAY WANT TO LOCK, causing a circular block
+            self._call_notifier(name, time(), 'START')
         return name
 
     def sync_upload(self, pathname, location, remove_when_done=True):

@@ -94,6 +94,10 @@ class ExportProgress(Frame):
         self.stoptxt.set('Remove')
         self.stop = Button(self, textvariable=self.stoptxt, command=self.stop, width=10,state=ACTIVE)
         self.stop.grid(column=3, row=0, sticky=E, padx=5, pady=5)
+        self.removetxt = StringVar()
+        self.removetxt.set('')
+        self.remove = Button(self, textvariable=self.removetxt, command=self.remove, width=10, state=ACTIVE)
+        self.remove.grid(column=4, row=0, sticky=E, padx=5, pady=5)
         self.update(timestamp, status)
 
     def update(self, timestamp, status):
@@ -102,12 +106,15 @@ class ExportProgress(Frame):
         if status == 'DONE':
             self.stoptxt.set('Remove')
             self.percentlbltxt.set('Complete')
+            self.removetxt.set('')
             self.setpb(99.999999)
         elif status == 'FAIL':
             self.stoptxt.set('Restart')
             self.percentlbltxt.set('Failed')
+            self.removetxt.set('Remove')
         else:
             self.stoptxt.set('Stop')
+            self.removetxt.set('')
             try:
                 self.setpb(float(status))
             except:
@@ -118,6 +125,11 @@ class ExportProgress(Frame):
 
     def setpb(self,x):
         self.pb['value']=x
+
+    def remove(self):
+        state = self.removetxt.get()
+        if state == 'Remove':
+            self.parent.forget(self.name)
 
     def stop(self):
         state = self.stoptxt.get()
