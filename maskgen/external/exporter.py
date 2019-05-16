@@ -126,7 +126,7 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
             pipe_to_parent.send('FAIL')
             pipe_to_parent.close()
         except:
-            logging.getLogger('jt_export').error("Child process already disconnected")
+            logging.getLogger('jt_export').error("Child process {} already disconnected with parent".format(os.getpid()))
 
 #-------------------------------------------------------------------------------------------------------------
 # External Notifiers -
@@ -215,6 +215,7 @@ class ProcessInfo:
         return os.getpid()
 
     def _update_dead_process_info_status(self):
+        logging.getLogger('maskgen').info('Suspected completed or dead export process for {}'.format(self.pathname))
         if self.status not in ['DONE', 'FAIL']:
             last_recorded_status = _get_status_from_last_message(
                 self.get_log_name())
@@ -265,20 +266,26 @@ class OwnedProcessInfo(ProcessInfo):
 
     def update_status(self):
         status_change = False
-        try:
-            if self.pipe.poll(0.5):
-                self.status = self.pipe.recv()
-                status_change = True
-        except Exception as e:
-                logging.getLogger('maskgen').error("Export Manager upload status check failure {}".format(e.message))
-        # if we own it, wait for it
-        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
-            status_change = True
+        def join_and_leave():
             try:
                 self.process.join()
             except:
                 pass
             self._update_dead_process_info_status()
+        try:
+            if self.pipe is not None and self.pipe.poll(0.5):
+                self.status = self.pipe.recv()
+                status_change = True
+        except Exception as e:
+            logging.getLogger('maskgen').error("Export Manager upload status check failure {} for {}:{}".format(
+                    e.message, self.getpid(), self.pathname))
+            status_change = True
+            self.pipe = None
+            join_and_leave()
+        # if we own it, wait for it
+        if self.status in ['DONE', 'FAIL'] or not self.is_alive():
+            status_change = True
+            join_and_leave()
         return status_change
 
 
