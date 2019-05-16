@@ -1564,6 +1564,8 @@ def __flannMatcher(d1, d2, args=None):
 
 
 def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), matcher=__flannMatcher):
+    img1.touint8()
+    img2.touint8()
     img1 = img1.to_rgb().apply_mask(mask1).to_array()
     img2 = img2.to_rgb().apply_mask(mask2).to_array()
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
