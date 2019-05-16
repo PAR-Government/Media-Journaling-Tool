@@ -1082,6 +1082,9 @@ class MakeGenUI(Frame):
         d = QAProjectDialog(self)
         d.valid = True
 
+    def startMaskTuner(self, mask_debugger):
+        return MaskDebuggerUI(master=self, scModel=self.scModel, debugger=mask_debugger)
+
     def comments(self):
         d = CommentViewer(self)
 
