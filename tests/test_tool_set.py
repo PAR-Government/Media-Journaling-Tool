@@ -30,6 +30,11 @@ class TestToolSet(TestSupport):
         self.assertEquals(tool_set.fileType('foo.oh.zip'), 'collection')
         self.assertEquals(tool_set.fileType('foo.newgate.zip'), 'collection')
 
+    def test_md5(self):
+        all_md5 = tool_set.md5_of_file(self.locateFile('tests/videos/sample1.mov'))
+        parts_md5 = tool_set.md5_of_file(self.locateFile('tests/videos/sample1.mov'),load_size=1000)
+        self.assertEqual(all_md5,parts_md5)
+
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
@@ -225,6 +230,16 @@ class TestToolSet(TestSupport):
         mask1.image_array[2000:3000,2000:3000] = 255
         mask2 = ImageWrapper(np.zeros((8000, 8000), dtype='uint8'))
         mask2.image_array[1000:2000,1000:2000] = 255
+
+        features = tool_set.getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments={'homography max matches': '2000', 'homography': 'RANSAC-4'})
+
+        img1 = ImageWrapper(np.random.randint(0, 65535, (4000, 5000, 3), dtype='uint16'))
+        img2 = ImageWrapper(np.random.randint(0, 65535, (8000, 8000, 3), dtype='uint16'))
+        img2.image_array[1000:2000, 1000:2000, :] = img1.image_array[2000:3000, 2000:3000, :]
+        mask1 = ImageWrapper(np.zeros((4000, 5000), dtype='uint8'))
+        mask1.image_array[2000:3000, 2000:3000] = 255
+        mask2 = ImageWrapper(np.zeros((8000, 8000), dtype='uint8'))
+        mask2.image_array[1000:2000, 1000:2000] = 255
 
         features = tool_set.getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments={'homography max matches': '2000', 'homography': 'RANSAC-4'})
 

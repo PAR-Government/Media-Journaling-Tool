@@ -232,7 +232,10 @@ class ProcessInfo:
             return
         logging.getLogger('maskgen').info('Suspected completed or dead export process for {}'.format(self.pathname))
         if self.status != 'FAIL':
-            self.status = _get_status_from_last_message(self.get_log_name())
+            if not self.is_alive() and self.is_active():
+                self.status = 'FAIL'
+                self._update_process_log()
+
 
 class NonOwnedProcessInfo(ProcessInfo):
 
@@ -352,7 +355,7 @@ class OwnedProcessInfo(NonOwnedProcessInfo):
                 return status != self.status
             
             try:
-                if self.pipe.poll(0.5):
+                while self.pipe.poll():
                     status = self.pipe.recv()
                     status_change = status != self.status
                     self.status = status
@@ -501,6 +504,18 @@ class ExportManager:
         """
         self.notifiers = [n for n in self.notifiers if n !=  notifier]
 
+    def update_all(self):
+        from copy import copy
+        self.semaphore.acquire()
+        try:
+            processes = copy(self.processes)
+        finally:
+            self.semaphore.release()
+        for k, process_info in processes.iteritems():
+            if process_info.update_status():
+                self._call_notifier(k, time(), process_info.status)
+
+
     def _listen_thread(self):
         """
         List to child process messages on status.
@@ -510,22 +525,21 @@ class ExportManager:
         from copy import copy
         self.active = True
         while self.active:
-            sleep_value = 1
+            sleep_value = 2
             self.semaphore.acquire()
             if not self.active:
                 continue
             try:
-                active_count = len([p for p in self.processes.values() if p.is_active()])
-                if active_count == 0 :
+                active_processes = copy([p for p in self.processes.values() if p.is_owned() and p.is_active()])
+                if len(active_processes) == 0 :
                     sleep_value = 0
                     self.semaphore.wait()
-                processes = copy(self.processes)
             finally:
                 self.semaphore.release()
-            sleep(sleep_value)
-            for k, process_info in processes.iteritems():
+            for k, process_info in active_processes.iteritems():
                 if process_info.update_status():
                     self._call_notifier(k, time(), process_info.status)
+            sleep(sleep_value)
 
     def restart(self, name):
         """
