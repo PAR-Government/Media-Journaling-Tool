@@ -921,11 +921,24 @@ def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFile
         return img
 
 
-def md5_of_file(filename, raiseError=True):
+
+def md5_of_file(filename, raiseError=True, load_size=500000000):
     import hashlib
+    import os
     try:
+        size = os.stat(filename).st_size
         with open(filename, 'rb') as rp:
-            return hashlib.md5(rp.read()).hexdigest()
+            if size < load_size:
+                return hashlib.md5(rp.read()).hexdigest()
+            else:
+                m = hashlib.md5()
+                while True:
+                    b = rp.read(load_size)
+                    if b is not None and len(b) > 0:
+                        m.update(b)
+                    else:
+                        break
+            return m.hexdigest()
     except Exception as e:
         if raiseError:
             raise e

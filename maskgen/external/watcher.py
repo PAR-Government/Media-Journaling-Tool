@@ -14,14 +14,16 @@ class ExportWatcherDialog(Toplevel):
         """
         self.parent = parent
         self.export_manager = export_manager
-        self.export_manager.add_notifier(self)
+        #self.export_manager.add_notifier(self)
         Toplevel.__init__(self, parent)
         self.progress = {}
         self.lock = Lock()
         self.createWidgets()
+        self.runTimer()
 
     def _delete_window(self):
-        self.export_manager.remove_notifier(self)
+        self.after_cancel(self.timerAfter)
+        #self.export_manager.remove_notifier(self)
         Toplevel.destroy(self)
 
     def createWidgets(self):
@@ -34,6 +36,10 @@ class ExportWatcherDialog(Toplevel):
         self.update_data()
         self.protocol("WM_DELETE_WINDOW", self._delete_window)
 
+    def runTimer(self):
+        self.update_data()
+        self.timerAfter = self.after(2000, self.runTimer)
+
     def __call__(self,*args):
         if args[0] not in self.progress:
             self.update_data()
@@ -42,6 +48,7 @@ class ExportWatcherDialog(Toplevel):
                 self.progress[args[0]].update(args[1],args[2])
 
     def update_data(self):
+        self.export_manager.update_all()
         history = self.export_manager.get_all()
         for name, tuple_ in history.iteritems():
             ep = None
