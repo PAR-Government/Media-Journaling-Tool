@@ -640,7 +640,7 @@
 			]
 		},
         "OutputPng::BitDepth": {
-            "images" [
+            "images": [
                 "operationSlides/output.png",
 				"operationSlides/output_image.png"
             ]
