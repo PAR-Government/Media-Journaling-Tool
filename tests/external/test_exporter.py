@@ -114,7 +114,7 @@ class TestExporter(TestSupport):
         self.check_status()
         history = self.exportManager.get_all()
         self.assertTrue(history[self.what][1] == 'DONE')
-        self.assertTrue(len(self.notifications) >= 12)
+        self.assertTrue(len(self.notifications) >= 2)
         self.notifications = []
 
     def test_export_sync(self):
