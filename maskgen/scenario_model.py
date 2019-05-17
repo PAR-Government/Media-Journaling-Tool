@@ -2079,6 +2079,7 @@ class ImageProjectModel:
         :param force: If True, then force mask creation do not skip.
         :return:
         """
+        errors = []
         mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
         edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
@@ -2086,18 +2087,22 @@ class ImageProjectModel:
             arguments = argument_params
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
-        mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
-                                                     arguments=arguments,
-                                                     skipDonorAnalysis=skipDonorAnalysis,
-                                                     analysis_params=analysis_params,
-                                                     force=force)
-        analysis_params['arguments'] = arguments
-        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
-        self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
-        if len(errors) == 0:
-            self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
-                                                  (skip_data['start'], skip_data['end']) != mask_edge_id])
-        self.notify(mask_edge_id, 'update_edge')
+        try:
+            mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
+                                                         arguments=arguments,
+                                                         skipDonorAnalysis=skipDonorAnalysis,
+                                                         analysis_params=analysis_params,
+                                                         force=force)
+            analysis_params['arguments'] = arguments
+            maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
+            self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
+            if len(errors) == 0:
+                self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
+                                                      (skip_data['start'], skip_data['end']) != mask_edge_id])
+            self.notify(mask_edge_id, 'update_edge')
+        except video_tools.MaskGenerationError as e:
+            if e.message != '':
+                logging.getLogger('maskgen').info(e.message)
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,

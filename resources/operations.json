@@ -1834,7 +1834,14 @@
         "minimum threshold": {
           "trigger mask": true,
           "type": "int[0:255]:slider",
-          "defaultvalue": "0",
+          "defaultvalue": 0,
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": 255,
           "source": "video",
           "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
@@ -1939,6 +1946,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "trigger mask": true,
@@ -2053,6 +2067,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "trigger mask": true,
@@ -2236,6 +2257,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "trigger mask": true,
@@ -2718,6 +2746,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
         "gain": {
           "trigger mask": true,
           "type":"int[-20:20]:slider",
@@ -3171,6 +3206,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
         "gain": {
           "trigger mask": true,
           "type":"int[-20:20]:slider",
@@ -3344,6 +3386,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
         "gain": {
           "trigger mask": true,
           "type":"int[-20:20]:slider",
@@ -3431,6 +3480,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]:slider",
@@ -3594,6 +3650,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "trigger mask": true,
@@ -4142,6 +4205,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
         "gain": {
           "trigger mask": true,
           "type":"int[-20:20]:slider",
@@ -4240,6 +4310,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "kernel": {
           "trigger mask": true,
@@ -4342,6 +4419,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "kernel": {
           "trigger mask": true,
@@ -4456,6 +4540,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
           "type":"int[-20:20]:slider",
@@ -5331,6 +5422,13 @@
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
         },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
         "kernel": {
           "trigger mask": true,
           "type": "list",
@@ -5488,6 +5586,13 @@
           "defaultvalue": "0",
           "source": "video",
           "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
         },
         "gain": {
          "trigger mask": true,

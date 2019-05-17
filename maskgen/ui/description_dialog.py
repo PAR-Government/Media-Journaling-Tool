@@ -2147,7 +2147,9 @@ class IntSliderWidget(Frame):
         else:
             self.Value = StringVar()
             self.Value.set(inital_value)
-        self.entry = IntEntry(self, textvariable=textvariable, initial_value=inital_value, range=self.range, callback=self.entryCB)
+        self.entryVar = StringVar()
+        self.entryVar.set(textvariable.get())
+        self.entry = IntEntry(self, textvariable=self.entryVar, range=self.range, callback=self.entryCB)
         self.updateCommand = command
         options['from_'] = range[0]
         options['to'] = range[1]
@@ -2178,21 +2180,21 @@ class IntSliderWidget(Frame):
 
     def entryCB(self, val):
         try:
-            self.set(int(val) if val != '' else 0)
+            self.set(val)
         except ValueError:
             pass
 
-    def updateEntry(self, event=None):
-        self.entry.set(str(self.get()))
+    def updateEntry(self, new_val):
+        entryVal = self.entry.get()
+        if entryVal != new_val and not (new_val == 0 and entryVal == ''):
+            self.entry.set(str(self.get()))
 
     def get(self):
-        return int(self.Value.get()) if self.Value.get() != '' else 0
+        return int(self.Value.get())
 
     def set(self, value):
-        self.Value.set(value if value != '' else '0')
-
-    def hide(self):
-        self.grid_forget()
+        if value != self.Value.get():
+            self.Value.set(value if value != '' else '0')
 
 class IntEntry(Frame):
 
@@ -2224,6 +2226,9 @@ class IntEntry(Frame):
         in_range = self.in_range(val)
         whitelist = ['', '-']
         valid = True
+
+        if event == 'focusin':
+            return valid
 
         if not is_digit and val not in whitelist:
             valid = False
@@ -2354,6 +2359,8 @@ class MaskDebuggerUI(Toplevel):
         else:
             self.invalid_label = None
         self.frame_limit = Label(master=self.frame_select, text='/{}'.format(self.total_frames))
+        op_parameters = self.op.mandatoryparameters.copy()
+        op_parameters.update(self.op.optionalparameters)
         self.properties = [ProjectProperty(name=argumentTuple[0],
                                       description=argumentTuple[0],
                                       information=argumentTuple[1]['description'] if
@@ -2361,7 +2368,9 @@ class MaskDebuggerUI(Toplevel):
                                       type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
                                       values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
                                       value=self.debugger.argvalues[argumentTuple[0]] if
-                                      argumentTuple[0] in self.debugger.argvalues else None) for argumentTuple in self.arginfo]
+                                      argumentTuple[0] in self.debugger.argvalues else None,
+                                      defaultvalue=getValue(getValue(op_parameters, argumentTuple[0], {}), 'defaultvalue', None))
+                           for argumentTuple in self.arginfo]
         self.property_frame = PropertyFrame(parent=self, properties=self.properties,
                                             propertyFunction=EdgePropertyFunction(self.properties, self.scModel),
                                             changeParameterCB=self.changeParameter,
@@ -2829,7 +2838,7 @@ class EdgePropertyFunction(PropertyFunction):
         """
         self.scModel = scModel
         for prop in properties:
-            self.lookup_values[prop.name] = prop.value
+            self.lookup_values[prop.name] = prop.value if prop.value is not None else prop.defaultvalue
 
     def getValue(self, name):
         return self.lookup_values[name]
