@@ -286,6 +286,8 @@ class NonOwnedProcessInfo(ProcessInfo):
         return _is_process_alive(self.process_pid) if self.process_pid is not None else False
 
     def update_status(self):
+        if self.status in ['FAIL','DONE']:
+            return False
         old_status = self.status
         self.status = _get_status_from_last_message(self.get_log_name())
         if not self.is_alive() and self.is_active():
@@ -333,7 +335,6 @@ class OwnedProcessInfo(NonOwnedProcessInfo):
                 NonOwnedProcessInfo.terminate(self)
 
         def update_status(self):
-            status_change = False
             if self.pipe is None and self.process is None:
                 return NonOwnedProcessInfo.update_status(self)
 
@@ -341,6 +342,7 @@ class OwnedProcessInfo(NonOwnedProcessInfo):
                 try:
                     if self.pipe is not None:
                         self.pipe.close()
+                        self.pipe = None
                 except:
                     self.pipe = None
                 try:
@@ -355,16 +357,18 @@ class OwnedProcessInfo(NonOwnedProcessInfo):
                 return status != self.status
             
             try:
+                status_change = False
                 while self.pipe.poll():
                     status = self.pipe.recv()
-                    status_change = status != self.status
+                    status_change |= status != self.status
                     self.status = status
+                if self.status in ['DONE', 'FAIL'] or not self.is_alive():
+                    status_change |= join_and_leave()
+            except EOFError:
+                status_change |= join_and_leave()
             except Exception as e:
                 logging.getLogger('maskgen').error("Export Manager upload status check failure {} for {}:{}".format(
                     e.message, self.getpid(), self.pathname))
-                status_change = join_and_leave()
-            # if we own it, wait for it
-            if self.status in ['DONE', 'FAIL'] or not self.is_alive():
                 status_change |= join_and_leave()
             return status_change
 
@@ -513,6 +517,7 @@ class ExportManager:
             self.semaphore.release()
         for k, process_info in processes.iteritems():
             if process_info.update_status():
+                print ('notify %s' % (process_info.status))
                 self._call_notifier(k, time(), process_info.status)
 
 
@@ -530,15 +535,16 @@ class ExportManager:
             if not self.active:
                 continue
             try:
-                active_processes = copy([p for p in self.processes.values() if p.is_owned() and p.is_active()])
-                if len(active_processes) == 0 :
+                active_count = len([p for p in self.processes.values() if p.is_active()])
+                if active_count == 0:
                     sleep_value = 0
                     self.semaphore.wait()
+                processes = copy(self.processes.values())
             finally:
                 self.semaphore.release()
-            for k, process_info in active_processes.iteritems():
+            for process_info in processes:
                 if process_info.update_status():
-                    self._call_notifier(k, time(), process_info.status)
+                    self._call_notifier(process_info.name, time(), process_info.status)
             sleep(sleep_value)
 
     def restart(self, name):
