@@ -16,7 +16,7 @@ from maskgen.video_tools import get_shape_of_video, get_frame_time, MetaDataLoca
     get_end_time_from_segment, get_start_frame_from_segment, \
     get_frames_from_segment, get_rate_from_segment, get_start_time_from_segment, get_end_frame_from_segment,\
     get_type_of_segment, update_segment, create_segment, get_error_from_segment, get_file_from_segment,transfer_masks, \
-    recalculate_times_for_segment
+    recalculate_frames_for_segment, recalculate_times_for_segment
 
 
 def get_meta_data_change_from_edge(edge, expectedType='video'):
@@ -287,7 +287,9 @@ class MetaDataExtractor:
         if sourceFrames == targetFrames and int(sourceTime*100) == int(targetTime*100):
             return video_masks
 
-        dropRate = int(round(sourceFrames / float(sourceFrames - targetFrames))) if sourceFrames > targetFrames else targetFrames
+        dropRate = sourceFrames / float(sourceFrames - targetFrames) #if sourceFrames > targetFrames else \
+                  # targetFrames / float(sourceFrames - targetFrames)
+
 
         def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True,
                          min_value=0,upper_bound=False):
@@ -368,6 +370,7 @@ class MetaDataExtractor:
             if 'type' in mask_set and mask_set['type'] != expectedType:
                 new_mask_set.append(mask_set)
                 continue
+            #these are initial estimates
             startframe, error_start = apply_change(get_start_frame_from_segment(mask_set), float(sourceFrames),
                                        float(targetFrames), inverse=inverse, round_value=True,min_value=1)
             endframe, error_end = apply_change(get_end_frame_from_segment(mask_set),
@@ -411,6 +414,9 @@ class MetaDataExtractor:
                                     endframe=endframe,
                                     videosegment=get_file_from_segment(mask_set))
             if not isVFR:
+                # in this case, we trust the time invariance, updating frames
+                recalculate_frames_for_segment(change)
+                # then we reupdate time to match the frames
                 recalculate_times_for_segment(change)
             new_mask_set.append(change)
             hits.append((get_start_time_from_segment(change), 'starttime', change))

@@ -335,12 +335,10 @@ def loadOperationJSON(fileName):
     @rtype: dict of str:Operation
     """
     from collections import OrderedDict
-    operations = OrderedDict()
-    fileName = getFileName(fileName)
-    with open(fileName, 'r') as f:
-        ops = json.load(f)
-        for op in ops['operations']:
-            operations[op['name']] = Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
+    from copy import deepcopy
+
+    def create_op(op):
+        return Operation(name=op['name'], category=op['category'], includeInMask=op['includeInMask'],
                                         rules=op['rules'], optionalparameters=op['optionalparameters'] if 'optionalparameters' in op else {},
                                         mandatoryparameters=op['mandatoryparameters'],
                                         description=op['description'] if 'description' in op else None,
@@ -355,6 +353,29 @@ def loadOperationJSON(fileName):
                                         qaList=op['qaList'] if 'qaList' in op else None,
                                         donor_processor=op['donor_processor'] if 'donor_processor' in op else None,
                                         deprecated=op['deprecated'] if 'deprecated' in op else False)
+    operations = OrderedDict()
+    fileName = getFileName(fileName)
+
+    dependencies = []
+    ops_by_name = {}
+    with open(fileName, 'r') as f:
+        ops = json.load(f)
+        for op in ops['operations']:
+            if '::' in op['name']:
+                dependencies.append(op)
+            else:
+                ops_by_name[op['name']] = op
+                operations[op['name']] = create_op(op)
+    for op in dependencies:
+        opname = op['name'].split('::')[0]
+        parent_op = deepcopy(ops_by_name[opname])
+        for k in op:
+            if k in parent_op and type(parent_op[k]) in [dict, OrderedDict]:
+                parent_op[k].update(op[k])
+            else:
+                parent_op[k] = op[k]
+        operations[op['name']] = create_op(parent_op)
+
     return operations, ops['filtergroups'] if 'filtergroups' in ops else {}, ops['version'] if 'version' in ops else '0.4.0308.db2133eadc', \
          ops['node_properties'] if 'node_properties' in ops else {}
 

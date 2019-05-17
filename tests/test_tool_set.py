@@ -228,6 +228,16 @@ class TestToolSet(TestSupport):
 
         features = tool_set.getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments={'homography max matches': '2000', 'homography': 'RANSAC-4'})
 
+        img1 = ImageWrapper(np.random.randint(0, 65535, (4000, 5000, 3), dtype='uint16'))
+        img2 = ImageWrapper(np.random.randint(0, 65535, (8000, 8000, 3), dtype='uint16'))
+        img2.image_array[1000:2000, 1000:2000, :] = img1.image_array[2000:3000, 2000:3000, :]
+        mask1 = ImageWrapper(np.zeros((4000, 5000), dtype='uint8'))
+        mask1.image_array[2000:3000, 2000:3000] = 255
+        mask2 = ImageWrapper(np.zeros((8000, 8000), dtype='uint8'))
+        mask2.image_array[1000:2000, 1000:2000] = 255
+
+        features = tool_set.getMatchedSIFeatures(img1, img2, mask1=mask1, mask2=mask2, arguments={'homography max matches': '2000', 'homography': 'RANSAC-4'})
+
     def testSIFCheck(self):
         good_transform = {
             'c': 3,

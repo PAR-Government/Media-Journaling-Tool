@@ -163,9 +163,6 @@ class MakeGenUI(Frame):
     @type scModel: ImageProjectModel
     """
 
-
-
-
     def _check_dir(self, dir):
         set = [filename for filename in os.listdir(dir) if filename.endswith('.json')]
         return not len(set) > 0

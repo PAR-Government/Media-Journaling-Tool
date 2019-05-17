@@ -50,6 +50,7 @@ def cs_save_as(img,source, target, donor, qTables,rotate,quality, color_mode):
     if img.mode == 'RGBA':
         im = Image.fromarray(np.asarray(img.convert('RGB')))
     else:
+        img.touint8()
         im = Image.fromarray(np.asarray(img))
 
     if color_mode == 'from donor':
@@ -127,7 +128,7 @@ def transform(img,source,target, **kwargs):
     
     tables_zigzag = parse_tables(donor)
     tables_sorted = sort_tables(tables_zigzag)
-    analysis = cs_save_as(img,source, target, donor, tables_sorted,rotate, quality, color_mode)
+    analysis = cs_save_as(img, source, target, donor, tables_sorted,rotate, quality, color_mode)
     
     return analysis , None
     

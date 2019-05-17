@@ -189,7 +189,7 @@ def get_file_from_segment(segment,default_value=None):
 def get_frames_from_segment(segment, default_value=None):
     if 'frames' not in segment:
         if 'rate' in segment or ('startframe' in segment and 'endframe' in segment):
-            return get_end_frame_from_segment(segment) - get_start_frame_from_segment(segment)
+            return get_end_frame_from_segment(segment) - get_start_frame_from_segment(segment) + 1
         if default_value is not None:
             return default_value
         return 1
@@ -208,6 +208,17 @@ def recalculate_times_for_segment(segment):
     segment['starttime'] = get_start_time_from_segment(segment)
     segment['endtime'] = get_end_time_from_segment(segment)
 
+def recalculate_frames_for_segment(segment):
+    if 'startframe' in segment:
+        segment.pop('startframe')
+    if 'endframe' in segment:
+        segment.pop('endframe')
+    if 'frames' in segment:
+            segment.pop('frames')
+    segment['startframe'] = get_start_frame_from_segment(segment)
+    segment['endframe'] = get_end_frame_from_segment(segment)
+    segment['frames'] = get_frames_from_segment(segment)
+
 def get_start_frame_from_segment(segment, default_value=None):
     from math import floor
     if 'startframe' not in segment:
@@ -223,7 +234,7 @@ def get_end_frame_from_segment(segment, default_value=None):
         if default_value is not None:
             return default_value
         rate = get_rate_from_segment(segment)
-        segment['endframe'] = int(floor(getValue(segment,'endtime',0)*rate/1000.0))
+        segment['endframe'] = int(floor(getValue(segment,'endtime',0)*rate/1000.0))  + 1
     return segment['endframe']
 
 def get_start_time_from_segment(segment, default_value=None):
@@ -254,6 +265,23 @@ def transfer_masks(video_masks,
                    frame_count_function=lambda x,y: x):
     reader_manager = tool_set.GrayBlockReaderManager()
     writer_manager = tool_set.GrayBlockWriterManager()
+
+    def drop_mask_strategy(last_mask, current_mask, frame_count, frame_time, writer, frames_to_write):
+        return frame_count, frame_time
+
+    def add_mask_strategy(last_mask, current_mask, frame_count, frame_time, writer, frames_to_write):
+        writer.write(current_mask, frame_time, frame_count)
+        frame_count = frame_count_function(reader.current_frame(), frame_count)
+        frame_time = frame_time_function(reader.current_frame_time(), frame_time)
+        if frames_to_write >= 2:
+            #if not one from the end
+            writer.write(current_mask, frame_time, frame_count)
+            frame_count = frame_count_function(reader.current_frame(), frame_count)
+            frame_time = frame_time_function(reader.current_frame_time(), frame_time)
+        return frame_count,frame_time
+
+    strategy = add_mask_strategy if dropRate < 0 else drop_mask_strategy
+    dropRate = abs(dropRate)
     try:
         for pos in range(len(video_masks)):
             mask_set = video_masks[pos]
@@ -267,19 +295,36 @@ def transfer_masks(video_masks,
                                                  end_frame=get_end_frame_from_segment(mask_set))
                 writer = writer_manager.create_writer(reader)
                 try:
-                    end_frame = get_end_frame_from_segment(change)
+                    mask = None
+                    frames_to_write = get_frames_from_segment(change)
                     frame_time = get_start_time_from_segment(change)
                     frame_count = get_start_frame_from_segment(change)
-                    orig_frame_count = frame_count
-                    while True and frame_count <= end_frame:
+                    frame_written = 0
+                    dropPoint = dropRate
+                    while True and frame_written < frames_to_write:
+                        last_mask = mask
                         mask = reader.read()
                         if mask is not None:
-                            if orig_frame_count % dropRate == 0:
+                            if frame_written >= dropPoint:
+                                dropPoint += dropRate
+                                tfc = frame_count
+                                frame_count, frame_time = strategy(last_mask,
+                                                                   mask,
+                                                                   frame_count,
+                                                                   frame_time,
+                                                                   writer,
+                                                                   frames_to_write-frame_written)
+                                frame_written += (frame_count - tfc)
                                 continue
                             writer.write(mask, frame_time, frame_count)
+                            frame_written += 1
+                            frame_count = frame_count_function(reader.current_frame(), frame_count)
+                            frame_time = frame_time_function(reader.current_frame_time(), frame_time)
                         else:
                             break
-                        orig_frame_count+=1
+                    #if shy of the end
+                    while frame_written < frames_to_write:
+                        writer.write(last_mask, frame_time, frame_count)
                         frame_count = frame_count_function(reader.current_frame(), frame_count)
                         frame_time = frame_time_function(reader.current_frame_time(), frame_time)
                     update_segment(change,
@@ -1968,7 +2013,7 @@ def detectChange(vidAnalysisComponents, ranges=list(), arguments={},compare_func
             update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
     elif len(ranges) > 0 and get_end_time_from_segment(ranges[-1], -1) < 0:
         change = ranges[-1]
-        update_segment(change,
+        update_segment( change,
                         videosegment = os.path.split(vidAnalysisComponents.writer.filename)[1],
                         endtime = vidAnalysisComponents.elapsed_time_two - vidAnalysisComponents.rate_two * 2,
                         rate = vidAnalysisComponents.fps,

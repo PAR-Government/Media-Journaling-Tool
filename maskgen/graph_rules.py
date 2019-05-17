@@ -1141,7 +1141,8 @@ def _checkOutputType(graph,to,expected_types):
         return (Severity.ERROR, "Output file extension " + newFileExtension.upper() + " doesn't match operation allowed extensions: " + ', '.join(expected_types))
 
 def checkOutputType(op, graph, frm, to):
-    extension = op.name.lower().split('put')[1]
+    part = op.name.lower().split('::')[0]
+    extension = part.split('put')[1]
     expected_extension = extension.lower()
     return _checkOutputType(graph,to,[expected_extension])
 

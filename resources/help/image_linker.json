@@ -639,6 +639,12 @@
 				"operationSlides/output_image.png"
 			]
 		},
+        "OutputPng::BitDepth": {
+            "images": [
+                "operationSlides/output.png",
+				"operationSlides/output_image.png"
+            ]
+        },
 		"OutputPDF": {
 			"images": [
 				"operationSlides/output.png",
@@ -884,7 +890,8 @@
 		},
 		"TransformWarp": {
 			"images": [
-				"operationSlides/transform.png"
+				"operationSlides/transform.png",
+                "operationSlides/transform_2.png"
 			]
 		},
 		"TransformDownSample": {
