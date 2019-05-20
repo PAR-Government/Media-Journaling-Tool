@@ -2142,13 +2142,9 @@ class IntSliderWidget(Frame):
         Frame.__init__(self, master=master)
         self.range = range
         self.length = options['length'] if 'length' in options else None
-        if textvariable is not None:
-            self.Value = textvariable
-        else:
-            self.Value = StringVar()
-            self.Value.set(inital_value)
+        self.Value = textvariable if textvariable is not None else StringVar()
         self.entryVar = StringVar()
-        self.entryVar.set(textvariable.get())
+        self.entryVar.set(textvariable.get() if textvariable is not None else inital_value)
         self.entry = IntEntry(self, textvariable=self.entryVar, range=self.range, callback=self.entryCB)
         self.updateCommand = command
         options['from_'] = range[0]
@@ -2185,9 +2181,9 @@ class IntSliderWidget(Frame):
             pass
 
     def updateEntry(self, new_val):
-        entryVal = self.entry.get()
+        entryVal = str(self.entry.get())
         if entryVal != new_val and not (new_val == 0 and entryVal == ''):
-            self.entry.set(str(self.get()))
+            self.entry.set(self.get())
 
     def get(self):
         return int(self.Value.get())
@@ -2265,7 +2261,7 @@ class IntEntry(Frame):
 
     def set(self, d):
         d = str(d)
-        if d.isdigit() or d == '':
+        if self.is_digit(d) or d == '':
             if d != '0':
                 d = d.lstrip('0')
             self.entryValue.set(d)
