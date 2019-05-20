@@ -1807,6 +1807,9 @@ class Diff_Controller:
         self.analysis_components.vid_two.release()
         self.analysis_components.writer.close()
 
+class MaskGenerationError(Exception):
+    pass
+
 class MaskDebugger(Diff_Controller):
     analysis_components = None
     mask_analysis = None
@@ -1868,7 +1871,7 @@ class MaskDebugger(Diff_Controller):
                             continue
                         break
                     elif message == 'stop':
-                        raise ValueError('Mask Generation Aborted.')
+                        raise MaskGenerationError()
                 else:
                     break
             self.generated_frames += 1
@@ -1880,10 +1883,10 @@ class MaskDebugger(Diff_Controller):
     def cleanup(self):
         file_to_remove = self.analysis_components.writer.filename if self.analysis_components.writer.h_file is not None else None
         Diff_Controller.cleanup(self)
-        if self.invalidMask:
+        if self.invalidMask and file_to_remove is not None:
             if file_to_remove is not None:
                 os.remove(file_to_remove)
-            raise ValueError('mask generation completed in invalid state, hdf5 fragment deleted.')
+            raise MaskGenerationError('mask generation completed in invalid state, hdf5 fragment deleted. Edge now has no mask.')
 
 def default_compare(x,y,args):
     return np.abs(x - y)

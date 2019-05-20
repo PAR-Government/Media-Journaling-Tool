@@ -19,11 +19,12 @@ The histogram represents the values in the difference mask from 0 (no difference
 The threshold in red is the value where everything below it becomes 0 and everything above it becomes 255.
 Increasing the gain will move the threshold further to the right, decreasing will pull it to the left.
 
-#### What does Minimum Threshold do?
+#### What does Minimum/Maximum Threshold do?
 
 The threshold is the difference value above which a pixel is determined to be changed, and below which is determined not.
 Setting a minimum to this value will prevent the threshold from being automatically placed on the histogram
- any further to the left than the minimum.
+ any further to the left/right than the minimum/maximum respectively. 
+ Threshold constraints are applied before gain is added, therefore it is possible to exceed the threshold constraints by using the gain parameter.
 
 #### My Mask has a large amount of noise
 
