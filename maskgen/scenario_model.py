@@ -25,7 +25,7 @@ from image_wrap import ImageWrapper
 from maskgen.image_graph import ImageGraph
 from maskgen.video_tools import DummyMemory
 from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc, getPathValues
-from software_loader import Software, getProjectProperties, getRule
+from software_loader import Software, getProjectProperties, getRule, getOperation
 from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 
@@ -361,7 +361,6 @@ class LinkTool:
         :param startIm:
         :param startFileName:
         :param destIm:
-        :param destFileName:
         :param arguments:
         :param invert:
         :return:
@@ -2885,6 +2884,10 @@ class ImageProjectModel:
 
     def canDebugMask(self):
         allowed = self.getStartType() == 'video' or self.getEndType() == 'video'
+        modification = self.getCurrentEdgeModification()
+        op = getOperation(modification.operationName)
+        compare_func = op.getVideoCompareFunction()
+        allowed &= video_tools.debuggable(compare_func, modification.arguments)
         return 'disabled' if not allowed else 'normal'
 
     def substitutesAllowed(self):
