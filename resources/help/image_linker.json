@@ -356,6 +356,11 @@
 				"operationSlides/antiforensic.png"
 			]
 		},
+		"BitRescale": {
+			"images": [
+				"operationSlides/antiforensic.png"
+			]
+		},
 		"ArtificialLighting": {
 			"images": [
 				"operationSlides/artificial_lighting.png",
@@ -599,14 +604,29 @@
 				"operationSlides/output_image.png"
 			]
 		},
+		"OutputHEIC": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_image.png"
+			]
+		},
 		"OutputAudioPCM": {
 			"images": [
+				"operationSlides/output_audio.png",
 				"operationSlides/output.png"
 			]
 		},
 		"OutputAudioCompressed": {
 			"images": [
+				"operationSlides/output_audio.png",
 				"operationSlides/output.png"
+			]
+		},
+		"OutputZIP": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_video.png",
+				"operationSlides/output_audio.png"
 			]
 		},
 		"OutputDng": {
@@ -693,6 +713,12 @@
 				"operationSlides/output_video.png"
 			]
 		},
+		"OutputFromZip": {
+			"images": [
+				"operationSlides/output.png",
+				"operationSlides/output_collections.png"
+			]
+		},
 		"PasteSplice": {
 			"images": [
 				"operationSlides/paste_splice.png",
@@ -724,6 +750,11 @@
 			]
 		},
 		"CutPaste": {
+			"images": [
+				"operationSlides/video_pastes.png"
+			]
+		},
+		"Vid2Vid": {
 			"images": [
 				"operationSlides/video_pastes.png"
 			]
