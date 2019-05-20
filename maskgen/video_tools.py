@@ -1807,6 +1807,14 @@ class Diff_Controller:
         self.analysis_components.vid_two.release()
         self.analysis_components.writer.close()
 
+def debuggable(compare_func, arguments):
+    allowed = compare_func is not None
+    allowed &= compare_func not in ["maskgen.video_tools.cutCompare",
+                                    "maskgen.video_tools.warpCompare"]
+    if compare_func == "maskgen.video_tools.pasteCompare":
+        allowed &= getValue(arguments, 'add type', '') == 'replace'
+    return allowed
+
 class MaskGenerationError(Exception):
     pass
 
