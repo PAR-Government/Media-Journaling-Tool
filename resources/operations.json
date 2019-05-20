@@ -4740,6 +4740,11 @@
       "category": "Output",
       "name": "OutputAudioCompressed",
       "mandatoryparameters": {
+        "Audio Sequence File": {
+          "type": "file:csv",
+          "source": "zip",
+          "description": "CSV file where column one is time fractional milliseconds, column two is zip file entry name (a WAV file)."
+        }
       },
       "rules": [
         "checkLengthSame",
@@ -4755,13 +4760,14 @@
         "video": "maskgen.mask_rules.sample_rate_change",
         "audio": "maskgen.mask_rules.sample_rate_change"
       },
-      "description": "Export the image in the compressed format (mp3, m4a, wma, etc).",
+      "description": "Export the audio in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": {
         "default": false
       },
       "transitions": [
         "audio.audio",
-        "video.audio"
+        "video.audio",
+        "zip.audio"
       ]
     },
     {
@@ -5066,7 +5072,7 @@
         }
       },
       "rules": [],
-      "description": "Output a Video to Zip file",
+      "description": "Output a Audio to Zip file of contiguous audio files OR Video a sequence contiguous images(frames)",
       "includeInMask": {
         "default": false
       },
@@ -5877,7 +5883,7 @@
       ]
     },
     {
-      "category": "Transform",
+      "category": "Paste",
       "name": "Vid2Vid",
       "mandatoryparameters": {
       },
