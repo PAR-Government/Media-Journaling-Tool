@@ -5578,6 +5578,7 @@
         "checkEmpty",
         "checkFrameRateChange_Strict"
       ],
+      "donor_processor": "maskgen.masks.donor_rules.alpha_stream_processor",
       "optionalparameters": {
         "videoinputmaskname": {
           "type": "file:video",
