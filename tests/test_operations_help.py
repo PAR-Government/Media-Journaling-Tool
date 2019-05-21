@@ -19,8 +19,8 @@ class TestOperationsHelp(TestSupport):
                 fd.write(chunk)
         fd.close()
 
-        imgLinker = self.locateFile("resources\help\image_linker.json")
-        operations = self.locateFile("resources\operations.json")
+        imgLinker = self.locateFile("resources/help/image_linker.json")
+        operations = self.locateFile("resources/operations.json")
 
         prs = Presentation(powerpointPlace)
         prs.save('Operations.pptx')
@@ -29,9 +29,7 @@ class TestOperationsHelp(TestSupport):
         slide = len(prs.slides)
         print 'Number of slides gotten from online: ' + str(slide)
 
-        jtLocation = '../resources/help/operationSlides'
-        path, dirs, slides = next(os.walk(jtLocation))
-        print "JT Slides: " + str(len(slides))
+        jtLocation = os.path.join(os.path.split(imgLinker)[0],'operationSlides')
 
 
         with open(imgLinker) as f:
@@ -47,11 +45,12 @@ class TestOperationsHelp(TestSupport):
                 missing.append(o)
             else:
                 for i in data["operation"][o]["images"]:
+                    self.assertTrue(os.path.exists(os.path.join(jtLocation,os.path.split(i)[1])),os.path.join(jtLocation,i))
                     images.add(i)
                 data["operation"].pop(o)
 
+        print "JT Slides: " + str(len(images))
         self.assertTrue(missing==[], "Missing is not empty " + str(missing))
-        self.assertTrue(slide == len(slides), "Slides Online doesn't match with the number of slides in the JT")
         self.assertTrue(len(data["operation"]) == 0, "There are extra operation(s) in the help section: " +
                         ", ".join(data["operation"].keys()))
 
@@ -67,20 +66,24 @@ class TestOperationsHelp(TestSupport):
                 fd.write(chunk)
         fd.close()
 
-        imgLinker = self.locateFile("resources\help\image_linker.json")
-        groups = self.locateFile("resources\project_properties.json")
 
-        prs = Presentation("../resources/SemanticGroups.pptx")
+        imgLinker = self.locateFile("resources/help/image_linker.json")
+        groups = self.locateFile("resources/project_properties.json")
+
+        prs = Presentation(powerpointPlace)
+        prs.save('Operations.pptx')
+        self.addFileToRemove('Operations.pptx')
+
+        prs = Presentation(powerpointPlace)
         prs.save('Operations2.pptx')
         self.addFileToRemove('Operations2.pptx')
 
         slide = len(prs.slides)
         print 'Number of slides gotten from online: ' + str(slide)
 
-        jtLocation = '../resources/help/semanticSlides'
+        jtLocation = os.path.join(os.path.split(imgLinker)[0], 'semanticSlides')
         path, dirs, slides = next(os.walk(jtLocation))
         print "JT Semantic Slides: " + str(len(slides))
-        self.assertTrue(slide == len(slides), "Number of Slides online doesn't match number of slides in the JT")
 
 
         with open(imgLinker) as f:
@@ -103,6 +106,8 @@ class TestOperationsHelp(TestSupport):
                 missing.append(g)
             else:
                 for i in data["semanticgroup"][g]["images"]:
+                    self.assertTrue(os.path.exists(os.path.join(jtLocation, os.path.split(i)[1])),
+                                    os.path.join(jtLocation, i))
                     images.add(i)
                 data["semanticgroup"].pop(g)
 
