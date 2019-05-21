@@ -1936,8 +1936,8 @@ def image_selection(buildState):
        @rtype: CompositeImage
        """
     if buildState.isComposite:
-        return video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
-                                                                 defaultValue='00:00:00.000'))
+        return buildState.compositeMask.create(video_tools.extractMask(buildState.compositeMask.videomasks,getValue(buildState.edge, 'arguments.Frame Time',
+                                                                 defaultValue='00:00:00.000')))
     else:
         masks = buildState.meta_extractor.getMetaDataLocator(buildState.source).getMaskSetForEntireVideo(
                                              start_time=getValue(buildState.edge, 'arguments.Frame Time',
