@@ -6,14 +6,14 @@ TBD
 
 ### Video Mask Tuning
 
-####Can I rewind the Mask Debugger to a previous frame?
-Not currently. You must exit the Debugger and open it again to look at the mask for a particular frame.
+####Can I rewind the Mask Previewer to a previous frame?
+Not currently. You must exit the Previewer and open it again to look at the mask for a particular frame.
 
-####I canceled out of the Mask Debugger and now the edge is missing a mask file on validation.
-If you begin writing to the mask file with the debugger and then cancel or close it, The mask file will be incomplete, 
+####I canceled out of the Mask Previewer and now the edge is missing a mask file on validation.
+If you begin writing to the mask file with the previewer and then cancel or close it, The mask file will be incomplete, 
 and so be deleted automatically and noted in the log.
 
-#### How should I read the histogram in the Mask Debugger?
+#### How should I read the histogram in the Mask Previewer?
 
 The histogram represents the values in the difference mask from 0 (no difference) to 255 (complete difference.)
 The threshold in red is the value where everything below it becomes 0 and everything above it becomes 255.
@@ -37,6 +37,13 @@ consider supplying a user-generated substitute mask via the videoinputmask argum
 #### My Mask has "islands" that missed detection inside a larger area that was detected.
 
 Try the close:open morphology order, a smaller kernel, and/or increase the gain.
+
+#### My Histogram looks blocky
+
+Your video files are likely compressed and there are gaps between the bins of values.
+This may cause the automatic threshold selection to pick sub-optimal values for the threshold.
+This problem can be handled using the minimum and maximum threshold parameters to restrict 
+the range of automatic threshold selection, as well as gain.
 
 # BATCH
 
