@@ -2190,9 +2190,10 @@ class IntSliderWidget(Frame):
 
     def set(self, value):
         if value != self.Value.get():
-            self.Value.set(value if value != '' else '0')
+            self.Value.set(value if self.entry.is_digit(value) else '0')
 
 class IntEntry(Frame):
+    whitelist = ['', '-']
 
     def __init__(self, master, textvariable=None, initial_value=0, label='', range=(0,0), callback=None):
         Frame.__init__(self, master=master)
@@ -2220,13 +2221,12 @@ class IntEntry(Frame):
     def validateEntry(self, val, event=None):
         is_digit = self.is_digit(val)
         in_range = self.in_range(val)
-        whitelist = ['', '-']
         valid = True
 
         if event == 'focusin':
             return valid
 
-        if not is_digit and val not in whitelist:
+        if not is_digit and val not in self.whitelist:
             valid = False
         if not in_range and event == 'focusout':
             self.correct_value()
@@ -2261,7 +2261,7 @@ class IntEntry(Frame):
 
     def set(self, d):
         d = str(d)
-        if self.is_digit(d) or d == '':
+        if self.is_digit(d) or d in self.whitelist:
             if d != '0':
                 d = d.lstrip('0')
             self.entryValue.set(d)
