@@ -580,16 +580,18 @@ def maskSetFromConstraints(rate, start_time=(0,1), end_time=(0,1)):
                           rate=rate)
 
 
-def meta_key(*args, **kwargs):
+def meta_key_builder(*args, **kwargs):
     import copy
     newkargs = copy.copy(kwargs)
-    newargs = tuple([args[0].get_filename()])
+    newargs = [os.path.abspath(args[0].get_filename())]
     if 'media_types' in kwargs:
         newkargs['media_types'] = '.'.join(sorted(kwargs['media_types']))
     else:
         newkargs['media_types'] = 'video'
     if 'start_time_tuple' not in kwargs:
         newkargs['start_time_tuple'] = (0, 1)
+    if 'end_time_tuple' not in kwargs or kwargs['end_time_tuple'] is None:
+            newkargs['end_time_tuple'] = (0, 0)
     if 'channel' not in kwargs:
         newkargs['channel'] = 0
     return hashkey(*newargs, **newkargs)
@@ -1107,7 +1109,7 @@ class MetaDataLocator:
                                                      end_time) if end_time is not None and end_time != '0' else None,
                                                  media_types=media_types, channel=channel)
 
-    @cached(meta_cache, lock=meta_lock, key=meta_key)
+    @cached(meta_cache, lock=meta_lock, key=meta_key_builder)
     def getMaskSetForEntireVideoForTuples(self, start_time_tuple=(0, 1), end_time_tuple=None, media_types=['video'],
                                           channel=0):
         return self._get_tool().getMaskSetForEntireVideoForTuples(start_time_tuple=start_time_tuple,
