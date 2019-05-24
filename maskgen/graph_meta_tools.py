@@ -287,9 +287,8 @@ class MetaDataExtractor:
         if sourceFrames == targetFrames and int(sourceTime*100) == int(targetTime*100):
             return video_masks
 
-        dropRate = sourceFrames / float(sourceFrames - targetFrames) #if sourceFrames > targetFrames else \
-                  # targetFrames / float(sourceFrames - targetFrames)
-
+        dropRate = sourceFrames / float(sourceFrames - targetFrames) if sourceFrames != targetFrames else sourceFrames + 1
+        #if sourceFrames > targetFrames else targetFrames / float(sourceFrames - targetFrames)
 
         def apply_change(existing_value, orig_rate, final_rate, inverse=False, round_value=True,
                          min_value=0,upper_bound=False):

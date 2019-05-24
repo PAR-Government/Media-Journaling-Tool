@@ -15,6 +15,7 @@ import random
 import shutil
 import sys
 import traceback
+import re
 from datetime import datetime
 from functools import partial
 from threading import Thread, Semaphore
@@ -273,7 +274,8 @@ def getGraphFromLocalState(local_state):
     return local_state['model'].getGraph()
 
 def rangeNumberPicker(value, convert_function=lambda x: int(x)):
-    spec = value[value.rfind('[') + 1:-1] if value.rfind('[') >= 0 else value
+    _match = re.search(r"\[(.*?)\]", value)
+    spec = _match.group(1) if _match is not None else value
     choices = []
     for section in spec.split(','):
         vals = [convert_function(x) for x in section.split(':')]

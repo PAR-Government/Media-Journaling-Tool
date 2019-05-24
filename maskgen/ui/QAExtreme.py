@@ -556,8 +556,7 @@ class TemporalReviewDisplay(Frame):
             maxtsec = max(maxtsec, probe.max_time())
             if (page.finalNodeName == None):
                 if probe.donorBaseNodeId is not None and page.master.getFileNameForNode(probe.donorBaseNodeId) == \
-                        page.edgeTuple[
-                            1]:
+                        page.edgeTuple[1]:
                     prolist.append(probe)
             else:
                 if (page.master.getFileNameForNode(probe.finalNodeId) == page.edgeTuple[1]):
@@ -635,7 +634,7 @@ class TemporalReviewDisplay(Frame):
         imscroll.grid(row=1, column=0, sticky=EW)
         imscroll.config(command=page.scrollplt)
         fcanvas = FigureCanvasTkAgg(f, master=canvas)
-        fcanvas.show()
+        fcanvas.draw()
         fcanvas.get_tk_widget().grid(row=0, column=0)
         fcanvas._tkcanvas.grid(row=0, column=0)
         canvas.grid(row=0, column=0)
