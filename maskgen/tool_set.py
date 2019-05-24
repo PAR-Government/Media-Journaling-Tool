@@ -18,7 +18,6 @@ from subprocess import Popen, PIPE
 
 from scipy import ndimage
 from skimage.measure import compare_ssim
-
 import cv2api
 import loghandling
 import maskgen.exif
@@ -613,7 +612,8 @@ def validateAndConvertTypedValue(argName, argValue, operationDef, skipFileValida
             return float(argValue)
         elif argDef['type'].startswith('int'):
             typeDef = argDef['type']
-            vals = [int(x) for x in typeDef[typeDef.rfind('[') + 1:-1].split(':')]
+            _match = re.search(r"\[(.*?)\]", typeDef).group(1)
+            vals = [int(x) for x in _match.split(':')]
             if int(argValue) < vals[0] or int(argValue) > vals[1]:
                 raise ValueError(argName + ' is not within the defined range')
             return int(argValue)
@@ -921,11 +921,24 @@ def readImageFromVideo(filename, videoFrameTime=None, isMask=False, snapshotFile
         return img
 
 
-def md5_of_file(filename, raiseError=True):
+
+def md5_of_file(filename, raiseError=True, load_size=500000000):
     import hashlib
+    import os
     try:
+        size = os.stat(filename).st_size
         with open(filename, 'rb') as rp:
-            return hashlib.md5(rp.read()).hexdigest()
+            if size < load_size:
+                return hashlib.md5(rp.read()).hexdigest()
+            else:
+                m = hashlib.md5()
+                while True:
+                    b = rp.read(load_size)
+                    if b is not None and len(b) > 0:
+                        m.update(b)
+                    else:
+                        break
+            return m.hexdigest()
     except Exception as e:
         if raiseError:
             raise e
@@ -1564,10 +1577,8 @@ def __flannMatcher(d1, d2, args=None):
 
 
 def getMatchedSIFeatures(img1, img2, mask1=None, mask2=None, arguments=dict(), matcher=__flannMatcher):
-    img1.touint8()
-    img2.touint8()
-    img1 = img1.to_rgb().apply_mask(mask1).to_array()
-    img2 = img2.to_rgb().apply_mask(mask2).to_array()
+    img1 = img1.to_rgb(data_type=np.uint8).apply_mask(mask1).to_array()
+    img2 = img2.to_rgb(data_type=np.uint8).apply_mask(mask2).to_array()
     threshold = arguments['sift_match_threshold'] if 'sift_match_threshold' in arguments else 10
     maxmatches = int(arguments['homography max matches']) if 'homography max matches' in arguments else 10000
 
@@ -2264,7 +2275,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = diff[:, :, 0] + (diff[:, :, 2] + diff[:, :, 1])/weight
         bins = 256 + 512/weight
     else:
-        min_threshold = int(getValue(arguments, 'minimum threshold', 9))
+        min_threshold = int(getValue(arguments, 'minimum threshold', 0))
         diff = (np.abs(img_one.astype('int16') - img_two.astype('int16'))).astype('uint16')
         if aggregate == 'max':
             mask = np.max(diff, 2)  # use the biggest difference of the 3 colors
@@ -2278,7 +2289,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     hist, bin_edges = np.histogram(mask, bins=bins, density=False)
     if smoothing > 0:
         hist = moving_average(hist,n=smoothing)  # smooth out the histogram
-        minima = signal.argrelmin(hist, order=2)  # find local minima
+        minima = signal.argrelmin(hist, order=1)  # find local minima
         size = minima[0].size
         minima =  minima[0][0] if size > 0 else 0
     else:
@@ -2298,7 +2309,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
         mask = cv2.morphologyEx(mask, morphologyOps[morphology_order[1]], kernel)
     elif algorithm == 'median':
         mask = cv2.medianBlur(mask, kernel_size)  # filter out noise in the mask
-    return mask, {'minima': threshold}
+    return mask, {'threshold': threshold, 'hist': hist, 'diff':diff}
 
 
 def getExifDimensionsFromData(exif_meta, crop=False):

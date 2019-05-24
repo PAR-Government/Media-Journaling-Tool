@@ -30,6 +30,11 @@ class TestToolSet(TestSupport):
         self.assertEquals(tool_set.fileType('foo.oh.zip'), 'collection')
         self.assertEquals(tool_set.fileType('foo.newgate.zip'), 'collection')
 
+    def test_md5(self):
+        all_md5 = tool_set.md5_of_file(self.locateFile('tests/videos/sample1.mov'))
+        parts_md5 = tool_set.md5_of_file(self.locateFile('tests/videos/sample1.mov'),load_size=1000)
+        self.assertEqual(all_md5,parts_md5)
+
     def test_filetypes(self):
         self.assertTrue(("mov files", "*.mov") in tool_set.getFileTypes())
         self.assertTrue(("zipped masks", "*.tgz") in tool_set.getMaskFileTypes())
