@@ -5069,6 +5069,11 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "Crop File": {
+          "type": "file:txt",
+          "trigger mask": false,
+          "description": "CSV file describing the x,y coordinates of crop for each frame"
         }
       },
       "rules": [],
