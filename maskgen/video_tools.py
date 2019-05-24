@@ -13,13 +13,12 @@ from subprocess import Popen, PIPE
 from threading import RLock
 
 import cv2
+import ffmpeg_api
 import numpy as np
+import tool_set
 from cachetools import LRUCache
 from cachetools import cached
 from cachetools.keys import hashkey
-
-import ffmpeg_api
-import tool_set
 from cv2api import cv2api_delegate
 from image_wrap import ImageWrapper
 from maskgen import exif
@@ -1108,13 +1107,24 @@ class MetaDataLocator:
                                                      end_time) if end_time is not None and end_time != '0' else None,
                                                  media_types=media_types, channel=channel)
 
-    @cached(meta_cache, lock=meta_lock, key=meta_key_builder)
     def getMaskSetForEntireVideoForTuples(self, start_time_tuple=(0, 1), end_time_tuple=None, media_types=['video'],
                                           channel=0):
+        import copy
+        return copy.deepcopy(self._cached_getMaskSetForEntireVideoForTuples(start_time_tuple=start_time_tuple,
+                                                                            end_time_tuple=end_time_tuple,
+                                                                            media_types=media_types,
+                                                                            channel=channel))
+
+    @cached(meta_cache, lock=meta_lock, key=meta_key_builder)
+    def _cached_getMaskSetForEntireVideoForTuples(self,
+                                                  start_time_tuple=(0, 1),
+                                                  end_time_tuple=None,
+                                                  media_types=['video'],
+                                                  channel=0):
         return self._get_tool().getMaskSetForEntireVideoForTuples(start_time_tuple=start_time_tuple,
-                                             end_time_tuple=end_time_tuple,
-                                             media_types=media_types,
-                                             channel=channel)
+                                                                  end_time_tuple=end_time_tuple,
+                                                                  media_types=media_types,
+                                                                  channel=channel)
 
 class FileMetaDataLocator(MetaDataLocator):
 
@@ -2250,7 +2260,7 @@ def formMaskDiff(fileOne,
     return result
 
 def audioWrite(fileOne, amount, channels=2, block=8192):
-    import wave, struct
+    import wave
     wf = wave.open(fileOne,'wb')
     try:
         wf.setparams((channels, 2, 44100, 0, 'NONE', 'not compressed'))
@@ -2886,6 +2896,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
               compare_function=tool_set.mediatedCompare,
               convert_function=tool_set.convert16bitcolor,
               arguments={}):
+
     """
       compare frame to frame of each video
      :param fileOne:
