@@ -1703,7 +1703,13 @@ class TestVideoTools(TestSupport):
                                                            start_time='29', end_time='55')
         source_set2 = video_tools.FileMetaDataLocator(source).getMaskSetForEntireVideo(
                                                            start_time='29', end_time='55')
-        self.assertEquals(source_set1, source_set2)
+        self.assertEqual(len(source_set1), len(source_set2))
+        for i in range(len(source_set1)):
+            if 'mask' in source_set1[i]:
+                source_set1[i].pop('mask')
+            if 'mask' in source_set2[i]:
+                source_set2[i].pop('mask')
+            self.assertEquals(source_set1[i], source_set2[i])
 
     def test_lossy(self):
         self.assertFalse(video_tools.is_raw_or_lossy_compressed(self.locateFile('tests/videos/sample1.mov')))

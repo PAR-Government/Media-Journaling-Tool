@@ -269,19 +269,19 @@ class TestToolSet(TestSupport):
         mock.get_node =get_node
         mock.get_image_path = get_image_path
         mock.dir = '.'
-        video_tools.meta_cache[video_tools.meta_key(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+        video_tools.meta_cache[video_tools.meta_key_builder(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
                                  channel=0)] = [{'startframe': 1,'endframe':300,'rate':10,'type':'audio','frames':300,
                          'starttime':0,'endtime':29900}]
-        video_tools.meta_cache[video_tools.meta_key(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
+        video_tools.meta_cache[video_tools.meta_key_builder(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0,1), end_time_tuple=None, media_types=['video'],
                                  channel=0)] = [{'startframe': 1,'endframe':289,'rate':10,'type':'audio','frames':289,
                          'starttime':0,'endtime':28800}]
         video_tools.meta_cache[
-            video_tools.meta_key(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+            video_tools.meta_key_builder(video_tools.FileMetaDataLocator('a'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
                                  channel=0)] = [
             {'startframe': 1, 'endframe': 300, 'rate': 10, 'type': 'video', 'frames': 300,
              'starttime': 0, 'endtime': 29900}]
         video_tools.meta_cache[
-            video_tools.meta_key(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
+            video_tools.meta_key_builder(video_tools.FileMetaDataLocator('b'), start_time_tuple=(0, 1), end_time_tuple=None, media_types=['audio'],
                                  channel=0)] = [
             {'startframe': 1, 'endframe': 270, 'rate': 10, 'type': 'video', 'frames': 270,
              'starttime': 0, 'endtime': 26900}]
