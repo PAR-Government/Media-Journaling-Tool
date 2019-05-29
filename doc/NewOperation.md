@@ -97,6 +97,11 @@ Inputmasks are essential donor masks.  They are special in that they are always 
 #### Substitute Masks
 
 Substitute masks replace edge masks.  CAUTION: These masks do not reflect actual differences between media.  Instead, they represent intended differences.
+There are two types of substitutes:
+- *substitute videomasks*: video masks provided as a video file where black pixels are unmasked; white pixels are masked.  This only applies to videos.
+- *use as composite*: an attribute of a 'imagefile' type link parameter indicating the provided file (optional) be used as a substitute.  This only applies to images.
+
+Why two approaches?  At this point, *use as composite* assumes presense of the mask file is sufficient for substitution.  For video substitutes, the substitute video is not an optional operation attribute.  One critical reason is the required the extra steps of converting a video into a HDF5 mask file.
 
 ## Probe Inclusion
 
@@ -387,6 +392,7 @@ Parameters are defined optional and mandatory sections of the operation.  Each p
 - *description* - description of the parameter
 - *defaultvalue* - default value (optional)
 - *source*- Parameter is conditioned to be collected for a specific type of media such image, zip, video or audio (optional).
+- *use as composite* - Used for an imagefile type parameter the replaces the edge mask.  This is used if the edge mask is dirty due to compressions artifacts.
 
 The source type specific values is inforced in the UI.  It is not enforced in batch projects.  The batch specification to not indicate random selection of values from the parameter if there is a type restriction..
 ## Comparison and Mask Generation
