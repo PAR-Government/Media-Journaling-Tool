@@ -30,7 +30,7 @@
           "value": "{hdf5dir}/{node@0}.hdf5"
         }
       },
-      "directory":"results",
+      "directory":"{results}",
       "op": "OutputPng",
       "category": "Output",
       "software": "opencv",
