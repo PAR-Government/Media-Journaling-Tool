@@ -10,11 +10,15 @@ from maskgen import plugins
 from maskgen.tool_set import openImageFile
 from tests.test_support import TestSupport
 from maskgen.support import getValue
+import tempfile
 from networkx.readwrite import json_graph
 
 
 def saveAsPng(source, target):
     openImageFile(source, args={'Bits per Channel': 16}).save(target, format='PNG')
+
+
+
 
 
 class PluginDeferCaller(plugins.PluginCaller):
@@ -31,6 +35,19 @@ class TestBatchProcess(TestSupport):
 
     def setUp(self):
         plugins.loadPlugins()
+
+    def createExecutor(self, prefix,skipValidation=False, loglevel=50, setup=False,global_variables={}):
+        d = tempfile.mkdtemp(prefix=prefix, dir='.')
+        os.mkdir(os.path.join(d,'test_projects'))
+        if setup:
+            self.general_setup(d)
+        be = batch_project.BatchExecutor(os.path.join(d,'test_projects'),
+                                         workdir=d,
+                                         loglevel=loglevel,
+                                         skipValidation=skipValidation,
+                                         global_variables=global_variables)
+        self.addFileToRemove(d)
+        return be
 
     def test_int_picker(self):
         manager = PermuteGroupManager()
@@ -99,28 +116,27 @@ class TestBatchProcess(TestSupport):
         self.assertTrue(batch_project.executeParamSpec('test_list_spec', spec,
                                                        global_state, local_state, 'test_node', []) in ['1', '2', '3'])
 
-    def general_setup(self):
-        self.addFileToRemove('imageset.txt', preemptive=True)
-        with open('imageset.txt', 'w') as fp:
+    def general_setup(self, dir):
+        f = os.path.join(dir,'imageset.txt')
+        self.addFileToRemove(f, preemptive=True)
+        with open(f, 'w') as fp:
             fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
                            not filename.startswith('test_project')])
-        self.addFileToRemove('donorset.txt', preemptive=True)
-        with open('donorset.txt', 'w') as fp:
+        f = os.path.join(dir,'donorset.txt')
+        self.addFileToRemove(f, preemptive=True)
+        with open(f, 'w') as fp:
                 fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
                                not filename.startswith('test_project')])
-        if os.path.exists('test_projects'):
-            shutil.rmtree('test_projects')
-        os.mkdir('test_projects')
         batch_project.loadCustomFunctions()
 
     def test_validation(self):
-        self.general_setup()
+        be = self.createExecutor('validation',
+                                 setup=True,
+                                 global_variables={'image_dir': self.locateFile('tests/images')})
         manager = plugins.loadPlugins()
         PluginDeferCaller(manager.getBroker())
         batchProject = batch_project.loadJSONGraph(
             self.locateFile('tests/specifications/batch_validation_process.json'))
-        be = batch_project.BatchExecutor('test_projects',
-                                         global_variables={'image_dir': self.locateFile('tests/images')})
         dir,name= be.runProjectLocally(batchProject)
         be.finish()
         self.assertTrue(dir is None)
@@ -129,26 +145,21 @@ class TestBatchProcess(TestSupport):
     def test_extend(self):
         batch_project.loadCustomFunctions()
         import shutil
-        self.addFileToRemove('testimages', preemptive=True)
-        shutil.copytree(os.path.dirname(self.locateFile('./images/sample.json')), 'testimages')
-        self.assertTrue(processSpecification(self.locateFile('tests/specifications/batch_extension_process.json'), '', 'testimages',skipValidation=True) == 1)
+        self.addFileToRemove('testimages_extend', preemptive=True)
+        shutil.copytree(os.path.dirname(self.locateFile('./images/sample.json')), 'testimages_extend')
+        self.assertTrue(processSpecification(self.locateFile('tests/specifications/batch_extension_process.json'), '', 'testimages_extend',skipValidation=True) == 1)
 
     def test_run(self):
-        self.general_setup()
-        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/batch_process.json'))
-        global_state = {
-            'projects': 'test_projects',
-            'project': batchProject,
-            'picklists_files': {},
-            'workdir': '.',
-            'image_dir': self.locateFile('tests/images'),
-            'count': batch_project.IntObject(20),
-            'permutegroupsmanager': PermuteGroupManager(),
-            'donorImages':self.locateFile('tests/images')
-        }
-        batchProject.loadPermuteGroups(global_state)
-        for i in range(2):
-            batchProject.executeOnce(global_state)
+        batch_project.loadCustomFunctions()
+        batchProject = batch_project.loadJSONGraph(
+            self.locateFile('tests/specifications/batch_process.json'))
+        be = self.createExecutor('main_batch_run', skipValidation=True, loglevel=10, setup=True,
+                                 global_variables={'image_dir': self.locateFile('tests/images'),
+                                                   'donorImages': self.locateFile('tests/images')})
+
+        be.runProjectLocally(batchProject)
+        be.runProjectLocally(batchProject)
+        global_state = be.initialState
         try:
             #self.assertFalse(global_state['permutegroupsmanager'].hasNext())
             global_state['permutegroupsmanager'].next()
@@ -157,82 +168,73 @@ class TestBatchProcess(TestSupport):
             self.fail('Should have seen an end of resource exception')
         except EndOfResource:
             pass
-
-    def test_image_selection(self):
-        self.general_setup()
-        batch_project.loadCustomFunctions()
-        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/simple_image_selector_plugin.json'))
-        be = batch_project.BatchExecutor('test_projects',skipValidation=True,global_variables= {'image_dir' :self.locateFile('tests/images')})
-        dir, name = be.runProjectLocally(batchProject)
         be.finish()
-        self.assertTrue(dir is not None)
+
 
     def test_external_image_selection(self):
-        self.addFileToRemove('imageset.txt', preemptive=True)
-        with open('imageset.txt', 'w') as fp:
-            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
-                           not filename.startswith('test_project1')])
-        if os.path.exists('results'):
-            shutil.rmtree('results')
-        if os.path.exists('test_projects'):
-            shutil.rmtree('test_projects')
-        os.mkdir('test_projects')
-        os.mkdir('test_projects/hdf5')
-        with open('test_projects/hdf5/test_project1.hdf5','w') as fp:
-            fp.write('foo')
+        d = tempfile.mkdtemp(prefix='external_image', dir='.')
+        self.general_setup(d)
+        os.mkdir(os.path.join(d,'test_projects'))
+        os.mkdir(os.path.join(d, 'images'))
 
-        be = batch_project.BatchExecutor('test_projects',
-                                         global_variables= {'image_dir' :self.locateFile('tests/images'),
-                                                            'hdf5dir':'test_projects/hdf5'})
+        hdf5dir = os.path.join(d,'hdf5')
+        def mysetup():
+            os.mkdir(hdf5dir)
+            with open(os.path.join(hdf5dir,'test_project1.hdf5'),'w') as fp:
+                fp.write('foo')
+        mysetup()
+        self.addFileToRemove(d, preemptive=False)
+
+        be = batch_project.BatchExecutor(os.path.join(d,'test_projects'),
+                                         workdir=d,
+                                         global_variables= {'image_dir': os.path.join(d, 'images'),
+                                                            'hdf5dir':hdf5dir,
+                                                            'results':os.path.join(d, 'images')})
         batch_project.loadCustomFunctions()
+
         batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/external_image_batch_process.json'))
 
-        self.addFileToRemove('results', preemptive=True)
-        self.addFileToRemove('test_projects', preemptive=False)
-        os.mkdir('results')
-        saveAsPng(self.locateFile('tests/images/test_project1.jpg'), 'results/test_project1.png')
-        with open('results/arguments.csv', 'w') as fp:
+        saveAsPng(self.locateFile('tests/images/test_project1.jpg'),
+                  os.path.join(d, 'images','test_project1.png'.format(d)))
+        with open(os.path.join(d, 'images','arguments.csv'), 'w') as fp:
             fp.write('test_project1.png,no,16')
+
         dir, name = be.runProjectLocally(batchProject)
         be.finish()
         self.assertTrue(dir is not None)
-        self.assertTrue(os.path.exists('test_projects/test_project1/test_project1.hdf5'))
+        self.assertTrue(os.path.exists(os.path.join(hdf5dir,'test_project1.hdf5')))
+
+    def test_image_selection(self):
+        batch_project.loadCustomFunctions()
+        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/simple_image_selector_plugin.json'))
+        be = self.createExecutor('image_selection',skipValidation=True,setup=True, loglevel=10, global_variables= {'image_dir' :self.locateFile('tests/images')})
+        dir, name = be.runProjectLocally(batchProject)
+        be.finish()
+        self.assertTrue(dir is not None)
 
     def test_runinheritance(self):
-        self.addFileToRemove('imageset.txt', preemptive=True)
-        with open('imageset.txt', 'w') as fp:
-            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
-                           not filename.startswith('test_project')])
-        if os.path.exists('test_projects'):
-            shutil.rmtree('test_projects')
-        os.mkdir('test_projects')
         batch_project.loadCustomFunctions()
-        batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/inheritance_test.json'))
-        global_state = {
-            'projects': 'test_projects',
-            'project': batchProject,
-            'picklists_files': {},
-            'image_dir': self.locateFile('tests/images'),
-            'count': batch_project.IntObject(1),
-            'permutegroupsmanager': PermuteGroupManager()
-        }
-        batchProject.loadPermuteGroups(global_state)
-        for i in range(1):
-            batchProject.executeOnce(global_state)
+        batchProject = batch_project.loadJSONGraph(
+            self.locateFile('tests/specifications/inheritance_test.json'))
 
+        be = self.createExecutor('image_selection', skipValidation=True, loglevel=10,setup=True,
+                                 global_variables={
+            'image_dir': self.locateFile('tests/images'),
+        })
+
+        dir, name = be.runProjectLocally(batchProject)
+        be.finish()
+        self.assertTrue(dir is not None)
 
     def test_runwithpermutation(self):
-        self.addFileToRemove('imageset.txt', preemptive=True)
-        with open('imageset.txt', 'w') as fp:
-            fp.writelines([filename + os.linesep for filename in os.listdir(self.locateFile('tests/images')) if
-                           not filename.startswith('test_project')])
-        if os.path.exists('test_projects'):
-            shutil.rmtree('test_projects')
-        os.mkdir('test_projects')
+        batch_project.loadCustomFunctions()
+        d = tempfile.mkdtemp(prefix='external_image', dir='.')
+        self.general_setup(d)
+        os.mkdir(os.path.join(d,'test_projects'))
         batch_project.loadCustomFunctions()
         batchProject = batch_project.loadJSONGraph(self.locateFile('tests/specifications/permutation_batch_process.json'))
         global_state = {
-            'projects': 'test_projects',
+            'projects': os.path.join(d,'test_projects'),
             'project': batchProject,
             'picklists_files': {},
             'image_dir': self.locateFile('tests/images'),
