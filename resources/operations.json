@@ -3331,6 +3331,7 @@
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
         },
         "samplemaskname": {
+          "use as composite": true,
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
         },

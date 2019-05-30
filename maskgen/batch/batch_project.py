@@ -497,6 +497,9 @@ def pickArgs(local_state, global_state, node_name, argument_specs, operation, pr
             args[param] = v
     for param in operation.optionalparameters:
         if argument_specs is None or param not in argument_specs:
+            paramDef = operation.optionalparameters[param]
+            if 'source' in paramDef and paramDef['source'] is not None and paramDef['source'] != startType:
+                continue
             v = pickArg(operation.optionalparameters[param], node_name, param, global_state, local_state)
             if v is not None:
                 args[param] = v
