@@ -2289,17 +2289,17 @@ class MaskDebuggerUI(Toplevel):
 
     def layout_image_frames(self):
         from PIL import Image
-        raw = self.debugger.frame_to if self.debugger.frame_to is not None else Image.new("RGB", (350, 350), "black")
-        raw = imageResizeRelative(raw, (350,350), raw.size)
+        raw = self.debugger.frame_to if self.debugger.frame_to is not None else Image.new("RGB", (450, 450), "black")
+        raw = imageResizeRelative(raw, (450,450), raw.size)
         diff = getValue(self.debugger.mask_analysis, 'diff', None)
         diff = np.swapaxes(diff, 0,1)
-        diff_img = ImageWrapper(diff) if diff is not None else Image.new("RGB", (350, 350), "black")
-        diff_img = imageResizeRelative(diff_img, (350, 350), raw.size)
+        diff_img = ImageWrapper(diff) if diff is not None else Image.new("RGB", (450, 450), "black")
+        diff_img = imageResizeRelative(diff_img, (450, 450), raw.size)
         mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
-            self.debugger.analysis_components.mask is not None else Image.new("RGB", (350, 350), "black")
-        mask = imageResizeRelative(mask, (350,350), otherImDim=raw.size)
+            self.debugger.analysis_components.mask is not None else Image.new("RGB", (450, 450), "black")
+        mask = imageResizeRelative(mask, (450,450), otherImDim=raw.size)
         mask_alpha = mask.toPIL()
-        overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (350, 350), "black")
+        overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (450, 450), "black")
         overlay.paste(mask_alpha, mask=mask_alpha.convert('L'))
         return {'overlay':ImageTk.PhotoImage(overlay), 'mask':ImageTk.PhotoImage(mask.toPIL()), 'source':ImageTk.PhotoImage(raw.toPIL())}
 
@@ -2316,8 +2316,8 @@ class MaskDebuggerUI(Toplevel):
         self.master = master
         self.result = None, 0
         video_total_frames = FileMetaDataLocator(self.debugger.analysis_components.file_one).get_frame_count()['frames']
-        self.total_frames = int(self.debugger.analysis_components.time_manager.getExpectedEndFrameGiveRate(rate=self.debugger.analysis_components.fps,
-                                                                                                       defaultValue=video_total_frames))
+        self.total_frames = int(self.debugger.analysis_components.time_manager.getExpectedEndFrameGiveRate(
+            rate=self.debugger.analysis_components.fps, defaultValue=video_total_frames))
         self.hist = None
         self.writing = BooleanVar()
         self.writing.set(FALSE if self.debugger.invalidMask else TRUE)
@@ -2616,7 +2616,7 @@ class PropertyFrame(VerticalScrolledFrame):
                if prop.type.endswith('slider'):
                    _match = re.search(r"\[(.*?)\]", prop.type).group(1)
                    range = [int(x) for x in _match.split(':')]
-                   widget = IntSliderWidget(master, textvariable=self.values[row], range=range, length=200)
+                   widget = IntSliderWidget(master, textvariable=self.values[row], range=range, length=300)
                else:
                    widget = Entry(master, takefocus=(row == 0), width=80, textvariable=self.values[row])
                widget.grid(row=row, column=1, columnspan=12, sticky=E + W)
