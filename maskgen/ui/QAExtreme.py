@@ -145,7 +145,7 @@ class FinalPage(Frame):
             self.checkboxes.boxes.append(ck)
             row += 1
         master.checkboxes[master.current_qa_page] = self.checkboxes
-        if len(self.master.errors > 1):
+        if len(self.master.errors) > 1:
             Label(self, text='Probes were generated with errors. They can be reviewed, but QA cannot be accepted. Check the log for errors.').grid(row=row, column=col+1)
             row += 1
         Label(self, text='QA Signoff: ').grid(row=row, column=col)
