@@ -1924,7 +1924,7 @@ def cutDetect(vidAnalysisComponents, ranges=list(),arguments={},compare_function
     vidAnalysisComponents.time_manager.setStopFrame (vidAnalysisComponents.time_manager.frameSinceBeginning + diff_in_frames - 1)
     if not vidAnalysisComponents.vid_two.isOpened():
         ranges.append(create_segment(starttime=vidAnalysisComponents.elapsed_time_one - vidAnalysisComponents.rate_one,
-                             startframe=vidAnalysisComponents.time_manager.frameSinceBeginning+1,
+                             startframe=vidAnalysisComponents.time_manager.frameSinceBeginning,
                              rate=vidAnalysisComponents.fps_one,
                              type='video',
                              endframe = get_end_frame_from_segment(orig_vid),
