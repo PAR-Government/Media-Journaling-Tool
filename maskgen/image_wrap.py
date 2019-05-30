@@ -367,6 +367,7 @@ def openImageFile(filename, isMask=False, args=None):
     @type filename: str
     @rtype: ImageWrapper
     """
+    filename = os.path.abspath(filename)
     if not os.path.exists(filename):
         parts = os.path.splitext(filename)
         mod_filename = parts[0] + parts[1].lower()
