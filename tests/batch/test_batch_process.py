@@ -15,20 +15,9 @@ from tests.test_support import TestSupport
 def saveAsPng(source, target):
     openImageFile(source, args={'Bits per Channel': 16}).save(target, format='PNG')
 
-
-class PluginDeferCaller(plugins.PluginCaller):
-    def __init__(self, provided_broker):
-        provided_broker.register('PluginManager', self)
-
-    def _callPlugin(self, definition, im, source, target, **kwargs):
-        if 'Blur' in definition['operation']['name']:
-            return None, None
-        return plugins.PluginCaller._callPlugin(self, definition, im, source, target, **kwargs)
-
-
 class TestBatchProcess(TestSupport):
     def setUp(self):
-        plugins.loadPlugins()
+        plugins.loadPlugins(customFolders= [self.locateFile('tests/batch/plugins')])
 
     def createExecutor(self, prefix, skipValidation=False, loglevel=50, setup=False, global_variables={}):
         d = tempfile.mkdtemp(prefix=prefix, dir='.')
@@ -128,16 +117,14 @@ class TestBatchProcess(TestSupport):
 
     def test_validation(self):
         be = self.createExecutor('validation',
-                                 setup=True,
+                                 setup=True,loglevel=10,
                                  global_variables={'image_dir': self.locateFile('tests/images')})
-        manager = plugins.loadPlugins()
-        PluginDeferCaller(manager.getBroker())
+
         batchProject = batch_project.loadJSONGraph(
             self.locateFile('tests/specifications/batch_validation_process.json'))
-        dir, name = be.runProjectLocally(batchProject)
-        be.finish()
+        dir,name= be.runProjectLocally(batchProject)
+        be.finish(remove_logs=True)
         self.assertTrue(dir is None)
-        plugins.PluginCaller(manager.getBroker())
 
     def test_extend(self):
         batch_project.loadCustomFunctions()
@@ -166,7 +153,7 @@ class TestBatchProcess(TestSupport):
             self.fail('Should have seen an end of resource exception')
         except EndOfResource:
             pass
-        be.finish()
+        be.finish(remove_logs=True)
 
     def test_external_image_selection(self):
         d = tempfile.mkdtemp(prefix='external_image', dir='.')
@@ -200,7 +187,7 @@ class TestBatchProcess(TestSupport):
             fp.write('test_project1.png,no,16')
 
         dir, name = be.runProjectLocally(batchProject)
-        be.finish()
+        be.finish(remove_logs=True)
         self.assertTrue(dir is not None)
         self.assertTrue(os.path.exists(os.path.join(hdf5dir, 'test_project1.hdf5')))
 
@@ -211,7 +198,7 @@ class TestBatchProcess(TestSupport):
         be = self.createExecutor('image_selection', skipValidation=True, setup=True, loglevel=10,
                                  global_variables={'image_dir': self.locateFile('tests/images')})
         dir, name = be.runProjectLocally(batchProject)
-        be.finish()
+        be.finish(remove_logs=True)
         self.assertTrue(dir is not None)
 
     def test_runinheritance(self):
@@ -225,7 +212,7 @@ class TestBatchProcess(TestSupport):
                                  })
 
         dir, name = be.runProjectLocally(batchProject)
-        be.finish()
+        be.finish(remove_logs=True)
         self.assertTrue(dir is not None)
 
     def test_runwithpermutation(self):
@@ -249,6 +236,7 @@ class TestBatchProcess(TestSupport):
         for i in range(10):
             batchProject.executeOnce(global_state)
         self.assertTrue(global_state['permutegroupsmanager'].hasNext())
+
 
     def test_remap(self):
         network = {
