@@ -1079,7 +1079,7 @@ class MakeGenUI(Frame):
         d = QAProjectDialog(self)
         d.valid = True
 
-    def startMaskTuner(self, controller):
+    def startMaskPreviewer(self, controller):
         return MaskPreviewUI(master=self, scModel=self.scModel, previewer=controller)
 
     def comments(self):
