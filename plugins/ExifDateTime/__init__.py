@@ -2,19 +2,24 @@
 Plugin to modify date and time in exif
 Plugin adapted from ExifGPSChange\__init__.py
 """
-from maskgen.exif import getexif, get_version, runexif
 import datetime
+import logging
+import os
 import random
 
+from maskgen.exif import getexif, get_version, runexif
 
-def get_defaults(source):
+
+def get_defaults(source, logger):
     try:
         exifdata = getexif(source)
         date, time = exifdata['Create Date'].split(" ")
         date = "-".join(date.split(":"))
+        logger.debug("Fetched default date and time from exif")
     except KeyError:
         time = str(datetime.datetime.utcnow().strftime("%H:%M:%S"))
         date = str(datetime.datetime.utcnow().date())
+        logger.debug("Using current date and time for defaults")
     except TypeError:
         return False, False
 
@@ -83,20 +88,22 @@ def transform(img, source, target, **kwargs):
     mindate = kwargs['Date Minimum'] if 'Date Minimum' in kwargs else None
     maxdate = kwargs['Date Maximum'] if 'Date Maximum' in kwargs else None
 
-    date, time = get_defaults(source)
+    logger = logging.getLogger('maskgen')
+    date, time = get_defaults(source, logger)
 
     if not ((mindate and maxdate) or (mintime and maxtime)):
         return None, "Invalid Arguments"
 
-    if mintime and maxtime:
+    if mintime and maxtime and mintime != 'None' and maxtime != 'None':
         randtime = random_time(mintime, maxtime)
         time = randtime if randtime else time
-    if mindate and maxdate:
+    if mindate and maxdate and mindate != 'None' and maxdate != 'None':
         randdate = random_date(mindate, maxdate)
         date = randdate if randdate else date
     if not ((mintime and maxtime) or (mindate and maxdate)):
         return None, "Invalid field entries."
 
+    logger.debug('Adjusting {0} to date {1} and time {2}.'.format(os.path.basename(source), date, time))
     modify_datetime(source, target, date, time)
 
     return None, "Error changing time" if not time and date else "Error changing date" if time and not date else None \

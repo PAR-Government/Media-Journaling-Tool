@@ -644,7 +644,7 @@ class ZipImageLinkTool(VideoImageLinkTool):
         analysis = analysis if analysis is not None else {}
         analysis['metadatadiff'] = metaDataDiff
         analysis['shape change'] = sizeDiff(startIm, destIm)
-        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='video.video',
+        self._addAnalysis(startIm, destIm, op, analysis, mask, linktype='zip.image',
                           arguments=consolidate(arguments, analysis_params),
                           start=start, end=destination, scModel=scModel)
         return mask, analysis, []
