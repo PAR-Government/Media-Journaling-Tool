@@ -10,6 +10,7 @@ from __future__ import print_function
 import time
 import logging
 from logging import handlers, config
+from logging import FileHandler
 import os
 
 
@@ -45,6 +46,14 @@ def set_logging_level(level):
     for handler in logging.getLogger('maskgen').handlers:
         handler.setLevel(level)
 
+
+def unset_logging(directory=None,logger_name = 'maskgen'):
+    logger = logging.getLogger(logger_name)
+    for handler in logger.handlers:
+        if isinstance(handler, FileHandler):
+            if directory is None or os.path.abspath(directory) in os.path.abspath(handler.baseFilename):
+                logger.removeHandler(handler)
+                handler.close()
 
 def set_logging(directory=None, filename='maskgen.log',skip_config=False,logger_name = 'maskgen'):
     logger = logging.getLogger(logger_name)
