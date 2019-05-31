@@ -367,11 +367,13 @@ def openImageFile(filename, isMask=False, args=None):
     @type filename: str
     @rtype: ImageWrapper
     """
+    filename = os.path.abspath(filename)
     if not os.path.exists(filename):
         parts = os.path.splitext(filename)
         mod_filename = parts[0] + parts[1].lower()
         if os.path.exists(mod_filename):
             filename = mod_filename
+    filename = os.path.abspath(filename)
     if not os.path.exists(filename):
         raise ValueError("File not found: " + filename)
 
@@ -607,7 +609,7 @@ class ImageWrapper:
             imsave(filename, img_array, **tiff_masssage_args(**newargs))
         if os.path.exists(filename):
             with image_lock:
-                image_cache[filename] = (self, os.stat(filename).st_mtime)
+                image_cache[os.path.abspath(filename)] = (self, os.stat(filename).st_mtime)
                 # flags =[(cv2.IMWRITE_JPEG_QUALITY,100)]if format in kwargs and format['kwargs'] == 'JPEG' else [(int(cv2.IMWRITE_PNG_COMPRESSION),0)]
                 # cv2.imwrite(filename, self.image_array)
                 # tiff = TIFF.open(filename,mode='w')
