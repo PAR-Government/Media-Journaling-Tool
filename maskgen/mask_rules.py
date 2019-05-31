@@ -2491,8 +2491,13 @@ class CompositeDelegate:
         """
         if self.composite is not None:
             return self.composite
+        substitute = False
         op = self.gopLoader.getOperationWithGroups(self.edge['op'])
-        videomasks = getValue(self.edge, 'substitute videomasks', getValue(self.edge, 'videomasks'))
+        videomasks = getValue(self.edge, 'substitute videomasks')
+        if videomasks is not None and len(videomasks) > 0:
+            substitute = True
+        else:
+            videomasks =  getValue(self.edge, 'videomasks')
         if videomasks is not None:
             if len(videomasks) == 0:
                 media_types = [_guess_type(self.edge)]
@@ -2504,7 +2509,8 @@ class CompositeDelegate:
                                                            self.edge_id[0], self.edge_id[1],
                                                            self.edge,
                                                            fillWithUserBoundaries=True,
-                                                           operation=op)
+                                                           operation=op,
+                                                           issubstitute=substitute)
                     for media_type in media_types] if mask is not None]
         else:
             edgeMask = self.graph.get_edge_image(self.edge_id[0], self.edge_id[1],
@@ -2521,11 +2527,15 @@ class CompositeDelegate:
             for k,v in args.iteritems():
                 if getValue(v,'use as composite',defaultValue=False) and \
                     getValue(self.edge,'arguments.'+k) is not None:
-                    mask = openImageFile(os.path.join(self.get_dir(), getValue(self.edge,'arguments.'+k))).to_array()
+                    submask = openImageFile(os.path.join(self.get_dir(), getValue(self.edge,'arguments.'+k))).to_array()
+                    if mask.shape != submask.shape:
+                        raiseError('_getComposites', 'Invalid shape to substitute mask', self.edge_id)
+                    mask = submask
+                    substitute= True
                     break
             if mask.shape != expectedShape:
                 mask = tool_set.applyResizeComposite(mask, expectedShape)
-            return [CompositeImage(self.edge_id[0], self.edge_id[1], 'image', mask)]
+            return [CompositeImage(self.edge_id[0], self.edge_id[1], 'image', mask,issubstitute=substitute)]
 
     def find_donor_edges(self):
         donors = [(pred, self.edge_id[1]) for pred in self.graph.predecessors(self.edge_id[1])
