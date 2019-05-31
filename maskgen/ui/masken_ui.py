@@ -1079,8 +1079,8 @@ class MakeGenUI(Frame):
         d = QAProjectDialog(self)
         d.valid = True
 
-    def startMaskTuner(self, mask_debugger):
-        return MaskDebuggerUI(master=self, scModel=self.scModel, debugger=mask_debugger)
+    def startMaskTuner(self, controller):
+        return MaskPreviewUI(master=self, scModel=self.scModel, previewer=controller)
 
     def comments(self):
         d = CommentViewer(self)
@@ -1093,7 +1093,7 @@ class MakeGenUI(Frame):
 
     def createWidgets(self):
         from functools import partial
-        from maskgen.video_tools import MaskDebugger
+        from maskgen.video_tools import MaskPreviewer
         self._setTitle()
 
         menubar = Menu(self)
@@ -1247,9 +1247,9 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
-        self.edgemenu.add_command(label="Recompute w Mask Debug",
+        self.edgemenu.add_command(label="Recompute w/ Mask Preview",
                                   command=lambda :self.recomputeedgemask(
-                                      params={'debugger':MaskDebugger(master_ui=self, scModel=self.scModel)}))
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
         self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
         self.edgemenu.add_command(label="Substitute Mask", command=self.add_substitute_mask)
 
@@ -1259,18 +1259,18 @@ class MakeGenUI(Frame):
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.filteredgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
-        self.filteredgemenu.add_command(label="Recompute w Mask Debug",
-                                  command=lambda :self.recomputeedgemask(
-                                      params={'debugger':MaskDebugger(master_ui=self, scModel=self.scModel)}))
+        self.filteredgemenu.add_command(label="Recompute w/ Mask Preview",
+                                        command=lambda :self.recomputeedgemask(
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
 
         self.donoredgemenu = Menu(self.master, tearoff=0, postcommand=self.updateDonorEdgeMenu)
         self.donoredgemenu.add_command(label="Select", command=self.select)
         self.donoredgemenu.add_command(label="Inspect", command=self.view)
         self.donoredgemenu.add_command(label="Remove", command=self.remove)
         self.donoredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
-        self.donoredgemenu.add_command(label="Recompute w Mask Debug",
-                                  command=lambda :self.recomputedonormask(
-                                      params={'debugger':MaskDebugger(master_ui=self, scModel=self.scModel)}))
+        self.donoredgemenu.add_command(label="Recompute w/ Mask Preview",
+                                       command=lambda :self.recomputedonormask(
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
@@ -1336,13 +1336,13 @@ class MakeGenUI(Frame):
 
     def updateEdgeMenu(self):
         self.update_menu_entry(menu=self.edgemenu, label='Substitute Mask', state=self.scModel.substitutesAllowed())
-        self.update_menu_entry(menu=self.edgemenu, label='Recompute w Mask Debug', state=self.scModel.canDebugMask())
+        self.update_menu_entry(menu=self.edgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
 
     def updateDonorEdgeMenu(self):
-        self.update_menu_entry(menu=self.donoredgemenu, label='Recompute w Mask Debug', state=self.scModel.canDebugMask())
+        self.update_menu_entry(menu=self.donoredgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
 
     def updateFilterEdgeMenu(self):
-        self.update_menu_entry(menu=self.filteredgemenu, label='Recompute w Mask Debug', state=self.scModel.canDebugMask())
+        self.update_menu_entry(menu=self.filteredgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
 
     def getMergedSuffixes(self):
         filetypes = self.prefLoader.get_key('filetypes')

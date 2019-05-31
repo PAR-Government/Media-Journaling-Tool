@@ -27,7 +27,7 @@ def strip_version(version):
 def getFileName(fileName, path=None):
     import sys
     if (os.path.exists(fileName)):
-        logging.getLogger('maskgen').info( 'Loading ' + fileName)
+        logging.getLogger('maskgen').debug( 'Loading ' + fileName)
         return fileName
     places = [os.getenv('MASKGEN_RESOURCES', 'resources')]
     places.extend([os.path.join(x, 'resources') for x in sys.path if 'maskgen' in x or not x.endswith('egg') and \
@@ -35,7 +35,7 @@ def getFileName(fileName, path=None):
     for place in places:
         newNanme = os.path.abspath(os.path.join(place, fileName))
         if os.path.exists(newNanme):
-            logging.getLogger('maskgen').info( 'Loading ' + newNanme)
+            logging.getLogger('maskgen').debug( 'Loading ' + newNanme)
             return newNanme
 
 

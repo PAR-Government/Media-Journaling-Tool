@@ -6,6 +6,17 @@ TBD
 
 ### Video Mask Tuning
 
+####General Help
+![](../resources/help/videomask_previewer_slides/Video_Preview_over.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Histogram.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Images.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Parameters.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Morphology.png)
+
 ####Can I rewind the Mask Previewer to a previous frame?
 Not currently. You must exit the Previewer and open it again to look at the mask for a particular frame.
 

@@ -1819,7 +1819,7 @@ class Diff_Controller:
         self.analysis_components.vid_two.release()
         self.analysis_components.writer.close()
 
-def debuggable(compare_func, arguments):
+def Previewable(compare_func, arguments):
     allowed = compare_func is not None
     allowed &= compare_func not in ["maskgen.video_tools.cutCompare",
                                     "maskgen.video_tools.warpCompare"]
@@ -1830,7 +1830,7 @@ def debuggable(compare_func, arguments):
 class MaskGenerationError(Exception):
     pass
 
-class MaskDebugger(Diff_Controller):
+class MaskPreviewer(Diff_Controller):
     analysis_components = None
     mask_analysis = None
     compare_args = None
@@ -1844,11 +1844,11 @@ class MaskDebugger(Diff_Controller):
         self.master_ui = master_ui
         self.scModel = scModel
 
-    def has_reached_debug_frame(self):
+    def has_reached_preview_frame(self):
         return False if self.frames_to_generate == 'all' else self.generated_frames + 1 >= self.frames_to_generate
 
     def openPreviewUI(self):
-        return self.master_ui.startMaskTuner(mask_debugger=self).result
+        return self.master_ui.startMaskTuner(controller=self).result
 
     def update_args(self):
         for k, v in self.compare_args.items():
@@ -1865,7 +1865,7 @@ class MaskDebugger(Diff_Controller):
 
             if not ret or self.analysis_components.time_manager.isPastTime():
                 break
-            if self.analysis_components.time_manager.isBeforeTime() or (not self.has_reached_debug_frame() and
+            if self.analysis_components.time_manager.isBeforeTime() or (not self.has_reached_preview_frame() and
                                                                         self.invalidMask):
                 self.generated_frames += 1
                 continue
@@ -1882,12 +1882,12 @@ class MaskDebugger(Diff_Controller):
                 self.analysis_components.mask = mask.to_array()
                 self.frame_to = ImageWrapper(cv2.cvtColor(frame_two, cv2.COLOR_BGR2RGB))
 
-                if self.has_reached_debug_frame():
+                if self.has_reached_preview_frame():
                     result = self.openPreviewUI()
                     self.compare_args = result['arguments']
                     message = result['message']
                     if message == 'continue':
-                        if self.has_reached_debug_frame():
+                        if self.has_reached_preview_frame():
                             continue
                         break
                     elif message == 'stop':
@@ -2058,7 +2058,7 @@ def compareChange(vidAnalysisComponents, ranges=list(), arguments={},compare_fun
         update_segment(ranges[-1], frames=get_frames_from_segment(ranges[-1]) + 1)
 
 
-def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={},analysis=dict(), debugger=None):
+def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis=dict(), controller=None):
     """
     Determine Crop region for analysis
     :param fileOne:
@@ -2103,7 +2103,7 @@ def cropCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={},analys
                             frames=get_frames_from_segment(entireVideoMaskSet[0]))
     return [change],[]
 
-def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={},debugger=None):
+def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={}, controller=None):
     """
 
     :param fileOne:
@@ -2116,7 +2116,7 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analys
     @retype: list of dict
     """
     maskSet, errors =  __runDiff(fileOne, fileTwo, name_prefix, time_manager, cutDetect, arguments=arguments,
-                                 debugger=debugger)
+                                 controller=controller)
     audioMaskSetOne = FileMetaDataLocator(fileOne).getMaskSetForEntireVideo(media_types=['audio'])
     audioMaskSetTwo = FileMetaDataLocator(fileTwo).getMaskSetForEntireVideo(media_types=['audio'])
     # audio was not dropped
@@ -2141,50 +2141,50 @@ def cutCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analys
     return maskSet, errors
 
 def pasteCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={},
-                 debugger=None):
+                 controller=None):
     if arguments['add type'] == 'replace':
         return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                          arguments=arguments,
                          compare_function=tool_set.mediatedCompare,
-                         convert_function=tool_set.convert16bitcolor,debugger=debugger
+                         convert_function=tool_set.convert16bitcolor, controller=controller
                          )
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect,
                      arguments=arguments,
                      compare_function=tool_set.mediatedCompare,
                      convert_function=tool_set.convert16bitcolor,
-                     debugger=debugger)
+                     controller=controller)
 
 
-def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={},debugger=None):
+def maskCompare(fileOne, fileTwo, name_prefix, time_manager, arguments={}, analysis={}, controller=None):
     import copy
     args = copy.copy(arguments)
     args['distribute_difference'] = True
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
-                       compareChange,
-                       arguments=args,
-                       compare_function=tool_set.mediatedCompare,
-                       convert_function=tool_set.convert16bitcolor,
-                     debugger=debugger)
+                     compareChange,
+                     arguments=args,
+                     compare_function=tool_set.mediatedCompare,
+                     convert_function=tool_set.convert16bitcolor,
+                     controller=controller)
 
-def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,analysis={}, debugger=None):
+def warpCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None, analysis={}, controller=None):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, addDetect, arguments=arguments,
-                     debugger=debugger)
+                     controller=controller)
 
 
 def mediatedDetectedCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,
                             analysis={},
-                            debugger=None):
+                            controller=None):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager, detectChange,
                      compare_function=tool_set.mediatedCompare,
                      convert_function = tool_set.convert16bitcolor,
                      arguments = arguments,
-                     debugger=debugger)
+                     controller=controller)
 
 def detectCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=None,
-                  analysis={},debugger=None):
+                  analysis={}, controller=None):
     return __runDiff(fileOne, fileTwo, name_prefix, time_manager,
                      detectChange, arguments=arguments,
-                     debugger=debugger)
+                     controller=controller)
 
 def clampToEnd(filename, sets_tuple, media_type):
     """
@@ -2390,7 +2390,7 @@ def formMaskDiff(fileOne,
                  analysis=None,
                  alternateFunction=None,
                  arguments= {},
-                 debugger=None):
+                 controller=None):
 
     preferences = MaskGenLoader()
     diffPref = preferences['video compare']
@@ -2398,16 +2398,16 @@ def formMaskDiff(fileOne,
     time_manager = tool_set.VidTimeManager(startTimeandFrame=startSegment,stopTimeandFrame=endSegment)
     if alternateFunction is not None:
         return alternateFunction(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments,
-                                 analysis=analysis,debugger=debugger)
+                                 analysis=analysis, controller=controller)
     if  diffPref in ['2','ffmpeg']:
         result = __form_mask_using_ffmpeg_diff(fileOne, fileTwo, name_prefix, opName, time_manager)
     else:
-        result = __runDiff(fileOne, fileTwo, name_prefix,time_manager,
+        result = __runDiff(fileOne, fileTwo, name_prefix, time_manager,
                            detectChange,
                            arguments=arguments,
                            compare_function=tool_set.mediatedCompare,
                            convert_function=tool_set.convert16bitcolor,
-                           debugger=debugger)
+                           controller=controller)
     if analysis is not None:
         analysis['startframe'] = time_manager.getStartFrame()
         analysis['stopframe'] = time_manager.getEndFrame()
@@ -3050,7 +3050,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
               compare_function=tool_set.mediatedCompare,
               convert_function=tool_set.convert16bitcolor,
               arguments={},
-              debugger=None):
+              controller=None):
     """
       compare frame to frame of each video
      :param fileOne:
@@ -3075,7 +3075,7 @@ def __runDiff(fileOne, fileTwo, name_prefix, time_manager, opFunc,
     analysis_components = VidAnalysisComponents(fileOne, fileTwo, name_prefix, time_manager, arguments) #Open vids
     ranges = list()
     compare_args = arguments
-    controller = Diff_Controller() if debugger is None else debugger
+    controller = Diff_Controller() if controller is None else controller
     controller.analysis_components = analysis_components
     try:
         done = False

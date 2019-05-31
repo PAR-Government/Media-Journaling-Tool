@@ -3,6 +3,7 @@ import webbrowser
 from Tkinter import *
 from maskgen.software_loader import *
 from maskgen.tool_set import *
+from maskgen.video_tools import Previewable
 import json
 from PIL import Image, ImageTk, ImageOps
 from ttk import *
@@ -31,7 +32,7 @@ class HelpFrame(Frame):
         r += 1
 
         Label(self, text="Click through the image tabs to view various available information.  Click on any image "
-                         "(even Manny) to open it with your default photo viewer or visit the help link if available.")\
+                         "to open it with your default photo viewer or visit the help link if available.")\
             .grid(row=r, column=0)
 
         self.textvar.trace("w", lambda *args: self.update_choice(self.textvar))
@@ -164,6 +165,10 @@ class HelpLoader:
                     while None in imgs:
                         imgs.remove(None)
                     self.linker[key][subkey]["images"] = imgs
+                    if key == 'operation':
+                        compare_func = getOperation(subkey).getVideoCompareFunction()
+                        if Previewable(compare_func, {'add type':'replace'}):
+                            self.linker[key][subkey]["images"].extend(self.get_video_previewer_help())
 
     def get_help_png_list(self, name, itemtype):
         try:
@@ -186,3 +191,10 @@ class HelpLoader:
         except KeyError:
             r = None
         return r
+
+    def get_video_previewer_help(self):
+        return list(filter(None,[getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_over.png')),
+                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Histogram.png')),
+                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Images.png')),
+                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Parameters.png')),
+                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Morphology.png'))]))

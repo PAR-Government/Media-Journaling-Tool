@@ -2267,7 +2267,7 @@ class IntEntry(Frame):
             self.entryValue.set(d)
 
 
-class MaskDebuggerUI(Toplevel):
+class MaskPreviewUI(Toplevel):
 
     def build_arginfo(self):
         arginfo = []
@@ -2289,24 +2289,24 @@ class MaskDebuggerUI(Toplevel):
 
     def layout_image_frames(self):
         from PIL import Image
-        raw = self.debugger.frame_to if self.debugger.frame_to is not None else Image.new("RGB", (450, 450), "black")
+        raw = self.previewer.frame_to if self.previewer.frame_to is not None else Image.new("RGB", (450, 450), "black")
         raw = imageResizeRelative(raw, (450,450), raw.size)
-        diff = getValue(self.debugger.mask_analysis, 'diff', None)
+        diff = getValue(self.previewer.mask_analysis, 'diff', None)
         diff = np.swapaxes(diff, 0,1)
         diff_img = ImageWrapper(diff) if diff is not None else Image.new("RGB", (450, 450), "black")
         diff_img = imageResizeRelative(diff_img, (450, 450), raw.size)
-        mask = ImageWrapper(self.debugger.analysis_components.mask, to_mask=True) if \
-            self.debugger.analysis_components.mask is not None else Image.new("RGB", (450, 450), "black")
+        mask = ImageWrapper(self.previewer.analysis_components.mask, to_mask=True) if \
+            self.previewer.analysis_components.mask is not None else Image.new("RGB", (450, 450), "black")
         mask = imageResizeRelative(mask, (450,450), otherImDim=raw.size)
         mask_alpha = mask.toPIL()
         overlay = raw.toPIL() if raw is not None and mask is not None else Image.new("RGB", (450, 450), "black")
         overlay.paste(mask_alpha, mask=mask_alpha.convert('L'))
         return {'overlay':ImageTk.PhotoImage(overlay), 'mask':ImageTk.PhotoImage(mask.toPIL()), 'source':ImageTk.PhotoImage(raw.toPIL())}
 
-    def __init__(self, master, scModel, debugger):
+    def __init__(self, master, scModel, previewer):
 
         self.scModel = scModel
-        self.debugger = debugger
+        self.previewer = previewer
         self.sourcefiletype = self.scModel.getStartType()
         self.targetfiletype = self.scModel.getEndType()
         self.edge = scModel.G.get_edge(scModel.start, scModel.end)
@@ -2315,12 +2315,12 @@ class MaskDebuggerUI(Toplevel):
         self.mod = self.scModel.getCurrentEdgeModification()
         self.master = master
         self.result = None, 0
-        video_total_frames = FileMetaDataLocator(self.debugger.analysis_components.file_one).get_frame_count()['frames']
-        self.total_frames = int(self.debugger.analysis_components.time_manager.getExpectedEndFrameGiveRate(
-            rate=self.debugger.analysis_components.fps, defaultValue=video_total_frames))
+        video_total_frames = FileMetaDataLocator(self.previewer.analysis_components.file_one).get_frame_count()['frames']
+        self.total_frames = int(self.previewer.analysis_components.time_manager.getExpectedEndFrameGiveRate(
+            rate=self.previewer.analysis_components.fps, defaultValue=video_total_frames))
         self.hist = None
         self.writing = BooleanVar()
-        self.writing.set(FALSE if self.debugger.invalidMask else TRUE)
+        self.writing.set(FALSE if self.previewer.invalidMask else TRUE)
         Toplevel.__init__(self, master=master)
         self.transient(master=master)
         self.initial_focus = self.body(master=self)
@@ -2333,9 +2333,9 @@ class MaskDebuggerUI(Toplevel):
         self.wait_window(self)
 
     def body(self, master):
-        thresh = getValue(self.debugger.mask_analysis, 'threshold', 1)
+        thresh = getValue(self.previewer.mask_analysis, 'threshold', 1)
         self.histogram = HistogramViewer(master=self,
-                                         histogram=self.debugger.mask_analysis['hist'],
+                                         histogram=self.previewer.mask_analysis['hist'],
                                          highlights={'threshold':thresh})
         self.mask_preview = ttk.Notebook(master=self)
         self.pil_images = self.layout_image_frames() # dictionary of labels and images
@@ -2345,12 +2345,12 @@ class MaskDebuggerUI(Toplevel):
         [self.mask_preview.add(child=image[0], text=image[1][0]) for image in images]
         self.mask_preview.select(self.mask_preview.tabs()[1])
         self.frame_select = IntEntry(master=self, label='Generate To: ',
-                                     initial_value=self.debugger.analysis_components.one_count,
-                                     range=(self.debugger.analysis_components.one_count, self.total_frames))
+                                     initial_value=self.previewer.analysis_components.one_count,
+                                     range=(self.previewer.analysis_components.one_count, self.total_frames))
         self.preview_mode = Checkbutton(master=self.frame_select, text='Write Mask File', variable=self.writing,
-                                        state=DISABLED if self.debugger.invalidMask else NORMAL,
+                                        state=DISABLED if self.previewer.invalidMask else NORMAL,
                                         command= self.toggle_mask_writing)
-        if self.debugger.invalidMask:
+        if self.previewer.invalidMask:
             self.invalid_label = Label(master=self.frame_select, text='Mask is now invalid and will not be set.')
         else:
             self.invalid_label = None
@@ -2358,14 +2358,14 @@ class MaskDebuggerUI(Toplevel):
         op_parameters = self.op.mandatoryparameters.copy()
         op_parameters.update(self.op.optionalparameters)
         self.properties = [ProjectProperty(name=argumentTuple[0],
-                                      description=argumentTuple[0],
-                                      information=argumentTuple[1]['description'] if
+                                           description=argumentTuple[0],
+                                           information=argumentTuple[1]['description'] if
                                       'description' in argumentTuple[1] else '',
-                                      type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
-                                      values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
-                                      value=self.debugger.argvalues[argumentTuple[0]] if
-                                      argumentTuple[0] in self.debugger.argvalues else None,
-                                      defaultvalue=getValue(getValue(op_parameters, argumentTuple[0], {}), 'defaultvalue', None))
+                                           type=resolve_argument_type(argumentTuple[1]['type'], self.sourcefiletype),
+                                           values=self.op.getParameterValuesForType(argumentTuple[0], self.sourcefiletype),
+                                           value=self.previewer.argvalues[argumentTuple[0]] if
+                                      argumentTuple[0] in self.previewer.argvalues else None,
+                                           defaultvalue=getValue(getValue(op_parameters, argumentTuple[0], {}), 'defaultvalue', None))
                            for argumentTuple in self.arginfo]
         self.property_frame = PropertyFrame(parent=self, properties=self.properties,
                                             propertyFunction=EdgePropertyFunction(self.properties, self.scModel),
@@ -2395,56 +2395,56 @@ class MaskDebuggerUI(Toplevel):
         self.buttons_frame.grid(row=row + 3, column= column, columnspan=3, sticky=S)
 
     def changeParameter(self, name, type, value):
-        self.debugger.argvalues[name] = value
+        self.previewer.argvalues[name] = value
         if name == 'inputmaskname' and value is not None:
             self.inputMaskName = value
 
         if self.parametersChanged():
-            self.frame_select.set(self.debugger.analysis_components.one_count)
+            self.frame_select.set(self.previewer.analysis_components.one_count)
             self.frame_select.entry.config(state='readonly')#lock into regenerating the frame.
             self.writing.set(FALSE)
             self.preview_mode.config(state=DISABLED)
-        elif not self.debugger.invalidMask:
+        elif not self.previewer.invalidMask:
             self.frame_select.entry.config(state=NORMAL) #unlock
             self.preview_mode.config(state=NORMAL)
 
     def parametersChanged(self):
-        if len(self.debugger.argvalues) != len(self.debugger.compare_args):
+        if len(self.previewer.argvalues) != len(self.previewer.compare_args):
             return True
         else:
-            for k, v in self.debugger.argvalues.items():
-                if k not in self.debugger.compare_args or v != self.debugger.compare_args[k]:
+            for k, v in self.previewer.argvalues.items():
+                if k not in self.previewer.compare_args or v != self.previewer.compare_args[k]:
                     return True
         return False
 
     def toggle_mask_writing(self):
-        self.debugger.invalidMask = not self.writing.get()
+        self.previewer.invalidMask = not self.writing.get()
 
     def apply(self, result):
         if self.parametersChanged():
-            if self.debugger.analysis_components.one_count > 1:
-                self.debugger.invalidMask = True #invalidate the mask
+            if self.previewer.analysis_components.one_count > 1:
+                self.previewer.invalidMask = True #invalidate the mask
             valid_args = self.op.mandatoryparameters.keys()
             valid_args.extend(self.op.optionalparameters.keys())
-            self.debugger.argvalues = {k: v for k, v in self.debugger.argvalues.iteritems() if k != 'inputmaskname' and k in valid_args}
-            self.debugger.update_args()
+            self.previewer.argvalues = {k: v for k, v in self.previewer.argvalues.iteritems() if k != 'inputmaskname' and k in valid_args}
+            self.previewer.update_args()
             self.scModel.G.update_edge(self.scModel.start, self.scModel.end,
-                               op=self.mod.operationName,
-                               description=self.mod.additionalInfo,
-                               arguments= self.debugger.argvalues,
-                               recordMaskInComposite=self.mod.recordMaskInComposite,
-                               semanticGroups=self.mod.semanticGroups,
-                               editable='no' if (self.mod.software is not None and self.mod.software.internal) or self.mod.operationName == 'Donor' else 'yes',
-                               softwareName=('' if self.mod.software is None else self.mod.software.name),
-                               softwareVersion=('' if self.mod.software is None else self.mod.software.version),
-                               inputmaskname=self.mod.inputMaskName)
+                                       op=self.mod.operationName,
+                                       description=self.mod.additionalInfo,
+                                       arguments= self.previewer.argvalues,
+                                       recordMaskInComposite=self.mod.recordMaskInComposite,
+                                       semanticGroups=self.mod.semanticGroups,
+                                       editable='no' if (self.mod.software is not None and self.mod.software.internal) or self.mod.operationName == 'Donor' else 'yes',
+                                       softwareName=('' if self.mod.software is None else self.mod.software.name),
+                                       softwareVersion=('' if self.mod.software is None else self.mod.software.version),
+                                       inputmaskname=self.mod.inputMaskName)
             self.scModel._save_group(self.mod.operationName)
             self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
             self.scModel.save()
 
-        self.debugger.frames_to_generate = int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all'
+        self.previewer.frames_to_generate = int(self.frame_select.get()) if int(self.frame_select.get()) != self.total_frames else 'all'
         self.result = {'message': result,
-                       'arguments': self.debugger.compare_args}
+                       'arguments': self.previewer.compare_args}
         self.withdraw()
         self.update_idletasks()
         self.master.focus_set()

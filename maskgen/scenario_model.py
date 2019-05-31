@@ -757,7 +757,7 @@ class VideoVideoLinkTool(LinkTool):
                                           consolidate(arguments, analysis_params), invert=invert)
         else:
             arguments['generate_frames'] = 0
-            debugger = analysis_params.pop('debugger') if 'debugger' in analysis_params else None
+            previewer = analysis_params.pop('controller') if 'controller' in analysis_params else None
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
@@ -769,7 +769,7 @@ class VideoVideoLinkTool(LinkTool):
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        #alternateFrameFunction=operation.getCompareFunction(),
                                                        arguments=consolidate(arguments, analysis_params),
-                                                       debugger=debugger)
+                                                       controller=previewer)
         mask = None
         for item in maskSet:
             if video_tools.get_mask_from_segment(item) is not None:
@@ -2882,12 +2882,14 @@ class ImageProjectModel:
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
 
-    def canDebugMask(self):
+    def canPreviewMask(self):
         allowed = self.getStartType() == 'video' or self.getEndType() == 'video'
         modification = self.getCurrentEdgeModification()
+        edge = self.G.get_edge(self.start, self.end)
+        allowed &= getValue(edge, 'videomasks', None) is not None
         op = getOperation(modification.operationName)
         compare_func = op.getVideoCompareFunction()
-        allowed &= video_tools.debuggable(compare_func, modification.arguments)
+        allowed &= video_tools.Previewable(compare_func, modification.arguments)
         return 'disabled' if not allowed else 'normal'
 
     def substitutesAllowed(self):
