@@ -1848,7 +1848,7 @@ class MaskPreviewer(Diff_Controller):
         return False if self.frames_to_generate == 'all' else self.generated_frames + 1 >= self.frames_to_generate
 
     def openPreviewUI(self):
-        return self.master_ui.startMaskTuner(controller=self).result
+        return self.master_ui.startMaskPreviewer(controller=self).result
 
     def update_args(self):
         for k, v in self.compare_args.items():
