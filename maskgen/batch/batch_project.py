@@ -31,7 +31,7 @@ from maskgen import tool_set
 from maskgen.batch.permutations import *
 from maskgen.graph_output import ImageGraphPainter
 from maskgen.image_graph import ImageGraph
-from maskgen.loghandling import set_logging,set_logging_level,unset_logging
+from maskgen.loghandling import set_logging,set_logging_level
 from maskgen.maskgen_loader import MaskGenLoader
 from maskgen.preferences_initializer import initial_user
 from maskgen.software_loader import getRule
@@ -1709,7 +1709,7 @@ class BatchExecutor:
         notify_function(batchProject.getName(), myid, project_directory, project_name)
         return project_directory, project_name
 
-    def finish(self, remove_logs=False):
+    def finish(self):
         """
         Send termination and wait for threads to finish
         :return:
@@ -1721,8 +1721,6 @@ class BatchExecutor:
         for thread in self.threads:
             thread.join()
         logging.getLogger('maskgen').info('Thread termination complete')
-        if remove_logs:
-            unset_logging(directory=self.workdir)
 
 
 def main(argv=sys.argv[1:]):

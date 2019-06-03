@@ -34,7 +34,7 @@
     },
     {
       "op_type": "PluginOperation",
-      "plugin": "DummyPlugin",
+      "plugin": "GaussianLocalBlur",
       "id": "blur"
     }
   ],
