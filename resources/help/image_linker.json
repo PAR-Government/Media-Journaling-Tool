@@ -367,27 +367,31 @@
 			"images": [
 				"operationSlides/artificial_reflection.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"ArtificialShadow": {
 			"images": [
 				"operationSlides/artificial_shadow.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"ObjectCGI": {
 			"images": [
 				"operationSlides/object_cgi.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
         },
         "DeepFakeFaceSwap": {
             "images": [
                 "operationSlides/cgi3.png",
-                "operationSlides/DeepFakeFaceSwap.png"
+                "operationSlides/DeepFakeFaceSwap.png",
+				"tool.VideoMaskPreviewer"
             ]
         
 		},
@@ -432,7 +436,8 @@
 			"images": [
 				"operationSlides/CGI_fill.png",
 				"operationSlides/cgi_fill2.png",
-				"operationSlides/cgi.png"
+				"operationSlides/cgi.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"SynthesizeGAN": {
@@ -454,7 +459,8 @@
 				"operationSlides/hue.png",
 				"operationSlides/hue2.png",
 				"operationSlides/color.png",
-				"operationSlides/color2.png"
+				"operationSlides/color2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"Saturation": {
@@ -462,7 +468,8 @@
 				"operationSlides/saturation.png",
 				"operationSlides/saturation2.png",
 				"operationSlides/color.png",
-				"operationSlides/color2.png"
+				"operationSlides/color2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"Vibrance": {
@@ -506,7 +513,8 @@
 			"images": [
 				"operationSlides/paste_sampled.png",
 				"operationSlides/paste_sampled_clone.png",
-				"operationSlides/paste_sampled_secondary_workflow.png"
+				"operationSlides/paste_sampled_secondary_workflow.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"FilterConvolutionKernel": {
@@ -562,28 +570,32 @@
 			"images": [
 				"operationSlides/digital_pen_draw.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"Handwriting": {
 			"images": [
 				"operationSlides/handwriting.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"OverlayObject": {
 			"images": [
 				"operationSlides/overlay_object.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"OverlayText": {
 			"images": [
 				"operationSlides/overlay_text.png",
 				"operationSlides/cgi.png",
-				"operationSlides/cgi2.png"
+				"operationSlides/cgi2.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"OutputCopy": {
@@ -726,22 +738,26 @@
 		},
 		"PasteFrames": {
 			"images": [
-				"operationSlides/video_pastes.png"
+				"operationSlides/video_pastes.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"PasteOverlay": {
 			"images": [
-				"operationSlides/video_pastes.png"
+				"operationSlides/video_pastes.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"PasteImageSpliceToFrames": {
 			"images" : [
-				"operationSlides/video_pastes.png"
+				"operationSlides/video_pastes.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"CopyPaste": {
 			"images": [
-				"operationSlides/video_pastes.png"
+				"operationSlides/video_pastes.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"CutPaste": {
@@ -783,7 +799,8 @@
 		},
 		"SelectCutFrames": {
 			"images": [
-				"operationSlides/select.png"
+				"operationSlides/select.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"DuplicateFrameDrop": {
@@ -835,7 +852,8 @@
 		},
 		"TimeAlterationWarp": {
 			"images": [
-				"operationSlides/time_alteration.png"
+				"operationSlides/time_alteration.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"ImageInterpolation": {
@@ -851,7 +869,8 @@
 		},
 		"TransformCrop": {
 			"images": [
-				"operationSlides/transform.png"
+				"operationSlides/transform.png",
+				"tool.VideoMaskPreviewer"
 			]
 		},
 		"TransformCropResize": {
@@ -940,5 +959,19 @@
 				"operationSlides/transform.png"
 			]
 		}
-    }
+    },
+	"tool": {
+		"VideoMaskPreviewer": {
+			"rules": {},
+			"images": [
+				"videomask_previewer_slides/Video_Preview_Over.png",
+				"videomask_previewer_slides/Video_Preview_Histogram.png",
+				"videomask_previewer_slides/Video_Preview_Images.png",
+				"videomask_previewer_slides/Video_Preview_Parameters.png",
+				"videomask_previewer_slides/Video_Preview_Morphology.png"
+			]
+
+		}
+
+	}
 }

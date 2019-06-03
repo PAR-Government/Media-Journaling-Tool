@@ -3,7 +3,7 @@ import webbrowser
 from Tkinter import *
 from maskgen.software_loader import *
 from maskgen.tool_set import *
-from maskgen.video_tools import Previewable
+from maskgen.support import getPathValues, getValue
 import json
 from PIL import Image, ImageTk, ImageOps
 from ttk import *
@@ -153,22 +153,28 @@ class HelpLoader:
             self.linker = json.load(f)
 
         for key in self.linker.keys():
-            for subkey in self.linker[key].keys():
-                if "images" in self.linker[key][subkey].keys():
-                    current = self.linker[key][subkey]["images"]
-                    imgs = []
-                    for x in current:
-                        if getFileName(os.path.join("help", x)) is None:
-                            logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", x))
-                        else:
-                            imgs.append(getFileName(os.path.join("help", x)))
-                    while None in imgs:
-                        imgs.remove(None)
-                    self.linker[key][subkey]["images"] = imgs
-                    if key == 'operation':
-                        compare_func = getOperation(subkey).getVideoCompareFunction()
-                        if Previewable(compare_func, {'add type':'replace'}):
-                            self.linker[key][subkey]["images"].extend(self.get_video_previewer_help())
+            for subkey in self.linker[key]:
+                imgs = getValue(self.linker[key][subkey], 'images', []) #Get the raw list
+                [self.extend_with_path_values(imgs, img) for img in imgs] #extend the list where applicable
+                imgs = filter(None, map(self.try_get_slide, imgs)) #Get the paths and filter out missing/invalid
+                self.linker[key][subkey]['images'] = imgs #replace value
+
+    def extend_with_path_values(self, imageset, path):
+        result = getPathValues(self.linker, path)
+        if len(result) > 0:
+            imageset.remove(path)
+            #TODO: getvalue for rules specified in imagelinker to allow adding slides that are more contextually relevant.
+            imageset.extend(getValue(result[0], 'images', []))
+
+    def try_get_slide(self, slide_path):
+        try:
+            _filename = getFileName(os.path.join("help", slide_path))
+            if _filename is not None:
+                return _filename
+            else:
+                raise ValueError('file not found')
+        except ValueError:
+            logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", slide_path))
 
     def get_help_png_list(self, name, itemtype):
         try:
@@ -191,10 +197,3 @@ class HelpLoader:
         except KeyError:
             r = None
         return r
-
-    def get_video_previewer_help(self):
-        return list(filter(None,[getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_over.png')),
-                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Histogram.png')),
-                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Images.png')),
-                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Parameters.png')),
-                getFileName(os.path.join('help', 'videomask_previewer_slides', 'Video_Preview_Morphology.png'))]))
