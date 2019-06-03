@@ -145,6 +145,9 @@ class FinalPage(Frame):
             self.checkboxes.boxes.append(ck)
             row += 1
         master.checkboxes[master.current_qa_page] = self.checkboxes
+        if len(self.master.errors) > 1:
+            Label(self, text='Probes were generated with errors. They can be reviewed, but QA cannot be accepted. Check the log for errors.').grid(row=row, column=col+1)
+            row += 1
         Label(self, text='QA Signoff: ').grid(row=row, column=col)
         col += 1
         self.reporterStr = StringVar()
@@ -811,16 +814,24 @@ class QAProjectDialog(Toplevel):
         return op
 
     def nexCheck(self):
-        self.move(1,True)
+        self.findNextUnchecked()
 
     def preCheck(self):
-        self.move(-1,True)
+        self.findNextUnchecked()
 
     def switch_frame(self, frame):
         if self.current_qa_page != None:
             self.current_qa_page.grid_forget()
         self.current_qa_page = frame
         self.current_qa_page.grid()
+
+    def findNextUnchecked(self):
+        try:
+            unchecked = next(page for page in self.pages if not bool(page.checkboxes))
+        except StopIteration:
+            return None
+        if unchecked != self.current_qa_page:
+            self.switch_frame(unchecked)
 
     def move(self, dir, checked):
 
@@ -852,8 +863,8 @@ class QAProjectDialog(Toplevel):
 
         for p in self.progressBars:
             p.step(step)
-        i = self.pages.index(self.current_qa_page) + dir
 
+        i = self.pages.index(self.current_qa_page) + dir
         if not 0<=i<len(self.pages):
             return
         nex = self.current_qa_page
