@@ -5,9 +5,11 @@ import shutil
 class TestSupport(unittest.TestCase):
 
     def remove_files(self):
+        from maskgen.loghandling import unset_logging
         for file in self.files_to_remove:
             if os.path.exists(file):
                 if os.path.isdir(file):
+                    unset_logging(file)
                     shutil.rmtree(file)
                 else:
                     os.remove(file)
