@@ -428,7 +428,7 @@ class ExportManager:
     """
     @type processes: dict (str, ProcessInfo)
     """
-    def __init__(self, notifier=None, altenate_directory=None, queue_size=5, export_tool = S3ExportTool):
+    def __init__(self, notifier=None, alternate_directory=None, queue_size=5, export_tool = S3ExportTool):
         from threading import Lock, Thread, Condition
         self.notifiers = [notifier] if notifier is not None else []
         self.queue_size = queue_size
@@ -437,7 +437,7 @@ class ExportManager:
         #self.queue_wait = Condition()
         self.lock = Lock()
         self.processes = {}
-        self.directory = os.path.join(os.path.expanduser('~'), 'JTExportLogs') if altenate_directory is None else altenate_directory
+        self.directory = os.path.join(os.path.expanduser('~'), 'JTExportLogs') if alternate_directory is None else alternate_directory
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
         self._load_history()
