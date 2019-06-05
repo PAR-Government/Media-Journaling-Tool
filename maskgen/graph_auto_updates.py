@@ -146,6 +146,7 @@ def updateJournal(scModel):
     #update to the max
     upgrades = fixes.keys()[-1:] if ok else [stop_fix]
     if scModel.getGraph().getVersion() not in upgrades and ok:
+        scModel.getGraph().backup(suffix='.' + project_version)
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     return ok

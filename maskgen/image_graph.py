@@ -896,11 +896,15 @@ class ImageGraph:
             jg = json.dump(json_graph.node_link_data(self.G), f, indent=2, encoding='utf-8', default=self.json_default)
         self.filesToRemove.clear()
 
-    def save(self):
+    def backup(self,suffix='.bak'):
         filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
-        backup = filename + '.bak'
+        backup = filename + suffix
         if os.path.exists(filename):
             shutil.copy(filename, backup)
+
+    def save(self):
+        self.backup()
+        filename = os.path.abspath(os.path.join(self.dir, self.G.name + '.json'))
         usedfiles =set([self.G.node[node_id]['file'] for node_id in self.G.nodes()])
         with self.lock:
             with open(filename, 'w') as f:
@@ -1102,8 +1106,11 @@ class ImageGraph:
             self.G.graph['edgeFilePaths'] = new_ep
         self.save()
         try:
-            archive.add(os.path.join(self.dir, self.G.name + ".json"),
-                        arcname=os.path.join(self.G.name, self.G.name + ".json"))
+            root_json= self.G.name + ".json"
+            for item in os.listdir(self.dir):
+                if item.startswith(root_json):
+                    archive.add(os.path.join(self.dir, item),
+                                arcname=os.path.join(self.G.name, item))
             errors = list()
             names_added = list()
             count = 0
@@ -1254,14 +1261,17 @@ class ImageGraph:
                 old = 'backup.json'
                 shutil.copy2(filename, old)
 
-            with open(filename, 'w') as f:
-                jg = json.dump(json_graph.node_link_data(pathGraph), f, indent=2)
-            archive.add(filename, arcname=os.path.join(archive_name, archive_name + '.json'))
-            archive.close()
-            if old is not None:
-                shutil.copy2(old, filename)
-            elif os.path.exists(filename):
-                os.remove(filename)
+            try:
+                with open(filename, 'w') as f:
+                    jg = json.dump(json_graph.node_link_data(pathGraph), f, indent=2)
+                archive.add(filename, arcname=os.path.join(archive_name, archive_name + '.json'))
+            finally:
+                if old is not None:
+                    shutil.copy2(old, filename)
+                elif os.path.exists(filename):
+                    os.remove(filename)
+                if archive is not None:
+                    archive.close()
             return errors
 
     def findOp(self, node_id, op):
