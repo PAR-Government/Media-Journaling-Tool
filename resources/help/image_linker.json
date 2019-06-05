@@ -875,7 +875,7 @@
 		},
 		"TransformCropResize": {
 			"images": [
-				"operationsSlides/transform.png"
+				"operationSlides/transform.png"
 			]
 		},
 		"EncodeMessage": {

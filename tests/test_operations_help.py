@@ -1,15 +1,19 @@
 import unittest
 from test_support import TestSupport
-import json
 import requests
-import os
+import logging
 from pptx import Presentation
+from maskgen.ui.help_tools import *
+from maskgen.support import *
 
 
 
 class TestOperationsHelp(TestSupport):
-    def test_operations_help(self):
-
+    def pull_operations_powerpoint(self):
+        """
+        Will pull latest powerpoint from s3, write to the file in resources.
+        :return:
+        """
         downloadLink = "https://s3.amazonaws.com/medifor/browser/journal/JournalingToolOperationsDictionary.pptx"
         powerpointPlace = self.locateFile("resources/operationSlides.pptx")
 
@@ -18,41 +22,45 @@ class TestOperationsHelp(TestSupport):
             for chunk in r.iter_content(chunk_size=128):
                 fd.write(chunk)
         fd.close()
+        return powerpointPlace
 
-        imgLinker = self.locateFile("resources/help/image_linker.json")
-        operations = self.locateFile("resources/operations.json")
+    def test_operations_help(self):
+
+        powerpointPlace = self.pull_operations_powerpoint() #get latest powerpoint
+
+        operations_file = self.locateFile("resources/operations.json")
 
         prs = Presentation(powerpointPlace)
         prs.save('Operations.pptx')
         self.addFileToRemove('Operations.pptx')
 
-        slide = len(prs.slides)
-        print 'Number of slides gotten from online: ' + str(slide)
+        ppt_total_slides = len(prs.slides)
+        print 'Number of slides gotten from online: ' + str(ppt_total_slides)
 
-        jtLocation = os.path.join(os.path.split(imgLinker)[0],'operationSlides')
+        help_loader = HelpLoader()
 
+        self.assertEqual(len(help_loader.missing), 0) #any files missing that were referenced in the loader
 
-        with open(imgLinker) as f:
-            data = json.load(f)
-        with open(operations) as f2:
-            opo = json.load(f2)
+        with open(operations_file) as f2:
+            operations = json.load(f2)
 
-        images = set()
-        missing = []
-        for d in opo["operations"]:
-            o = d["name"]
-            if o not in data["operation"] or len(data["operation"][o]["images"]) == 0 or data["operation"][o]["images"][0] == "":
-                missing.append(o)
-            else:
-                for i in data["operation"][o]["images"]:
-                    self.assertTrue(os.path.exists(os.path.join(jtLocation,os.path.split(i)[1])),os.path.join(jtLocation,i))
-                    images.add(i)
-                data["operation"].pop(o)
+        #Do all ops have help sections in the linker, and do all help sections point to valid ops?
+        opNames_jt = [getValue(op, 'name') for op in getValue(operations, 'operations')]
+        opNames_help = getValue(help_loader.linker, 'operation').keys()
 
-        print "JT Slides: " + str(len(images))
-        self.assertTrue(missing==[], "Missing is not empty " + str(missing))
-        self.assertTrue(len(data["operation"]) == 0, "There are extra operation(s) in the help section: " +
-                        ", ".join(data["operation"].keys()))
+        missing_help = [name for name in opNames_jt if name not in opNames_help]
+        missing_ops = [name for name in opNames_help if name not in opNames_jt]
+
+        if len(missing_help) > 0:
+            logging.getLogger('maskgen').warning('the following operations are not accounted for in the image_linker: ')
+            logging.getLogger('maskgen').warning(missing_help)
+            raise ValueError('operations missing help.')
+
+        if len(missing_ops) > 0:
+            logging.getLogger('maskgen').warning('the following operations are found in the image_linker '
+                                                 'but are not found in the operations dictionary: ')
+            logging.getLogger('maskgen').warning(missing_ops)
+            raise ValueError('invalid/extra operations in help.')
 
         self.remove_files()
 
