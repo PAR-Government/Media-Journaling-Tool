@@ -651,7 +651,8 @@
 		"OutputPng": {
 			"images": [
 				"operationSlides/output.png",
-				"operationSlides/output_image.png"
+				"operationSlides/output_image.png",
+                                "operationSlides/Raw_process_crop.png"
 			]
 		},
         "OutputPng::BitDepth": {
