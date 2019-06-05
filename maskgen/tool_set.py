@@ -1335,7 +1335,10 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
 
 
 def localTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
-    globalchange = globalTransformAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments,
+    globalchange = globalTransformAnalysis(analysis, img1, img2,
+                                           mask=mask,
+                                           linktype=linktype,
+                                           arguments=arguments,
                                            directory=directory)
     analysis['global'] = 'no'
     return globalchange

@@ -23,41 +23,41 @@ jtbatch <create|extend|export|merge> <args>
 
 ### jtbatch create help
 
-```
+~~~
 jtbatch create [-h] --specification SPECIFICATION [--count COUNT]
 [--threads THREADS] [--workdir WORKDIR] --projects PROJECTS [--loglevel LOGLEVEL] [--graph]
 [--global_variables GLOBAL_VARIABLES] [--initializers INITIALIZERS] [--from_state FROM_STATE] `[--export EXPORT] [--keep_failed] [--stop_on_error] [--test] [--passthrus PASSTHRUS] [--redactions REDACTIONS] [--skipValidation]
-```
+~~~
 
 
 
 ### jtbatch extend help
 
- ```
+ ~~~
 jtbatch  extend [-h] [--projects PROJECTS] [--extensionRules EXTENSIONRULES]
 [--specification SPECIFICATION] [--completeFile COMPLETEFILE]
 [--username USERNAME] [--organization ORGANIZATION] [--s3 S3]
 [--graph] [--threads THREADS] [--loglevel LOGLEVEL]
 [--global_variables GLOBAL_VARIABLES] [--initializers INITIALIZERS] [--test] [--passthrus PASSTHRUS] [--skipValidation]
- ```
+ ~~~
 
 ### jtbatch merge help
 
-```
+~~~
 jtmerge merge [-h] [--projects PROJECTS] [--output OUTPUT_DIRECTORY]
 [--pairs PAIRING_FILE] [--completeFile COMPLETEFILE]
 [--threads THREADS] [--loglevel LOGLEVEL]
 [--workdir WORKING_DIRECTORY]
-```
+~~~
 
 ### jtbatch export help
 
-```
+~~~
 jtexport export [-h] [--projects PROJECTS] [--completeFile COMPLETEFILE]
 [--username USERNAME] [--organization ORGANIZATION] [--s3 S3]
 [--updatename] [--ignore] [--threads THREADS] [--loglevel LOGLEVEL]
 [--skipValidation] [--redacted REDACTIONS]
-```
+~~~
 
 
 
@@ -127,7 +127,7 @@ By default, extensions occur on **all** nodes not along a donor path, not a fina
 
 Example Command Line:
 
-```jtbatch extend --projects <DIR> --specfication spec.json --extensionRules "~Output:"```
+~~~jtbatch extend --projects <DIR> --specfication spec.json --extensionRules "~Output:"~~~
 
 ## Chaining
 
@@ -135,10 +135,10 @@ Often batch components work together.  For example, projects are created, then e
 
 Example:
 
-```
+~~~
 jtbatch extend --projects projects_directory --specification myspec.json --extensionRules "~Output:" --completeFile extenstions.txt
 jtbatch  export --projects extensions.txt --s3 s3://someplace --completeFile exports.txt
-```
+~~~
 
 SPECIFICATION
 =============
@@ -177,12 +177,12 @@ The specification is a JSON file using networkx format. The file is broken up in
 According to the NetworkX specification, link source and target identifies the node based on the order it appears in the node section. Thus, the recommendation is to use node IDs reflecting their order of
 appearance. The batch project specification permits link source and target identifiers to be the string identifier for a node. The python function maskgen.batch.batch\_project.remap\_links consumes a dictionary of a NetworkX graph, returning a new dictionary with the source and target mapped to their numerical ordinal. This allows for a more direct representation in the links section without the order dependency.
 
-```json
+~~~
 {
   "source" : "base selection",
   "target" : "output PNG for base"
 }
-```
+~~~
 
 
 
@@ -296,7 +296,7 @@ Parameters:
 
 ####Example Description:
 
-```
+~~~
 
 {
   "op_type": "PreProcessedMediaOperation",
@@ -310,13 +310,13 @@ Parameters:
   "description":"output png",
   "id": "1"
 }
-```
+~~~
 
 ####Example CSV:
 
-```
+~~~
 image.png,yes,16
-```
+~~~
 
 Plugin Review
 -------------
@@ -346,7 +346,7 @@ Arguments for plugins pool from mandatory and optional arguments from the operat
 
 In some case, mandatory and optional arguments are fixed to a specific value for a specific plugin. For example, GaussianBlur is a Blur type operation with the blur type set to 'Gaussian'. In this case, the argument for blur type is set to the **value** argument type as defined in the next section.
 
-```JSON
+~~~
 "arguments": {
     "x" : {
       "permutegroup" : "example_group",
@@ -359,7 +359,7 @@ In some case, mandatory and optional arguments are fixed to a specific value for
     }
   }
 }
-```
+~~~
 
 Argument Types
 --------------
@@ -368,12 +368,12 @@ Each argument is a mapping between the argument name and a dictionary of propert
 
 -   **value=** set a parameter to a specific value**.** The type of the value should match expected type for the associated parameterd by the plugin.
 
-```json
+~~~
 {
   "type" : "value",
   "value" :"yes"
 }
-```
+~~~
 
 > **NOTE**: A short hand for type ***value***, is to simply set the
 > value:
@@ -382,21 +382,21 @@ Each argument is a mapping between the argument name and a dictionary of propert
 
 -   **imagefile =** select an image produced by another node. The image's source node is identifier using it's node id.
 
-```json
+~~~
 {
   "type" : "imagefile",
   "value" :"source node id"
 }
-```
+~~~
 
 - **global** = select value from the global state space (see 3.10)
 
-    ```json
+    ~~~
     {
         "type" : "global",
         "name" :"coo"
     }
-    ```
+    ~~~
 
     
 
@@ -404,94 +404,94 @@ Each argument is a mapping between the argument name and a dictionary of propert
 
 > **Invert:** For mask, the JT produces masks where black pixels are manipulated.  Typically, input masks use white pixels to indicate pixels to apply the manipulation, although this depends on the plugin\'s input requirements.  When using an JT produced mask (from an edge), the pixels are inverted to match the input requirements of plugin.
 >
-> ```json
+> ~~~
 >   {
 >     "type" : “mask",
 >     "invert" : True,
 >     "source" :"source node id"
 >   }
 > 
-> ```
+> ~~~
 
 - **donor=** select the resulting image from any predecessor node. 'source' is optional. In its absence, one of the direct decendant nodes is chosen.
 
-    ```json
+    ~~~
     {
       "type" : ”donor",
       “source”:”source node id”
     }
-    ```
+    ~~~
 
 -   **list=**randomly pick from a set of values
 
-```json
+~~~
 {
   "type" : ”list",
   "values" :[”other”, “landscape”]
 }
 
-```
+~~~
 
 
 
 -   **variable =** select an output name/value pair from a predecessor plugin node. The source node is provided using it's node id. The pair's value is identified by the name.
 
-```json
+~~~
 {
     "type" : “variable",
 	“name" : “box_altered“,
     "source" :"source node id"
 }
-```
+~~~
 
 -   **input=** identifies the name of input image file (input mask) from the output (target) image of another plugin**.** The source node is provided using it's node id.
 
-> ```json
+> ~~~
 > {
 >     "type" : “input",
 >     “source" :“source node id“
 >  }
-> ```
+> ~~~
 
 -   **plugin=**call a plugin function registered through the Python setuptool's entry point *maskgen\_specs*. The function name is the entry point name. The function accepts a dictionary of parameters, provided in the definition.
 
-```json
+~~~
 {
   "type" : ”plugin”,
   “name" : “kernel_builder“,
   ”parameters" : { “kernel_size”: 5}
 }
-```
+~~~
 
 
 
 - **int\[low:high\]=**select a value, uniform distribution over the
     range, inclusive**.**
 
-    ```json
+    ~~~
     {
        "type" : ”int[1:100]”
     }
-    ```
+    ~~~
 
     
 
 -   **float\[low:high\]=** select a value, gaussian distribution over
     the range, inclusive
 
-```json
+~~~
 {  
   "type" : ”float[1:100]”
 }
-```
+~~~
 
 -   **yesyno=select yes or no**
 
-```json
+~~~
 {  
   "type" : ”yesno”
 }
-```
+~~~
 
 
 
@@ -503,36 +503,36 @@ Substitutions are applied to:
 
 -   argument type *plugin's* parameter values
 
-```json
+~~~
 { 
   "type" : ”plugin”,
 	 “name" : “kernel_builder“,
   ”parameters" : { “kernel_size”: “{kernel_size”}}
 }
 
-```
+~~~
 
 
 
 -   argument type value
 
-```
+~~~
 "subject" : "{project_subject}"
-```
+~~~
 
 
 
 In the examples, project\_subject and kernel\_size are global variables. Local state variables may also be used. Local state represents the state space for each node. The node identifier in accordance to the specification determines the state space. The format is variable name
 '@' node id.
 
-```json
+~~~
  { 
   "type" : ”plugin”,
   “name" : “kernel_builder“,
   ”parameters" : { “kernel_size”: “{kernel_size@node123”}}
 }
 
-```
+~~~
 
 
 
@@ -541,24 +541,24 @@ The node local state space includes arguments returned from calls to the plugins
 
 Results of the substitutions strings. Type conversions can be applied using the post processing 'function' in the argument specification:
 
-```json
+~~~
 {
    'type':'value',
    'value':'{foo}',
    'function':'numpy.int'
 }
-```
+~~~
 
 
 
 The formatter can process nested dictionaries.
 
-```json
+~~~
 {
    'type':'value',
    'value': {‘name’: '{foo}', ‘location’: ‘{dir}’}
 }
-```
+~~~
 
 
 
@@ -598,7 +598,7 @@ There are three plugins that support Select region.
 3.  SelectionRegionWithMask -- The plugin uses a previously selected or
     modified region, as indicated by an inputmask, to select the region.
 
-```json
+~~~
 {
   "id": "4",
   "op_type": "PluginOperation",
@@ -635,7 +635,7 @@ There are three plugins that support Select region.
   },
   "plugin": "SmartMaskSelector"
 }
-```
+~~~
 
 
 
@@ -649,7 +649,7 @@ In the example, the SelectRegion plugin uses Felzenszwalb to segment the sourc
 
 By default. the PasteSplice plugin places a selected image on a random selected area in the target image with rescale or rotation. This approach is called 'simple'. A 'random' approach includes random resizing and rotation. PasteSplice also supports a complex placement solution using either SLIC (segment value of 'slic) or Felzenszwalb (segment value of 'felzenszwalb') to select a placement region of some uniformity (texture).  It includes rescale and rotation, as needed, to fit the pasted object into the selected placement region.  Naturally, this approach is slower. This option is turned on by setting 'approach' to 'texture' on the PasteSplice plugin (show below).
 
-```json
+~~~
 {
   "op_type": "PluginOperation",
   "plugin": "PasteSplice",
@@ -668,7 +668,7 @@ By default. the PasteSplice plugin places a selected image on a random selected 
      }
   }
 }
-```
+~~~
 
 
 
@@ -684,15 +684,15 @@ The arguments to the plugin include the segmented mask directory (segmentation\_
 
 The color identified in the classifications.csv is the RGB color. Here is an example:
 
-```
+~~~
 "[200,100,200]", natural object
-```
+~~~
 
 ### Design Paste Clone
 
 The DesignPasteClone plugin supports paste sampled cloning. It requires in an input mask of the indicated the pixels to be cloned and a location (upper right corner) to paste the cloned region. The plugin requires a preselected input mask, paste\_x and paste\_x location parameters. The plugin is often provided these parameters by forming a dependency on either the SelectionRegion (alpha = 'no') or SmartMaskSelector plugins (alpha = 'no') configured as InputMaskPluginOperations.
 
-```json
+~~~
 "id": "DesignPasteClone1",
                  "op_type": "PluginOperation",
      "arguments": {
@@ -721,7 +721,7 @@ The DesignPasteClone plugin supports paste sampled cloning. It requires in an in
       "experiment_id": null,
       "plugin": "DesignPasteClone"
 }
-```
+~~~
 
 
 
@@ -730,7 +730,7 @@ Permutations
 
 Permutations are used to control the distribution of parameters for plugins across multiple projects. To permute values of a parameter with other parameters, add the parameter to the same permute group with the argument definition. In the example below, the percentage\_height is placed in a permute group called image.
 
-```json
+~~~
 {
   "op_type": "InputMaskPluginOperation",
   "plugin": "CropPermutations",
@@ -747,7 +747,7 @@ Permutations are used to control the distribution of parameters for plugins acro
   }
 },
 
-```
+~~~
 
 
 
@@ -755,7 +755,7 @@ The order of defining the parameters with the JSON file determines the
 order the parameters are adjusted across each project. Consider two
 parameters (x and y) in the same permute group:
 
-```json
+~~~
 "arguments": {
     "x" : {
        "permutegroup" : "example_group",
@@ -769,7 +769,7 @@ parameters (x and y) in the same permute group:
   }
 },
 
-```
+~~~
 
 
 
@@ -796,7 +796,7 @@ The parameters will reset back to the start as needed.
 
 Normally, images cannot be reused across projects. However, it may be useful to generate different permutations over the same image. To support this type of experiment, image selection can be added to a permutation group. It is important to add the image selection at the top of the definitions since the reuse rule still applies. The permutation group prevents the selection of a new image until other parameters in the permutation group have been exhausted.
 
-```json
+~~~
 {
   "op_type": "BaseSelection",
   "permutegroup": "image",
@@ -804,7 +804,7 @@ Normally, images cannot be reused across projects. However, it may be useful to 
   "picklist": "imageset",
   "id": "0"
 }
-```
+~~~
 
 
 
@@ -825,17 +825,17 @@ In some cases, global inititalizers may be needed to fulfill custom plugins. The
 
 An example function:
 
-```python
+~~~
 def loadLooup(global_state):
    with open(global_state['lookupfile.location') as fp:
      return { 'index' : loadIndexFromFile(fp))
-```
+~~~
 
 Command line parameters example:
 
-```
+~~~
  --global_variables lookupfile.location='/tmp/lookup.csv --initializers index_package.loadLookup
-```
+~~~
 
 ### COCO
 
@@ -845,7 +845,7 @@ COCO provides batch project the ability to generate masks based on the pre-segme
 
 COCO extensions exist in a separate subproject (called maskgen\_colo) under maskgen with other\_plugins/CocoMaskSelector. The project should be installed separately as show below. Once installed, the batch project may be used with COCO. First, an initializer is used to initialize the COCO indices. Second, the CocoMaskSelector plugin can be copied to the appropriate plugin directory.
 
-```shell
+~~~
 cd other_plugins/CocoMaskSelector
 
 python setup.pt sdist
@@ -855,13 +855,13 @@ pip install --e .
 mkdir ../../plugins/CocoMaskSelector
 
 cp __init__.py ../../plugins/CocoMaskSelector
-```
+~~~
 
 Once installed, the batch project can initialize the COCO system with a custom initializer and the location of the annotations file for each of the COCO images being used in the project.
 
-```
+~~~
 --global_variables coco.annotations=tests/other_plugins/CocoMaskSelector/annotations.json --initializers maskgen_coco.createBatchProjectGlobalState
-```
+~~~
 
 The CocoMaskSelector is used with an InputMaskPlugin node to preselect the mask. The image selected can be either BaseSelection or ImageSelection type operation node, as long as the file name appears within the provide annotations file. Thus, the CocoMaskSelector is direct dependent of either an BaseSelection or ImageSelection node.
 
@@ -869,7 +869,7 @@ The CocoMaskSelector requires the COCO index and COCO instance. The COCO Index i
 
 The CocoMaskSelector accepts two additional arguments: area.lower.bound and area.upper.bound. These integer arguments represent the lower and upper bound of area in pixels when choosing a segment from the annotations.
 
-```json
+~~~
 {
   "op_type": "InputMaskPluginOperation",
   "id": "2",
@@ -886,7 +886,7 @@ The CocoMaskSelector accepts two additional arguments: area.lower.bound and area
   "plugin": "CocoMaskSelector",
   "experiment_id": "MFC18"
 }
-```
+~~~
 
 
 
@@ -898,12 +898,11 @@ See maskgen/tests/other\_plugins/CocoMaskSelector
 
 When using the area bounds as arguments to the CocoMaskSelector, it is recommended that images and the associated annotation file is trimmed to exclude any images that do not contain annotations meeting the given criteria. A utility function under maskgen\_coco project selects images from a directory, moving those images that meet the area constraints into another directory. If the source and target directories are the SAME, then the image is removed from the directory if does not meet the constraints. The function also accepts a max count of images to select, thus creating smaller annotation files and image subsets.
 
-```python
+~~~
 import masgen_coco
 masgen_coco.moveValidImages('/Users/me/source', '/Users/me/subset_images', '/Users/me/instances_train2014.json',areaConstraint=(1024,8192),maxCount=30,
 newAnnotationPath='/Users/me/subject_annotations.json')
-
-```
+~~~
 
 Example
 =======
@@ -922,7 +921,7 @@ Crop Example with Permutations
 Add permute group to image selection.   In this example, the group name
 is called 'image'.
 
-```json
+~~~
 {
   "op_type": "BaseSelection",
   "permutegroup": "image",
@@ -930,7 +929,7 @@ is called 'image'.
   "picklist": "imageset",
   "id": "0"
 }
-```
+~~~
 
 
 
@@ -943,7 +942,7 @@ In the example, the width to a fixed 20%, the height as added to the
 'image' permute group starting at 4% and increasing to 20% by 2%
 increments 
 
-```json
+~~~
 {
   "op_type": "InputMaskPluginOperation",
   "plugin": "CropPermutations",
@@ -959,7 +958,7 @@ increments 
     }
   }
 }
-```
+~~~
 
 
 
@@ -971,7 +970,7 @@ The Crop plugin requires pixel width and height to crop in addition to a startin
 
 At this point, the permute group 'image' consists of the image selection, percentage\_height for CropPermutations, crop\_x for Crop and crop\_y for Crop.
 
-```json
+~~~
 {
   "op_type": "PluginOperation",
   "plugin": "Crop",
@@ -1001,15 +1000,15 @@ At this point, the permute group 'image' consists of the image selection, perce
     }
   }
 }
-```
+~~~
 
 ### Running this example.
 
 Create a sample directory of images  (stay over 1000x1000), make a copy of the batch process JSON file and change the location of the **image\_directory** created directory.  Create an empty directory for the resulting projects.  Run the command:
 
-```shell
+~~~shell
 % jtproject --specification permutation_batch_process.json.json --projects myresultprojectsdirectory --workdir state –graph --loglevel 0 --threads 1
-```
+~~~
 
 
 
@@ -1032,9 +1031,9 @@ Every failed project's permutation state is retained in a state failure file. Th
 
 ### Example Failed State File:
 
-```json
+~~~
 {"__global__": {"1": "/Users/foo/Documents/projects/ donor/08efa11b0f97a7077909daf4706b907f.jpg", "0": "/Users/foo/Documents/projects/ base/0c617f8e9fb87051eb58db304b396fe0.cr2"}}
-```
+~~~
 
 Batch Extensions
 ================
@@ -1063,9 +1062,9 @@ called attachment points, and (2) what defines the extension. A batch project sp
 
 Projects to be processed are placed in a single directory. The projects can be unzipped into directories OR zipped tar files (tgz). By default, selection rules 1 through 4 are active. Rule 5 is specific to operations and groups, thus it does not have exclusion.
 
-```shell
+~~~shell
 jtprocess --projects <DIR> --specfication spec.json
-```
+~~~
 
 
 
@@ -1074,7 +1073,7 @@ Example Extension with NODE Attachment
 
 The example below selects a region in an image and blurs that region.
 
-```JSON
+~~~
 {
   "directed": true,
   "graph": {
@@ -1160,7 +1159,7 @@ The example below selects a region in an image and blurs that region.
       "target": 2
     }
 
-```
+~~~
 
 
 
@@ -1170,29 +1169,29 @@ Batch API
 Creating a Batch Project
 ------------------------
 
-```python
+~~~
 from maskgen import BatchProject,createGlobalState
 
 batchProject = BatchProject('spec.json')
-```
+~~~
 
 OR
 
-```python
+~~~
 batchProject = BatchProject(networkxGraphOfSpec)
 
 # To dump the spec graph to a PNG file :
 
 batchProject.saveGraphImage('.')
-```
+~~~
 
 To execute in the current thread one, the global state is needed that defines the location of the results and the working directory for permutation management.
 
-```pyton
+~~~
 createGlobalState('ProjectResultsDirectory','RunStateDirectory')
 
 batchProject.executeOnce(globalState)
-```
+~~~
 
 
 
@@ -1201,7 +1200,7 @@ Running Multiple Projects in Multiple Threads: BatchExecutor
 
 All projects share the same global state.
 
-```python
+~~~
 from maskgen.batch.batch_project import BatchExecutor, BatchProject
 
 from logging import DEBUG
@@ -1211,7 +1210,7 @@ be = BatchExecutor('ProjectResultsDirectory', workdir = 'RunStateDirectory', glo
 for project in projectsToRun:
    be.runProject(batchProject)
 be.finish()
-```
+~~~
 
 
 
@@ -1235,7 +1234,7 @@ This section discuss some approaches to use external segmentation algorithms.
 
 PickPairedImage plugin is used with ImageSelectionPluginOperation to select a donor image given a selected source image. The donor is preselected for the source. Used in conjunction with PreSegmenetedSelector, the donor can be presegmented and used as a select region operation, which adds an alpha channel to the donor image and pick on those pixels in the in the segment. PickPairedImage requires a CSV file containing two columns, source and target image names. The location of the target image is in a folder as indicated by a directory parameter.
 
-```json
+~~~
 {
   "op_type": "ImageSelectionPluginOperation",
   "plugin": "PickPairedImage",
@@ -1251,7 +1250,7 @@ PickPairedImage plugin is used with ImageSelectionPluginOperation to select a do
     }
   }
 }
-```
+~~~
 
 
 
@@ -1266,7 +1265,7 @@ Selector Plugins may return arguments. Each argument may be a list of values. Th
 
 (3) The permutegroup 'image' is also used in the BaseSelection. This means that the image can be REUSED across multiple projects since it is participating in the same permute group. The projects can then be merged into one large project.
 
-```json
+~~~
 {
   "op_type": "BaseSelection",
   "permutegroup": "image",
@@ -1334,7 +1333,7 @@ Selector Plugins may return arguments. Each argument may be a list of values. Th
     }
   }
 }
-```
+~~~
 
 
 
@@ -1345,14 +1344,14 @@ Consider a batch process that consumes an image and produces a new image. Are go
 
 First, the process must prepare two directories. The first holds the initial images. The second holds the target images using the SAME name as the initial images. The suffix (format) of the image can change (e.g. .png, .jpg, etc.). Next, the process must create a CSV in the target directory recording information about the operation performed. The directly supports the mandatory and optional parameters required by the Operation definition. The CSV should not use headers. The format of the CSV file is:
 
-```
+~~~
 target file name, param one value, parameter two value etc.
-```
+~~~
 
 Follow the instructions for setting up PreProcessedMediaOperation. Here
 is an example:
 
-```json
+~~~
 {
   "directed": true,
   "graph": {
@@ -1395,7 +1394,7 @@ is an example:
   ],
   "multigraph": false
 }
-```
+~~~
 
 
 
@@ -1404,9 +1403,9 @@ EXPORT
 
 A batch command supports bulk export projects to S3. The projects are also validated. An ErrorReport CSV file, with the process ID in the name, is created and filled with the validation results for all the processed projects
 
-```shell
+~~~shell
 Jtbatch export --projects <DIR> --s3 <bucket/folder>
-```
+~~~
 
 Other options for export include:
 
@@ -1432,4 +1431,4 @@ Validate and Process Skipped Link Masks
 
 A bulk validation of multiple projects includes generating any missing link masks. These is useful to run overnight after creating a series of video projects, where link analysis takes a long time. An ErrorReport CSV file, with the process ID in the name, is created and filled with the validation results for all the processed projects.
 
-```python --m maskgen.batch.bulk_validate --projects <DIR>```
+~~~python --m maskgen.batch.bulk_validate --projects <DIR>~~~

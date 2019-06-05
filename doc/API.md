@@ -471,11 +471,11 @@ Within a HDF5 group is one or more datasets. This tool uses one data set  for ea
 
 ## Bit Plane
 
-What are Bit Planes are empty:
+What does 'Bit Planes are empty' mean?:
 
 * An Operation is chosen in the probe that does not have a change mask (e.g. some transforms).  This does not occur often. 
-* An operation mask is fully occluded based on a down stream manipulation (more on this next slide).
-* Mask not generated—Older Journal requires re-compute the mask.
+* An operation mask is fully occluded based on a down-stream manipulation (more on this next slide).
+* Mask not generated— Likely the Journal is older and requires a re-compute of the mask.
 
 Occlusion is not simple.
 
@@ -497,7 +497,7 @@ ExtendProbesForDetectEdges adds edges for detect only tasks (such as Anti Forers
 
 ### AUDIO
 
-The frame identifier for audio is separate from video.  Audio stands alone as it manipulations and computations are only aligned to video by time.  The manipulations happen independently with the exception of frame cutting.  
+The frame identifier for audio is separate from video.  Audio stands alone as its manipulations and computations are only aligned to video by time.  The manipulations happen independently with the exception of frame cutting.  
 
 The JT probe does attempt to realign audio and video manipulations by creating a media type called 'video-associate'  It is the audio probe reaigned of video.  Naturally, there are errors as the frames times cover the audio time, rarely lining up perfectly on frame display boundaries.
 
@@ -513,7 +513,8 @@ Audio aligned to frames:    start: 3.320  end: 4.450
                             error: 0.003
 ```
 
-These added video-associate segments are be added to the segment list.  It is important that you use the media type to filter out the video segments.  One added benefit to you:  you can measure the offset of audio time to video time.  From the example above: 3.323 – 3.320 = 0.003.   The error is  included in the 'error' attribute of the segment as max difference of the two start and end variation. 
+These added video-associate segments are be added to the segment list.  It is important that you use the media type to filter out the video segments.  One added benefit of this:  it allows the measure of the offset of audio time to video time.  
+From the example above: 3.323 – 3.320 = 0.003.   The error is  included in the 'error' attribute of the segment as max difference of the two start and end variations. 
 
 # Plugins
 
@@ -682,14 +683,18 @@ The command is composed of list of command line parameters in order of appearanc
 
 More technical customizations can be made to the plugin by editing the JSON directly. 
 
-**arguments** should be specified with a type (consisten with operation definitions), description and defaultvalue: The name of the argument,it's default value (use **null** for no default), and a description of the argument. The argument should also be added to the **command **parameters as a substitution indicated by surrounding the argument name with curly braces {}.
+**arguments** should be specified with a type (consistent with operation definitions), The argument name and description, as well as a defaultvalue. (use **null** for no default)
+
+The argument should also be added to the **command **parameters as a substitution indicated by surrounding the argument name with curly braces {}.
 
 Once the plugin is saved, the user will be able to select it as if it were any other plugin. The plugin will call the command line operation, and automatically replace the input image, output image, and additional
 arguments with the required information.
 
 #### Argument Mappings
 
-Sometimes, the argument collected by th JT by the definition of the operation needs to map to an argument accept by the command line.  A mapping can be used, proviing the argument and then a dictionary of operation values corresponding to command line values.  Notice that the Contrast operation defines  direction of 'increase' and 'decrease' which translates to ImageMagick's '+constrast' and '-constrast'.
+Sometimes, the argument collected by the JT by the definition of the operation needs to map to an argument accepted by the command line.  A mapping can be used, providing the argument and then a dictionary of operation values corresponding to command line values.  
+
+Notice that the Contrast operation defines the direction of 'increase' and 'decrease' which translates to ImageMagick's '+constrast' and '-constrast'.
 
 ~~~
 {
@@ -751,17 +756,19 @@ Sometimes, the argument collected by th JT by the definition of the operation ne
 
 # Image Graphs
 
-Image Graphs for Images that may be clickable.  Creating this images is accomplished by components of the package maskgen.graph_output.
+Image Graphs for Images may be clickable.  Creating this image is accomplished by components of the package maskgen.graph_output.
 
-The graph builder uses *Dot* create graph depiction with click references in many file types including cmap, png, jpg, html, etc.
+The graph builder uses *Dot* to create a graph depiction with click references in many file types including cmap, png, jpg, html, etc.
 
-The graph images are resolved by a 'handler'.  By default, the handler consumes project data from the project directory.  However, given just the JSON file, the handler can pull node images from external sources such as the Browser API.  The Browser API extracts is accomplished by the *UrlMediaFetcher*.   
+The graph images are resolved by a 'handler'.  By default, the handler consumes project data from the project directory.  However, given just the JSON file, the handler can pull node images from external sources, ie. the Browser API.  The Browser API extraction is accomplished by the *UrlMediaFetcher*.   
 
 #### Fetchers
 
-Fetchers fetch the media and referencing Urls for composing the graph files.
+Fetchers fetch the media and reference Urls for composing the graph files.
 
-*UrlMediaFetcher* -> Fetch media from the URL.  Also provided the URL to be linked to each image node in a HTML or AP file. UrlMediaFetcher uses API properties (*apiurl* and *apitoken*) configured in ~/.maskgen2 .
+*UrlMediaFetcher* -> Fetch media from the URL.  
+Also provides the URL to be linked to each image node in a HTML or AP file. 
+The UrlMediaFetcher uses API properties (*apiurl* and *apitoken*) configured in ~/.maskgen2 .
 
 *FileMediaFetcher* -> Fetch media from a directory.  The URL is the directory location.
 
@@ -798,7 +805,7 @@ Videos are processed with OpenCV on FFMPEG.
 
 Zip files are processed with Pythons Zip package.
 
-Some media images formats may not be direcctly supported by the default install of the tool. These can be extended, with their dependencies, external from the tool.
+Some media images formats may not be directly supported by the default install of the tool. These can be extended, with their dependencies, external from the tool.
 
 An opener returns a Numpy array.
 
@@ -862,7 +869,7 @@ entry_points={'maskgen_image': [
 
 # Validation Framework
 
-The validation frame work is made of core validation, validation rules associated with specific operations (as defined in the operation definition) and extensions.  The core checks global constraints without dependency external entities.  This includes operation names, mandatory parameters, missing files, software name and version validity as referenced in each link, operation argument type checking,  missing links (e.g. graph fragments and missing donors), graph cycles, project type, project properies,  file naming conventions, missing node propertis, and duplicate final node media files.
+The validation frame work is made of core validation, validation rules associated with specific operations (as defined in the operation definition) and extensions.  The core checks global constraints without dependency on external entities.  This includes operation names, mandatory parameters, missing files, software name and version validity as referenced in each link, operation argument type checking,  missing links (e.g. graph fragments and missing donors), graph cycles, project type, project properies,  file naming conventions, missing node propertis, and duplicate final node media files.
 
 The result of a validation sweep on a journal is a list of zero or more ValidationMessage.
 
@@ -1016,9 +1023,9 @@ TBD
 
  A path name is a set of key names separated by '.'. A path name used to set and fetch data associated with a dictionary.
 
-~~~
 For the following dictionary, path argumens.subject accesses value 'person':
 
+~~~
 {
  "arguments": {
      "subject":"person"
@@ -1026,9 +1033,68 @@ For the following dictionary, path argumens.subject accesses value 'person':
 }
 ~~~
 
+The following functions are available in maskgen.support:
+
+* getValue (dictionary, path, defaultValue=None)
+* setPathValue(dictionary, path, value)
+* removeValue(dictionary,path)
 
 
 
+## Meta Data 
+
+### video_tools.MetaDataLocator
+
+The locator extracts meta data for media. 
+
+The locator is extended by 
+
+```
+        self.tools = {'zip': ZipMetaLocatorTool(self),
+                      'image': ImageMetaLocatorTool(self),
+                      'audio':AudioMetaLocatorTool(self),
+                      'video':VideoMetaLocatorTool(self)}
+```
+
+* getMaskSetForEntireVideo (self, start_time='00:00:00.000', end_time=None, media_types=['video'], channel=0) -> produce a single  (segment) for the video or audio given the time constraints.
+
+* get_frame_count -> return frame count for media
+
+* get_duration -> return duration in millisecond
+
+* get_meta -> returns tuple with meta data requested as determined by the parameters.
+
+  * a list of meta-data dictionary per stream 
+  * a corresponding list of frames per stream.  Each set frames is list of dictionaries, thus frames is a list of list of dictionaries.
+
+* ```
+  get_meta(self,
+               with_frames=False,
+               show_streams=False,
+               count_frames=False,
+               media_types=['video'],
+               frame_meta=['pkt_pts_time', 'pkt_dts_time', 'pkt_duration_time'],
+               frame_limit=None,
+               frame_start=None
+               ):
+  ```
+
+Locator's are subclassed to extract meta-data for a specific file.
+
+* video_tools.FileMetaDataLocator(media_file_name) -> 
+* graph_meta_tools.ExtractorMetaDataLocator -> extract given a node id, using cached information in the graph if available.
+
+##graph_meta_tools.MetaDataExtractor
+
+The extractor answers meta-data.
+
+* getMasksFromEdge (source, target, media_types, channel=0, startTime=None, endTime=None) produces the videomasks from the edge.  If none are found, a segment representing the entire video (or audio) given the edge's temporal constraints is produced from the edge's source media.
+
+* create_video_for_audio (source, masks) consumes audio, creating 'video_associate' masks by find the frames aligned to the audio mask's start and times.   Frame start and end times in the video_associate will not match the audio times, using the the times of the frames that 'cover' the audio time.
+
+* warpMask( video_masks, source, target, expectedType='video', inverse=False, useFFMPEG=False) compares the frame rate and duraton of the target video.  If the rate or duration do not match, a new set of video masks is created projecting the source masks into the target temporal space.
+
+  **NOTE:** Spatial masks cannot be reinterpolated efficiently. Thus,  spatial masks are dropped or added (duplicates) during re-alignment.  This directly impacts the quality of masks when the rate and duration between source and target are signficantly different.
 
 # Project JSON
 
