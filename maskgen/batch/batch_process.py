@@ -53,6 +53,7 @@ def findNodesToExtend(sm, rules):
         isTargetAntiForensic = False
         isTargetOutput = False
         op = None
+        succ_ops = []
         if not isBaseNode:
             for predecessor in sm.getGraph().predecessors(nodename):
                 edge = sm.getGraph().get_edge(predecessor, nodename)
@@ -67,6 +68,7 @@ def findNodesToExtend(sm, rules):
                 if edge['op'] == 'Donor':
                     continue
                 succ_op = sm.getGroupOperationLoader().getOperationWithGroups(edge['op'], fake=True)
+                succ_ops.append(succ_op)
                 ops.append(edge['op'])
                 isSourceOutput |= succ_op.category == 'Output'
                 isSourceAntiForensic |= succ_op.category == 'AntiForensic'
@@ -80,6 +82,14 @@ def findNodesToExtend(sm, rules):
                             nodes.append(nodename)
                             skip = True
                             break
+                    for succ_op in succ_ops:
+                        if rule[1] == '$':
+                            catandop = rule[2:].split(':')
+                            if (succ_op.category == catandop[0] or catandop[0] == '') and \
+                                    catandop[1] == succ_op.name:
+                                nodes.append(nodename)
+                                skip = True
+                                break
         if (node['nodetype'] == 'final' or len(sm.getGraph().successors(nodename)) == 0):
             if 'finalnode' in rules:
                 nodes.append(nodename)
