@@ -5161,6 +5161,7 @@
           "values": [
             "remove",
             "add",
+            "replace",
             "blend"
           ],
           "description": "Purpose: remove an object, add an object."
