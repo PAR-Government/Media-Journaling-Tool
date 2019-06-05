@@ -2,8 +2,6 @@ import unittest
 from maskgen.external.api import *
 from tests.test_support import TestSupport
 import os
-import numpy as np
-import random
 from maskgen.external.exporter import ExportManager, DoNothingExportTool
 import sys
 from threading import Condition
@@ -31,11 +29,11 @@ class TestExporter(TestSupport):
     def setUp(self):
         self.loader = MaskGenLoader()
         self.condition = Condition()
-        self.altenate_directory = os.path.join(os.path.expanduser('~'),'TESTJTEXPORT')
-        if not os.path.exists(self.altenate_directory):
-            os.makedirs(self.altenate_directory)
+        self.alternate_directory = os.path.join(os.path.expanduser('~'), 'TESTJTEXPORT')
+        if not os.path.exists(self.alternate_directory):
+            os.makedirs(self.alternate_directory)
         self.exportManager = ExportManager(notifier=self.notify_status,
-                                           altenate_directory=self.altenate_directory,
+                                           alternate_directory=self.alternate_directory,
                                            export_tool=DoNothingExportTool)
         self.notified = False
         self.notifications = []
@@ -45,8 +43,7 @@ class TestExporter(TestSupport):
     def tearDown(self):
         import shutil
         self.exportManager.shutdown()
-        altenate_directory = os.path.join(os.path.expanduser('~'), 'TESTJTEXPORT')
-        shutil.rmtree(altenate_directory)
+        shutil.rmtree(self.alternate_directory)
 
     def notify_status(self,who, when, what):
         print ('export manager notify {} at {} state {}'.format(who,when, what))
@@ -65,8 +62,6 @@ class TestExporter(TestSupport):
     def test_export(self):
         self.notifications = []
         self.notified = False
-        #foo = "/Users/ericrobertson/Downloads/a81d4ebbf08afab92d864245020298ac.tgz"
-        #what = 'a81d4ebbf08afab92d864245020298ac'
         pathname = self.filetoupload
         self.exportManager.upload(pathname, 'medifor/par/journal/shared/',
                                   remove_when_done=False)
@@ -75,7 +70,7 @@ class TestExporter(TestSupport):
         self.check_status('DONE')
         history = self.exportManager.get_all()
         self.assertTrue(history[self.what][1] == 'DONE')
-        with open (os.path.join(self.altenate_directory,'classifications.txt')) as log:
+        with open (os.path.join(self.alternate_directory, 'classifications.txt')) as log:
             lines = log.readlines()
             print lines[-2:]
         self.assertTrue('DONE' in lines[-1])
@@ -96,7 +91,7 @@ class TestExporter(TestSupport):
         self.check_status('DONE')
         history = self.exportManager.get_all()
         self.assertTrue(history[self.what][1] == 'DONE')
-        with open (os.path.join(self.altenate_directory,'classifications.txt')) as log:
+        with open (os.path.join(self.alternate_directory, 'classifications.txt')) as log:
             lines = log.readlines()
             print lines[-2:]
         self.assertTrue('DONE' in lines[-1])
@@ -105,8 +100,6 @@ class TestExporter(TestSupport):
     def test_slow_export(self):
         self.notified = False
         self.exportManager.export_tool = SomePausesExportTool()
-        #foo = "/Users/ericrobertson/Downloads/a81d4ebbf08afab92d864245020298ac.tgz"
-        #what = 'a81d4ebbf08afab92d864245020298ac'
         pathname = self.filetoupload
         self.exportManager.upload(pathname, 'medifor/par/journal/shared/',remove_when_done=False)
         current = self.exportManager.get_all()
@@ -120,8 +113,6 @@ class TestExporter(TestSupport):
     def test_export_sync(self):
         self.notifications = []
         self.notified = False
-        # foo = "/Users/ericrobertson/Downloads/a81d4ebbf08afab92d864245020298ac.tgz"
-        # what = 'a81d4ebbf08afab92d864245020298ac'
         pathname = self.filetoupload
         self.exportManager.sync_upload(pathname, 'medifor/par/journal/shared/', remove_when_done=False)
         history = self.exportManager.get_all()

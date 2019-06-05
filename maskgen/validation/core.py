@@ -41,6 +41,9 @@ class ValidationMessage:
     def __getitem__(self, item):
         return [self.Severity,self.Start,self.End,self.Message,self.Module,self.Fix][item]
 
+    def __str__(self):
+        return self.Message
+
     def applyFix(self,graph):
         self.Fix(graph,self.Start,self.End)
 

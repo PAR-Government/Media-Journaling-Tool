@@ -45,8 +45,6 @@ def extract_archive(fname, dir):
         try:
             archive = tarfile.open(fname, "r", errorlevel=2)
         except Exception as e:
-            if archive is not None:
-                archive.close()
             logging.getLogger('maskgen').critical("Cannot open archive {}; it may be corrupted ".format(fname))
             logging.getLogger('maskgen').error(str(e))
             return False
