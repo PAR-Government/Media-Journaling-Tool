@@ -32,6 +32,19 @@ class TestBatchProcess(TestSupport):
         self.addFileToRemove(d)
         return be
 
+    def createExecutor(self, prefix,skipValidation=False, loglevel=50, setup=False,global_variables={}):
+        d = tempfile.mkdtemp(prefix=prefix, dir='.')
+        os.mkdir(os.path.join(d,'test_projects'))
+        if setup:
+            self.general_setup(d)
+        be = batch_project.BatchExecutor(os.path.join(d,'test_projects'),
+                                         workdir=d,
+                                         loglevel=loglevel,
+                                         skipValidation=skipValidation,
+                                         global_variables=global_variables)
+        self.addFileToRemove(d)
+        return be
+
     def test_int_picker(self):
         manager = PermuteGroupManager()
         global_state = {'iteratorslock': Lock(),

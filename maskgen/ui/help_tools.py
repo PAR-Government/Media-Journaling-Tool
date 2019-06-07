@@ -3,6 +3,7 @@ import webbrowser
 from Tkinter import *
 from maskgen.software_loader import *
 from maskgen.tool_set import *
+from maskgen.support import getPathValues, getValue
 import json
 from PIL import Image, ImageTk, ImageOps
 from ttk import *
@@ -31,7 +32,7 @@ class HelpFrame(Frame):
         r += 1
 
         Label(self, text="Click through the image tabs to view various available information.  Click on any image "
-                         "(even Manny) to open it with your default photo viewer or visit the help link if available.")\
+                         "to open it with your default photo viewer or visit the help link if available.")\
             .grid(row=r, column=0)
 
         self.textvar.trace("w", lambda *args: self.update_choice(self.textvar))
@@ -143,7 +144,9 @@ class HelpLoader:
     """
     def __init__(self):
         self.linker = {}
+        self.missing = []  # slides that are referenced but not found.
         self.load_image_json()
+
 
     def load_image_json(self):
         fpath = getFileName(os.path.join("help", "image_linker.json"))
@@ -152,18 +155,29 @@ class HelpLoader:
             self.linker = json.load(f)
 
         for key in self.linker.keys():
-            for subkey in self.linker[key].keys():
-                if "images" in self.linker[key][subkey].keys():
-                    current = self.linker[key][subkey]["images"]
-                    imgs = []
-                    for x in current:
-                        if getFileName(os.path.join("help", x)) is None:
-                            logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", x))
-                        else:
-                            imgs.append(getFileName(os.path.join("help", x)))
-                    while None in imgs:
-                        imgs.remove(None)
-                    self.linker[key][subkey]["images"] = imgs
+            for subkey in self.linker[key]:
+                imgs = getValue(self.linker[key][subkey], 'images', []) #Get the raw list
+                [self.extend_with_path_values(imgs, img) for img in imgs] #extend the list where applicable
+                imgs = filter(None, map(self.try_get_slide, imgs)) #Get the paths and filter out missing/invalid
+                self.linker[key][subkey]['images'] = imgs #replace value
+
+    def extend_with_path_values(self, imageset, path):
+        result = getPathValues(self.linker, path)
+        if len(result) > 0:
+            imageset.remove(path)
+            #TODO: getvalue for rules specified in imagelinker to allow adding slides that are more contextually relevant.
+            imageset.extend(getValue(result[0], 'images', []))
+
+    def try_get_slide(self, slide_path):
+        try:
+            _filename = getFileName(os.path.join("help", slide_path))
+            if _filename is not None:
+                return _filename
+            else:
+                raise ValueError('file not found')
+        except ValueError:
+            self.missing.append(os.path.join("help", slide_path))
+            logging.getLogger('maskgen').warning('Couldnt find help image at: ' + os.path.join("help", slide_path))
 
     def get_help_png_list(self, name, itemtype):
         try:

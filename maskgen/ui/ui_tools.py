@@ -9,11 +9,11 @@
 import time
 import ttk
 from Tkinter import *
-import  tkSimpleDialog
+import tkSimpleDialog
 import tkMessageBox
 import logging
 from maskgen.support import ModuleStatus
-
+from copy import deepcopy
 
 class ProgressBar(Frame):
     def __init__(self, master, **kwargs):

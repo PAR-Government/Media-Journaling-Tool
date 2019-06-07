@@ -1335,7 +1335,10 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
 
 
 def localTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
-    globalchange = globalTransformAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments,
+    globalchange = globalTransformAnalysis(analysis, img1, img2,
+                                           mask=mask,
+                                           linktype=linktype,
+                                           arguments=arguments,
                                            directory=directory)
     analysis['global'] = 'no'
     return globalchange
@@ -2265,6 +2268,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     algorithm = getValue(arguments, 'filling', 'morphology')
     aggregate = getValue(arguments, 'aggregate', 'max')
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    max_threshold = int(getValue(arguments, 'maximum threshold', 255))
     from scipy import signal
     # compute diff in 3 colors
     if aggregate == 'luminance':
@@ -2298,7 +2302,7 @@ def mediatedCompare(img_one, img_two, arguments={}):
     if size == 0 or minima > bins/2:  # if there was no minima, hardcode
         threshold = min_threshold
     else:
-        threshold = max(min_threshold,minima)  # Use first minima
+        threshold = max(min_threshold,min(minima, max_threshold))  # Use first minima
 
     threshold += gain
     mask[np.where(mask <= threshold)] = 0  # set to black if less than threshold

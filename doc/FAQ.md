@@ -6,7 +6,72 @@ TBD
 
 ### Video Mask Tuning
 
-TBD
+####General Help
+![](../resources/help/videomask_previewer_slides/Video_Preview_over.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Histogram.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Images.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Parameters.png)
+
+![](../resources/help/videomask_previewer_slides/Video_Preview_Morphology.png)
+
+####Can I rewind the Mask Previewer to a previous frame?
+Not currently. You must exit the Previewer and open it again to look at the mask for a particular frame.
+
+####I canceled out of the Mask Previewer and now the edge is missing a mask file on validation.
+If you begin writing to the mask file with the previewer and then cancel or close it, The mask file will be incomplete, 
+and so be deleted automatically and noted in the log.
+
+#### How should I read the histogram in the Mask Previewer?
+
+The histogram represents the values in the difference mask from 0 (no difference) to 255 (complete difference.)
+The threshold in red is the value where everything below it becomes 0 and everything above it becomes 255.
+Increasing the gain will move the threshold further to the right, decreasing will pull it to the left.
+
+#### What does Minimum/Maximum Threshold do?
+
+The threshold is the difference value above which a pixel is determined to be changed, and below which is determined not.
+Setting a minimum to this value will prevent the threshold from being automatically placed on the histogram
+ any further to the left/right than the minimum/maximum respectively. 
+ Threshold constraints are applied before gain is added, therefore it is possible to exceed the threshold constraints by using the gain parameter.
+
+#### My Mask has a large amount of noise
+
+Try increasing the kernel, and/or using the open:close morphology order.
+You may also want to adjust the gain according to where the threshold was placed in the histogram. 
+
+For manipulations where automatic generation is especially noisy, features significant flashing, or is inaccurate,
+consider supplying a user-generated substitute mask via the videoinputmask argument in the edge edit dialog.
+
+#### My Mask has "islands" that missed detection inside a larger area that was detected.
+
+Try the close:open morphology order, a smaller kernel, and/or increase the gain.
+
+#### My Histogram looks blocky
+
+Your video files are likely compressed and there are gaps between the bins of values.
+This may cause the automatic threshold selection to pick sub-optimal values for the threshold.
+This problem can be handled using the minimum and maximum threshold parameters to restrict 
+the range of automatic threshold selection, as well as gain.
+
+# Empty and Global Masks
+
+Global mask is a mask the affects a diffuse large part of an image.   Many operations are assumed global based on their 'generateMask' value.  Empty masks occur if the operation does not affect the image content  (meta-data only), the relevant remaining content is unchanged (e.g. Crop) or the operation was not recorded correctly.
+
+Some links include a 'global' value of 'yes' or 'no'.  These links are associated with operations that may be local or global (e.g Blur).
+
+During probe construction, masks are aligned to final images.  During this process, some masks are emptied.  A mask is empty in probe if (1) The link mask if the operation is local and empty or (2) a prior operation occluded the mask.  We made a program decision that occlusion can only occur if the area of an image aligned to mask is subsequently manipulated to remove the content (remove the prior manipulation) or paste over the content (Paste Sampled and Paste Splice).  Otherwise, the JT probe construction delivers a mask despite potential occlusion.  Thus, it is import for test production to factor in the order and depth of manipulations that affect the same local area of an image as indicated by their masks.
+
+Is an empty mask an error?  From the perspective of probe generation: no; an empty mask is an undetectable probe.  From a journal perspective, an empty mask may indicate an operation not recorded properly.  This could mean the operation never occurred or did occur but not recorded.  In the later case, the subsequent operation's mask and resulting image will include both operations in one result.   Thus, empty mask conditions should be inspected to consider their impact.
+
+An probe can be produced by the JT with an empty mask id
+
+* If the a link with an operation 'removes' the contents of a mask  (e.g. occlusion) from prior link, then that link can contain an attribute *allowed_entities* mapped to a list containing source node identifier of the 'prior' link.
+* The operation is crop, recapture, paste splice, paste sampled or remove.
+
+
 
 # BATCH
 
@@ -66,3 +131,8 @@ Finally, a state file is presevered with all the chosen arguments in the project
 
 It is recommended to remove the old project directory and remove the names used media resources manually out of the associated picklist files in the '--workdir' directory.  Alternatively, every failure ends with a state file, named 'failures-<datetime>.txt', recording the state of the arguments for the batch operations at the time of the failure.   The project may be rerun using the exact state using the '--from_state' command line argument followed by the name of the failure file.
 
+
+
+# FUTURE WISHES
+
+1. Empty mask through operation occlusion is culled from probes (see mask_rules.checkEmptyMask's force option which is equivalent to 'empty masks are ok').

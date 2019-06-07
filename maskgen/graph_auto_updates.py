@@ -76,7 +76,7 @@ def updateJournal(scModel):
          ("04.0810.9381e76724", [_fixCopyST, _fixCompression]),
          ("0.4.0901.723277630c", [_fixFrameRate, _fixRaws]),
          ("0.4.1115.32eabae8e6", [_fixRecordMasInComposite]),
-         ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask, _fixGlobal]),
+         ("0.4.1204.5291b06e59", [_addColor, _fixAudioOutput, _fixEmptyMask]),
          ("0.4.1231.03ad63e6bb", [_fixSeams]),
          ("0.5.0227.c5eeafdb2e", [_addColor256, _fixDescriptions,_fixUserName]),
          ('0.5.0227.6d9889731b', [_fixPNGS,_emptyMask]),
@@ -97,7 +97,7 @@ def updateJournal(scModel):
          ('0.6.0103.9d9b6e95f2', []),
          ('0.6.0117.76365a8b60', []),
          ('0.6.0208.ae6b74543d', []),
-         ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame]),
+         ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame,_fixGlobal]),
          ('0.6.0531.ce60889744', [])
          ])
 
@@ -1285,8 +1285,11 @@ def _fixGlobal(scModel,gopLoader):
     for frm, to in scModel.G.get_edges():
         edge = scModel.G.get_edge(frm, to)
         op = gopLoader.getOperationWithGroups(edge['op'],fake=True, warning=False)
-        if 'global' in edge and edge['global'] == 'yes' and "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
-            edge['global'] = 'no'
+        if 'global' in edge and edge['global'] == 'yes':
+            if "maskgen.tool_set.localTransformAnalysis" in op.analysisOperations:
+                edge['global'] = 'no'
+            elif 'Color' in edge['op']:
+                edge['global'] = 'no'
 
 def _fixEmptyMask(scModel,gopLoader):
     import numpy as np

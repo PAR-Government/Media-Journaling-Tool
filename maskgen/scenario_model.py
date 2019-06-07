@@ -25,7 +25,7 @@ from image_wrap import ImageWrapper
 from maskgen.image_graph import ImageGraph
 from maskgen.video_tools import DummyMemory
 from support import MaskgenThreadPool, StatusTracker, getPathValuesFunc, getPathValues
-from software_loader import Software, getProjectProperties, getRule
+from software_loader import Software, getProjectProperties, getRule, getOperation
 from tool_set import *
 from validation.core import Validator, ValidationMessage,Severity,removeErrorMessages
 
@@ -361,7 +361,6 @@ class LinkTool:
         :param startIm:
         :param startFileName:
         :param destIm:
-        :param destFileName:
         :param arguments:
         :param invert:
         :return:
@@ -757,17 +756,20 @@ class VideoVideoLinkTool(LinkTool):
             maskSet = self.processDonors(scModel, start, destination, startIm, startFileName, destIm, destFileName,
                                           consolidate(arguments, analysis_params), invert=invert)
         else:
+            arguments['generate_frames'] = 0
+            previewer = analysis_params.pop('controller') if 'controller' in analysis_params else None
             maskSet, errors = video_tools.formMaskDiff(startFileName, destFileName,
                                                        os.path.join(scModel.G.dir, start + '_' + destination),
                                                        op,
-                                                       startSegment=getMilliSecondsAndFrameCount(arguments[
-                                                                                                     'Start Time']) if 'Start Time' in arguments else None,
-                                                       endSegment=getMilliSecondsAndFrameCount(arguments[
-                                                                                                   'End Time']) if 'End Time' in arguments else None,
+                                                       startSegment=getMilliSecondsAndFrameCount(
+                                                           arguments['Start Time']) if 'Start Time' in arguments else None,
+                                                       endSegment=getMilliSecondsAndFrameCount(
+                                                           arguments['End Time']) if 'End Time' in arguments else None,
                                                        analysis=analysis,
                                                        alternateFunction=operation.getVideoCompareFunction(),
                                                        #alternateFrameFunction=operation.getCompareFunction(),
-                                                       arguments=consolidate(arguments, analysis_params))
+                                                       arguments=consolidate(arguments, analysis_params),
+                                                       controller=previewer)
         mask = None
         for item in maskSet:
             if video_tools.get_mask_from_segment(item) is not None:
@@ -2076,6 +2078,7 @@ class ImageProjectModel:
         :param force: If True, then force mask creation do not skip.
         :return:
         """
+        errors = []
         mask_edge_id = (self.start, self.end) if edge_id is None else edge_id
         edge = self.G.get_edge(mask_edge_id[0],mask_edge_id[1])
         arguments = dict(edge['arguments']) if 'arguments' in edge else dict()
@@ -2083,18 +2086,22 @@ class ImageProjectModel:
             arguments = argument_params
         if 'inputmaskname' in edge and edge['inputmaskname'] is not None:
             arguments['inputmaskname'] = edge['inputmaskname']
-        mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
-                                                     arguments=arguments,
-                                                     skipDonorAnalysis=skipDonorAnalysis,
-                                                     analysis_params=analysis_params,
-                                                     force=force)
-        analysis_params['arguments'] = arguments
-        maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
-        self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
-        if len(errors) == 0:
-            self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
-                                                  (skip_data['start'], skip_data['end']) != mask_edge_id])
-        self.notify(mask_edge_id, 'update_edge')
+        try:
+            mask, analysis, errors = self._compareImages(mask_edge_id[0], mask_edge_id[1], edge['op'],
+                                                         arguments=arguments,
+                                                         skipDonorAnalysis=skipDonorAnalysis,
+                                                         analysis_params=analysis_params,
+                                                         force=force)
+            analysis_params['arguments'] = arguments
+            maskname = shortenName(mask_edge_id[0] + '_' + mask_edge_id[1], '_mask.png', identifier=self.G.nextId())
+            self.G.update_mask(mask_edge_id[0], mask_edge_id[1], mask=mask, maskname=maskname, errors=errors, **consolidate(analysis, analysis_params))
+            if len(errors) == 0:
+                self.G.setDataItem('skipped_edges', [skip_data for skip_data in self.G.getDataItem('skipped_edges', []) if
+                                                      (skip_data['start'], skip_data['end']) != mask_edge_id])
+            self.notify(mask_edge_id, 'update_edge')
+        except video_tools.MaskGenerationError as e:
+            if e.message != '':
+                logging.getLogger('maskgen').info(e.message)
         return errors
 
     def _connectNextImage(self, destination, mod, invert=False, sendNotifications=True, skipRules=False,
@@ -2874,6 +2881,16 @@ class ImageProjectModel:
                     kwargs_copy[key] = value
             pairs_composite.extend(pairs)
         return resultmsgs, pairs_composite
+
+    def canPreviewMask(self):
+        allowed = self.getStartType() == 'video' or self.getEndType() == 'video'
+        modification = self.getCurrentEdgeModification()
+        edge = self.G.get_edge(self.start, self.end)
+        allowed &= getValue(edge, 'videomasks', None) is not None
+        op = getOperation(modification.operationName)
+        compare_func = op.getVideoCompareFunction()
+        allowed &= video_tools.Previewable(compare_func, modification.arguments)
+        return 'disabled' if not allowed else 'normal'
 
     def substitutesAllowed(self):
         allowed = False

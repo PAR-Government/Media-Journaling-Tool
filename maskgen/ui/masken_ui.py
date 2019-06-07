@@ -318,9 +318,8 @@ class MakeGenUI(Frame):
             self.scModel.removeSubstituteMasks()
             self.scModel.notify((self.scModel.start, self.scModel.end), 'update_edge')
 
-    def recomputeedgemask(self):
-        analysis_params = {}
-        errors = self.scModel.reproduceMask(analysis_params=analysis_params)
+    def recomputeedgemask(self, params = {}):
+        errors = self.scModel.reproduceMask(analysis_params=params)
         nim = self.scModel.nextImage()
         self.img3 = ImageTk.PhotoImage(imageResizeRelative(self.scModel.maskImage(), (250, 250), nim.size).toPIL())
         self.img3c.config(image=self.img3)
@@ -328,8 +327,7 @@ class MakeGenUI(Frame):
         if errors is not None and len(errors) > 0:
             tkMessageBox.showerror('Recompute Mask Error','\n'.join(errors[(max(0,len(errors)-5)):]))
 
-    def recomputedonormask(self):
-        params = {}
+    def recomputedonormask(self, params = {}):
         result = self.scModel.getCreatingOperation(self.scModel.end)
         if result is not None:
             args = result[1].getDonorProcessor(self.scModel.getLinkTool(self.scModel.start, self.scModel.end).getDefaultDonorProcessor())(
@@ -1081,6 +1079,9 @@ class MakeGenUI(Frame):
         d = QAProjectDialog(self)
         d.valid = True
 
+    def startMaskPreviewer(self, controller):
+        return MaskPreviewUI(master=self, scModel=self.scModel, previewer=controller)
+
     def comments(self):
         d = CommentViewer(self)
 
@@ -1092,6 +1093,7 @@ class MakeGenUI(Frame):
 
     def createWidgets(self):
         from functools import partial
+        from maskgen.video_tools import MaskPreviewer
         self._setTitle()
 
         menubar = Menu(self)
@@ -1245,21 +1247,30 @@ class MakeGenUI(Frame):
         self.edgemenu.add_command(label="View Transformed Mask", command=self.viewtransformed)
         self.edgemenu.add_command(label="View Overlay Mask", command=self.viewmaskoverlay)
         self.edgemenu.add_command(label="Recompute Mask", command=self.recomputeedgemask)
+        self.edgemenu.add_command(label="Recompute w/ Mask Preview",
+                                  command=lambda :self.recomputeedgemask(
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
         self.edgemenu.add_command(label="Invert Input Mask", command=self.invertinput)
         self.edgemenu.add_command(label="Substitute Mask", command=self.add_substitute_mask)
 
-        self.filteredgemenu = Menu(self.master, tearoff=0)
+        self.filteredgemenu = Menu(self.master, tearoff=0, postcommand=self.updateFilterEdgeMenu)
         self.filteredgemenu.add_command(label="Select", command=self.select)
         self.filteredgemenu.add_command(label="Inspect", command=self.view)
         self.filteredgemenu.add_command(label="Remove", command=self.remove)
         self.filteredgemenu.add_command(label="Composite Mask", command=self.viewselectmask)
         self.filteredgemenu.add_command(label="Recompute", command=self.recomputeedgemask)
+        self.filteredgemenu.add_command(label="Recompute w/ Mask Preview",
+                                        command=lambda :self.recomputeedgemask(
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
 
-        self.donoredgemenu = Menu(self.master, tearoff=0)
+        self.donoredgemenu = Menu(self.master, tearoff=0, postcommand=self.updateDonorEdgeMenu)
         self.donoredgemenu.add_command(label="Select", command=self.select)
         self.donoredgemenu.add_command(label="Inspect", command=self.view)
         self.donoredgemenu.add_command(label="Remove", command=self.remove)
         self.donoredgemenu.add_command(label="Recompute", command=self.recomputedonormask)
+        self.donoredgemenu.add_command(label="Recompute w/ Mask Preview",
+                                       command=lambda :self.recomputedonormask(
+                                      params={'controller':MaskPreviewer(master_ui=self, scModel=self.scModel)}))
 
         self.groupmenu = Menu(self.master, tearoff=0)
         self.groupmenu.add_command(label="Semantic Group", command=self.selectgroup)
@@ -1310,8 +1321,28 @@ class MakeGenUI(Frame):
         elif eventName == 'n':
             self.drawState()
 
+    def findEntryMenu(self, menu, query):
+        length = menu.index('end') + 1
+        for i in range(length):
+            if menu.entrycget(i, 'label') == query:
+                return i
+        raise IndexError('No entry with label {} found in menu {}'.format(query, menu))
+
+    def update_menu_entry(self, menu, label, **options):
+        try:
+            menu.entryconfig(index=self.findEntryMenu(menu=menu, query=label), cnf=options)
+        except IndexError as e:
+            logging.getLogger('maskgen').warning(e.message)
+
     def updateEdgeMenu(self):
-        self.edgemenu.entryconfig(index=9, state=self.scModel.substitutesAllowed())
+        self.update_menu_entry(menu=self.edgemenu, label='Substitute Mask', state=self.scModel.substitutesAllowed())
+        self.update_menu_entry(menu=self.edgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
+
+    def updateDonorEdgeMenu(self):
+        self.update_menu_entry(menu=self.donoredgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
+
+    def updateFilterEdgeMenu(self):
+        self.update_menu_entry(menu=self.filteredgemenu, label='Recompute w/ Mask Preview', state=self.scModel.canPreviewMask())
 
     def getMergedSuffixes(self):
         filetypes = self.prefLoader.get_key('filetypes')
