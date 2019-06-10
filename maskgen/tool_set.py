@@ -1322,6 +1322,17 @@ def SSIMAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, d
 
 
 def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
+    """
+    Determine if operation is global. Capture 'change size ratio' and 'change size category'.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     globalchange = img1.size != img2.size
     changeCategory = 'large'
     ratio = 1.0
@@ -1335,6 +1346,17 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
 
 
 def localTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments={}, directory='.'):
+    """
+    Non-global operations, capturing 'change size ratio' and 'change size category'.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     globalchange = globalTransformAnalysis(analysis, img1, img2,
                                            mask=mask,
                                            linktype=linktype,
@@ -1346,14 +1368,14 @@ def localTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argum
 
 def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     """
-       Perform SIFT regardless of the global change status, using an input mask from the arguments
+       Perform SIFT regardless of the global change status, using an input mask from the parameters
        to select the source region.
        :param analysis:
        :param img1:
        :param img2:
        :param mask:
        :param linktype:
-       :param arguments:
+       :param arguments: parameters
        :return:
        """
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
@@ -1379,7 +1401,7 @@ def forcedSiftWithInputAnalysis(analysis, img1, img2, mask=None, linktype=None, 
 
 def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     """
-    Perform SIFT regardless of the global change status
+    Perform SIFT regardless of the global change status.
     :param analysis:
     :param img1:
     :param img2:
@@ -1397,12 +1419,35 @@ def forcedSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
 
 
 def seamAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    """
+    Perform SIFT regardless of the global change status.  If neighbor mask is is constructed, indicating the seams
+    can be calculated, then mark as not Global.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     forcedSiftAnalysis(analysis, img1, img2, mask=mask, linktype=linktype, arguments=arguments, directory=directory)
     if 'neighbor mask' in arguments:
         analysis['global'] = 'no'
 
 
 def rotateSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    """
+    If the image is rotated by values other than factors of 90 degrees, use SIFT to build a homography.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     import copy
     rot = float(getValue(arguments,'rotation',-1))
     is_local = getValue(arguments,'local',True)
@@ -1430,6 +1475,17 @@ def rotateSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments
         analysis['transform matrix']  = serializedMatrix
 
 def siftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    """
+    Use SIFT to build a homography for transform type changes that manipulated prior masks for probes.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     if globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments):
         return
     if linktype != 'image.image':
@@ -1532,6 +1588,18 @@ def generateOpacityColorMask(initialImage, donorImage, outputImg, mask, donorMas
 
 
 def optionalSiftAnalysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    """
+    If 'location change' is not in parameters or 'location change' is no, skip tis step.
+    Otherwise, use SIFT to find a homography.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     if 'location change' not in arguments or arguments['location change'] == 'no':
         return
     globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)

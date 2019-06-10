@@ -185,6 +185,7 @@ sudo easy_install pip
 The tool uses three key resource files: 
 *	software.csv lists the permitted software and versions to select.  This enables consistent naming.
 *	operations.json provides the description of all journaled operations and require parameters, along with defining validation rules, analysis requirements, and parameters.
+  *	Readable documentation [here](doc/operations.md)
 *	project_properties.json defines all final image node and project properties.  Final image node properties are summarizations of activities that contributed to a final image node of a project.
   Resource files are stored in one of the following locations, searched in the order given:
   *	Directory as indicated by the MASKGEN_RESOURCES environment variable

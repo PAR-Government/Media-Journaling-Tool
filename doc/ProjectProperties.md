@@ -1,12 +1,14 @@
-#Project Properties
+# Project Properties
 
-##Overview
+## Overview
 
 Each Project Property is one of the following.
 
 * Semantic Group
 * User Defined property captured as for a joural project.
 * A derived property assigned to final media nodes summarizing manipulatons contributed to the final media associated with the node. 
+
+[List of active properties](project_properties.md).
 
 ## Details
 
@@ -25,7 +27,7 @@ Minimally, the property is defined with the following keys.
 * *node* -> is the property automatically derived from node data in the JT graph.
 * *_comment* -> internal comment not shown to user of the JT.
 
-###Node
+### Node
 
 A project property is defined for a final image node if the *node* property attribute is true. Properties may automatically be determined based on rules. The rules are setup in three ways:
 
