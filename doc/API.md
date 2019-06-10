@@ -123,7 +123,7 @@ Old journals are automatically upated upon opening with an ImageProjectModel.  T
 - *operationName* = None
 - *additionalInfo* = description
 - *inputMaskName* = filename of inputmask
-- *maskSet* = list of mask items
+- *maskSet* = list of video mask items
 - *recordMaskInComposite* = Record the link in the probe. Uses \'no\'
   and \'yes\' to mirror JSON
 - *arguments* = dictionary arguments used by the operation
@@ -137,8 +137,7 @@ Old journals are automatically upated upon opening with an ImageProjectModel.  T
 - *end* = end node id
 - *semanticGroups* = list of group names
 
-Video Mask Set consists of a list of dictionaries, each describing a
-single segment. See Compare Parameters.
+Video Mask Set consists of a list of dictionaries, each describing a single segment. See [Probe Generation](doc/NewOperation.md#Probe Generation)
 
 #### Open Image for File Name
 
@@ -272,7 +271,7 @@ Arguments minimally must coincide with names mandatory and optional parameters d
 
 A probe is a single edge mask representing a single manipulation realigned to a final media spatial and temporally (as in audio and video).
 
-The API for Probes is described in  ![New Operation] (NewOperation.md)
+The API for Probes is described in [New Operation](NewOperation.md).
 
 In other words, the probe is an association between a base image, a final image, and edge in the project graph describing the manipulation.
 
@@ -428,9 +427,15 @@ Runs the composite builders which composite individual probe data into a reduce 
 Steps taken by builder are:
 
 1. Initialize builder with initial probes.
-2. Donsult attribute *passes* to determine how many passes required by builder.
+2. The attribute *passes*  determines how many passes required by builder.
 3. Invoke build (for each pass)
 4. Finalize the builders to get the final probes.
+
+### Probe Content
+
+A probe is a mask from one manipulation aligned to a final media.   This alignment includes applying transforms to masks. Transforms include global (e.g. resize, rotate, crop) and local spatial (e.g. warp, affine, etc.). 
+
+See [NewOperation](doc/NewOperation.md#Probe Generation).
 
 ### Type of Composite Builders
 
@@ -613,7 +618,7 @@ journal. There are some actionable parameters:
 
 The Journaling Tool also comes with a built-in Plugin Builder, capable of creating plugins from command line tools. To access this feature, go to File>Plugin Builder.
 
-![image](images/CustomPlugin.PNG)
+![image](images/CustomPlugin.png)
 
 Here, the user should enter the basic plugin information: Name, Description, Operation, and the Software used. Additionally, the command, exactly as it would be typed into the command line, should be
 entered. For example, if the user desired to create a plugin that used ImageMagick to apply an auto-gamma correction to an image, they would enter:
