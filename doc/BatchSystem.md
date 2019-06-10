@@ -127,7 +127,9 @@ By default, extensions occur on **all** nodes not along a donor path, not a fina
 
 Example Command Line:
 
-~~~jtbatch extend --projects <DIR> --specfication spec.json --extensionRules "~Output:"~~~
+```
+jtbatch extend --projects projects_directory --specification myspec.json --extensionRules "~Output:" --completeFile extenstions.txt
+```
 
 ## Chaining
 
@@ -136,10 +138,10 @@ Often batch components work together.  For example, projects are created, then e
 Example:
 
 ~~~
-jtbatch extend --projects projects_directory --specification myspec.json --extensionRules "~Output:" --completeFile extenstions.txt
 jtbatch  export --projects extensions.txt --s3 s3://someplace --completeFile exports.txt
-~~~
 
+jtbatch extend --projects <DIR> --specfication spec.json --extensionRules "~Output:"
+~~~
 SPECIFICATION
 =============
 
@@ -183,9 +185,6 @@ appearance. The batch project specification permits link source and target ident
   "target" : "output PNG for base"
 }
 ~~~
-
-
-
 ### Graph Section
 
 The start of the specification is usually a graph section. This is includes properties the "projectdescription", "technicaldescription" and "username". In this section there are two optional arguments that are available. These are "recompress" or "rename". These are tags assigned true or false in the specification and will run certain commands after all nodes have been executed. The recompress flag will run the "CompressAs" plugin on all image final nodes using the base as the donor. The rename flag is true by default but if turned off the end nodes of the project will not be renamed once completed.
@@ -200,7 +199,7 @@ Donor links are marked with an additional attribute *'donor': true*. Alternative
 Operations
 ----------
 
-**BaseSelection **
+**BaseSelection**
 
 Select an image from a pool of images maintained in a directory. [The directory should only contain images for selection.]{.underline} The base selection provides a single image used to start a new project. The selected image provides the name of the project. The image is expected to serve as a (the) base image for the project that is to be manipulated. There must be one and only one BaseSelection node; it must not have any predecessor nodes.
 
@@ -219,7 +218,7 @@ Parameters:
     Timestamps are also used if the project already exists, as
     overwrites is not permitted.
 
-**ImageSelection **
+**ImageSelection**
 
 Select an image from a pool of images maintained in a directory. Like BaseSelection, an ImageSelection node most not have any predecessor nodes. Unlike BaseSelection, multiple ImageSelection nodes are permitted.
 
@@ -234,7 +233,7 @@ Parameters:
 
 -   **"files" -**list of file names. Part of the file names (e.g. base path) can be parameterized to pull from global variables.
 
-**PluginOperation **
+**PluginOperation**
 
 Invoke a plugin, producing a manipulated target image given a source image. The source image is assumed to come from a direct dependent operation node. The plugin operation is invoked for each dependent node that is either ImageSelection, BaseSelection or PluginOperation. The source image from each dependent node is operated upon by the plugin producing a target image, associated target node in the resulting journal project and a link between the source and target nodes in the journal project.
 
@@ -246,7 +245,7 @@ Parameters:
 -   **"semanticGroup"** - a list of semantic groups name to be associated with created links.
 -   **"arguments" -** the set of arguments to be provided to the plugin. Each argument as a type and supporting descriptions. *Arguments fill **both** the requirements of the plugin and the requirements of the operation definition*.
 
-**InputMaskPluginOperation **
+**InputMaskPluginOperation**
 
 Invoke a plugin, producing an input mask and any additional name/value pairs based on the source image. The input mask and name/value airs can be used as parameters to other dependent plugins. These type of plugins are called 'selectors'.  Th image is not added to the project via a node.
 
@@ -257,7 +256,7 @@ Parameters:
 -   **"usebaseimage"** - provide the base image to the plugin rather than the last image produced within the dependency graph. Thus, takes the last dependent node and traces up the tree to the base image.
 -   **"prnu"** - records if the image is a PRNU.
 
-**InputSelectionPluginOperation **
+**InputSelectionPluginOperation**
 
 Invoke a plugin, selecting output file name for a provided image. The plugin MUST return, as one its key/values in the result, a key of 'file' with a value of the full path name of an image to be added to the project. For example: {'file':'/mnt/data/img123.jpg'}. The plugin operation must dependent directly or indirectly to a BaseSelection or NodeAttachment node. These type of plugins are called 'selectors'.
 
@@ -294,10 +293,9 @@ Parameters:
 -   **"usebaseimage"** - provide the base image name to the selector rather than the last image produced within the dependency graph. Thus, takes the last dependent node and traces up the tree to the base image.
 -   **"experiment_id"** - an identifier recorded within links created by this plugin.
 
-####Example Description:
+#### Example Description:
 
 ~~~
-
 {
   "op_type": "PreProcessedMediaOperation",
   "argument file": "arguments.csv",
@@ -312,12 +310,11 @@ Parameters:
 }
 ~~~
 
-####Example CSV:
+#### Example CSV:
 
 ~~~
 image.png,yes,16
 ~~~
-
 Plugin Review
 -------------
 
@@ -360,7 +357,6 @@ In some case, mandatory and optional arguments are fixed to a specific value for
   }
 }
 ~~~
-
 Argument Types
 --------------
 
@@ -374,7 +370,6 @@ Each argument is a mapping between the argument name and a dictionary of propert
   "value" :"yes"
 }
 ~~~
-
 > **NOTE**: A short hand for type ***value***, is to simply set the
 > value:
 >
@@ -388,18 +383,14 @@ Each argument is a mapping between the argument name and a dictionary of propert
   "value" :"source node id"
 }
 ~~~
-
 - **global** = select value from the global state space (see 3.10)
 
-    ~~~
-    {
-        "type" : "global",
-        "name" :"coo"
-    }
-    ~~~
-
-    
-
+~~~
+{
+    "type" : "global",
+    "name" :"coo"
+}   
+~~~
 - **mask** = select an image mask produced by another node. Changemasks are specific to an edge: a source and target node pair. An edge is identified by source and target node ids. The mask is used by some plugins to identify regions within the source image to manipulate. By default, change masks use high values to represent unchanged pixels. Use the 'invert' option to use high values for changed pixels.  
 
 > **Invert:** For mask, the JT produces masks where black pixels are manipulated.  Typically, input masks use white pixels to indicate pixels to apply the manipulation, although this depends on the plugin\'s input requirements.  When using an JT produced mask (from an edge), the pixels are inverted to match the input requirements of plugin.
@@ -569,7 +560,7 @@ The InputMaskPlugin enables pre-selection of pixels and parameters give an image
 
 ![](images/InputMaskBatchPlugin.png)
 
-~Figure InputMaskPlugin Process Specification*
+*Figure InputMaskPlugin Process Specification*
 
 Critical Plugins
 ----------------
@@ -1404,7 +1395,7 @@ EXPORT
 A batch command supports bulk export projects to S3. The projects are also validated. An ErrorReport CSV file, with the process ID in the name, is created and filled with the validation results for all the processed projects
 
 ~~~shell
-Jtbatch export --projects <DIR> --s3 <bucket/folder>
+jtbatch export --projects <DIR> --s3 <bucket/folder>
 ~~~
 
 Other options for export include:
@@ -1431,4 +1422,6 @@ Validate and Process Skipped Link Masks
 
 A bulk validation of multiple projects includes generating any missing link masks. These is useful to run overnight after creating a series of video projects, where link analysis takes a long time. An ErrorReport CSV file, with the process ID in the name, is created and filled with the validation results for all the processed projects.
 
-~~~python --m maskgen.batch.bulk_validate --projects <DIR>~~~
+~~~
+python --m maskgen.batch.bulk_validate --projects <DIR>
+~~~

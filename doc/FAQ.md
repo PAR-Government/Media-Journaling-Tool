@@ -56,6 +56,18 @@ This may cause the automatic threshold selection to pick sub-optimal values for 
 This problem can be handled using the minimum and maximum threshold parameters to restrict 
 the range of automatic threshold selection, as well as gain.
 
+# MASKS
+
+### High or Low, is a pixel manipulated?
+
+All masks are 8 bit unsigned. Links masks uses 0 to indicate manipulation, 255 otherwise.  Probe target masks use 255 to indicate manipulation (the inversion of the link masks).  Video mask uses 0 to indicate manipulation in both link and probe masks.
+
+Composite masks, by their very nature of being bit planes, use a high bit in the bit plane to indicate manipulation.
+
+### Orientation
+
+Masks are oriented to the images width and height regardless of the Orientation meta-data.  During the probe generation process, probe masks are realigned to 'raw' orientation of the image according to the EXIF.  
+
 # Empty and Global Masks
 
 Global mask is a mask the affects a diffuse large part of an image.   Many operations are assumed global based on their 'generateMask' value.  Empty masks occur if the operation does not affect the image content  (meta-data only), the relevant remaining content is unchanged (e.g. Crop) or the operation was not recorded correctly.
