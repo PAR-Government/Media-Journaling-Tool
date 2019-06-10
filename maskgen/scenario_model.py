@@ -1669,8 +1669,7 @@ class ImageProjectModel:
             newfilename = func(os.path.join(self.get_dir(), node['file']), **props)
             if newfilename is not None:
                 newfile = os.path.split(newfilename)[1]
-                node['file'] = newfile
-                node['compressed'] = compressor
+                self.G.update_node(start,file=newfile,compressed=compressor)
         return newfile
 
     def connect(self, destination, mod=Modification('Donor', '',category='Donor'), invert=False, sendNotifications=True,
@@ -1897,7 +1896,7 @@ class ImageProjectModel:
             md5 = md5_of_file(os.path.join(self.G.dir, mynode['file']),
                                                            raiseError=False)
             matches[md5] = nodeid
-            myfiles[mynode['file']] = md5
+            self.G.update_node(nodeid, file=md5)
         for nodeid in project.getGraph().get_nodes():
             theirnode = project.getGraph().get_node(nodeid)
             theirfilemd5 = md5_of_file(os.path.join(project.get_dir(), theirnode['file']),
