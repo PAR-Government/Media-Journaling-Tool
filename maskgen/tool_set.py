@@ -1291,22 +1291,17 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
     totalChange = sumMask(mask.astype('float32')) / 255.0
     ratio = float(totalChange) / float(totalPossible)
-    globalchange = True
+    globalchange = False
     if globalAnalysis:
         globalchange = ratio > 0.75
-        kernel = np.ones((5, 5), np.uint8)
-        erosion = cv2.erode(mask, kernel, iterations=2)
-        closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
-        try:
-            contours, hierarchy = cv2api.findContours(closing.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            p = np.asarray([item[0] for sublist in contours for item in sublist])
-            if len(p) > 0:
-                area = cv2.contourArea(cv2.convexHull(p))
-                totalArea = cv2.contourArea(
-                    np.asarray([[0, 0], [0, mask.shape[0]], [mask.shape[1], mask.shape[0]], [mask.shape[1], 0], [0, 0]]))
-                globalchange = globalchange or area / totalArea > 0.50
-        except:
-            True,'empty'
+        (x, y), (w, h) = boundingRegion(mask)
+        area = float(w*h)
+        region = mask[x:x+w,y:y+w]
+        np.diff(np.where(region > 0)[1])
+        xhist = np.histogram(np.where(region > 0)[0],bins=min(256,region.shape[0]))[0]
+        yhist = np.histogram(np.where(region > 0)[0],bins=min(256,region.shape[1]))[0]
+        dispersion = xhist[0] > 0 and xhist[-1] > 0 and yhist[0] > 0 and yhist[-1] > 0
+        globalchange |=  (area/totalPossible > 0.75) and dispersion
     return globalchange, 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large'), ratio
 
 
@@ -1334,14 +1329,14 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
     :return:
     """
     globalchange = img1.size != img2.size
-    changeCategory = 'large'
+    totalChange = ''
     ratio = 1.0
     if mask is not None:
         globalchange, totalChange, ratio = maskChangeAnalysis(mask, not globalchange)
     analysis['global'] = arguments['global operation'] if 'global operation' in arguments else \
         ('yes' if globalchange else 'no')
     analysis['change size ratio'] = ratio
-    analysis['change size category'] = changeCategory
+    analysis['change size category'] = totalChange if analysis['global'] == 'no' else ''
     return globalchange
 
 

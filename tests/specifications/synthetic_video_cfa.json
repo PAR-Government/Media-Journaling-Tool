@@ -2,10 +2,10 @@
   "directed": true,
   "graph": {
     "username": "unicorn",
-    "name": "synthetic_video",
+    "name": "Synthetic Video with CFA",
     "organization": "Wonderland",
     "projectdescription" : "Runs some basic operation to turn a Synthetic Video into an extendable journal",
-    "technicalsummary" : "Automated: Synthetic video media",
+    "technicalsummary" : "Automated: Synthetic video media genration and CFA Camera Model Attack.",
     "semanticrestaging" : "no",
     "semanticrepurposing" : "no",
     "semanticrefabrication" : "no",

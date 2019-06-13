@@ -2,7 +2,7 @@
   "directed": true,
   "graph": {
     "username": "dupre",
-    "name": "video_flow",
+    "name": "Video Flow",
     "organization": "NIST",
     "projectdescription" : "Optical Flow and Remove PRNU",
     "technicalsummary" : "Automated",

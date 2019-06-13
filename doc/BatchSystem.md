@@ -7,6 +7,24 @@ The batch project creates projects from start to finish using plugins. A project
 
 Plugins perform most of the work performed in the batch projects. A special class of plugins support preselection and analysis of data images to provide inputs into other plugins. For example, a plugin can select a mask from a from mask image presenting color-coded classified segments of an associated image. This integrates presegmented images by a machine learning algorithm to be used as part localization tasks.
 
+### Journals and Batch Specifications
+
+The batch project specifcation name, projecy description and technical summary are placed in the created or extended journal's graph section under key 'specifications'.
+
+```
+{
+   "specifications": [ {
+       "filename":"single_seam_carve.json", 
+       "name": "SeamCarve",
+       "description": "Create Journal with seam carving removing a select object",
+       "technicalsummary" : "Small object remove from seam carving and then seams added back to restore image to original size"
+      }
+   ]
+}
+```
+
+
+
 Command Line API
 ============
 
@@ -102,7 +120,9 @@ Select journals may be extended in accordance to the provided specification. Ext
 
 By default, extensions occur on **all** nodes not along a donor path, not a final node, the result of an format change, or the result of an antiforensic . The extension rules are as follows:
 
-- +\<category:opname\> \-- incude extending nodes with operations of the name or category: Examples include +Output: and +Output:OutputPNG
+- +\<category:opname\> \-- incude extending nodes created by operations of the name or category: Examples include +Output: and +Output:OutputPNG
+
+- +$\<category:opname\> \-- incude extending nodes that source operations of the name or category: Examples include +\$Output: and +\$Output:OutputPNG
 
 - donorpath -- include in the nodes to extend those nodes along a donor path
 

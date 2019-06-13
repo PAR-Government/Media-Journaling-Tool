@@ -97,8 +97,8 @@ def updateJournal(scModel):
          ('0.6.0103.9d9b6e95f2', []),
          ('0.6.0117.76365a8b60', []),
          ('0.6.0208.ae6b74543d', []),
-         ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame,_fixGlobal]),
-         ('0.6.0531.ce60889744', [])
+         ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame]),
+         ('0.6.0531.ce60889744', [_fixManipulationSize, _fixGlobal])
          ])
 
     def _ConformVersion(version):
@@ -136,7 +136,7 @@ def updateJournal(scModel):
                 logging.getLogger('maskgen').info('Apply fix {} for {}'.format(fix.__name__, id))
                 ok &= apply_fix(fix, scModel, gopLoader, id)
                 if ok:
-                    stop_fix = fix
+                    stop_fix = id
 
     apply_fix(_fixMandatory, scModel, gopLoader,fixes.keys()[-1])
     if isFrozen:
@@ -154,6 +154,20 @@ def updateJournal(scModel):
 def _fixautopastecloneinputmask(scModel, gopLoader):
      if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
         scModel.getGraph().setDataItem('autopastecloneinputmask', 'no')
+
+
+def _fixManipulationSize(scModel, gopLoader):
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        ratio = float(getValue(edge, 'change size ratio', 0))
+        if getValue(edge,'global','yes') == 'no' and ratio > 0 \
+            and getValue(edge,'change size category','large') == 'large':
+            mask = getValue(edge, 'maskname')
+            if mask is not None:
+                im = openImageFile(os.path.join(scModel.get_dir(), mask))
+                totalPossible = reduce(lambda a, x: a * x, im.size)
+                totalChange = ratio * totalPossible
+                edge['change size category'] = 'small' if totalChange < 2500 else ('medium' if totalChange < 10000 else 'large')
 
 def _fixAudioDelete(scModel, gopLoader):
     for frm, to in scModel.G.get_edges():
@@ -650,13 +664,14 @@ def _fixValidationTime(scModel,gopLoader):
         scModel.setProjectData('validationtime',time.strftime("%H:%M:%S"),excludeUpdate=True)
 
 def _fixProvenanceCategory(scModel,gopLoader):
-    from maskgen.graph_rules import  manipulationCategoryRule
+    from maskgen.graph_rules import  manipulationCountRule, manipulationCategoryRule
     cat = scModel.getProjectData('manipulationcategory',default_value='')
     if cat is not None and cat.lower() == 'provenance':
         scModel.setProjectData('provenance','yes')
     else:
         scModel.setProjectData('provenance', 'no')
-    scModel.setProjectData('manipulationcategory',manipulationCategoryRule(scModel,None))
+    scModel.setProjectData('manipulationcount',manipulationCountRule(scModel,None))
+    scModel.setProjectData('manipulationcategory', manipulationCategoryRule(scModel, None))
 
 def _updateEdgeHomography(edge):
     if 'RANSAC' in edge:

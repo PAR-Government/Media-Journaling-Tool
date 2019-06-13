@@ -2,7 +2,7 @@
   "directed": true,
   "graph": {
     "username": "alice",
-    "name": "video_flow",
+    "name": "video_flow with PRNU and ENF",
     "organization": "NIST",
     "projectdescription" : "Optical Flow, Remove PRNU, Change Date and Time for ENF Checking",
     "technicalsummary" : "Automated",

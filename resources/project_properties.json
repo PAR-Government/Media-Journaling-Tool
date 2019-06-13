@@ -434,12 +434,20 @@
        "node" : true
     },
     {
+       "description": "Manipulation Count",
+       "name": "manipulationcount",
+       "node" : true,
+       "type": "int[1:100]",
+       "rule" : "unitCountRule",
+       "information": "The number of units per node"
+    },
+    {
        "description": "Manipulation Category",
        "name": "manipulationcategory",
        "node" : true,
        "type": "text",
-       "rule" : "unitCountRule",
-       "information": "The number of units per node"
+       "rule" : "unitCategoryRule",
+       "information": "The number of units per node (deprecated)."
     },
     {
        "description": "Laundering SocialMedia",
@@ -766,11 +774,19 @@
 
     },
      {
-      "description": "Manipulation Category",
+      "description": "Manipulation Count",
+      "name": "manipulationcount",
+      "type": "int[1:100]",
+       "readonly": true,
+       "information": "The maximum number of semantic units for all images produced by the project.",
+      "rule" : "manipulationCountRule"
+    },
+     {
+      "description": "Manipulation Catgeory",
       "name": "manipulationcategory",
       "type": "string",
        "readonly": true,
-       "information": "The maximum number of semantic units for all images produced by the project.",
+       "information": "The maximum number of semantic units for all images produced by the project (deprecated).",
       "rule" : "manipulationCategoryRule"
     },
     {

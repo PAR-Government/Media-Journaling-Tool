@@ -1872,8 +1872,10 @@ def unitCountRule(scModel, edgeTuples):
         op = scModel.getGroupOperationLoader().getOperationWithGroups(edgeTuple.edge['op'], fake=True)
         count += 1 if op.category not in ['Output',  'Donor'] and edgeTuple.edge['op'] not in setofops else 0
         setofops.add(edgeTuple.edge['op'])
-    return str(count) + '-Unit'
+    return count
 
+def unitCategoryRule(scModel, edgeTuples):
+    return 'Unit-%d' % unitCountRule(scModel, edgeTuples)
 
 def voiceOverlay(scModel, edgeTuples):
     for edgeTuple in edgeTuples:
@@ -2029,7 +2031,7 @@ def audioactivityRule(scModel, edgeTuples):
 
 def compositeSizeRule(scModel, edgeTuples):
     value = 0
-    composite_rank = ['small', 'medium', 'large']
+    composite_rank = ['', 'small', 'medium', 'large']
     for edgeTuple in edgeTuples:
         if 'change size category' in edgeTuple.edge and 'recordMaskInComposite' in edgeTuple.edge and \
                         edgeTuple.edge['recordMaskInComposite'] == 'yes':
@@ -2061,15 +2063,21 @@ def provenanceRule(scModel, edgeTuples):
     return 'yes' if len(bases) > 1 else 'no'
 
 
-def manipulationCategoryRule(scModel, edgeTuples):
-    best = ''
+def _bestRule(scModel, attribute):
+    best = 0
     for node in scModel.getNodeNames():
         nodedata = scModel.getGraph().get_node(node)
         if 'pathanalysis' in nodedata and \
-                        'manipulationcategory' in nodedata['pathanalysis'] and \
-                        nodedata['pathanalysis']['manipulationcategory'] > best:
-            best = nodedata['pathanalysis']['manipulationcategory']
+                        attribute in nodedata['pathanalysis'] and \
+                        nodedata['pathanalysis'][attribute] > best:
+            best = nodedata['pathanalysis'][attribute]
     return best
+
+def manipulationCountRule(scModel, edgeTuples):
+    return _bestRule(scModel, 'manipulationcount')
+
+def manipulationCategoryRule(scModel, edgeTuples):
+    return _bestRule(scModel, 'manipulationcategory')
 
 def otherEnhancementRule(scModel, edgeTuples):
     found = False

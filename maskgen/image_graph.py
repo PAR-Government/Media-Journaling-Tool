@@ -775,6 +775,10 @@ class ImageGraph:
             (self.G.graph[item.lower()] if item in self.G.graph else default_value)
 
     def setDataItem(self, item, value, excludeUpdate=False):
+        if value is None:
+            if item in self.G.graph:
+                self.G.graph.pop(item)
+            return
         value = self._updatGraphPathValue(item, value)
         localExclude = item in self.G.graph and value == self.G.graph[item]
         if not (excludeUpdate or localExclude):
@@ -875,6 +879,11 @@ class ImageGraph:
         l = list(nx.simple_cycles(self.G))
         if len(l) > 0:
             return l[0]
+
+    def addSpec(self, filename, name, description, technicalsummary):
+        specs = getValue(self.G.graph,'specifications',[])
+        specs.append({'filename': filename, 'name': name, 'description': description, 'technicalsummary': technicalsummary})
+        self.G.graph['specifications'] = specs
 
     def json_default(self, o):
         if isinstance(o, np.int64): return int(o)

@@ -143,7 +143,16 @@
    - mandatory: False
 
    - property value restrictions: None
-+ *Manipulation Category*: The maximum number of semantic units for all images produced by the project.
++ *Manipulation Count*: The maximum number of semantic units for all images produced by the project.
+
+   - key: manipulationcount
+
+   - type: int[1:100]
+
+   - mandatory: False
+
+   - property value restrictions: None
++ *Manipulation Catgeory*: The maximum number of semantic units for all images produced by the project (deprecated).
 
    - key: manipulationcategory
 
@@ -1044,7 +1053,24 @@
    - inclusion rule value: None
 
    - property value restrictions: small, medium, large
-+ *Manipulation Category*: The number of units per node
++ *Manipulation Count*: The number of units per node
+
+   - key: manipulationcount
+
+   - type: int[1:100]
+
+   - node type constraint: None
+
+   - include donors: False
+
+   - operation restrictions: None
+
+   - inclusion rule parameter: None
+
+   - inclusion rule value: None
+
+   - property value restrictions: None
++ *Manipulation Category*: The number of units per node (deprecated).
 
    - key: manipulationcategory
 
