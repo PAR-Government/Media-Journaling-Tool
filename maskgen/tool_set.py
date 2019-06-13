@@ -1291,7 +1291,7 @@ def maskChangeAnalysis(mask, globalAnalysis=False):
     totalPossible = reduce(lambda a, x: a * x, mask.shape)
     totalChange = sumMask(mask.astype('float32')) / 255.0
     ratio = float(totalChange) / float(totalPossible)
-    globalchange = False
+    globalchange = True
     if globalAnalysis:
         globalchange = ratio > 0.75
         (x, y), (w, h) = boundingRegion(mask)
@@ -1336,7 +1336,7 @@ def globalTransformAnalysis(analysis, img1, img2, mask=None, linktype=None, argu
     analysis['global'] = arguments['global operation'] if 'global operation' in arguments else \
         ('yes' if globalchange else 'no')
     analysis['change size ratio'] = ratio
-    analysis['change size category'] = totalChange if analysis['global'] == 'no' else ''
+    analysis['change size category'] = totalChange
     return globalchange
 
 
