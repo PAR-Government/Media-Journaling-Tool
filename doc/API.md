@@ -1260,15 +1260,39 @@ The graph properties include:
 - ***semanticgroups*** -- list of all semantic groups used in the
   journal ( as a summary)
 
-- ***manipulationcategory --*** indication of complexity in journal by
-  depth (1-Unit,2-Unit, etc.)
+- ***manipulationcount --*** indication of complexity in journal by
+  depth excluding output and selection type operations.
 
 - ***nodeFilePaths***  -- A dictionary of key pathnames describing node keys that reference project files to be included in the archived project.  Each path name key is associated with a string optionally defining a separate node property that determines the ownership of the file.  See *edgeFilePaths* for details.
 
 - ***edgeFilePaths*** -- A dictionary of key pathnames describing link keys that reference project files to be included in the archived project.  Each path name key is associated with a string optionally defining a separate edge property that determines the ownership of the file.  By default, the string is "" signaling the project owns the file.  This means, if the link is deleted, the file is deleted.  If the ownership key exists, the key determines ownership.  Ownership is determined as follows:
 
   - If file copied by JT into project directory, then JT owns the file.
-  - If file placed in the project directory outside the JT, the JT does not own the file.
+  - If file placed in the project directory outside the JT, the JT does not own the fil.
+  
+- ***specifications*** — A list of dictionaries describing the batch specifications used to create or extend the journal. Includes:
+
+  - filename of the specification.
+
+  - name from the specification.
+
+  - description from the specification.
+
+  - technical summary from the specification..
+
+    ```json
+    {
+       "specifications": [ {
+           "filename":"single_seam_carve.json", 
+           "name": "SeamCarve",
+           "description": "Create Journal with seam carving removing a select object",
+           "technicalsummary" : "Small object remove from seam carving and then seams added back to restore image to original size"
+          }
+       ]
+    }
+    ```
+
+    
 
 ### Node
 

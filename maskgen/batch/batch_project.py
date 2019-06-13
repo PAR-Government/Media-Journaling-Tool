@@ -217,7 +217,7 @@ def loadJSONGraph(pathname):
             json_data = json.load(f)
         if 'picks' in json_data:
             return ProjectPicker(json_data)
-        return BatchProject(json_data)
+        return BatchProject(json_data, filename=os.path.basename(pathname))
     return None
 
 class ProjectPicker:
@@ -1145,7 +1145,7 @@ class BatchProject:
 
     G = nx.DiGraph(name="Empty")
 
-    def __init__(self, json_data):
+    def __init__(self, json_data, filename='n/a'):
         """
         :param json_data:
         @type json_data: nx.DiGraph or dictionary
@@ -1159,6 +1159,7 @@ class BatchProject:
                      username=getValue(self.G.graph,'username',
                                                       defaultValue=maskGenPreferences.get_key('username')))
         self.saveGraphImage('.')
+        self.filename = filename
 
 
     def _buildLocalState(self):
@@ -1225,6 +1226,9 @@ class BatchProject:
         ImageGraphPainter(sm.getGraph()).output(summary_file)
         if 'archives' in global_state:
             sm.export(global_state['archives'])
+        sm.getGraph().addSpec(self.filename,self.getName(),
+                   getValue(self.G.graph, 'projectdescription',''),
+                   getValue(self.G.graph, 'technicalsummary', ''))
 
     def _cleanUp(self, local_state):
         for file in local_state['cleanup']:

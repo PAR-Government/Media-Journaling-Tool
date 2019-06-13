@@ -221,6 +221,35 @@ class TestToolSet(TestSupport):
         os.remove(filename)
         os.remove(fn)
 
+    def test_global_transform_analysis(self):
+        from maskgen.image_wrap import ImageWrapper
+        analysis = {}
+        mask = np.random.randint(0,2,(1000, 1000), dtype=np.uint8)
+        mask[mask>0] = 255
+        tool_set.globalTransformAnalysis(analysis, ImageWrapper(mask), ImageWrapper(mask), mask=mask,
+                                         linktype='image.image',
+                                         arguments={}, directory='.')
+        self.assertEquals('yes', analysis['global'])
+
+        mask = np.zeros((1000,1000),dtype=np.uint8)
+        mask[0:30,0:30] = 255
+        tool_set.globalTransformAnalysis(analysis, ImageWrapper(mask), ImageWrapper(mask), mask=mask, linktype='image.image', arguments={}, directory='.')
+        self.assertEquals('no',analysis['global'])
+        self.assertEquals('small', analysis['change size category'])
+        mask = np.zeros((1000, 1000), dtype=np.uint8)
+        mask[0:75, 0:75] = 255
+        tool_set.globalTransformAnalysis(analysis, ImageWrapper(mask), ImageWrapper(mask), mask=mask, linktype='image.image',
+                                                    arguments={}, directory='.')
+        self.assertEquals('no', analysis['global'])
+        self.assertEquals('medium', analysis['change size category'])
+        mask[0:100, 0:100] = 255
+        tool_set.globalTransformAnalysis(analysis, ImageWrapper(mask), ImageWrapper(mask), mask=mask, linktype='image.image',
+                                                    arguments={}, directory='.')
+        self.assertEquals('no', analysis['global'])
+        self.assertEquals('large', analysis['change size category'])
+        tool_set.globalTransformAnalysis(analysis, ImageWrapper(mask), ImageWrapper(mask), mask=mask, linktype='image.image',
+                                                    arguments={}, directory='.')
+
     def test_SIFT(self):
         from maskgen.image_wrap import ImageWrapper
         img1 = ImageWrapper(np.random.randint(0,255,(4000,5000,3),dtype='uint8'))
