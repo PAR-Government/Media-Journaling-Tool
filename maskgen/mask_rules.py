@@ -703,6 +703,19 @@ def crop_resize_transform(buildState):
         return buildState.donorMask.create(final_mask)
 
 def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
+    """
+    Paired with resize_transform, if the shape of the image did not change, then build a homography to describe
+    the transformation.  Global Transform Analysis is also execute to describe the 'change size ratio' and
+    'change size category'.
+    :param analysis:
+    :param img1:
+    :param img2:
+    :param mask:
+    :param linktype:
+    :param arguments:
+    :param directory:
+    :return:
+    """
     from PIL import Image
     tool_set.globalTransformAnalysis(analysis, img1, img2, mask=mask, arguments=arguments)
     sizeChange  = toIntTuple(analysis['shape change']) if 'shape change' in analysis else (0, 0)

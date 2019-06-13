@@ -91,12 +91,21 @@ def rotationCheck(op, graph, frm, to):
     return None
 
 def checkUncompressed(op, graph, frm, to):
+    """
+    Confirm the source media file is uncompressed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     file = os.path.join(graph.dir, graph.get_node(frm)['file'])
     if os.path.exists(file) and not is_raw_or_lossy_compressed(file):
             return (Severity.WARNING, 'Starting node appears to be compressed')
 
 def checkFrameTimeAlignment(op,graph, frm, to):
     """
+    Confirm that the user provided times match detected modification times.
     :param op:
     :param graph:
     :param frm:
@@ -176,6 +185,7 @@ def checkFrameTimeAlignment(op,graph, frm, to):
 
 def checkVideoMasks(op,graph, frm, to):
     """
+    Confirm that video masks exist.
     :param op:
     :param graph:
     :param frm:
@@ -197,6 +207,7 @@ def checkVideoMasks(op,graph, frm, to):
 
 def checkAddFrameTime(op, graph, frm, to):
     """
+    Confirm that the start or insertion time is the detect manipulation start time.
     :param op:
     :param graph:
     :param frm:
@@ -250,6 +261,7 @@ def checkAddFrameTime(op, graph, frm, to):
 
 def checkMetaDate(op, graph, frm, to):
     """
+    Confirm the the EXIF date formats did  not change.
       :param op:
       :param graph:
       :param frm:
@@ -285,6 +297,7 @@ def _checkTimesForEdge(edge):
 
 def checkFrameTimes(op, graph, frm, to):
     """
+    Confirm the format and validity of user entered times.  Also assert start time occurs before end time.
     :param op:
     :param graph:
     :param frm:
@@ -308,20 +321,44 @@ def checkFrameTimes(op, graph, frm, to):
     return None
 
 def checkFrameRateChange_Strict(op, graph, frm, to):
-    if checkFrameRateChange(op, graph, frm, to):
+    """
+    Confirm frame rate has not changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    if _checkFrameRateChange(op, graph, frm, to):
         return (Severity.ERROR, 'Frame Rate Changed between nodes')
 
 def checkFrameRateChange_Lenient(op, graph, frm, to):
-    if checkFrameRateChange(op, graph, frm, to):
+    """
+    Confirm frame rate has not changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    if _checkFrameRateChange(op, graph, frm, to):
         return (Severity.WARNING, 'Frame Rate Changed between nodes')
 
 def checkFrameRateDidChange(op, graph, frm, to):
-    if not checkFrameRateChange(op, graph, frm, to):
+    """
+    Confirm frame rate changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    if not _checkFrameRateChange(op, graph, frm, to):
         return (Severity.ERROR, 'Frame Rate did not change between nodes')
 
-def checkFrameRateChange(op, graph, frm, to):
+def _checkFrameRateChange(op, graph, frm, to):
     """
-
+    Confirm audio fame rate changed.
     :param op: Operation
     :param graph: ImageGraph
     :param frm: str
@@ -338,6 +375,7 @@ def checkFrameRateChange(op, graph, frm, to):
 
 def checkCropLength(op, graph, frm, to):
     """
+    Confirm that the amount crop frames (video) or samples (audio) matches user input.
     :param op:
     :param graph:
     :param frm:
@@ -385,6 +423,7 @@ def checkCropLength(op, graph, frm, to):
 
 def checkCutFrames(op, graph, frm, to):
     """
+    Confirm that the amount cut frames (video) or samples (audio) matches user input.
     :param op:
     :param graph:
     :param frm:
@@ -413,6 +452,7 @@ def checkCutFrames(op, graph, frm, to):
 
 def checkCropSize(op, graph, frm, to):
     """
+    Confirm that a crop occurred.
     :param op:
     :param graph:
     :param frm:
@@ -432,6 +472,7 @@ def checkCropSize(op, graph, frm, to):
 
 def checkResizeInterpolation(op, graph, frm, to):
     """
+    Confirm that interpolation
     :param op:
     :param graph:
     :param frm:
@@ -453,6 +494,7 @@ def checkResizeInterpolation(op, graph, frm, to):
 
 def checkChannelLoss(op, graph, frm, to):
     """
+    Confirm number of streams did not decrease.
      :param op:
      :param graph:
      :param frm:
@@ -473,12 +515,21 @@ def checkChannelLoss(op, graph, frm, to):
         return (Severity.WARNING,'change in the number of streams occurred')
 
 def checkEmpty(op,graph, frm, to):
+    """
+    Confirm the change mask is not empty
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     if getValue(edge, 'empty mask')  == 'yes':
         return (Severity.ERROR,"An empty change mask indicating an manipulation did not occur.")
 
 def checkSameChannels(op, graph, frm, to):
     """
+     Confirm that the number of streams did not change by the manipulation.
      :param op:
      :param graph:
      :param frm:
@@ -504,6 +555,7 @@ def checkSameChannels(op, graph, frm, to):
 
 def checkHasVideoChannel(op,graph, frm, to):
     """
+    Confirm resulting media file has a video channel.
      :param op:
      :param graph:
      :param frm:
@@ -522,6 +574,8 @@ def checkHasVideoChannel(op,graph, frm, to):
 
 def checkAudioChannels(op,graph, frm, to):
     """
+    Confirm resulting media file has an audio channel.
+     :param op:
      :param op:
      :param graph:
      :param frm:
@@ -538,7 +592,15 @@ def checkAudioChannels(op,graph, frm, to):
         return (Severity.ERROR,'audio channel not present')
 
 
-def checkAudioLength(op, graph, frm, to):
+def _checkAudioLength(op, graph, frm, to):
+    """
+    Confirm Audio length did not change
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     streams_to_filter = ["video", "unknown", "data"]
     all_streams = getValue(edge, 'metadatadiff', [])
@@ -550,29 +612,69 @@ def checkAudioLength(op, graph, frm, to):
     return 0
 
 def checkAudioSameorLonger(op, graph,frm, to):
+    """
+    Confirm Audio length is the same or increased than the source.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     if edge['arguments']['add type'] == 'insert':
         return checkAudioLengthBigger(op, graph, frm, to)
     return checkAudioLength_Strict(op, graph, frm, to)
 
 def checkAudioLengthBigger(op, graph, frm, to):
-    difference = checkAudioLength(op, graph, frm, to)
+    """
+    Confirm Audio length is greater than the source.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    difference = _checkAudioLength(op, graph, frm, to)
     if difference >= 0:
         return (Severity.ERROR, "Audio is not longer in duration")
 
 def checkAudioLengthSmaller(op, graph, frm, to):
-    difference = checkAudioLength(op, graph, frm, to)
+    """
+    Confirm Audio length is the less than the source.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    difference = _checkAudioLength(op, graph, frm, to)
     if difference <= 0.001:
         return (Severity.ERROR, "Audio is not shorter in duration")
 
 def checkAudioLength_Strict(op, graph, frm, to):
-    difference = checkAudioLength(op, graph, frm, to)
+    """
+    Confirm audio duration did not change.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+    difference = _checkAudioLength(op, graph, frm, to)
     if abs(difference) > 0.001:
         return (Severity.ERROR, "Audio duration does not match")
 
 def checkAudioLength_Loose(op, graph, frm, to):
+    """
+    Confirm audio duration did not change (allows for some rounding errors).
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     from math import floor
-    difference = checkAudioLength(op, graph, frm, to)
+    difference = _checkAudioLength(op, graph, frm, to)
     if floor(abs(difference)) != 0:
         return (Severity.ERROR, "Audio duration does not match")
 
@@ -584,7 +686,16 @@ def _getSegment(filename, edge,media_types=['audio']):
                                              start_time_tuple=start_time_tuple,
                                              end_time_tuple=end_time_tuple if end_time_tuple[0] > 0 else None,
                                              media_types=media_types)
+
 def checkAudioLengthDonor(op, graph, frm, to):
+    """
+    Confirm the Audio Length donor matches the length of frames added or replaced.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     addType = getValue(edge, 'arguments.add type', 'replace')
     if addType in ['replace','insert','overlay']:
@@ -631,6 +742,7 @@ def checkAudioLengthDonor(op, graph, frm, to):
 
 def checkFileTypeChangeForDonor(op, graph, frm, to):
     """
+    Confirm the file type of the donor matches the target of the manipulation.
      :param op:
      :param graph:
      :param frm:
@@ -658,6 +770,7 @@ def checkFileTypeChangeForDonor(op, graph, frm, to):
 
 def checkFileTypeChange(op, graph, frm, to):
     """
+    Confirm the file type did not change.
      :param op:
      :param graph:
      :param frm:
@@ -690,6 +803,7 @@ def autocorr(wave):
 
 def checkLevelsVsCurves(op, graph, frm, to):
     """
+    Confirm the Levels is appropriate choice over curves given the detected changes.
      :param op:
      :param graph:
      :param frm:
@@ -727,6 +841,7 @@ def checkLevelsVsCurves(op, graph, frm, to):
 
 def checkForRawFile(op, graph, frm, to):
     """
+    Confirm the source is a raw image.
      :param op:
      :param graph:
      :param frm:
@@ -768,8 +883,9 @@ def checkForRawFile(op, graph, frm, to):
     return None
 
 
-def check_pastemask(op,graph, frm, to):
+def checkPasteMask(op, graph, frm, to):
     """
+    Confirm that Paste Mask image file is the same dimensions are the source image.
      :param op:
      :param graph:
      :param frm:
@@ -792,8 +908,9 @@ def check_pastemask(op,graph, frm, to):
     return None
 
 
-def check_local_warn(op, graph, frm, to):
+def checkLocalWarn(op, graph, frm, to):
     """
+    Confirm the operation is a 'blue link' given the operation is not global.
      :param op:
      :param graph:
      :param frm:
@@ -812,6 +929,14 @@ def check_local_warn(op, graph, frm, to):
     return None
 
 def checkCropMask(op, graph, frm, to):
+    """
+    Confirm the cropped image area was not otherwise changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     mask = graph.get_edge_image(frm, to, 'maskname').to_array()
     location = toIntTuple(getValue(edge, 'location', getValue(edge, 'arguments.location', None)))
@@ -848,8 +973,9 @@ def addToComposite(graph, start, end):
     edge = graph.get_edge(start, end)
     edge['recordMaskInComposite'] = 'yes'
 
-def check_local(op, graph, frm, to):
+def checkLocal(op, graph, frm, to):
     """
+    Confirm the a nont global operation must be a blue link (include as composite mask).
          :param op:
          :param graph:
          :param frm:
@@ -868,8 +994,9 @@ def check_local(op, graph, frm, to):
     return None
 
 
-def check_eight_bit(op, graph, frm, to):
+def checkEightBit(op, graph, frm, to):
     """
+    Confirm image is aligned to 8 bits.
          :param op:
          :param graph:
          :param frm:
@@ -901,6 +1028,7 @@ def getDonorEdge(graph,node):
 
 def checkForDonorWithRegion(op, graph, frm, to):
     """
+    Confirm donor mask exists and is selected by a SelectRegion
          :param op:
          :param graph:
          :param frm:
@@ -926,6 +1054,7 @@ def checkForDonorWithRegion(op, graph, frm, to):
 
 def checkForDonor(op, graph, frm, to):
     """
+    Confirm donor edge exists.
          :param op:
          :param graph:
          :param frm:
@@ -944,6 +1073,7 @@ def checkForDonor(op, graph, frm, to):
 
 def checkForDonorAudio(op, graph, frm, to):
     """
+    Confirm audio donor edge exists.
          :param op:
          :param graph:
          :param frm:
@@ -973,13 +1103,37 @@ def _checkDurationErrorType(op, graph, frm, to, error_type,media_type='video'):
         return (error_type,"Length of {} has changed".format(media_type))
 
 def checkDuration(op, graph, frm, to):
+    """
+    Confirm number of frames has not changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkDurationErrorType(op, graph, frm, to,Severity.ERROR)
 
 def checkAudioOnly(op, graph, frm, to):
-    #Checks if the video stream changed.
+    """
+    Confirm number of video frames has not changed.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
+
     return _checkDurationErrorType(op, graph, frm, to, Severity.ERROR)
 
 def checkAudioAdd(op, graph, frm, to):
+    """
+    Confirm inserted audio increased the length of the audio channel.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     if getValue(edge,'arguments.add type','insert') == 'insert':
         if checkDurationAudio(op, graph, frm, to) is None:
@@ -987,7 +1141,7 @@ def checkAudioAdd(op, graph, frm, to):
 
 def checkLengthSame(op, graph, frm, to):
     """
-     the length of video should not change
+     Confirm the length of video did not change, returning a WARNING if not.
      :param op:
      :param graph:
      :param frm:
@@ -1002,6 +1156,14 @@ def checkLengthSame(op, graph, frm, to):
 
 
 def checkAudioTimeFormat(op, graph, frm, to):
+    """
+    Confirm the format of time stamp entries.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     st = getValue(edge, 'arguments.Start Time','00:00:00')
     et = getValue(edge, 'arguments.End Time', '00:00:00')
@@ -1011,12 +1173,21 @@ def checkAudioTimeFormat(op, graph, frm, to):
         return (Severity.ERROR,"Start Time should not include frame number")
 
 def checkOverlay(op, graph, frm, to):
+    """
+    Confirm overlay or replace is selected 'add type'.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     if getValue(edge,'arguments.add type') in ['overlay','replace']:
         return checkDurationAudio(op, graph, frm, to)
 
 def checkForSelectFrames(op, graph, frm, to):
     """
+    Confirm operation SelectRegionFromFrames exists on donor path.
          :param op:
          :param graph:
          :param frm:
@@ -1037,6 +1208,7 @@ def checkForSelectFrames(op, graph, frm, to):
 
 def checkDurationAudio(op, graph, frm, to):
     """
+    Confirm Audo duration did not change.
          :param op:
          :param graph:
          :param frm:
@@ -1058,6 +1230,7 @@ def checkDurationAudio(op, graph, frm, to):
 
 def checkLengthSmaller(op, graph, frm, to):
     """
+    Confirm resulting video has less frames that source.
          :param op:
          :param graph:
          :param frm:
@@ -1076,6 +1249,7 @@ def checkLengthSmaller(op, graph, frm, to):
 
 def checkSampleRate(op, graph, frm, to):
     """
+    Confirm sample rate did not change.
          :param op:
          :param graph:
          :param frm:
@@ -1094,6 +1268,7 @@ def checkSampleRate(op, graph, frm, to):
 
 def checkResolution(op, graph, frm, to):
     """
+    Confirm the resolution, width and height of video did not change.
      :param op:
      :param graph:
      :param frm:
@@ -1121,6 +1296,14 @@ def checkResolution(op, graph, frm, to):
         return (Severity.WARNING,'resolution height does not match video')
 
 def checkFileTypeUnchanged(op, graph, frm, to):
+    """
+    Confirm file type did not change.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     tofile =  graph.get_node(to)['file']
     fromfile = graph.get_node(frm)['file']
     if tofile.split('.')[-1].lower() != fromfile.split('.')[-1].lower():
@@ -1129,6 +1312,14 @@ def checkFileTypeUnchanged(op, graph, frm, to):
     return None
 
 def checkAudioOutputType(op, graph, frm, to):
+    """
+    Confirm resulting file is an audio file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     tofile = os.path.join(graph.dir, graph.get_node(to)['file'])
     if fileType(tofile) != 'audio':
         return (Severity.ERROR,
@@ -1141,32 +1332,89 @@ def _checkOutputType(graph,to,expected_types):
         return (Severity.ERROR, "Output file extension " + newFileExtension.upper() + " doesn't match operation allowed extensions: " + ', '.join(expected_types))
 
 def checkOutputType(op, graph, frm, to):
+    """
+    Confirm the resulting media type (for an Output operation) matches the expected operaiton type as indicated by the name.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     part = op.name.lower().split('::')[0]
     extension = part.split('put')[1]
     expected_extension = extension.lower()
     return _checkOutputType(graph,to,[expected_extension])
 
 def checkOutputTypeNITF(op, graph, frm, to):
+    """
+    Confirm resulting media is a NITF file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['ntf','nitf'])
 
 def checkOutputTypeM4(op, graph, frm, to):
+    """
+    Confirm resulting media is a M4A or M4V file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['m4a','m4v'])
 
 def checkJpgOutputType(op, graph, frm, to):
+    """
+    Confirm resulting media is a JPG (or JPEG) file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['jpg','jpeg'])
 
 def checkTifOutputType(op, graph, frm, to):
+    """
+    Confirm resulting media is a TIF or TIFF file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['tif', 'tiff'])
 
 def checkMp4OutputType(op, graph, frm, to):
+    """
+    Confirm resulting media is a mp4, mpeg or mpg file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['mp4', 'mpeg','mpg'])
 
 def checkHEICOutputType(op, graph, frm, to):
+    """
+    Confirm resulting media is a NEIC or NEIF file.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     return _checkOutputType(graph, to, ['heic', 'heif'])
     
 
 def checkForVideoRetainment(op, graph, frm, to):
     """
+    Confirm video channel is retained in the resulting media file.
          :param op:
          :param graph:
          :param frm:
@@ -1189,6 +1437,7 @@ def checkForVideoRetainment(op, graph, frm, to):
 
 def checkPasteFrameLength(op, graph, frm, to):
     """
+    Confirm number of frames increased by donor frames size (as indicated by donor parameters).
          :param op:
          :param graph:
          :param frm:
@@ -1216,6 +1465,7 @@ def checkPasteFrameLength(op, graph, frm, to):
 
 def checkLengthBigger(op, graph, frm, to):
     """
+    Confirm media file has increased number of frames.
              :param op:
              :param graph:
              :param frm:
@@ -1234,6 +1484,14 @@ def checkLengthBigger(op, graph, frm, to):
         return (Severity.ERROR,"Length of video is not longer")
 
 def checkLengthSameOrBigger(op, graph, frm, to):
+    """
+    Confirm media file has the same or increased number of frames.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     add_type = getValue(edge, 'arguments.add type', '')
     return checkLengthBigger(op, graph, frm, to) if add_type not in ['replace', 'overlay'] else checkLengthSame(op, graph, frm, to)
@@ -1255,7 +1513,7 @@ def seamCarvingCheck(op, graph, frm, to):
 
 def checkMoveMask(op, graph, frm,to):
     """
-    Check move mask (input mask) is roughly the size and shape of the change mask.
+    Confirm move mask (input mask) is roughly the size and shape of the change mask.
     Overlap is considered, as the move might partially overlap the area from which the pixels
     came.
     :param op:
@@ -1311,6 +1569,14 @@ def checkMoveMask(op, graph, frm,to):
 
 
 def checkHomography(op, graph, frm, to):
+    """
+    Confirm homography is available and does not WARP (cross).
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     tm = getValue(edge, 'arguments.transform matrix', getValue(edge, 'transform matrix'))
     if tm is not None:
@@ -1329,8 +1595,7 @@ def fixPath(graph, start, end):
 
 def checkSIFT(op, graph, frm, to):
     """
-    Currently a marker for SIFT.
-    TODO: This operation should check SIFT transform matrix for images and video in the edge
+    Confirm SIFT homography was created for donor images.
     :param graph:
     :param frm:
     :param to:
@@ -1349,6 +1614,14 @@ def checkSIFT(op, graph, frm, to):
                 return (Severity.WARNING,result[1])
 
 def checkDonorTimesMatch(op, graph, frm, to):
+    """
+    Confirm the number of manipulated frames match the donor.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     donor_id, donor_edge = getDonorEdge(graph,to)
     edge = graph.get_edge(frm, to)
     if donor_id is None:
@@ -1379,6 +1652,15 @@ def sizeChanged(op, graph, frm, to):
     return None
 
 def checkSizeAndExifPNG(op, graph, frm, to):
+    """
+    Confirm conversion to PNG rotated the image according to the EXIF and did not change the size of the image
+    outside acceptable bounds for lens distortion.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     from math import ceil
     edge = graph.get_edge(frm, to)
     frm_img, frm_file = graph.get_image(frm)
@@ -1452,6 +1734,7 @@ def checkSizeAndExifPNG(op, graph, frm, to):
 
 def checkSizeAndExif(op, graph, frm, to):
     """
+      Confirm the dimensions of the image or video did not change except for rotation in accordance to the Orientation meta-data.
              :param op:
              :param graph:
              :param frm:
@@ -1485,6 +1768,7 @@ def checkSizeAndExif(op, graph, frm, to):
 
 def checkSize(op, graph, frm, to):
     """
+     Confirm the dimensions of the image or video did not change
              :param op:
              :param graph:
              :param frm:
@@ -1849,6 +2133,12 @@ def ganGeneratedRule(scModel, edges):
             return getValue(node,"isGAN",'no')
 
 def cgiGeneratedRule(scModel, edges):
+    """
+    Include Edges tha
+    :param scModel:
+    :param edges:
+    :return:
+    """
     for edgeTuple in edges:
         node = scModel.getGraph().get_node(edgeTuple.start)
         if getValue(node, 'nodetype','interim') == 'base':
@@ -1961,6 +2251,14 @@ def getNodeSummary(scModel, node_id):
     return node['pathanalysis'] if node is not None and 'pathanalysis' in node else None
 
 def checkTimeStamp(op, graph, frm, to):
+    """
+    Confirm the timestamp formats within the metadata did not change.
+    :param op:
+    :param graph:
+    :param frm:
+    :param to:
+    :return:
+    """
     edge = graph.get_edge(frm, to)
     pred = graph.predecessors(to)
     if pred<2:

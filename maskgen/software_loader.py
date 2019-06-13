@@ -270,7 +270,7 @@ def getOperations():
     return getMetDataLoader().operations
 
 
-def getOperationsByCategory(sourcetype, targettype,excludeDeprecated=True):
+def getOperationsByCategory(sourcetype, targettype, excludeDeprecated=True):
     result = {}
     transition = sourcetype + '.' + targettype
     for name, op in getMetDataLoader().operations.iteritems():

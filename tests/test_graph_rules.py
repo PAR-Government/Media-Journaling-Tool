@@ -148,15 +148,15 @@ class TestToolSet(TestSupport):
         graph.get_image_path = Mock(return_value=self.locateFile('videos/sample1.mov'))
         graph.get_node = Mock(return_value={'file': self.locateFile('videos/sample1.mov')})
         graph.dir = '.'
-        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        result = graph_rules._checkAudioLength('op', graph, 'a', 'b')
         self.assertEqual(0,result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'x': ('change', 1, 1)}}})
-        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        result = graph_rules._checkAudioLength('op', graph, 'a', 'b')
         self.assertEqual(0, result)
         graph.get_edge = Mock(return_value={'arguments': {'Start Time': 1, 'End Time': 2},
                                             'metadatadiff': {'audio': {'duration': ('change', 2, 1)}}})
-        result = graph_rules.checkAudioLength('op', graph, 'a', 'b')
+        result = graph_rules._checkAudioLength('op', graph, 'a', 'b')
         self.assertEqual(1, result)
 
     def test_checkFrameRate(self):
@@ -166,18 +166,18 @@ class TestToolSet(TestSupport):
         graph = GraphProxy(source, 'b')
         op = Mock()
         op.category = 'Paste'
-        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        result = graph_rules._checkFrameRateChange(op, graph, source, target)
         self.assertTrue(result)
         op.category = 'Audio'
         target = self.locateFile('tests/videos/sample2_ffr.mxf')
-        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        result = graph_rules._checkFrameRateChange(op, graph, source, target)
         self.assertTrue(result)
         target = source
         op.category = 'Paste'
-        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        result = graph_rules._checkFrameRateChange(op, graph, source, target)
         self.assertFalse(result)
         op.category = 'Audio'
-        result = graph_rules.checkFrameRateChange(op, graph, source, target)
+        result = graph_rules._checkFrameRateChange(op, graph, source, target)
         self.assertFalse(result)
 
     def test_checkDuration(self):
