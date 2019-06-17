@@ -402,6 +402,7 @@ class ImageGraph:
                             **self.__filter_args(updated_args, exclude=['filetype', 'seriesname', 'username', 'ctime', 'ownership', 'file']))
 
             self.__scan_args('node', updated_args)
+            self._indexNode(nname)
             self.U = []
             self.U.append(dict(name=nname, action='addNode', **self.G.node[nname]))
             # adding back a file that was targeted for removal
@@ -423,6 +424,7 @@ class ImageGraph:
                             self.filesToRemove.remove(filePath)
                 name = d.pop('name')
                 self.G.add_node(name, **d)
+                self._indexNode(name)
             elif action == 'removeEdge':
                 for path, ownership in self.G.graph['edgeFilePaths'].iteritems():
                     for value in getPathValues(d, path):
@@ -432,6 +434,7 @@ class ImageGraph:
                 start = d.pop('start')
                 end = d.pop('end')
                 self.G.add_edge(start, end, **d)
+                self._indexEdge((start,end))
             elif action == 'addNode':
                 if (d['ownership'] == 'yes'):
                     if os.path.exists(os.path.join(self.dir, d['file'])):
@@ -508,6 +511,7 @@ class ImageGraph:
             updated_args = self._updateNodePathValue(kwargs)
             for k, v in updated_args.iteritems():
                 self.G.node[node][k] = v
+            self._indexNode(node)
 
     def update_edge(self, start, end, **kwargs):
         if start is None or end is None:
@@ -526,6 +530,7 @@ class ImageGraph:
         for k in unsetkeys:
             if k in self.G[start][end]:
                 self.G[start][end].pop(k)
+        self._indexEdge((start,end))
 
     def _handle_inputfile(self, inputfile):
         """
@@ -589,6 +594,7 @@ class ImageGraph:
         self.G.add_edge(start,
                         end,
                         **edge)
+        self._indexEdge((start,end))
         self.U = []
         self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
 
@@ -618,6 +624,7 @@ class ImageGraph:
                             description=description, username=self.username, opsys=getOS(),
                             tool=self.tool,
                             **kwargs)
+            self._indexEdge((start, end))
             self.U = []
             self.U.append(dict(action='addEdge', start=start, end=end, **self.G.edge[start][end]))
         return mask
@@ -680,7 +687,7 @@ class ImageGraph:
             for pathvalue in getPathValues(edge, path):
                 if pathvalue and len(pathvalue) > 0 and (ownership not in edge or edge[ownership] == 'yes'):
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))
-                    if (os.path.exists(f)):
+                    if (os.path.exists(f) and self._unindexEdge((start,end), pathvalue)):
                         self.filesToRemove.add(f)
                         deleteImage(f)
         actionList.append(dict(start=start, end=end, action='removeEdge', **self.G.edge[start][end]))
@@ -691,7 +698,7 @@ class ImageGraph:
         """
         node = self.G.node[name]
         f = os.path.abspath(os.path.join(self.dir, self.G.node[name]['file']))
-        if (node['ownership'] == 'yes' and os.path.exists(f)):
+        if (node['ownership'] == 'yes' and os.path.exists(f) and self._unindexNode(name, self.G.node[name]['file'])):
             self.filesToRemove.add(f)
             deleteImage(f)
 
@@ -699,7 +706,7 @@ class ImageGraph:
             for pathvalue in getPathValues(node, path):
                 if pathvalue and len(pathvalue) > 0 and (ownership not in node or node[ownership] == 'yes'):
                     f = os.path.abspath(os.path.join(self.dir, pathvalue))
-                    if (os.path.exists(f)):
+                    if (os.path.exists(f) and self._unindexNode(name,pathvalue)):
                         self.filesToRemove.add(f)
                         deleteImage(f)
         self.U.append(dict(name=name, action='removeNode', **self.G.node[name]))
@@ -874,6 +881,56 @@ class ImageGraph:
             self.G.graph['nodeFilePaths'][k] = v
         for k, v in graphFilePaths.iteritems():
                 self.G.graph['graphFilePaths'][k] = v
+        self._buildFileIndex()
+
+    @staticmethod
+    def _set(index, name, id):
+        if name is None or len(name) == 0:
+            return
+        if name not in index:
+            index[name] = set([id])
+        else:
+            index[name].add(id)
+
+    def _indexNode(self, node_id):
+        node = self.G.node[node_id]
+        ImageGraph._set(self.file_index, getValue(node, 'file'), node_id)
+        for k in self.G.graph['nodeFilePaths']:
+            for v in getPathValues(node, k):
+                ImageGraph._set(self.file_index, v, node_id)
+
+    def _indexEdge(self, edge_id):
+        edge = self.G.edge[edge_id[0]][edge_id[1]]
+        ImageGraph._set(self.file_index, getValue(edge, 'maskname'), edge_id)
+        ImageGraph._set(self.file_index, getValue(edge, 'inputmaskname'), edge_id)
+        for k in self.G.graph['edgeFilePaths']:
+            for v in getPathValues(edge, k):
+                ImageGraph._set(self.file_index, v, edge_id)
+
+    def _unindexNode(self, node_id, filename):
+        if filename in self.file_index:
+            if node_id in self.file_index[filename]:
+                self.file_index[filename].remove(node_id)
+            return  not self.file_index[filename]
+        return True
+
+    def _unindexEdge(self, edge_id, filename):
+        if filename in self.file_index:
+            if edge_id in self.file_index[filename]:
+                self.file_index[filename].remove(edge_id)
+            return not self.file_index[filename]
+        return True
+
+
+    def _buildFileIndex(self):
+        self.file_index = {}
+
+        for node_id in self.G.nodes():
+            self._indexNode(node_id)
+
+        for edge_id in self.G.edges():
+            self._indexEdge(edge_id)
+
 
     def getCycleNode(self):
         l = list(nx.simple_cycles(self.G))
