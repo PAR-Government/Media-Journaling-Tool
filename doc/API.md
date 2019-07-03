@@ -267,6 +267,33 @@ def connect(self, destination, mod=Modification('Donor', '',category='Donor'), i
 
 Arguments minimally must coincide with names mandatory and optional parameters defined in the operation.
 
+## CSV File
+
+The *toCSV* capability allows the journal to be flattened to a CSV file.  The CSV file function accepts edge selection functions and column argument functions.  The first four columns are fixed: journal name, edge source id, edge targert id and edge operation name
+
+The edge selection function consumes an edge dictionary.  If true, then the edge is admitted as a row to the CSV file.
+
+The column selection given the edge is composed of one of the following:
+
+* 'basenode': the base node id
+
+* Edge dictionary path identifying a keyed value.  For example 'arguments.purpose'
+
+* A function that consymes the edge and produces a value.  The signature of the function is:
+
+  * edge: a dictionary
+  * edge_id: a tuple (source, target) node ids
+  * op: Operation (software_loader.Operation)
+  * graph:  image_graph.ImageGraph (supports methods such as fetching node meta data (get_node(nodeid)) and fetching the full path name of the node media (get_pathname(nodeid) ))
+
+  ```
+  model.toCSV('myoutput.csv',edgeFilter=None, additionalpaths=('arguments.purpose','basenode',isGAN))
+  ```
+
+  The isGAN function is defined
+
+  
+
 ## Create Probes
 
 A probe is a single edge mask representing a single manipulation realigned to a final media spatial and temporally (as in audio and video).

@@ -2276,6 +2276,7 @@ class ImageProjectModel:
         @type edgeFilter: func
         """
         import csv
+        import inspect
         csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
         with open(filename, "ab") as fp:
             fp_writer = csv.writer(fp)
@@ -2292,7 +2293,11 @@ class ImageProjectModel:
                     elif type(path) == 'str':
                         values = getPathValues(edge, path)
                     else:
-                        values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
+                        if 'graph' in inspect.getargspec(path).args:
+                            values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']),
+                                          graph=self.getGraph())
+                        else:
+                            values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
                     if len(values) > 0:
                         row.append(values[0])
                     else:
