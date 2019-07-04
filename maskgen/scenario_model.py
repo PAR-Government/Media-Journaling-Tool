@@ -2277,6 +2277,7 @@ class ImageProjectModel:
         """
         import csv
         import inspect
+        from functools import partial
         csv.register_dialect('unixpwd', delimiter=',', quoting=csv.QUOTE_MINIMAL)
         with open(filename, "ab") as fp:
             fp_writer = csv.writer(fp)
@@ -2292,12 +2293,14 @@ class ImageProjectModel:
                         continue
                     elif type(path) == 'str':
                         values = getPathValues(edge, path)
+
+                    elif (inspect.isfunction(path) and 'graph' in inspect.getargspec(path).args) or \
+                            (isinstance(path, partial) and 'graph' in inspect.getargspec(path.func).args):
+                        values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']),
+                                      graph=self.getGraph())
                     else:
-                        if 'graph' in inspect.getargspec(path).args:
-                            values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']),
-                                          graph=self.getGraph())
-                        else:
-                            values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
+                        values = path(edge, edge_id=edge_id, op=self.gopLoader.getOperationWithGroups(edge['op']))
+
                     if len(values) > 0:
                         row.append(values[0])
                     else:
