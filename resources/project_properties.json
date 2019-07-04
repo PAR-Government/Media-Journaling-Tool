@@ -437,7 +437,7 @@
        "description": "Manipulation Count",
        "name": "manipulationcount",
        "node" : true,
-       "type": "int[1:100]",
+       "type": "int[0:100]",
        "rule" : "unitCountRule",
        "information": "The number of units per node"
     },
@@ -776,7 +776,7 @@
      {
       "description": "Manipulation Count",
       "name": "manipulationcount",
-      "type": "int[1:100]",
+      "type": "int[0:100]",
        "readonly": true,
        "information": "The maximum number of semantic units for all images produced by the project.",
       "rule" : "manipulationCountRule"

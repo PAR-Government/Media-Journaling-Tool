@@ -115,6 +115,8 @@ def checkValue(name, value_type, value):
                     vals[1])
         elif value_type.startswith('int'):
             try:
+                if value == '':
+                    value = 0
                 _match = re.search(r"\[(.*?)\]", value_type).group(1)
                 vals = [int(x) for x in _match.split(':')]
             except ValueError:
@@ -2667,7 +2669,7 @@ class PropertyFrame(VerticalScrolledFrame):
            if v and len(v) > 0 and error is None:
                self.propertyFunction.setValue(prop.name, v)
            elif error is not None:
-               tkMessageBox.showwarning('Error', prop.name, error)
+               tkMessageBox.showwarning(title=prop.name + ' Error', message=error)
            i += 1
 
 
