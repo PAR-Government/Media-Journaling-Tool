@@ -45,6 +45,8 @@ For developers, documentation [here](doc/NewFileType.md) describes steps to add 
 
 When all else fails, here is a [FAQ](doc/FAQ.md) 
 
+As described in the 'Resources' section, the meta-data used to describe operations, project properties and semantic groups are defined in the [operations summary](doc/operations.md) and the [project properties summary](doc/project_properties.md).
+
 # INSTALLATION
 
 Install scripts are available to aid in the installation.  For Docker, 
@@ -192,6 +194,7 @@ The tool uses three key resource files:
   *	current working directory
   *	resources subdirectory
   *	The resource installation as determined by Python’s sys path.
+  *	Readable documentation [here](project_properties.md)
 *	ManipulatorCodeNames.txt
   *	This is an optional file that maintains a valid list of manipulation(user) names.  The choice of distribution is left to the organizational user.
 

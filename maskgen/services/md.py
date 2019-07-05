@@ -7,6 +7,8 @@
 #==============================================================================
 from maskgen.software_loader import getOperation,getOperations,getRule,getProjectProperties
 from maskgen.support import getValue
+import logging
+import os
 
 def write_header(fp, name, level, status=None):
     fp.write('#'*level)
@@ -63,7 +65,12 @@ def write_analysis(fp,rule):
     rule_func = getRule(rule, globals=globals())
     fp.write('*%s*: %s\n' % (rule, get_function_doc(rule_func) if rule_func is not None else 'NA'))
 
-def write_rule(fp,rule):
+def write_mask_rule(fp, media, rule):
+    prefix = media + ':'
+    rule_func = getRule(rule, globals=globals(), default_module='maskgen.mask_rules')
+    fp.write('*%s%s*: %s\n\n' % (prefix, rule, get_function_doc(rule_func) if rule_func is not None else 'NA'))
+
+def write_graph_rule(fp, rule):
     if rule.startswith('donor:'):
         prefix = '[DONOR]:'
         rule = rule[6:]
@@ -96,8 +103,8 @@ def properties_by_type():
 
 
 
-def to_properties_md():
-    with open('project_properties.md', 'w') as fp:
+def to_properties_md(place='.'):
+    with open(os.path.join(place,'project_properties.md'), 'w') as fp:
         types = properties_by_type()
         for name, properties in types.iteritems():
             write_header(fp,name,1)
@@ -125,11 +132,12 @@ def to_properties_md():
                 write_bullet_emphasize(fp, property.description, property.information, items)
 
 
-def to_operations_md():
-    with open('operations.md','w') as fp:
+def to_operations_md(place='.'):
+    with open(os.path.join(place,'operations.md'),'w') as fp:
         for category, operations in operations_by_category().iteritems():
             write_header(fp,category,1)
             for operation_name in operations:
+                logging.getLogger('maskgen').info('Generating %s' % operation_name)
                 operation = getOperation(operation_name)
                 write_header(fp, operation_name, 2, status='deprecated' if operation.deprecated else None)
                 write_text(fp,operation.description)
@@ -146,10 +154,16 @@ def to_operations_md():
                     write_parameter(fp, key, definition)
                 write_header(fp, 'Validation Rules', 3)
                 for rule in operation.rules:
-                    write_rule(fp, rule)
+                    write_graph_rule(fp, rule)
                 write_header(fp, 'Allowed Transitions', 3)
                 for rule in operation.transitions:
                     write_bullet(fp, rule)
+                write_header(fp, 'Probe Generation Rules', 3)
+                if operation.maskTransformFunction is None:
+                    write_text(fp, "*Default*: resize, rotate, crop, and transform where applicable")
+                else:
+                    for media, rule in operation.maskTransformFunction.iteritems():
+                        write_mask_rule(fp, media, rule)
                 write_header(fp, 'QA Questions', 3)
                 if operation.qaList is not None:
                     for rule in operation.qaList:
@@ -160,8 +174,9 @@ def to_operations_md():
 
 
 def main(args):
-    to_operations_md()
-    to_properties_md()
+    place = './resources' if os.path.exists('./resources') else '.'
+    to_operations_md(place=place)
+    to_properties_md(place=place)
 
 if __name__ == "__main__":
     import sys

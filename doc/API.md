@@ -485,6 +485,33 @@ Each probe has a dictionary attribute called composites.  The key of the diction
 
 ![image](images/BitPlane.jpg)
 
+#### Rebuilding a Mask from a Bit Plane
+
+Assume the goal is produce a mask from a chosen bit plane, where white (255) indicates change. In the example code,  bit planes 1 through 3 are represented covering possible integer values of 0 (no change to pixel) through 7 (change to pixel along all bit planes).  The example seeks to recreate the mask for bit plane 2.  The code uses bit wise operator '<<' which slides a value (1) to the left N positions.  For example, 1<<4 is equivalent to 2<sup>4</sup>, placing a high bit in the 5<sup>th</sup> bit plane.   
+
+```
+x = np.random.randint(0,7, (4,4))
+array([[1, 3, 1, 4],
+      [3, 2, 4, 0],
+      [3, 2, 3, 3],
+      [1, 0, 1, 3]])
+      
+x & (1 << 1)
+array([[0, 2, 0, 0],
+      [2, 2, 0, 0],
+      [2, 2, 2, 2],
+      [0, 0, 0, 2]])
+
+# Reproduce the mask (white == change)
+((x & (1 << 1)) > 0) * 255
+array([[  0, 255,   0,   0],
+       [255, 255,   0,   0],
+       [255, 255, 255, 255],
+       [  0,   0,   0, 255]])
+```
+
+
+
 #### HDF5 Bit Planes
 
 HDF5 also uses the Bit Plane concept as with JPEG2000.    HDF5 is a hierchical structure.   HFD5 contains groups.  Each group is labeled by the starting frame number of the segment it represents.  Each group is a segment with following attributes:
@@ -839,7 +866,10 @@ Zip files are processed with Pythons Zip package.
 
 Some media images formats may not be directly supported by the default install of the tool. These can be extended, with their dependencies, external from the tool.
 
-An opener returns a Numpy array.
+A plugin is a python function that accepts a string file name and returns a tuple:
+
+- *numpy* ndarray of the image (height, width, channel).
+- The string mode according the PIL Image specifications *(e.g. RGB)*
 
 #### Signature
 
@@ -886,7 +916,9 @@ setup(name='wrapper_name',
 
 Dependencies should include all python package dependencies.  
 
-The setup should replace *suffix* with the actual file suffix. If there is more than one, then list all. 
+The function is registered with the tool by registering any entry point called maskgen\_image the setup.py. The setup should replace *suffix* with the actual file suffix. If there is more than one, then list all. 
+
+*File type suffix = package.module:function*
 
 ~~~
 entry_points={'maskgen_image': [
