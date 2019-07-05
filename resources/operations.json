@@ -126,8 +126,8 @@
         "video_function": "maskgen.video_tools.audioSample"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "includeInMask": {
         "default": true
@@ -414,8 +414,8 @@
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "video.video",
@@ -527,8 +527,8 @@
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "video.video",
@@ -616,8 +616,8 @@
         "video.video"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "compareparameters": {
         "video_function": "maskgen.video_tools.audioCompare"
@@ -664,7 +664,7 @@
           "values": [
             "delay",
             "reverb",
-            "echo"
+            "echo_transform"
           ],
           "defaultvalue": "reverb",
           "description": "Damping filters applied."
@@ -710,8 +710,8 @@
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "qaList": [
         "Time Stamps Ok?"
@@ -783,8 +783,8 @@
       },
       "generateMask": "audio",
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "audio.audio",
@@ -817,7 +817,7 @@
       "optionalparameters": {
       },
       "maskTransformFunction": {
-        "audio": "maskgen.mask_rules.sample_rate_change"
+        "audio": "maskgen.mask_rules.sample_rate_change_transform"
       },
       "donor_processor": "maskgen.masks.donor_rules.audio_donor_processor",
       "analysisOperations": [],
@@ -1134,8 +1134,7 @@
         "checkSameChannels",
         "checkFrameTimeAlignment",
         "checkUncompressed",
-        "checkEmpty",
-        ""
+        "checkEmpty"
       ],
       "optionalparameters": {
         "inputmaskname": {
@@ -2120,8 +2119,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "description": "Create objects that were not originally present in an image.",
       "includeInMask": {
@@ -2372,8 +2371,8 @@
         "default": true
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -2431,8 +2430,8 @@
         "video.video"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
@@ -2506,8 +2505,8 @@
         "maskgen.tool_set.localTransformAnalysis"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "description": "Edit or paint each pixel to make it the result color. The result color is a random replacement of the pixels with the base color or the blend color, depending on the opacity at any pixel location.",
       "includeInMask": {
@@ -2620,8 +2619,8 @@
         "default": true
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -2679,8 +2678,8 @@
         "video": true
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -2798,8 +2797,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "description": "Uniformly alter the color of an image within a given selection.",
       "includeInMask": {
@@ -2968,8 +2967,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -3034,8 +3033,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -3083,8 +3082,8 @@
         "video": true
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -3141,8 +3140,8 @@
         "video.video"
       ],
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "qaList": [
         "Confirm highlighted area represents the region that was affected by the operation",
@@ -3267,7 +3266,7 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "image": "maskgen.mask_rules.ca_fill"
+        "image": "maskgen.mask_rules.ca_fill_transform"
       },
       "includeInMask": {
         "default": true
@@ -3448,8 +3447,8 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "includeInMask": {
         "default": true
@@ -3559,8 +3558,8 @@
         "default": true
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform"
       },
       "transitions": [
         "image.image",
@@ -3716,9 +3715,9 @@
         "video_function": "maskgen.video_tools.mediatedDetectedCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.warp_output",
-        "audio": "maskgen.mask_rules.warp_output",
-        "image": "maskgen.mask_rules.paste_sampled"
+        "video": "maskgen.mask_rules.warp_output_transform",
+        "audio": "maskgen.mask_rules.warp_output_transform",
+        "image": "maskgen.mask_rules.paste_sampled_transform"
       },
       "transitions": [
         "image.image",
@@ -4824,8 +4823,8 @@
         "video_function": "maskgen.video_tools.audioCompare"
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.sample_rate_change",
-        "audio": "maskgen.mask_rules.sample_rate_change",
+        "video": "maskgen.mask_rules.sample_rate_change_transform",
+        "audio": "maskgen.mask_rules.sample_rate_change_transform",
         "zip": "maskgen.mask_rules.audio_selection"
       },
       "description": "Export the stream in the PCM format (wave, aif, etc.).",
@@ -4859,8 +4858,8 @@
       "optionalparameters": {
       },
       "maskTransformFunction": {
-        "video": "maskgen.mask_rules.sample_rate_change",
-        "audio": "maskgen.mask_rules.sample_rate_change"
+        "video": "maskgen.mask_rules.sample_rate_change_transform",
+        "audio": "maskgen.mask_rules.sample_rate_change_transform"
       },
       "description": "Export the audio in the compressed format (mp3, m4a, wma, etc).",
       "includeInMask": {
@@ -5224,7 +5223,7 @@
       "maskTransformFunction": {
         "image": "maskgen.mask_rules.image_to_video",
         "video": "maskgen.mask_rules.output_video_change",
-        "zip": "maskgen.mask_rules.echo"
+        "zip": "maskgen.mask_rules.echo_transform"
       },
       "description": "Export the image in the AVI format.",
       "includeInMask": {

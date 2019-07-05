@@ -267,6 +267,10 @@ def getOrientationForEdge(edge):
     return ''
 
 class BuildState:
+    """
+    A Build State is a current edge data (mask, source, target, data) along with a composite OR donor mask
+    which requires treatment by a rule(function), as defined by the edge's operation using the current edge's data.
+    """
     def __init__(self,
                  edge,
                  source,
@@ -504,6 +508,10 @@ def _prepare_video_masks(meta_extractor,
                          operation=None,
                          issubstitute=False):
     """
+    Compose a 'CompositeImage' to represent the composite view of the data.
+    Recall, Composite is a bit of a misnomer, used in the early days with a single composite image
+    contained ALL manipulations.  Now, the composites are done separately.  Instead, a compsite image
+    is still just one manipulation adjusted by subsequent edges for the intent of aligning to a final media.
     Remove empty videosegments, set the videosegment file names to full path names,
     set the media_type of the segment if missing.
     :param directory:
@@ -663,6 +671,9 @@ def _apply_recapture_transform(buildState):
 
 def recapture_transform(buildState):
     """
+    Use position mapping if available, otherwise try to create and use a homography.
+    Position mapping is a box and rotation.  Composite embeds mask at the crop position and then rotates mask.
+    Donor generation, crops and rotates (inverse) mask.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -672,7 +683,13 @@ def recapture_transform(buildState):
 
 def crop_resize_transform(buildState):
     """
-
+    APPLIES: IMAGE
+    When available, use position mapping.
+    Position mapping is a box and rotation.  Composite embeds and rotates mask.
+    Donor generation, crops and rotates (inverse) mask.
+    Otherwise used calculated crop and height and width then resize.
+    Composite mask generation crops the mask before resize.
+    Donor mask generation resizes mask and then embeds mask at the crop position.
     :param buildState:
     :return:
     @type buildState: BuildState
@@ -704,6 +721,7 @@ def crop_resize_transform(buildState):
 
 def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=dict(), directory='.'):
     """
+    APPLIES: IMAGE
     Paired with resize_transform, if the shape of the image did not change, then build a homography to describe
     the transformation.  Global Transform Analysis is also execute to describe the 'change size ratio' and
     'change size category'.
@@ -728,6 +746,13 @@ def resize_analysis(analysis, img1, img2, mask=None, linktype=None, arguments=di
 
 def resize_transform(buildState):
     """
+    APPLIES: IMAGE
+    Supports local resize through a perspective transform or a global resize.
+    Global resize with a location change and none interpolation implies a resize of the canvas without
+    resize of data (inverse of a crop).
+    'inputmaskname' is a file that identifies the region that was resized for local operations.  In this case,
+    this helps  identify the target object and create the appropriate perspective transform.
+
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -813,6 +838,9 @@ def video_resize_helper(buildState, criteria_function):
 
 def video_resize_transform(buildState):
     """
+    APPLIES: VIDEO
+    Any shape change.  Supports frame rate changes, although discouraged at the same time.  In frame rate changes,
+    the resize occurs first before frame adjustment in both donor and composite cases.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -824,6 +852,13 @@ def video_resize_transform(buildState):
     return video_resize_helper(buildState, vrt_criteria)
 
 def median_stacking(buildState):
+    """
+    APPLIES: VIDEO
+    Composite generation extracts a single mask from the given Frame Time.
+    Donor generation distributes the mask over all contributing frames.
+    :param buildState:
+    :return:
+    """
     if buildState.isComposite:
         return CompositeImage(buildState.source,
                              buildState.target,
@@ -840,6 +875,10 @@ def median_stacking(buildState):
 
 def rotate_transform(buildState):
     """
+    APPLIES: IMAGE
+    Rotate mask in accordance to user provided image rotation.  Supports localized and full image rotaton.  In the local case,
+    a transform is created removing the responsibility of the user from providing an accurate rotation amount.  This assumes such a
+    transform can be created.  Without a transform, rotation of the mask is performed based on user inputs.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -880,7 +919,10 @@ def rotate_transform(buildState):
 
 def video_copy_exif(buildState):
     """
-    Applicable to video
+    APPLIES: VIDEO
+    Rotate video masks in the direction of exif orientation where applicable.
+    The stream meta-data must indicate the additional or removal of an orientation.
+    The edge must indicate that a rotation occurred either through 'rotate' meta data.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -907,6 +949,8 @@ def video_copy_exif(buildState):
 
 def video_rotate_transform(buildState):
     """
+    APPLIES: VIDEO
+    Rotate video masks in the direction of user provided rotation.  This does not support local rotation.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -942,8 +986,9 @@ def image_selection_preprocess(mask, edge,target_size ):
 
 def select_cut_frames_preprocess(mask, edge, target_size):
     """
-    Creates the neighbor indicators...since can register frames cut from the target(they are done).
-
+    Creates the temporal segments of the neighboring frames to the given edge mask. This is the frame before the cut frame to the time of
+    the cut frame.  The cut frames are no longer in the media segment. The only possibility is to identity the location of the cut with
+    the frame before after the cut.  The number frames indicated is 2.  This is obviously ignored.
     :param mask:
     :param edge
     :return:
@@ -967,7 +1012,7 @@ def select_cut_frames_preprocess(mask, edge, target_size):
 
 def select_crop_frames_preprocess(mask, edge, target_size):
     """
-    Whole video
+    Return temporal segments for the entire video.
     :param mask:
     :param edge
     :return:
@@ -1065,6 +1110,9 @@ def select_crop_frames(buildState):
 
 def replace_audio(buildState):
     """
+    APPLIES: AUDIO
+    Replace the composite mask with this edge's mask.
+    At this moment, do nothing with the donor mask. Although, dropping the donor mask may be correct.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1083,6 +1131,12 @@ def replace_audio(buildState):
         return buildState.donorMask
 
 def copy_add_audio(buildState):
+    """
+    Use the audio segment identified by copy start and end time as the to overwrite intersecting
+    parts of the composite mask.
+    :param buildState:
+    :return:
+    """
     start_time = getValue(buildState.edge,'arguments.Insertion Time')
     start_time_value = tool_set.getMilliSecondsAndFrameCount(start_time)
     copy_start_time = tool_set.getMilliSecondsAndFrameCount(getValue(buildState.edge, 'arguments.Copy Start Time'))
@@ -1092,6 +1146,14 @@ def copy_add_audio(buildState):
 
 def add_audio(buildState, start_time = None, end_time=None):
     """
+    If the 'add type' is insert and the function is processing a composite mask, insert time at the intersecting intervals
+    with this edge's mask.
+    If the 'add type' is not insert and the function is processing a composite mask, remove portions of mask segments
+    that intersect with this edge's masks.
+    If the 'add type' is insert the function is processing a donor mask, remove portions of the mask segements that intersect
+    with this edge's masks.
+    If the 'add type' is not insert and the function is processing a donor mask, insert time at the intersecting intervals
+    with this edge's mask.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1145,6 +1207,8 @@ def add_audio(buildState, start_time = None, end_time=None):
 
 def delete_audio(buildState):
     """
+    APPLIES: AUDIO
+    
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1384,6 +1448,9 @@ def select_remove(buildState):
 
 def crop_transform(buildState):
     """
+    APPLIES: IMAGE.
+    Use the location of the crop and size change to crop the incoming composite mask.
+    For Donors, use the location to place the donor mask into the parent shape.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1414,6 +1481,9 @@ def crop_transform(buildState):
 
 def video_crop_transform(buildState):
     """
+    APPLIES: VIDEO
+    Use the location of the crop and size change to crop the incoming composite mask.
+    For Donors, use the location to place the donor mask into the parent shape.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1517,14 +1587,17 @@ def seam_transform(buildState):
 
 def warp_transform(buildState):
     """
+    APPLIES: IMAGE
+    Applies a homography to the mask to align to the  manipulated image.  Paired with affine, warping other perspective change operations.
+    AT this time, input masks (inputmaskname) are not used as supporting information.  This operation does work well with flips.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
     @rtype: CompositeImage
     """
-    return composite_transform(buildState, withMask = True)
+    return _composite_transform(buildState, withMask = True)
 
-def composite_transform(buildState, withMask = False):
+def _composite_transform(buildState, withMask = False):
     """
         :param buildState:
         :return: updated composite mask
@@ -1552,6 +1625,9 @@ def composite_transform(buildState, withMask = False):
 
 def video_flip_transform(buildState):
     """
+    APPLIES: VIDEO
+    Applies frame rate adjustments first and the flips the masks.
+    Resize is supported (last), but not recommended as part of the operation.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1574,26 +1650,6 @@ def video_flip_transform(buildState):
 def move_pixels(frommask, tomask, image, isComposite=False):
     lowerm, upperm = tool_set.boundingRegion(frommask)
     lowerd, upperd = tool_set.boundingRegion(tomask)
-    # if lowerm == lowerd:
-    #    M = cv2.getAffineTransform(np.asarray([
-    #                                                [upperm[0], lowerm[1]],
-    #                                                [upperm[0], upperm[1]],
-    #                                                [lowerm[0], upperm[1]]]
-    #                                               ).astype(
-    #        'float32'),
-    #       np.asarray([
-    #                   [upperd[0], lowerd[1]],
-    #                   [upperd[0], upperd[1]],
-    #                    [lowerd[0], upperd[1]]]).astype(
-    #            'float32'))
-    #    if isComposite:
-    #        transformedImage = tool_set.applyAffineToComposite(image, M, tomask.shape)
-    #        transformedImage = transformedImage.astype('uint8')
-    #    else:
-    #        transformedImage = cv2.warpAffine(image, M, (tomask.shape[1], tomask.shape[0]))
-    #        transformedImage = transformedImage.astype('uint8')
-    #    return transformedImage
-
     M = cv2.getPerspectiveTransform(np.asarray([[lowerm[0], lowerm[1]],
                                                 [upperm[0], lowerm[1]],
                                                 [upperm[0], upperm[1]],
@@ -1617,6 +1673,11 @@ def move_pixels(frommask, tomask, image, isComposite=False):
 
 def move_transform(buildState):
     """
+     APPLIES: IMAGE
+    Use the inputmaskname mask, if provided to select pixels that moved from source to targe image,
+    calculate homography and move the mask pixels in the mask using the holography.  If an input mask is not provided
+    or a homography cannot be constructed without or without the input mask, estimate the movement of pixels using
+    change mask and perform linear transform to all pixels.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1681,8 +1742,15 @@ def move_transform(buildState):
                           'image',
                           buildState.edgeMask)
 
-def ca_fill(buildState):
+def ca_fill_transform(buildState):
     """
+     APPLIES: IMAGE
+     Erase mask pixels that intersect the change mask if the purpose is remove, indicating
+     that the change represented by those mask pixels is no longer visible.
+     Please note that the fill operation has its own mask and probe, thus algorithm change detection
+     still has information regarding to change to the 'removed' pixels.  A 'remove' is an erasure
+     of prior operation manipulations, making them unrecognizable.
+     In the donor case, pixels are also dropped as they are no longer 'used' from the donor ('removed').
        :param buildState:
        :return: updated composite mask
        @type buildState: BuildState
@@ -1699,8 +1767,15 @@ def ca_fill(buildState):
             buildState.donorMask.mask[buildState.edgeMask == 0] = 0
         return buildState.donorMask
 
-def paste_sampled(buildState):
+def paste_sampled_transform(buildState):
     """
+     APPLIES: IMAGE
+     Erase mask pixels that intersect the change mask if the purpose is remove, indicating
+     that the change represented by those mask pixels is no longer visible.
+     Please note that the paste sample operation has its own mask and probe, thus algorithm change detection
+     still has information regarding to change to the 'removed' pixels.  A 'remove' is an erasure
+     of prior operation manipulations, making them unrecognizable.
+     In the donor case, pixels are also dropped as they are no longer 'used' from the donor ('removed').
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1719,6 +1794,13 @@ def paste_sampled(buildState):
 
 def paste_splice(buildState):
     """
+     APPLIES: IMAGE
+     Erase mask pixels that intersect the change mask if the purpose is NOT 'blend', indicating
+     that the change represented by those mask pixels is no longer visible.
+     Please note that the paste splice operation has its own mask and probe, thus algorithm change detection
+     still has information regarding to change to the 'pasted over' pixels.  A NON-'blend' is a replacement
+     of prior operation manipulations, making them unrecognizable.
+     In the donor case, pixels are also dropped as they are no longer 'used' from the donor (overwritten).
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1744,6 +1826,10 @@ def paste_splice(buildState):
 
 def select_region_frames(buildState):
     """
+    Has not effect on composites or donor masks, passing on the donor and composite mask provided.
+    At this time, selection region frames assumes the provided donor mask is valid.
+    However, it make sense in the future to accept the select region's spatial temporal mask to overide the incoming
+    donor mask.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1755,6 +1841,9 @@ def select_region_frames(buildState):
 
 def select_region(buildState):
     """
+    APPLIES: Image
+    If donor mask is None, use the image's edge mask as the donor (the selected region).
+    Has not effect on composites.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1771,6 +1860,9 @@ def select_region(buildState):
 
 def donor(buildState):
     """
+    APPLUES: IMAGE
+    Invert the donor mask.  If a perspectice transform exists, warp the donor mask( inversely).  This is used
+    for old jopurnals just form donor masks by inverse transforms to the paste splice mask at probe generation time.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1806,6 +1898,9 @@ def donor(buildState):
 
 def image_to_video(buildState):
     """
+    APPLIES: VIDEO
+    Using the meta data from the video, take composite mask and repeat as if it represented the mask for every single frame
+    of the video.  In the donor case, pick one a sample mask from the video donor mask to use as the new donor image mask.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1850,6 +1945,11 @@ def video_donor(buildState):
 
 def flip_transform(buildState):
     """
+    APPLIES: IMAGE
+    Flips cannot be handled by perspective or affine transforms. Instead, the change mask is used to determine object to flip.
+    Pixels of the composite (or donor ) mask intersecting the change mask are flipped.
+    This transform also supports mask shape resize changes. However, this side effect is note recommend, as flip should be
+    considered a local manipulation.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1872,6 +1972,9 @@ def flip_transform(buildState):
 
 def scale_transform(buildState):
     """
+    APPLIES: IMAGE
+    Apply a transform if available, else resize to target shape if shape change as occurred.
+    :param buildState:
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1905,6 +2008,8 @@ def scale_transform(buildState):
 
 def distort_transform(buildState):
     """
+    APPLIES: IMAGE
+    Apply a transform if available, else resize to target shape if shape change as occurred.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1914,6 +2019,9 @@ def distort_transform(buildState):
 
 def affine_transform(buildState):
     """
+    APPLIES: IMAGE
+    Apply a transform if available, else resize to target shape if shape change as occurred.
+    :param buildState:
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1923,6 +2031,9 @@ def affine_transform(buildState):
 
 def shear_transform(buildState):
     """
+    APPLIES: IMAGE
+    Apply a transform if available, else resize to target shape if shape change as occurred.
+    :param buildState:
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1933,6 +2044,9 @@ def shear_transform(buildState):
 
 def skew_transform(buildState):
     """
+    APPLIES: IMAGE
+    Apply a transform if available, else resize to target shape if shape change as occurred.
+    :param buildState:
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1943,6 +2057,9 @@ def skew_transform(buildState):
 
 def image_selection(buildState):
     """
+    APPLIES : VIDEO
+    Extract a specific mask from video masks given the user provided Frame time.
+    This occurs when a single frame is selected, thus only that mask associated with the frame is passed on.
        :param buildState:
        :return: updated composite mask
        @type buildState: BuildState
@@ -1968,9 +2085,13 @@ def image_selection(buildState):
                                     returnEmpty=False,
                                     fillWithUserBoundaries=True)
 
-def warp_output(buildState):
+def warp_output_transform(buildState):
     """
-    Assumes frame rate has not changed.
+    Applies: VIDEO, AUDIO
+    Frame rate changes involve minimally changing the frame number associated with frame times in the temporal segments.
+    At this time, frame masks may be added at regular intervals for increasing frame rate or dropped at regular intervals for
+    decreasing the frame rate. Interpolation of this frames is not performed. The donor mask adjustments is inverse of composite mask
+    adjustments.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1978,9 +2099,10 @@ def warp_output(buildState):
     """
     return buildState.warpMask()
 
-def echo(buildState):
+def echo_transform(buildState):
     """
-    Assumes frame rate has not changed.
+    Assumes frame rate has not changed.  The composite and donor mask are assumed to not change due to an associated
+    manipulation operation.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -1991,9 +2113,10 @@ def echo(buildState):
     else:
         return buildState.donorMask
 
-
-def sample_rate_change(buildState):
+def sample_rate_change_transform(buildState):
     """
+    Applies: AUDIO
+    Sample Rate change results in changing the frame numbers associated manipulation times in temporal segments.
         :param buildState:
         :return: updated composite mask
         @type buildState: BuildState
@@ -2003,10 +2126,10 @@ def sample_rate_change(buildState):
 
 def audio_selection(buildState):
     """
-    TODO
     For use of zip to audio.
     Use Audio Positions to build donor.
     Use Audio Positions to substract out masks.
+    This transform function is incomplete!
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -2016,6 +2139,11 @@ def audio_selection(buildState):
 
 def output_video_change(buildState):
     """
+    Applies: VIDEO, AUDIO
+    Frame rate changes involve minimally changing the frame number associated with frame times in the temporal segments.
+    At this time, frame masks may be added at regular intervals for increasing frame rate or dropped at regular intervals for
+    decreasing the frame rate. Interpolation of this frames is not performed. The donor mask adjustments is inverse of composite mask
+    adjustments.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -2030,6 +2158,9 @@ def output_video_change(buildState):
 
 def audio_donor(buildState):
     """
+    APPLIES: AUDIO
+    For donor maks only, a donor mask instructed using the 'videomasks' segment attribute of the edge if available.
+    This essentially replaces the donor mask.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -2086,12 +2217,22 @@ def exif_transform(buildState):
         return buildState.donorMask.create(mask)
 
 def copy_transform(buildState):
+    """
+    APPLIES: VIDEO, AUDIO, IMAGE
+    No change to composite or donor mask.
+    This transform basiicaly states that the edge's operation does not alter a prior edges mask.
+    :param buildState:
+    :return:
+    """
     if buildState.isComposite:
         return buildState.compositeMask
     return buildState.donorMask
 
 def output_transform(buildState):
     """
+    APPLIES: VIDEO, AUDIO, IMAGE
+    Applies exif related rotations to align an image to the shape of the resulting image.
+    Also handes resize, resampling and, for streaming media, sample and frame rate changes.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -2101,6 +2242,8 @@ def output_transform(buildState):
 
 def defaultAlterComposite(buildState):
     """
+    Applies this buildState's edge operation to a composite mask.
+    Handles resize, flips, rotations and transforms if available.
     :param buildState:
     :return: updated composite mask
     @type buildState: BuildState
@@ -2126,6 +2269,8 @@ def defaultAlterComposite(buildState):
 
 def defaultAlterDonor(buildState):
     """
+    Applies this buildState's edge operation to a donor mask.
+    Handles resize, flips, rotations and transforms if available.
     :param buildState:
     :return: updated/tranformed donor mask
     @type buildState: BuildState
@@ -2159,16 +2304,47 @@ def defaultAlterDonor(buildState):
 #====================================================================
 
 def isEdgeNotDonorAndNotEmpty(edge_id, edge, operation):
+    """
+       APPLIES: SELECTION
+       All links with non-empty masks, excluding Donor links.
+       Caution: older journals had poor indicators of 'empty masks'.
+       :param edge_id:
+       :param edge:
+       :param operation:
+       :return:
+       @type Operation
+       """
     return edge['op'] != 'Donor' and getValue(edge,'empty mask','no') == 'no'
 
 def isEdgeNotDonor(edge_id, edge, operation):
+    """
+    APPLIES: SELECTION
+    All links, excluding Donor links.
+    :param edge_id:
+    :param edge:
+    :param operation:
+    :return:
+    @type Operation
+    """
     return edge['op'] != 'Donor'
 
 def isEdgeComposite(edge_id, edge, operation):
+    """
+    APPLIES: SELECTION
+    'Blue' links only.
+    :param edge_id:
+    :param edge:
+    :param operation:
+    :return:
+    @type Operation
+    """
     return edge['recordMaskInComposite'] == 'yes'
 
 def isEdgeLocalized(edge_id, edge, operation):
     """
+    APPLIES: SELECTION
+    Excludes Output, TimeAlteration, AntiForensic, PostProcessing, Laundering, Transforms, Donors, and DeleteAudioSample.
+    'Blue' links override.
     :param edge_id:
     :param edge:
     :param operation:
@@ -2189,6 +2365,10 @@ def isEdgeLocalized(edge_id, edge, operation):
 
 def isEdgeLocalizedWithPostProcessingAndLaundering(edge_id, edge, operation):
     """
+    APPLIES: SELECTION
+    A 'inclusion rule' that includes AntiForensic, PostProcessing and Laundering Masks.
+    Excludes Output, TimeAlteration, Transforms, Donors, and DeleteAudioSample.
+    'Blue' links override.
     :param edge_id:
     :param edge:
     :param operation:
@@ -2251,6 +2431,23 @@ def _getMaskTranformationFunction(
 
 def mAlterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None, maskMemory=None,
                 baseEdge=None, checkEmptyMask=True):
+    """
+    Memoized version of alterDonor
+    @See alterDonor
+    :param donorMask:
+    :param op:
+    :param source:
+    :param target:
+    :param edge:
+    :param directory:
+    :param pred_edges:
+    :param graph:
+    :param maskMemory:
+    :param baseEdge:
+    :param checkEmptyMask:
+    :return:
+    """
+
     remember = maskMemory[('donor', baseEdge, (source, target))] if maskMemory is not None else None
     if remember is not None:
         # print("memoize")
@@ -2262,17 +2459,21 @@ def mAlterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[
 
 def alterDonor(donorMask, op, source, target, edge, directory='.', pred_edges=[], graph=None, checkEmptyMask=True):
     """
-    :param donorMask:
+    Given a donor mask, alter the mask according the inverse of the operation represented by the given edge.
+    For example, resize from 100,80 to 120,100 woudl expect a donor mask of 120, 100 to resize back to 100,80.
+    :param donorMask: COmpositeImage containing a donor mask
     :param op:  operation name
-    :param source:
-    :param target:
+    :param source: manipulation edge source id
+    :param target: manipulation edge target id
     :param edge: edge dictionary
     :param edgeMask:  composite
-    :param directory:
+    :param directory: journal directory
     :param pred_edges:
     :param graph:
     :return:
     @type op: Operation
+    @type donorMask: CompositeImage
+    @type edge: dict
     """
 
     edgeMask = graph.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)
@@ -2331,6 +2532,13 @@ def _getUnresolvedSelectMasksForEdge(edge):
 
 
 def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
+    """
+    Utilityt to find base node of given node, checking for cycles and Donors!
+    :param graph:
+    :param node:
+    :param excludeDonor:
+    :return:
+    """
     preds = graph.predecessors(node)
     res = [(node, 0, list())] if len(preds) == 0 else list()
     for pred in preds:
@@ -2344,7 +2552,16 @@ def findBaseNodesWithCycleDetection(graph, node, excludeDonor=True):
 
 
 def getShapes(graph,source,target,edge, edgeMask):
-
+    """
+    Determine source and target shapes of an edge.
+    Often times, an edge can change the shape of an image (resize, resample, crop, rotate)
+    :param graph:
+    :param source:
+    :param target:
+    :param edge:
+    :param edgeMask:
+    :return:
+    """
     target_im, target_file= graph.get_image(target)
     source_im, source_file = graph.get_image(source)
     shapeChange = toIntTuple(edge['shape change']) if 'shape change' in edge else (0, 0)
@@ -2379,6 +2596,23 @@ def mAlterComposite(graph,
                     maskMemory=None,
                     checkEmptyMask=True
                     ):
+
+    """
+    Memoized AlterComposite
+    @see alterComposite
+    :param graph:
+    :param edge:
+    :param op:
+    :param source:
+    :param target:
+    :param composite:
+    :param directory:
+    :param base_id:
+    :param replacementEdgeMask:
+    :param maskMemory:
+    :param checkEmptyMask:
+    :return:
+    """
     remember = maskMemory[('composite', base_id, (source, target))] if maskMemory is not None else None
     if remember is not None:
         # print("memoize")
@@ -2411,16 +2645,18 @@ def alterComposite(graph,
                    replacementEdgeMask=None,
                    checkEmptyMask=True):
     """
-
+    Applies a provide 'edges' manipulation to a composite image
     :param graph:
-    :param edge:
-    :param op:
-    :param source:
-    :param target:
-    :param composite:
+    :param edge: the altering edge
+    :param op: edge's operastion
+    :param source: edge source id
+    :param target:  edge target id
+    :param composite: CompositeImage that 'passed' through this edge to one or more final nodes.
     :param directory:
     :param replacementEdgeMask:
     :return:
+    @type op: Operation
+    @type edge: dict
     @type composite: CompositeImage
     """
     edgeMask = graph.get_edge_image(source, target, 'maskname', returnNoneOnMissing=True)\
@@ -2467,13 +2703,17 @@ def alterComposite(graph,
 
 
 class CompositeDelegate:
+    """
+    Create a probes for all final nodes ot the given edge
+    """
     composite = None
 
     def __init__(self, edge_id, graph, gopLoader, maskMemory, notifier=None):
         """
-        :param edge_id
-        :param graph:
-        :param gopLoader:
+        :param edge_id:
+        :param graph: the graph itself
+        :param gopLoader: Operations
+        :param maskMemory: memoizer
         @type edge_id : (str,str)
         @type graph: ImageGraph
         @type gopLoader: GroupFilterLoader
@@ -2498,6 +2738,8 @@ class CompositeDelegate:
 
     def _getComposites(self, keepFailures=False):
         """
+        Constructs the initial CompositeImage for seeding the probe generation for this instance's edge.
+        Substitube masks are 'seeded' if available and indicated for use instead of the default edge's change masks.
 
         :param keepFailures:
         :return: if video masks, return the composite images by audio and video media types separately
@@ -2567,7 +2809,7 @@ class CompositeDelegate:
 
     def _continueIfEmpty(self, mask, source, target, op):
         """
-        We will let ok masks be dropped
+        We will let 'ok' masks be dropped
         :param mask:
         :param source:
         :param target:
@@ -2595,7 +2837,7 @@ class CompositeDelegate:
                                  checkEmptyMask=True,
                                  audioToVideo=False):
         """
-        walks up down the tree from base nodes, assemblying composite masks
+        Walks up down the tree from base nodes, assemblying composite masks
         return: list of tuples (transformed mask, final image id)
         @rtype:  list of CompositeImage
         """
@@ -2664,6 +2906,17 @@ class CompositeDelegate:
             self._finalizeCompositeMask(compositeMask, edge_id[1], saveTargets=saveTargets, audioToVideo=audioToVideo)]
 
     def extendByOne(self, probes, source, target, override_args={}, checkEmptyMask=False):
+        """
+        Used to extend the set of probes by ONE edge, to see the affects on the each on the probes.
+        This is useful if parameters of the edge affect the probe generation, this allowing the user to change the parameters
+        for better results.
+        :param probes:
+        :param source:
+        :param target:
+        :param override_args:
+        :param checkEmptyMask:
+        :return:
+        """
         import copy
         result_probes = []
         for probe in probes:
@@ -2710,8 +2963,9 @@ class CompositeDelegate:
                         checkEmptyMask=True,
                         audioToVideo=False):
         """
-
-        :param saveTargets:
+        Construct all probes for this instance's edge (e.g. one for each reachable final node)
+        :param saveTargets: Save the target masks (optional, could be just composited).
+        :param inclusionFunction: determines which donors should be created.
         :return:
         %rtype: list of Probe
         """
@@ -2771,6 +3025,7 @@ class CompositeDelegate:
 
     def _finalizeCompositeMask(self, image, finalNodeId, saveTargets=False, failure=False, audioToVideo=False):
         """
+        A factory of the CompositeImage seeded with the 'edge' mask.
         :param mask:
         :param finalNodeId:
         :return:  mask, file name and final node id
@@ -2815,16 +3070,16 @@ class CompositeDelegate:
                                       donors,
                                       donorFailure=False):
         """
-
-        :param probes:
-        :param edge_id:
-        :param finalNodeId:
-        :param baseNodeId:
-        :param target_mask:
+        Create and add a probe to the list of probes, adding the donor if available
+        :param probes: place to put the new probe
+        :param edge_id: egde of new probe
+        :param finalNodeId: final node of new probe
+        :param baseNodeId: base node of new probe
+        :param target_mask: the target mask aligned to the final node for the probe
         :param target_mask_filename:
-        :param level:
+        :param level: the level of the probe in graph
         :param media_type: audio,video,image
-        :param donors:
+        :param donors: available donors
         :return:
         @type donors : list[DonorImage]
         @type target_mask: CompositeImage

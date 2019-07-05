@@ -66,7 +66,42 @@ Composite masks, by their very nature of being bit planes, use a high bit in the
 
 ### Orientation
 
-Masks are oriented to the images width and height regardless of the Orientation meta-data.  During the probe generation process, probe masks are realigned to 'raw' orientation of the image according to the EXIF.  
+Masks are oriented to the images width and height regardless of the Orientation meta-data.
+Often times, final journal images are made consistent with the original image by applying EXIF and inversely rotating/flipping the image in accordance to the orginal.
+During the probe generation process, the masks are rotated to maintain alignment to the image. Thus, masks are also rotated and flipping accordingly to maintain alignment to underlying image shape.
+
+Consider these tools and how they process EXIF Orientation (of 90 CW) for an image 'filename.jpg'.
+
+*Ignores*
+
+```
+import cv2
+cv2.imread('filename.jpg', cv2.IMREAD_IGNORE_ORIENTATION | cv2.IMREAD_COLOR).shape
+(2268, 4032, 3)
+
+cv2.imread('filename.jpg', cv2.IMREAD_UNCHANGED).shape
+(2268, 4032, 3)
+
+import numpy
+from PIL import Image
+numpy.asarray(Image.open('filename.jpg')).shape
+(2268, 4032, 3)
+
+from skimage.io import imread
+imread('filename.jpg').shape
+(2268, 4032, 3)
+
+import matplotlib.image as mpimg
+mpimg.imread('filename.jpg').shape
+(2268, 4032, 3)
+```
+
+*Does not Ignore*
+
+```
+cv2.imread('filename.jpg', cv2.IMREAD_COLOR).shape
+(4032, 2268, 3)
+```
 
 # Empty and Global Masks
 
