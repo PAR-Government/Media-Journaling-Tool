@@ -52,6 +52,9 @@ class SettingsWindow(Toplevel):
 
         self.s3Var = StringVar()
         self.s3VarPRNU = StringVar()
+        self.s3profile = StringVar()
+        self.endpointVar = StringVar()
+        self.regionVar = StringVar()
         self.urlVar = StringVar()
         self.tokenVar = StringVar()
         self.trelloVar = StringVar()
@@ -79,10 +82,21 @@ class SettingsWindow(Toplevel):
         else:
             self.settings.save('seq', '00000')
             
-        defaults = {'aws-hp':self.s3Var, 'aws-prnu':self.s3VarPRNU, 'imagetypes':self.imageVar, 'videotypes':self.videoVar,
-                    'audiotypes':self.audioVar,'apiurl':self.urlVar, 'apitoken':self.tokenVar, 'trello':self.trelloVar,
-                    'archive_recipient':self.recipEmail,'copyrightnotice':self.copyrightVar, 'by - line':self.bylineVar, 
-                    'credit':self.creditVar}
+        defaults = {'aws-hp': self.s3Var,
+                    'aws-prnu': self.s3VarPRNU,
+                    'imagetypes': self.imageVar,
+                    'videotypes': self.videoVar,
+                    'audiotypes': self.audioVar,
+                    'apiurl': self.urlVar,
+                    'apitoken': self.tokenVar,
+                    's3-profile': self.s3profile,
+                    's3-region': self.regionVar,
+                    's3-endpoint': self.endpointVar,
+                    'trello': self.trelloVar,
+                    'archive_recipient': self.recipEmail,
+                    'copyrightnotice': self.copyrightVar,
+                    'by - line': self.bylineVar,
+                    'credit': self.creditVar}
         for s in defaults:
             if self.settings.get_key(s):
                 defaults[s].set(self.settings.get_key(s))
@@ -130,22 +144,46 @@ class SettingsWindow(Toplevel):
         self.urlBox.grid(row=r, column=4)
 
         r+=1
-
-        self.archiveRecipientButton = Button(self.prefsFrame, text="Recipient Email", command=lambda:tkMessageBox.showinfo("Recipient Email", "Enter the email address of the archive recipient for encryption."))
-        self.archiveRecipientButton.grid(row=r, column=0, columnspan=4)
-
-        self.archiveRecipBox = Entry(self.prefsFrame, textvar=self.recipEmail)
-        self.archiveRecipBox.grid(row=r, column=4)
-
-        r+=1
-        self.browserButton = Button(self.prefsFrame, text='Medifor Browser Token: ')
+        self.browserButton = Button(self.prefsFrame, text='Browser Token: ')
         self.browserButton.grid(row=r, column=0, columnspan=4)
 
         self.browserBox = Entry(self.prefsFrame, textvar=self.tokenVar)
         self.browserBox.grid(row=r, column=4)
 
+        r += 1
+        s3_profile_label = Label(self.prefsFrame, text="S3 Proflile: ")
+        s3_profile_label.grid(row=r, column=0, columnspan=4)
+
+        s3_profile_box = Entry(self.prefsFrame, textvar=self.s3profile)
+        s3_profile_box.grid(row=r, column=4)
+
+        r += 1
+        s3_region_label = Label(self.prefsFrame, text="S3 Region: ")
+        s3_region_label.grid(row=r, column=0, columnspan=4)
+
+        s3_region_box = Entry(self.prefsFrame, textvar=self.regionVar)
+        s3_region_box.grid(row=r, column=4)
+
+        r += 1
+        s3_endpoint_label = Label(self.prefsFrame, text="S3 Endpoint: ")
+        s3_endpoint_label.grid(row=r, column=0, columnspan=4)
+
+        s3_endpoint_box = Entry(self.prefsFrame, textvar=self.endpointVar)
+        s3_endpoint_box.grid(row=r, column=4)
+
         r+=1
-        trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token'
+        self.archiveRecipientButton = Button(self.prefsFrame, text="Recipient Email", command=lambda: tkMessageBox.
+                                             showinfo("Recipient Email", "Enter the email address of the archive "
+                                                                         "recipient for encryption."))
+        self.archiveRecipientButton.grid(row=r, column=0, columnspan=4)
+
+        self.archiveRecipBox = Entry(self.prefsFrame, textvar=self.recipEmail)
+        self.archiveRecipBox.grid(row=r, column=4)
+
+
+        r+=1
+        trello_link = 'https://trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI' \
+                                                                                '&expiration=never&response_type=token'
         self.trelloButton = Button(self.prefsFrame, text='Trello Token: ', command=lambda:self.open_website(trello_link))
         self.trelloButton.grid(row=r, column=0, columnspan=4)
 
@@ -201,7 +239,7 @@ class SettingsWindow(Toplevel):
         imExts = [x[1][1:] for x in maskgen.tool_set.imagefiletypes]
         vidExts = [x[1][1:] for x in maskgen.tool_set.videofiletypes]
         audExts = [x[1][1:] for x in maskgen.tool_set.audiofiletypes]
-        modelExts = ['.3d.zip']
+        modelExts = [x[1:] for x in hp_data.exts['MODEL']]
         tkMessageBox.showinfo('File Types', message='File extensions accepted by default: \n' +
                                                     'Image: ' + ', '.join(imExts) + '\n\n' +
                                                     'Video: ' + ', '.join(vidExts) + '\n\n' +
@@ -252,15 +290,28 @@ class SettingsWindow(Toplevel):
             tkMessageBox.showerror(title='Error', message='Initials must be specified.')
             return
 
-        settings_data = {'seq': self.seqVar.get(), 'aws-hp': self.s3Var.get(), 'aws-prnu': self.s3VarPRNU.get(),
-                         'apiurl': self.urlVar.get(), 'apitoken': self.tokenVar.get(), 'trello': self.trelloVar.get(),
+        settings_data = {'seq': self.seqVar.get(),
+                         'aws-hp': self.s3Var.get(),
+                         'aws-prnu': self.s3VarPRNU.get(),
+                         's3-endpoint': self.endpointVar.get(),
+                         's3-profile': self.s3profile.get(),
+                         's3-region': self.regionVar.get(),
+                         'apiurl': self.urlVar.get(),
+                         'apitoken': self.tokenVar.get(),
+                         'trello': self.trelloVar.get(),
                          'archive_recipient':self.archiveRecipBox.get(),
-                         'imagetypes': self.imageVar.get(), 'videotypes': self.videoVar.get(), 'audiotypes':
-                         self.audioVar.get(), 'modeltypes': self.modelVar.get(), 'hp_trello_login_url': 'https://'
-                         'trello.com/1/authorize?key=' + self.trello_key + '&scope=read%2Cwrite&name=HP_GUI&expiration='
-                         'never&response_type=token', 'copyrightnotice': self.copyrightVar.get(), 'by-line':
-                         self.bylineVar.get(), 'credit': self.creditVar.get(), 'usageterms': self.usageVar.get(),
-                         'copyright': '', 'artist': ''}
+                         'imagetypes': self.imageVar.get(),
+                         'videotypes': self.videoVar.get(),
+                         'audiotypes': self.audioVar.get(),
+                         'modeltypes': self.modelVar.get(),
+                         'hp_trello_login_url': 'https://trello.com/1/authorize?key=' + self.trello_key +
+                                                '&scope=read%2Cwrite&name=HP_GUI&expiration=never&response_type=token',
+                         'copyrightnotice': self.copyrightVar.get(),
+                         'by-line': self.bylineVar.get(),
+                         'credit': self.creditVar.get(),
+                         'usageterms': self.usageVar.get(),
+                         'copyright': '',
+                         'artist': ''}
 
         self.settings.saveall(settings_data.items())
 

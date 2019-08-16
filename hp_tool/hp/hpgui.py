@@ -38,7 +38,6 @@ class HP_Starter(Frame):
         self.master = master
         self.settings = settings
         self.checker = checker
-        self.grid()
         self.oldImageNames = []
         self.newImageNames = []
         self.collections = load_json_dictionary(data_files._COLLECTIONS)
@@ -123,11 +122,11 @@ class HP_Starter(Frame):
             if models and not self.recBool.get():
                 errors = []
                 for model_dir in input_dir_files:
-                    if len(os.listdir(model_dir)) == 1 and (os.listdir(model_dir)[0].endswith('.3d.zip') or
+                    if len(os.listdir(model_dir)) == 1 and (is_model(model_dir) or
                                                             os.path.splitext(os.listdir(model_dir)[0])[1] in exts[
                                                                 'nonstandard']):
                         errors.append("No Thumbnail images found in {0}.".format(os.path.basename(model_dir)))
-                    if not any([fname.lower().endswith('.3d.zip') for fname in os.listdir(model_dir)]):
+                    if not any([is_model(fname) for fname in os.listdir(model_dir)]):
                         needed_cammodel()
                         return
                 if len(errors) > 0:

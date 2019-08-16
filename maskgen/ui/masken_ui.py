@@ -1380,11 +1380,20 @@ class MakeGenUI(Frame):
                                  information='Validation API URL'),
                  ProjectProperty(name='apitoken', type='text',
                                  description="API Token",
-                                 information='Validation API URL'),
+                                 information='Validation API Token from the browser'),
+                 ProjectProperty(name='s3-endpoint', type='text',
+                                 description="AWS endpoint URL",
+                                 information='Enter your endpoint url if you have one.'),
+                 ProjectProperty(name='s3-profile', type='text',
+                                 description="AWS profile name",
+                                 information='Enter your aws profile name if you have multiple config profiles.'),
+                 ProjectProperty(name='s3-region', type='text',
+                                 description="AWS region",
+                                 information='Enter your aws region if you have one.'),
                  ProjectProperty(name='temp.dir',
                                  type='folder:' + os.path.expanduser('~'),
-                                 description="Tempoary Directory for Export",
-                                 information='Tempoary Directory for Export')
+                                 description="Temporary Directory for Export",
+                                 information='Temporary Directory for Export')
 
                  ]
         for k, v in self.notifiers.get_properties().iteritems():
@@ -1504,9 +1513,10 @@ def runui(argv=None):
     if args.debug:
         set_logging_level(logging.DEBUG)
     root = Tk()
-    gui = MakeGenUI(imgdir, master=root,
-                    base=args.base if args.base is not None else None, uiProfile=uiProfile)
-
+    gui = MakeGenUI(imgdir, master=root, base=args.base if args.base is not None else None, uiProfile=uiProfile)
+    endpoint = prefLoader.get_key('s3-endpoint', None)
+    if endpoint is None:
+        gui.getsystemproperties()
     #root.protocol("WM_DELETE_WINDOW", lambda: gui.quit())
     interval =  prefLoader.get_key('autosave')
     if interval and interval not in [ '0' , 'L']:

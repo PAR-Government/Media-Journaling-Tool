@@ -1187,7 +1187,8 @@
             "Tilt Shift",
             "Motion",
             "Other",
-            "Wiener"
+            "Wiener",
+            "Impulse Preserving Median Smoothing"
           ],
           "description": "Please include details in the general description.  Smooth textures while preserving edge detail. Use Median Smoothing apply nonlinear digital filtering technique to remove noise while preserving edges"
         },
@@ -1217,6 +1218,18 @@
         "inputmaskname": {
           "type": "file:image",
           "description": "An image file containing a mask describing the areas affected."
+        },
+        "Blur Radius": {
+          "type": "int[0:10000000]",
+          "description": "Radius from center of applied blur effect, in pixels.",
+          "defaultValue": 0,
+          "source": "image"
+        },
+        "Blur Angle": {
+          "type": "int[0:359]",
+          "description": "Angle of blur effect, in degrees.",
+          "defaultValue": 0,
+          "source": "image"
         }
       },
       "analysisOperations": [
@@ -5371,6 +5384,61 @@
           "type": "frame_or_time",
           "trigger mask": true,
           "description": "Start time of the image clip (HH:MI:SS.micro or frame number)"
+        },
+        "minimum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "0",
+          "source": "video",
+          "description": "Permitted variance in the difference of frame pixels during mask creation before difference is included in the mask,."
+        },
+        "maximum threshold": {
+          "trigger mask": true,
+          "type": "int[0:255]:slider",
+          "defaultvalue": "255",
+          "source": "video",
+          "description": "Permitted variance in the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "kernel": {
+          "trigger mask": true,
+          "type": "list",
+          "values": [
+            "3",
+            "5",
+            "7",
+            "9"
+          ],
+          "defaultvalue": "3",
+          "source": "video",
+          "description": "Noise regions less than or equal to the size of the width and height of the given kernal are removed"
+        },
+        "gain": {
+          "trigger mask": true,
+          "type":"int[-20:20]:slider",
+          "defaultvalue":0,
+          "source": "video",
+          "description": "Fixed variation of pixel difference used as a tolerance to create masks"
+        },
+        "aggregate": {
+          "trigger mask": true,
+          "type": "list",
+          "defaultvalue": "max",
+          "source": "video",
+          "values": [
+            "max",
+            "sum"
+          ],
+          "description": "The function to summarize the differences of frame pixels across dimension RGB during mask creation."
+        },
+        "morphology order": {
+          "type": "list",
+          "trigger mask": true,
+          "defaultvalue": "open:close",
+          "values": [
+            "open:close",
+            "close:open"
+          ],
+          "description": "Order of morphology operations in mask generation- open: removes noise, close: fills gaps."
         }
       },
       "rules": [
@@ -5391,10 +5459,10 @@
           "source": "video",
           "description": "A video file with a transparency highlighting the sampled areas of the video"
         },
-        "kernel": {
-          "type": "int[1:27]",
-          "defaultvalue": 3,
-          "description": "Size of kernel to remove noise"
+        "End Time": {
+          "type": "frame_or_time",
+          "trigger mask": true,
+          "description": "Stop time of the image clip (HH:MI:SS.micro or frame number)"
         }
       },
       "donor_processor": "maskgen.masks.donor_rules.video_donor",

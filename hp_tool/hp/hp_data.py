@@ -24,10 +24,10 @@ from zipfile import ZipFile
 exts = {'IMAGE': [x[1][1:] for x in maskgen.tool_set.imagefiletypes],
         'VIDEO': [x[1][1:] for x in maskgen.tool_set.videofiletypes] + [".zip"],
         'AUDIO': [x[1][1:] for x in maskgen.tool_set.audiofiletypes],
-        'MODEL': ['.3d.zip'],
+        'MODEL': ['.3d.zip', '.sc.zip'],
         'nonstandard': ['.lfr']}
 
-model_types = [x[1][1:] for x in maskgen.tool_set.modelfiletypes]
+model_types = [x[1][1:] for x in maskgen.tool_set.modelfiletypes] + ['sc']
 
 orgs = {'RIT': 'R', 'Drexel': 'D', 'U of M': 'M', 'PAR': 'P', 'CU Denver': 'C'}
 
@@ -56,7 +56,7 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
     currentExt = os.path.splitext(image)[1]
     files_in_dir = os.listdir(os.path.dirname(image)) if containsmodels else []
 
-    if any(filename.lower().endswith('.3d.zip') for filename in files_in_dir):
+    if any(is_model(filename) for filename in files_in_dir):
         sub = 'model'
     elif any(os.path.splitext(filename)[1].lower() in exts["nonstandard"] for filename in files_in_dir):
         sub = 'nonstandard'
@@ -87,8 +87,8 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
         thumbnail_counter = 0
         for i in os.listdir(file_dir):
             currentExt = os.path.splitext(i)[1].lower()
-            if i.lower().endswith(".3d.zip"):
-                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + ".3d.zip")
+            if is_model(i):
+                newPathName = os.path.join(path, sub, '.hptemp', newNameStr, newNameStr + get_double_ext(i))
             elif currentExt in exts["nonstandard"]:
                 newPathName = os.path.join(path, sub, '.hptemp', newNameStr + currentExt)
             elif currentExt in exts['IMAGE']:
@@ -108,6 +108,12 @@ def copyrename(image, path, usrname, org, seq, other, containsmodels):
 
     shutil.copy2(image, newPathName)
     return newPathName
+
+
+def get_double_ext(filename):
+    base, outter_ext = os.path.splitext(filename)
+    base, inner_ext = os.path.splitext(base)
+    return inner_ext + outter_ext
 
 
 def check_settings(self):
@@ -167,6 +173,10 @@ def pad_to_5_str(num):
     return '{:=05d}'.format(num)
 
 
+def is_model(filename):
+    return any([filename.lower().endswith(model) for model in exts['MODEL']])
+
+
 def grab_dir(inpath, outdir=None, r=False):
     """
     Grabs all image files in a directory
@@ -189,7 +199,7 @@ def grab_dir(inpath, outdir=None, r=False):
                 imageList.append(os.path.join(inpath, f))
             elif os.path.isdir(os.path.join(inpath, f)):
                 for obj in os.listdir(os.path.join(inpath, f)):
-                    if obj.lower().endswith('.3d.zip') or os.path.splitext(obj)[1].lower() in exts["nonstandard"]:
+                    if is_model(obj) or os.path.splitext(obj)[1].lower() in exts["nonstandard"]:
                         imageList.append(os.path.normpath(os.path.join(inpath, f, obj)))
 
     imageList = sorted(imageList, key=str.lower)
@@ -370,17 +380,23 @@ def set_other_data(self, data, imfile, set_primary):
     :return: data with more information completed
     """
     def get_model_ext(model):
+        """
+        Get all file names within the model zip an dtest if any of the extensions match what we expect for a model.
+        If so, return that matching extension, otherwise return the original
+        :param model:
+        :return:
+        """
         zf = ZipFile(model)
         exts_in_zip = [os.path.splitext(x)[1] for x in zf.namelist()]
         matching_types = [x for x in exts_in_zip if x in model_types]
         if matching_types:
             return matching_types[0]
-        return "3d.zip"
+        return ".".join(model.split(".")[1:])  # Can't use splitext here since it would just give .zip
 
     imext = os.path.splitext(imfile)[1]
     if imext.lower() in exts['AUDIO']:
         data['Type'] = 'audio'
-    elif imfile.lower().endswith('.3d.zip'):
+    elif is_model(imfile):
         data['Type'] = 'model'
     elif imext.lower() in exts['VIDEO']:
         data['Type'] = 'video'
@@ -517,7 +533,7 @@ def parse_image_info(self, imageList, cameraData, **kwargs):
     data = {}
     reverseLUT = dict((remove_dash(v), k) for k, v in fields.iteritems() if v)
     for i in xrange(0, len(imageList)):
-        if not (imageList[i].lower().endswith('.3d.zip') or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
+        if not (is_model(imageList[i]) or os.path.splitext(imageList[i])[1].lower() in exts["nonstandard"]):
             try:
                 data[i] = combine_exif(exifDict[os.path.normpath(imageList[i])], reverseLUT, master.copy())
             except KeyError:
@@ -628,7 +644,7 @@ def process(self, cameraData, imgdir='', outputdir='', recursive=False,
         if os.path.split(newName)[1] == os.path.split(image)[1]:
             name = os.path.split(image)[1]
 
-            if name.lower().endswith('.3d.zip'):
+            if is_model(name):
                 tkMessageBox.showerror("Improper 3D Model Processing", "In order to process 3D models, you must have "
                                                                        "no device local ID and the 'Include "
                                                                        "Subdirectories' box must NOT be checked")

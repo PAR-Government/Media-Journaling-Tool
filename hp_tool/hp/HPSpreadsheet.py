@@ -597,7 +597,7 @@ class HPSpreadsheet(Toplevel):
                               (colName in self.mandatoryVideoNames and ((currentExt in hp_data.exts['VIDEO']) or
                               fname.lower().endswith(".dng.zip"))) or (colName in self.mandatoryAudioNames and
                               currentExt in hp_data.exts['AUDIO']) or (colName in self.mandatoryModelNames and
-                              self.pt.model.getValueAt(row, 0).endswith('.3d.zip')) else\
+                              hp_data.is_model(self.pt.model.getValueAt(row, 0))) else\
                     "specialentry" if colName in ["HP-ReleaseForms"] else\
                     "enable"
 
@@ -717,9 +717,9 @@ class HPSpreadsheet(Toplevel):
         initial = self.settings.get_key('aws-hp')
         val = tkSimpleDialog.askstring(title='Export to S3', prompt='S3 bucket/folder to upload to.', initialvalue=initial, parent=self)
 
-        if (val is not None and len(val) > 0):
+        if val is not None and len(val) > 0:
             self.settings.save('aws-hp', val)
-            s3 = S3Transfer(boto3.client('s3', 'us-east-1'))
+
             BUCKET = val.split('/')[0].strip()
             DIR = val[val.find('/') + 1:].strip()
             DIR = DIR if DIR.endswith('/') else DIR + '/'
@@ -766,7 +766,11 @@ class HPSpreadsheet(Toplevel):
 
             print('Uploading...')
             try:
-                s3.upload_file(archive, BUCKET, DIR + os.path.basename(archive), callback=ProgressPercentage(archive))
+                from maskgen.external.exporter import S3ExportTool
+                endpoint = self.settings.get_key('s3-endpoint', '')
+                profile = self.settings.get_key('s3-profile', 'default')
+                region = self.settings.get_key('s3-region', 'us-east-1')
+                S3ExportTool().export(archive, BUCKET, DIR, None, profile=profile, endpoint=endpoint, region=region)
             except Exception as e:
                 tkMessageBox.showerror(title='Error', message='Could not complete upload.\n\n\n' + str(e), parent=self)
                 print e
@@ -1271,7 +1275,7 @@ class ProgressPercentage(object):
     """
     http://boto3.readthedocs.io/en/latest/_modules/boto3/s3/transfer.html
     """
-    def __init__(self, filename, total_files=None, count=None):
+    def __init__(self, filename, total_files=None, count=None, *args, **kwargs):
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0

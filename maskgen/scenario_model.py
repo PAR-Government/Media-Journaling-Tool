@@ -1055,6 +1055,9 @@ class ZipVideoLinkTool(VideoVideoLinkTool):
                                                                                           end_time=getValue(arguments,'End Time'))
         endMaskSet = video_tools.FileMetaDataLocator(destFileName).getMaskSetForEntireVideo()
         analysis['masks count'] = len(maskSet)
+        for videomask in maskSet:
+            if 'mask' in videomask:
+                videomask.pop('mask')
         analysis['videomasks'] = maskSet
         rate = get_rate_from_segment(maskSet[0])
         length = get_frames_from_segment(maskSet[0])

@@ -796,7 +796,7 @@ class ZipCapture:
 
     def get_exif(self):
         if self.exif is None:
-            name = self.names[min(len(self.names)-1,self.count - 1)]
+            name = self.names[min(len(self.names)-1,max(0, self.count - 1))]
             extracted_file = self._extract_name (name)
             self.exif = exif.getexif(extracted_file)
         return self.exif

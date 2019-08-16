@@ -6,6 +6,7 @@ from multiprocessing.forking import  Popen
 from time import sleep, time
 
 from maskgen.tool_set import S3ProgressPercentage
+from maskgen.maskgen_loader import *
 
 
 
@@ -19,12 +20,18 @@ class ExportProcess(Process):
 
 class S3ExportTool:
 
-    def export(self, path, bucket, dir, log):
+    def export(self, path, bucket, dir, log, profile='default', endpoint='', region='us-east-1',
+               callback=S3ProgressPercentage):
         import boto3
         from boto3.s3.transfer import S3Transfer, TransferConfig
         config = TransferConfig()
-        self.s3 = S3Transfer(boto3.client('s3', 'us-east-1'), config)
-        self.s3.upload_file(path, bucket, dir + os.path.split(path)[1], callback=S3ProgressPercentage(path, log))
+        session = boto3.Session(profile_name=profile)
+        client = session.client('s3', endpoint_url=endpoint) if bool(endpoint) else session.client('s3', region)
+        self.s3 = S3Transfer(client, config)
+        try:
+            self.s3.upload_file(path, bucket, dir + os.path.split(path)[1], callback=callback(path, log))
+        except client.exceptions.NoSuchBucket as e:
+            logging.getLogger('jt_export').error('The bucket destination does not exist! Check your aws config.')
 
 class DoNothingExportTool:
 
@@ -122,8 +129,12 @@ def _perform_upload(directory, path, location, pipe_to_parent, remove_when_done 
     dir = dir if dir.endswith('/') else dir + '/'
     logging.getLogger('jt_export').info('START {} to {} on {}'.format(path, location, os.getpid()))
     log = _log_and_update_parent(logging.getLogger('jt_export').info, pipe_to_parent)
+    preferences = MaskGenLoader()
+    endpoint = preferences.get_key('s3-endpoint', '')
+    profile = preferences.get_key('s3-profile', 'default')
+    region = preferences.get_key('s3-region', 'us-east-1')
     try:
-        export_tool.export(path, bucket, dir, log)
+        export_tool.export(path, bucket, dir, log, profile=profile, endpoint=endpoint, region=region)
         logging.getLogger('jt_export').info('DONE {} to {}'.format(path, location))
         pipe_to_parent.send('DONE')
         if remove_when_done:

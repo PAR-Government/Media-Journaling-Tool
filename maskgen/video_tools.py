@@ -834,6 +834,8 @@ class AudioMetaLocatorTool(VideoMetaLocatorTool):
         :return:
         """
         meta, _ = self.locator.get_meta(media_types=['audio'], show_streams=True)
+        if not meta:
+            raise ValueError('No audio streams present in {}'.format(self.locator.get_filename()))
         return ffmpeg_api.get_audio_frame_rate_from_meta(meta)
 
     def get_duration(self,default=None):
@@ -2697,8 +2699,8 @@ class AudioReader:
 
 class AudioCompare:
 
-    def __init__(self, fileOne, fileTwo, name_prefix, time_manager,arguments={},
-                 analysis={}):
+    def __init__(self, fileOne, fileTwo, name_prefix, time_manager, arguments={},
+                 analysis={}, controller=None):
         """
         :param fileOne:
         :param fileTwo:
@@ -2877,6 +2879,11 @@ class AudioCompare:
                          endtime=float(endframe) / float(ftwo.getframerate()) * 1000.0,
                          type= 'audio',
                          frames=counttwo)], []
+            except wave.Error as e:
+                if self.fileTwoAudio is None:
+                    logging.getLogger('maskgen').error('Failed to get audio from target file- ensure audio stream is present and readable')
+                logging.getLogger('maskgen').error('Wave Could not open audio from {}'.format(self.fileTwo))
+                logging.getLogger('maskgen').error('WaveError: '.join(e.message))
             finally:
                 ftwo.close()
         if len(self.errorstwo) > 0:
@@ -2912,26 +2919,26 @@ class AudioCompare:
         return clampToEnd(self.fileTwo, self.__initiateCompare(self.__insert), 'audio')
 
 
-def audioInsert(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
-    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+def audioInsert(fileOne, fileTwo, name_prefix, time_manager, controller=None, arguments={},analysis={}):
+    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager, controller=controller, arguments=arguments,analysis=analysis)
     return ac.audioInsert()
 
-def audioCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
-    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager,arguments=arguments,analysis=analysis)
+def audioCompare(fileOne, fileTwo, name_prefix, time_manager, controller=None, arguments={},analysis={}):
+    ac = AudioCompare(fileOne,fileTwo,name_prefix,time_manager, controller=controller, arguments=arguments,analysis=analysis)
     return ac.audioCompare()
 
-def audioDeleteCompare(fileOne, fileTwo,name_prefix, time_manager,arguments={},analysis={}):
-    ac = AudioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
+def audioDeleteCompare(fileOne, fileTwo,name_prefix, time_manager, controller=None, arguments={},analysis={}):
+    ac = AudioCompare(fileOne, fileTwo, name_prefix, time_manager, controller=controller, arguments=arguments, analysis=analysis)
     return ac.deleteCompare()
 
-def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+def audioAddCompare(fileOne, fileTwo, name_prefix, time_manager, controller=None, arguments={},analysis={}):
     if 'add type' in arguments and arguments['add type'] == 'insert':
-        return audioInsert(fileOne,fileTwo,name_prefix,time_manager, arguments=arguments,analysis=analysis)
+        return audioInsert(fileOne,fileTwo,name_prefix,time_manager, controller=controller, arguments=arguments,analysis=analysis)
     else:
-        return audioCompare(fileOne, fileTwo, name_prefix, time_manager, arguments=arguments, analysis=analysis)
+        return audioCompare(fileOne, fileTwo, name_prefix, time_manager, controller=controller, arguments=arguments, analysis=analysis)
 
 
-def audioSample(fileOne, fileTwo, name_prefix, time_manager,arguments={},analysis={}):
+def audioSample(fileOne, fileTwo, name_prefix, time_manager, controller=None, arguments={}, analysis={}):
     """
     Confirm fileTwo is sampled from fileOne
     :param fileOne:

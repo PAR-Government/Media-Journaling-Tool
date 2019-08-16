@@ -17,6 +17,8 @@ import os
 import traceback
 import sys
 import wrapt
+
+
 """
 Support functions for auto-updating journals created with older versions of the tool"
 """
@@ -98,7 +100,7 @@ def updateJournal(scModel):
          ('0.6.0117.76365a8b60', []),
          ('0.6.0208.ae6b74543d', []),
          ('0.6.0227.b469c4a202', [_fixAddCreateTime,_fixautopastecloneinputmask, _fixAudioDelete, _fixVideoMasksEndFrame]),
-         ('0.6.0531.ce60889744', [_fixManipulationSize, _fixGlobal])
+         ('0.6.0531.ce60889744', [_fixManipulationSize, _fixGlobal, _fixBlurArguments])
          ])
 
     def _ConformVersion(version):
@@ -150,6 +152,28 @@ def updateJournal(scModel):
         upgrades.append(scModel.getGraph().getVersion())
     scModel.getGraph().setDataItem('jt_upgrades',upgrades,excludeUpdate=True)
     return ok
+
+def _fixBlurArguments(scModel, gopLoader):
+    from re import search
+    for frm, to in scModel.G.get_edges():
+        edge = scModel.G.get_edge(frm, to)
+        op = getValue(edge, 'op', None)
+        if op.startswith('Blur'):
+            description = getValue(edge, 'description', '')
+            blurType = getValue(edge, 'arguments.Blur Type', '')
+            radius = getValue(edge, 'arguments.Blur Radius', 0)
+            angle = getValue(edge, 'arguments.Blur Angle', 0)
+            if blurType == 'Motion':
+                result = search(r"angle (\d{2}) and distance (\d{1,2})", description)
+                if result is not None:
+                    angle, radius = result.groups()
+            else:
+                result = search(r"radius of (\d) pixels?", description)
+                if result is not None:
+                    radius = result.group(1)
+            setPathValue(edge, 'arguments.Blur Angle', angle)
+            setPathValue(edge, 'arguments.Blur Radius', radius)
+
 
 def _fixautopastecloneinputmask(scModel, gopLoader):
      if scModel.getGraph().getDataItem('autopastecloneinputmask') is None:
